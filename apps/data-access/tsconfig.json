@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json", // 可选：继承根配置
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "@root/*": ["../../*"]        // 指向 synthos 根目录
+    }
+  },
+  "include": ["src/**/*"]
+}

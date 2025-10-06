@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm --filter 'apps/*' build",
+    "dev": "pnpm --filter 'apps/*' dev",
+    "start": "pnpm --filter 'apps/*' start"
   },
   "keywords": [],
   "author": "",
@@ -14,6 +16,7 @@
     "@types/node": "^24.7.0",
     "dotenv": "^17.2.3",
     "eslint": "^9.37.0",
+    "gradient-string": "^3.0.0",
     "prettier": "^3.6.2",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
