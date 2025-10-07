@@ -1,4 +1,4 @@
-import fs from "fs/promises";
+import { readFile } from "fs/promises";
 import { GlobalConfig } from "./@types/GlobalConfig";
 
 class ConfigManagerService {
@@ -9,9 +9,9 @@ class ConfigManagerService {
     }
 
     public async getCurrentConfig(): Promise<GlobalConfig> {
-        const configContent = await fs.readFile(this.configPath, "utf8");
+        const configContent = await readFile(this.configPath, "utf8");
         return JSON.parse(configContent) as GlobalConfig;
     }
 }
 
-export default new ConfigManagerService("config.json");
+export default new ConfigManagerService("~/synthos_config.json");
