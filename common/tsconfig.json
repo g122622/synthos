@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "composite": true,          // ✅ 启用项目引用
+    "declaration": true,        // 必须生成 .d.ts
+    "outDir": "./dist",
+    "rootDir": "./"
+  },
+  "exclude": ["node_modules", "dist"]
+}

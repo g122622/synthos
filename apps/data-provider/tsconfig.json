@@ -5,7 +5,13 @@
     "paths": {
       "@/*": ["src/*"],
       "@root/*": ["../../*"]        // 指向 synthos 根目录
-    }
+    },
+    "outDir": "./dist",
+    "rootDir": "./src",
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"],
+  "references": [
+    { "path": "../../common" }  // ✅ 引用公共包项目
+  ]
 }
