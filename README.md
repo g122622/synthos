@@ -3,6 +3,7 @@
 使用monorepo管理项目，使用pnpm管理依赖。
 
 1. 根目录安装依赖
+
 ```bash
 pnpm i
 ```
