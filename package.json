@@ -22,5 +22,8 @@
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "tsconfig-paths": "^4.2.0"
   }
 }
