@@ -1,17 +1,17 @@
 {
-  "extends": "../../tsconfig.base.json", // 可选：继承根配置
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@root/*": ["../../*"]        // 指向 synthos 根目录
+    "extends": "../../tsconfig.base.json", // 可选：继承根配置
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@root/*": ["../../*"] // 指向 synthos 根目录
+        },
+        "outDir": "./dist",
+        "rootDir": "./src"
     },
-    "outDir": "./dist",
-    "rootDir": "./src",
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"],
-  "references": [
-    { "path": "../../common" }  // ✅ 引用公共包项目
-  ]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"],
+    "references": [
+        { "path": "../../common" } // ✅ 引用公共包项目
+    ]
 }
