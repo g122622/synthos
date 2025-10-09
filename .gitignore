@@ -23,3 +23,5 @@ pnpm-debug.log*
 
 # TypeScript build info
 *.tsbuildinfo 
+
+synthos_config.json

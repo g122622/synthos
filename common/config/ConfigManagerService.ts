@@ -14,4 +14,4 @@ class ConfigManagerService {
     }
 }
 
-export default new ConfigManagerService("~/synthos_config.json");
+export default new ConfigManagerService("../../synthos_config.json");

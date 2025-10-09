@@ -2,6 +2,8 @@
 
 使用monorepo管理项目，使用pnpm管理依赖。
 
+首先需要在项目根目录下面放好配置文件 `synthos_config.json`
+
 1. 根目录安装依赖
 
 ```bash
