@@ -2,54 +2,45 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { RawChatMessage } from "@root/common/types/data-provider/index";
 import { IIMProvider } from "./@types/IIMProvider";
 import Logger from "@root/common/util/Logger";
-import { sleep } from "@root/common/util/sleep";
+import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
-    private db: any;
+    private db: PromisifiedSQLite | null = null;
 
     public async init() {
         const dbPath = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbBasePath + "/nt_msg.db";
         // 打开数据库（原地读取，不复制）
         // @see https://docs.aaqwq.top/decrypt/decode_db.html#%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
-        const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err: any) => {
+        const db = new PromisifiedSQLite(sqlite3);
+        await db.open(dbPath);
+        this.db = db;
+        await db.loadExtension("Z:/sqlite_ext_ntqq_db.dll");
+
+        // 加密相关配置
+        await db.run("PRAGMA cipher_compatibility = 4"); // 设置 SQLCipher 兼容模式（推荐显式指定）。对应 SQLCipher 4.x
+        await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
+        await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
+        await db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
+        await db.run("PRAGMA cipher_default_kdf_iter = 4000"); // 非默认值
+        await db.run("PRAGMA cipher_hmac_algorithm = 'HMAC_SHA1'"); // 非默认值
+        await db.run("PRAGMA cipher_default_kdf_algorithm = 'PBKDF2_HMAC_SHA512'"); // 非默认值
+
+        // 尝试读取数据库，看看有哪些表
+        // const tables = await this.db.all("SELECT name FROM sqlite_master WHERE type='table'");
+        const stmt = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
+        const tables = [] as string[];
+        stmt.each((err: any, row: any) => {
             if (err) {
-                Logger.error("Failed to open database: " + err.message);
+                Logger.error("Failed to read table: " + err.message);
             } else {
-                Logger.info("Database opened successfully");
+                tables.push(row.name);
             }
         });
-        this.db = db;
-        db.loadExtension("Z:/sqlite_ext_ntqq_db.dll");
-
-        db.serialize(async () => {
-            // 设置 SQLCipher 兼容模式（推荐显式指定）
-            db.run("PRAGMA cipher_compatibility = 4"); // 对应 SQLCipher 4.x
-
-            // 加密相关配置
-            db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
-            db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
-            db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
-            db.run("PRAGMA cipher_default_kdf_iter = 4000"); // 非默认值
-            db.run("PRAGMA cipher_hmac_algorithm = 'HMAC_SHA1'"); // 非默认值
-            db.run("PRAGMA cipher_default_kdf_algorithm = 'PBKDF2_HMAC_SHA512'"); // 非默认值
-            
-            // 尝试读取数据库，看看有哪些表
-            // const tables = await this.db.all("SELECT name FROM sqlite_master WHERE type='table'");
-            const stmt = this.db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
-            const tables = [] as string[];
-            stmt.each((err: any, row: any) => {
-                if (err) {
-                    Logger.error("Failed to read table: " + err.message);
-                } else {
-                    tables.push(row.name);
-                }
-            });
-            stmt.finalize();
-            Logger.info("QQProvider init done");
-            Logger.info("QQProvider tables: " + tables);
-            console.dir(tables);
-        });
+        stmt.finalize();
+        Logger.info("QQProvider init done");
+        Logger.info("QQProvider tables: " + tables);
+        console.dir(tables);
     }
 
     public async getMsgByTimeRange(timeStart: number, timeEnd: number): Promise<RawChatMessage[]> {
