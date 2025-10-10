@@ -3,8 +3,6 @@ import { RawChatMessage } from "@root/common/types/data-provider/index";
 import { IIMProvider } from "../@types/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
-import { sleep } from "@root/common/util/promisify/sleep";
-import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import { parseMsgContentFromPB } from "./utils/parseMsgContentFromPB";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
@@ -59,13 +57,17 @@ export class QQProvider implements IIMProvider {
             // 转换为秒级时间戳
             timeStart = Math.floor(timeStart / 1000);
             timeEnd = Math.ceil(timeEnd / 1000);
-            const testSql = `SELECT * FROM group_msg_table WHERE "40050" between ${timeStart} and ${timeEnd}`;
-            this.LOGGER.info(`执行的SQL: ${testSql}`);
-            const results = await this.db.all(testSql);
-            this.LOGGER.info(`测试结果数量: ${results.length}`);
+            // 生成SQL语句
+            const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.enabled
+                ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
+                : "";
+            const sql = `SELECT * FROM group_msg_table WHERE ${patchSQL} and "40050" between ${timeStart} and ${timeEnd} `;
+            this.LOGGER.debug(`执行的SQL: ${sql}`);
+            const results = await this.db.all(sql);
+            this.LOGGER.debug(`测试结果数量: ${results.length}`);
             for (const result of results) {
                 this.LOGGER.info(`原结果: ${result["40800"]}`);
-                this.LOGGER.info(`parse后结果: ${parseMsgContentFromPB(result["40800"])}`);
+                this.LOGGER.yellow(`parse后结果: ${parseMsgContentFromPB(result["40800"])}`);
             }
             return [];
         } else {

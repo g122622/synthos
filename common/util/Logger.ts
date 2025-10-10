@@ -64,6 +64,9 @@ class Logger {
     public red(message: string) {
         this.logWithColor("\x1b[31m", message);
     }
+    public gray(message: string) {
+        this.logWithColor("\x1b[30m", message);
+    }
 
     public bgRed(message: string) {
         this.logWithColor("\x1b[41m", message);
@@ -90,6 +93,9 @@ class Logger {
     }
     public error(message: string) {
         this.red(message);
+    }
+    public debug(message: string) {
+        this.gray(message);
     }
 
     // --- 渐变方法 ---
