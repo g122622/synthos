@@ -4,7 +4,9 @@ enum ErrorReasons {
     ASSERTION_ERROR = "ASSERTION_ERROR", // 断言错误
     RANGE_ERROR = "RANGE_ERROR", // 范围错误
     EMPTY_VALUE_ERROR = "EMPTY_VALUE_ERROR", // 空值错误
-    UNKNOWN_ERROR = "UNKNOWN_ERROR" // 未知错误
+    UNKNOWN_ERROR = "UNKNOWN_ERROR", // 未知错误
+    UNINITIALIZED_ERROR = "UNINITIALIZED_ERROR", // 未初始化错误
+    TYPE_ERROR = "TYPE_ERROR", // 类型错误
 }
 
 export default ErrorReasons;
