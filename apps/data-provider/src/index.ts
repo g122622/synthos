@@ -5,5 +5,4 @@ import { QQProvider } from "./providers/QQProvider";
     Logger.info("QQProvider init");
     const qqProvider = new QQProvider();
     await qqProvider.init();
-    Logger.info("QQProvider init done");
 })();

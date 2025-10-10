@@ -56,14 +56,15 @@ class PromisifiedSQLite {
      * @param sql
      * @returns Promise<sqlite3.Statement>
      */
-    public prepare(sql: string): Promise<any> {
+    public prepare(sql: string): Promise<PromisifiedStatement> {
         return new Promise((resolve, reject) => {
             const statement = this.db.prepare(sql, err => {
                 if (err) {
                     Logger.bgRed("Failed to prepare statement: " + err.message);
                     reject(err);
                 } else {
-                    resolve(statement);
+                    const stmt = new PromisifiedStatement(statement);
+                    resolve(stmt);
                 }
             });
         });
