@@ -3,6 +3,7 @@ import { RawChatMessage } from "@root/common/types/data-provider/index";
 import { IIMProvider } from "./@types/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
+import { sleep } from "@root/common/util/promisify/sleep";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
@@ -18,13 +19,14 @@ export class QQProvider implements IIMProvider {
         await db.loadExtension("Z:/sqlite_ext_ntqq_db.dll");
 
         // 加密相关配置
+        Logger.info(`[QQProvider] 当前的dbKey: ${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey}`);
         await db.run("PRAGMA cipher_compatibility = 4"); // 设置 SQLCipher 兼容模式（推荐显式指定）。对应 SQLCipher 4.x
-        await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
-        await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
         await db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
-        await db.run("PRAGMA cipher_default_kdf_iter = 4000"); // 非默认值
-        await db.run("PRAGMA cipher_hmac_algorithm = 'HMAC_SHA1'"); // 非默认值
-        await db.run("PRAGMA cipher_default_kdf_algorithm = 'PBKDF2_HMAC_SHA512'"); // 非默认值
+        await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
+        await db.run("PRAGMA kdf_iter = 4000"); // 非默认值
+        await db.run("PRAGMA cipher_hmac_algorithm = HMAC_SHA1"); // 非默认值
+        await db.run("PRAGMA cipher_default_kdf_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
+        await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
 
         // 尝试读取数据库，看看有哪些表
         // const tables = await this.db.all("SELECT name FROM sqlite_master WHERE type='table'");
