@@ -24,13 +24,14 @@ export class QQProvider implements IIMProvider {
         await db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
         await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
         await db.run("PRAGMA kdf_iter = 4000"); // 非默认值
-        await db.run("PRAGMA cipher_hmac_algorithm = HMAC_SHA1"); // 非默认值
+        await db.run("PRAGMA cipher_hmac_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
         await db.run("PRAGMA cipher_default_kdf_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
         await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
 
         // 尝试读取数据库，看看有哪些表
         // const tables = await this.db.all("SELECT name FROM sqlite_master WHERE type='table'");
-        const stmt = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
+        // const stmt = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
+        const stmt = await db.prepare("SELECT * FROM group_msg_table WHERE 40093='古'");
         const tables = [] as string[];
         stmt.each((err: any, row: any) => {
             if (err) {
