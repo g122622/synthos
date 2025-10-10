@@ -20,18 +20,29 @@ export class QQProvider implements IIMProvider {
 
         // 加密相关配置
         Logger.info(`[QQProvider] 当前的dbKey: ${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey}`);
-        await db.run("PRAGMA cipher_compatibility = 4"); // 设置 SQLCipher 兼容模式（推荐显式指定）。对应 SQLCipher 4.x
-        await db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
-        await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
-        await db.run("PRAGMA kdf_iter = 4000"); // 非默认值
-        await db.run("PRAGMA cipher_hmac_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
-        await db.run("PRAGMA cipher_default_kdf_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
-        await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
+        // await db.run("PRAGMA cipher_compatibility = 4"); // 设置 SQLCipher 兼容模式（推荐显式指定）。对应 SQLCipher 4.x
+        // await db.run("PRAGMA cipher_page_size = 4096"); // 非默认值
+        // await db.run("PRAGMA kdf_iter = 4000"); // 非默认值
+        // await db.run("PRAGMA cipher_hmac_algorithm = HMAC_SHA1"); // 非默认值
+        // await db.run("PRAGMA cipher_default_kdf_algorithm = PBKDF2_HMAC_SHA512"); // 非默认值
+        // await db.run("PRAGMA cipher = 'aes-256-cbc'"); // 非默认值
+        // await db.run("PRAGMA key = '" + (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey + "'");
+        // 合在一句里
+        await db.exec(`
+            PRAGMA cipher_compatibility = 4;
+            PRAGMA cipher_page_size = 4096;
+            PRAGMA kdf_iter = 4000;
+            PRAGMA cipher_hmac_algorithm = HMAC_SHA256;
+            PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA512;
+            PRAGMA cipher = 'aes-256-cbc';
+            PRAGMA key = '${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey}';
+        `);
 
         // 尝试读取数据库，看看有哪些表
         // const tables = await this.db.all("SELECT name FROM sqlite_master WHERE type='table'");
         // const stmt = await db.prepare("SELECT name FROM sqlite_master WHERE type='table'");
-        const stmt = await db.prepare("SELECT * FROM group_msg_table WHERE 40093='古'");
+        const sql = `SELECT * FROM group_msg_table WHERE "40027" = 111 AND "40058" >= 1704038400 AND "40058" < 1735574400`;
+        const stmt = await db.prepare(sql);
         const tables = [] as string[];
         stmt.each((err: any, row: any) => {
             if (err) {
