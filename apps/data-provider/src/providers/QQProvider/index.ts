@@ -82,7 +82,7 @@ export class QQProvider implements IIMProvider {
             for (const result of results) {
                 this.LOGGER.info(`原结果: ${result[GMC.msgContent]}`);
                 this.LOGGER.yellow(`parse后结果: `);
-                console.dir(parser.parseMessageSegment(result[GMC.msgContent]));
+                console.dir(parser.parseMessageSegment(result[GMC.msgContent])?.messages);
             }
             return [];
         } else {

@@ -2,7 +2,7 @@ import * as protobuf from "protobufjs";
 import { readFile } from "fs/promises";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import Logger from "@root/common/util/Logger";
-import { cleanObject } from "@root/common/util/cleanObject";
+import { MsgDBParseResult } from "../@types/MsgDBParseResult";
 
 export class MessagePBParser {
     messageSegment: protobuf.Type | undefined;
@@ -19,7 +19,7 @@ export class MessagePBParser {
         this.messageSegment = root.lookupType("Message");
     }
 
-    public parseMessageSegment(buffer: Buffer) {
+    public parseMessageSegment(buffer: Buffer): MsgDBParseResult | null {
         if (!this.messageSegment) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
@@ -39,7 +39,7 @@ export class MessagePBParser {
                 arrays: true,
                 objects: true
             });
-            return cleanObject(plain, true);
+            return plain as MsgDBParseResult;
         } catch (error) {
             this.LOGGER.error("Protobuf decode error:" + error);
             return null;
