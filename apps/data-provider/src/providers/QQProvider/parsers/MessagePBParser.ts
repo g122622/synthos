@@ -2,13 +2,14 @@ import * as protobuf from "protobufjs";
 import { readFile } from "fs/promises";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import Logger from "@root/common/util/Logger";
+import { cleanObject } from "@root/common/util/cleanObject";
 
 export class MessagePBParser {
     messageSegment: protobuf.Type | undefined;
     LOGGER = Logger.withTag("MessagePBParser");
 
     public async init() {
-        // 1. 加载 .proto 文件（或直接用字符串）
+        // 1. 加载 .proto 文件（或直接用字符串） TODO：换一种加载方式，不要这么原始
         const protoContent = await readFile("./src/providers/QQProvider/parsers/messageSegment.proto", "utf8");
 
         // 2. 动态构建 Root
@@ -38,7 +39,7 @@ export class MessagePBParser {
                 arrays: true,
                 objects: true
             });
-            return plain;
+            return cleanObject(plain, true);
         } catch (error) {
             this.LOGGER.error("Protobuf decode error:" + error);
             return null;

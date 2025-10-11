@@ -1,9 +1,10 @@
 export interface RawChatMessage {
-    msgID: string;
+    msgId: string;
     messageContent: string;
     groupId: string;
     timestamp: number; // 消息发送时间戳, 单位: 毫秒
-    senderID: string; // 消息发送者id
+    senderId: string; // 消息发送者id
+    quotedMsgId?: string; // 引用的消息
 }
 
 export interface ProcessedChunk {

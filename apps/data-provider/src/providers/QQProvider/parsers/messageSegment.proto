@@ -1,86 +1,95 @@
 syntax = "proto3";
 
-message Message { repeated SingleMessage messages = 40800; }
+message Message {
+  repeated SingleMessage messages = 40800; // 注意：原文指出 48000 是消息段字段
+}
 
 message SingleMessage {
-  uint64 messageId = 45001;
-  // 1：文字，2：图片，3：文件，6：表情，7：回复（又叫做“引用”），
-  // 8：提示消息（中间灰色），10：应用消息
-  // 21：电话
-  // 26：动态消息
-//   ### elementType说明
-// | 值   | MsgRecord             | 说明                 |
-// | ---- | --------------------- | -------------------- |
-// | 1    | textElement           | 文本段               |
-// | 2    | picElement            | 图片段               |
-// | 3    | fileElement           | 文件消息             |
-// | 4    | pttElement            | 语音消息             |
-// | 5    | videoElement          | 视频消息             |
-// | 6    | faceElement           | QQ系统表情           |
-// | 7    | replyElement          | 引用                 |
-// | 8    | grayTipElement        | 系统消息（灰字提示） |
-// | 9    | WalletElement         | 红包消息             |
-// | 10   | arkElement            | 卡片消息             |
-// | 11   | marketFaceElement     | 商城表情             |
-// | 14   | markdownElement       | markdown消息         |
-// | 16   | -                     | XML消息              |
-// | 17   | inlineKeyboardElement | markdown按钮消息     |
-// | 21   | avRecordElement       | 通话消息             |
-// | 27   | faceBubbleElement     | 弹射表情包           |
-// | 28   | shareLocationElement  | 位置共享             |
-  uint32 messageType = 45002;
+  // 基础字段
+  uint64 messageId = 45001; // elementId，唯一标识
+  uint32 messageType = 45002; // elementType
 
-  // 回复消息
-  string senderId = 40020;
-  string receiverId = 40021;
-
-  // 文字消息
+  // 文本消息 (elementType == 1)
   string messageText = 45101;
 
-  // 文件消息
+  // 语音消息 (elementType == 4)
+  string pttText = 45923; // 语音转文字
+  uint32 duration = 45906; // 语音持续时间（秒）
+  bytes waveAmplitudes = 45925; // 音频波形
+
+  // 文件消息 (elementType == 3)
   string fileName = 45402;
+  string filePath = 45403;
   uint64 fileSize = 45405;
+  bytes file10MMD5 = 45407;
+  bytes fileSha = 45408;
+  bytes fileSha3 = 45409;
+  string fileUuid = 45503;
+  string picThumbPath = 45954; // 预览图路径（文件类）
+  uint32 thumbSize = 95654; // 预览图大小（fileElement）
 
-  uint64 sendTimestampFile = 45505; // ?
-
-  // 图片消息
+  // 图片消息 (elementType == 2)
+  uint32 picType = 45416; // 1000: 静态图, 2000: GIF
+  uint32 picWidth = 45411;
+  uint32 picHeight = 45412;
+  bytes originImageMd5 = 45424;
   string imageUrlLow = 45802;
   string imageUrlHigh = 45803;
   string imageUrlOrigin = 45804;
   string imageText = 45815;
 
-  uint32 senderUid = 47403;
-  uint32 sendTimestamp = 47404;
-  uint32 receiverUid = 47411;
-  SingleMessage replyMessage = 47423;
+  // 视频消息 (elementType == 5)
+  uint32 videotime = 45410; // 视频时长（秒）
+  uint32 thumbWidth = 45413;
+  uint32 thumbHeight = 45414;
+  uint32 thumbSizeVideo = 45415; // 视频封面大小
+  string thumbfilename = 45422; // 封面路径
+  bytes thumbMD5 = 45862; // 封面 MD5
 
-  // 表情消息
-  // 1: QQ 系统表情，2: emoji 表情
-  // https://bot.q.qq.com/wiki/develop/api/openapi/emoji/model.html
-  uint32 emojiId = 47601;
-  string emojiText = 47602;
+  // 表情消息 (elementType == 6 或 11)
+  uint32 emojiId = 47601; // faceindex
+  string emojiText = 47602; // facetext
 
-  // 应用消息
-  string applicationMessage = 47901;
+  // 引用/回复消息 (elementType == 7)
+  uint64 replyMsgId = 47401; // 引用的消息 msgid
+  uint32 replyMsgSeq = 47402;
+  uint32 replyMsgTime = 47403; // 引用消息时间戳（注意：表中 47403/47404 都是时间戳）
+  string replyMsgContent = 47413; // 引用的文本内容
+  string replySenderNick = 47421; // 引用方群昵称
+  // uint32 sourceMsgIdInRecords = 47422; // gy: 这个字段会引起解析错误，暂时不使用
+  SingleMessage replyMessage = 47423; // 嵌套的被引用消息（可选）
 
-  // 语音消息
-  string callStatusText = 48153;
-  string callText = 48157;
+  // 卡片消息 (elementType == 10)
+  string applicationMessage = 47901; // bytesData，卡片内容（通常为 JSON）
 
-  // 动态消息
+  // XML 消息 (elementType == 16)
+  string xmlMessage = 48602;
+
+  // 系统提示消息 (elementType == 8)
+  string noticeInfo = 48214;
+  string noticeInfo2 = 48271;
+  string withdrawSuffix = 47713; // 撤回消息后缀
+
+  // 动态消息 (elementType == 26)
   FeedMessage feedTitle = 48175;
   FeedMessage feedContent = 48176;
-
   string feedUrl = 48180;
   string feedLogoUrl = 48181;
   uint32 feedPublisherUid = 48182;
-
   string feedJumpInfo = 48183;
   string feedPublisherId = 48188;
 
-  // 提示消息
-  string noticeInfo = 48214;
-  string noticeInfo2 = 48271; // ?
+  // 通话消息 (elementType == 21)
+  string callStatusText = 48153;
+  string callText = 48157;
+
+  // 其他通用字段
+  string senderId = 40020;
+  string receiverId = 40021;
+  uint32 sendTimestamp = 49155; // 发送时间（使用表中 49155）
+  uint32 receiverUid = 47411;
 }
 
-message FeedMessage { string text = 48178; }
+message FeedMessage {
+  string text = 48178;
+}
