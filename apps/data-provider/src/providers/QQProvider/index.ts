@@ -5,6 +5,9 @@ import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import { parseMsgContentFromPB } from "./utils/parseMsgContentFromPB";
+import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
+import { ASSERT } from "@root/common/util/ASSERT";
+import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
@@ -47,6 +50,17 @@ export class QQProvider implements IIMProvider {
     }
 
     /**
+     * 获取数据库补丁SQL
+     * @returns 数据库补丁SQL
+     */
+    private async getPatchSQL() {
+        const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.enabled
+            ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
+            : "";
+        return patchSQL;
+    }
+
+    /**
      * 从QQNT数据库中获取指定时间范围内的消息
      * @param timeStart 开始时间（毫秒级时间戳）
      * @param timeEnd 结束时间（毫秒级时间戳）
@@ -58,20 +72,78 @@ export class QQProvider implements IIMProvider {
             timeStart = Math.floor(timeStart / 1000);
             timeEnd = Math.ceil(timeEnd / 1000);
             // 生成SQL语句
-            const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.enabled
-                ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
-                : "";
-            const sql = `SELECT * FROM group_msg_table WHERE ${patchSQL} and "40050" between ${timeStart} and ${timeEnd} `;
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.msgTime}" between ${timeStart} and ${timeEnd} `;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
-            this.LOGGER.debug(`测试结果数量: ${results.length}`);
+            this.LOGGER.debug(`结果数量: ${results.length}`);
             for (const result of results) {
-                this.LOGGER.info(`原结果: ${result["40800"]}`);
-                this.LOGGER.yellow(`parse后结果: ${parseMsgContentFromPB(result["40800"])}`);
+                this.LOGGER.info(`原结果: ${result[GMC.msgContent]}`);
+                this.LOGGER.yellow(`parse后结果: ${parseMsgContentFromPB(result[GMC.msgContent])}`);
             }
             return [];
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;
+        }
+    }
+
+    /**
+     * 根据群号（40030）和消息序号（40003）获取消息
+     * @returns 消息数组
+     */
+    private async getMsgByGroupNumberAndMsgSeq(groupNumber: number, msgSeq: number): Promise<RawGroupMsgFromDB | null> {
+        if (this.db) {
+            // 生成SQL语句
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
+            this.LOGGER.debug(`执行的SQL: ${sql}`);
+            const results = await this.db.all(sql);
+            this.LOGGER.debug(`结果数量: ${results.length}`);
+            ASSERT(results.length <= 1);
+            if (results.length === 0) {
+                return null;
+            } else {
+                return results[0];
+            }
+        } else {
+            throw ErrorReasons.UNINITIALIZED_ERROR;
+        }
+    }
+
+    /**
+     * 根据消息ID（40001）获取消息
+     * @param msgId 消息ID (由于id过长，超过Math.MAX_SAFE_INTEGER，因此使用字符串)
+     * @returns 消息数组
+     */
+    private async getMsgByMsgId(msgId: string): Promise<RawGroupMsgFromDB | null> {
+        if (this.db) {
+            // 生成SQL语句
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.msgId}" = ${msgId}`;
+            this.LOGGER.debug(`执行的SQL: ${sql}`);
+            const results = await this.db.all(sql);
+            this.LOGGER.debug(`结果数量: ${results.length}`);
+            ASSERT(results.length <= 1);
+            if (results.length === 0) {
+                return null;
+            }
+            return results[0];
+        } else {
+            throw ErrorReasons.UNINITIALIZED_ERROR;
+        }
+    }
+
+    public async test() {
+        const foo = await this.getMsgByMsgId("7559628700204540816");
+        // parse
+        if (foo) {
+            const bar = parseMsgContentFromPB(foo[GMC.msgContent]);
+            console.log(bar);
+        }
+        if (foo) {
+            const bar = await this.getMsgByGroupNumberAndMsgSeq(foo[GMC.groupUin], foo[GMC.replyMsgSeq]);
+            console.dir(bar);
+            if (bar) {
+                const baz = parseMsgContentFromPB(bar[GMC.msgContent]);
+                console.log(baz);
+            }
         }
     }
 

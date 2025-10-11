@@ -4,9 +4,9 @@ export function parseMsgContentFromPB(msgBuf: Buffer, isDebug = false): string {
     if (!Buffer.isBuffer(msgBuf)) {
         throw ErrorReasons.TYPE_ERROR;
     }
-    
-    let tagstatus = 0;
-    let remainlen = 0;
+
+    let tagStatus = 0;
+    let remainLen = 0;
     let text: number[] = [];
 
     if (isDebug) {
@@ -20,9 +20,9 @@ export function parseMsgContentFromPB(msgBuf: Buffer, isDebug = false): string {
             process.stdout.write(`${ch.toString(16).padStart(2, "0")} `);
         }
 
-        if (tagstatus === 0) {
+        if (tagStatus === 0) {
             if (ch === 0x82) {
-                tagstatus = 1;
+                tagStatus = 1;
                 if (isDebug) {
                     process.stdout.write("tag start, ");
                 }
@@ -34,10 +34,10 @@ export function parseMsgContentFromPB(msgBuf: Buffer, isDebug = false): string {
             continue;
         }
 
-        if (tagstatus === 1) {
+        if (tagStatus === 1) {
             if (ch === 0x16) {
                 // pure text
-                tagstatus = 2;
+                tagStatus = 2;
                 if (isDebug) {
                     process.stdout.write("tag text, ");
                 }
@@ -46,13 +46,13 @@ export function parseMsgContentFromPB(msgBuf: Buffer, isDebug = false): string {
             if (isDebug) {
                 process.stdout.write("tag others, ");
             }
-            tagstatus = -2;
+            tagStatus = -2;
             continue;
         }
 
-        if (tagstatus === 3 || tagstatus === -3) {
+        if (tagStatus === 3 || tagStatus === -3) {
             // going
-            if (tagstatus > 0) {
+            if (tagStatus > 0) {
                 if (ch === 0) {
                     text.push(0x0a); // '\n'
                 } else {
@@ -62,27 +62,27 @@ export function parseMsgContentFromPB(msgBuf: Buffer, isDebug = false): string {
                     }
                 }
             }
-            remainlen--;
-            if (remainlen === 0) {
-                tagstatus = 0;
+            remainLen--;
+            if (remainLen === 0) {
+                tagStatus = 0;
             }
             continue;
         }
 
         // tagstatus == -2 or 2
-        remainlen = ch;
+        remainLen = ch;
         if (isDebug) {
-            process.stdout.write(`tag data len ${remainlen}, `);
+            process.stdout.write(`tag data len ${remainLen}, `);
         }
-        if (tagstatus > 0) {
-            tagstatus++;
+        if (tagStatus > 0) {
+            tagStatus++;
         } else {
-            tagstatus--;
-            remainlen--;
+            tagStatus--;
+            remainLen--;
         }
-        if (remainlen <= 0) {
-            remainlen = 0;
-            tagstatus = 0;
+        if (remainLen <= 0) {
+            remainLen = 0;
+            tagStatus = 0;
             continue;
         }
     }
