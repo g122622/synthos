@@ -127,6 +127,7 @@ export class QQProvider implements IIMProvider {
                             // TODO: 处理文件消息
                             break;
                         }
+                        // TODO: 处理其他消息类型，比如外链、小程序分享等
                     }
                 }
 
