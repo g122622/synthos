@@ -5,7 +5,6 @@ import { QQProvider } from "./providers/QQProvider";
     Logger.info("QQProvider init");
     const qqProvider = new QQProvider();
     await qqProvider.init();
-    await qqProvider.test();
-    // await qqProvider.getMsgByTimeRange(1760113163000, 1760113263000);
+    await qqProvider.getMsgByTimeRange(1760113163000, 1760113263000);
     await qqProvider.close();
 })();

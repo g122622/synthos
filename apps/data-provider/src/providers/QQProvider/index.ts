@@ -4,10 +4,11 @@ import { IIMProvider } from "../@types/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/types/ErrorReasons";
-import { parseMsgContentFromPB } from "./utils/parseMsgContentFromPB";
+import { parseMsgContentFromPB } from "./parsers/parseMsgContentFromPB";
 import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
+import { MessagePBParser } from "./parsers/MessagePBParser";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
@@ -53,7 +54,7 @@ export class QQProvider implements IIMProvider {
      * 获取数据库补丁SQL
      * @returns 数据库补丁SQL
      */
-    private async getPatchSQL() {
+    private async _getPatchSQL() {
         const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.enabled
             ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
             : "";
@@ -72,13 +73,16 @@ export class QQProvider implements IIMProvider {
             timeStart = Math.floor(timeStart / 1000);
             timeEnd = Math.ceil(timeEnd / 1000);
             // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.msgTime}" between ${timeStart} and ${timeEnd} `;
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.msgTime}" between ${timeStart} and ${timeEnd} `;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
+            const parser = new MessagePBParser();
+            await parser.init();
             for (const result of results) {
                 this.LOGGER.info(`原结果: ${result[GMC.msgContent]}`);
-                this.LOGGER.yellow(`parse后结果: ${parseMsgContentFromPB(result[GMC.msgContent])}`);
+                this.LOGGER.yellow(`parse后结果: `);
+                console.dir(parser.parseMessageSegment(result[GMC.msgContent]));
             }
             return [];
         } else {
@@ -90,10 +94,10 @@ export class QQProvider implements IIMProvider {
      * 根据群号（40030）和消息序号（40003）获取消息
      * @returns 消息数组
      */
-    private async getMsgByGroupNumberAndMsgSeq(groupNumber: number, msgSeq: number): Promise<RawGroupMsgFromDB | null> {
+    private async _getMsgByGroupNumberAndMsgSeq(groupNumber: number, msgSeq: number): Promise<RawGroupMsgFromDB | null> {
         if (this.db) {
             // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
@@ -113,10 +117,10 @@ export class QQProvider implements IIMProvider {
      * @param msgId 消息ID (由于id过长，超过Math.MAX_SAFE_INTEGER，因此使用字符串)
      * @returns 消息数组
      */
-    private async getMsgByMsgId(msgId: string): Promise<RawGroupMsgFromDB | null> {
+    private async _getMsgByMsgId(msgId: string): Promise<RawGroupMsgFromDB | null> {
         if (this.db) {
             // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this.getPatchSQL()} and "${GMC.msgId}" = ${msgId}`;
+            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.msgId}" = ${msgId}`;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
@@ -131,16 +135,17 @@ export class QQProvider implements IIMProvider {
     }
 
     public async test() {
-        const foo = await this.getMsgByMsgId("7559628700204540816");
+        const foo = await this._getMsgByMsgId("7559628700204540816");
         // parse
         if (foo) {
             const bar = parseMsgContentFromPB(foo[GMC.msgContent]);
             console.log(bar);
         }
         if (foo) {
-            const bar = await this.getMsgByGroupNumberAndMsgSeq(foo[GMC.groupUin], foo[GMC.replyMsgSeq]);
+            const bar = await this._getMsgByGroupNumberAndMsgSeq(foo[GMC.groupUin], foo[GMC.replyMsgSeq]);
             console.dir(bar);
             if (bar) {
+                console.log(bar[GMC.msgContent].toString("utf-8"));
                 const baz = parseMsgContentFromPB(bar[GMC.msgContent]);
                 console.log(baz);
             }
