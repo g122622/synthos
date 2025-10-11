@@ -32,7 +32,7 @@ export class MessagePBParser {
         try {
             const message = this.messageSegment.decode(buffer);
             const plain = this.messageSegment.toObject(message, {
-                longs: Number, // 将 Long 转为 number
+                longs: String, // 长整数转字符串（可选）
                 enums: String, // 枚举转字符串（可选）
                 bytes: String, // bytes 转 base64 字符串（或保留为 Buffer）
                 defaults: true,

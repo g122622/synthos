@@ -13,7 +13,7 @@ interface SingleMessage {
     // ========== 基础字段 ==========
 
     /** elementId，唯一标识 (messageId = 45001) */
-    messageId: number; // 注意：若值超过 Number.MAX_SAFE_INTEGER，建议使用 string
+    messageId: string;
 
     /** elementType (messageType = 45002) */
     messageType: number;
@@ -43,7 +43,7 @@ interface SingleMessage {
     filePath: string;
 
     /** 文件大小（字节）(fileSize = 45405) */
-    fileSize: number;
+    fileSize: string;
 
     /** 文件 10MB 分片 MD5 (file10MMD5 = 45407) */
     file10MMD5: string;
@@ -120,7 +120,7 @@ interface SingleMessage {
     // ========== 引用/回复消息 (elementType == 7) ==========
 
     /** 被引用的消息 msgid (replyMsgId = 47401) */
-    replyMsgId: number;
+    replyMsgId: string;
 
     /** 引用消息序列号 (replyMsgSeq = 47402) */
     replyMsgSeq: number;
