@@ -4,7 +4,6 @@ import { IIMProvider } from "../@types/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/types/ErrorReasons";
-import { parseMsgContentFromPB } from "./parsers/parseMsgContentFromPB";
 import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
@@ -180,24 +179,6 @@ export class QQProvider implements IIMProvider {
             return results[0];
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;
-        }
-    }
-
-    public async test() {
-        const foo = await this._getMsgByMsgId("7559628700204540816");
-        // parse
-        if (foo) {
-            const bar = parseMsgContentFromPB(foo[GMC.msgContent]);
-            console.log(bar);
-        }
-        if (foo) {
-            const bar = await this._getMsgByGroupNumberAndMsgSeq(foo[GMC.groupUin], foo[GMC.replyMsgSeq]);
-            console.dir(bar);
-            if (bar) {
-                console.log(bar[GMC.msgContent].toString("utf-8"));
-                const baz = parseMsgContentFromPB(bar[GMC.msgContent]);
-                console.log(baz);
-            }
         }
     }
 
