@@ -1,5 +1,5 @@
 export class PromptStore {
-    // TODO 补充背景信息，如：wj代表陈彦希
+    // TODO 补充背景信息，如：wj代表陈彦希、这个群的简介、主要话题方向、主要人员构成等
     public static getSummarizePrompt(maxTopics: number, messages: string): string {
         return `你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的几个准则：
         请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。

@@ -215,6 +215,6 @@ interface SingleMessage {
  * 消息容器，对应 proto 中的 Message
  * repeated SingleMessage messages = 40800;
  */
-export interface MsgDBParseResult {
+export interface RawMsgContentParseResult {
     messages: SingleMessage[];
 }

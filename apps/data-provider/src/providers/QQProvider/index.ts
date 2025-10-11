@@ -9,11 +9,13 @@ import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
+import { MessageType } from "./@types/mappers/MessageType";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
     private db: PromisifiedSQLite | null = null;
     private LOGGER = Logger.withTag("QQProvider");
+    private parser = new MessagePBParser();
 
     public async init() {
         // 1. 创建一个临时内存数据库（仅用于加载扩展）
@@ -47,6 +49,10 @@ export class QQProvider implements IIMProvider {
         const result = await stmt.get();
         this.LOGGER.success(`解密成功，数据库表数量: ${result["count(*)"]}`);
         await stmt.finalize();
+
+        // 初始化消息解析器
+        await this.parser.init();
+
         this.LOGGER.success("初始化完成！");
     }
 
@@ -77,14 +83,56 @@ export class QQProvider implements IIMProvider {
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
-            const parser = new MessagePBParser();
-            await parser.init();
+
+            // 解析查询到的全部消息内容
+            const messages: RawChatMessage[] = [];
             for (const result of results) {
-                this.LOGGER.info(`原结果: ${result[GMC.msgContent]}`);
-                this.LOGGER.yellow(`parse后结果: `);
-                console.dir(parser.parseMessageSegment(result[GMC.msgContent])?.messages);
+                // 生成quotedMsgId
+                let quotedMsgId: string | undefined = undefined;
+                if (result[GMC.replyMsgSeq]) {
+                    const originalMsg = await this._getMsgByGroupNumberAndMsgSeq(result[GMC.groupUin], result[GMC.replyMsgSeq]);
+                    if (originalMsg) {
+                        quotedMsgId = originalMsg[GMC.msgId];
+                    } else {
+                        this.LOGGER.warning(`无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`);
+                    }
+                }
+                // 生成消息
+                const processedMsg = {
+                    msgId: String(result[GMC.msgId]),
+                    messageContent: "",
+                    groupId: String(result[GMC.groupUin]),
+                    timestamp: result[GMC.msgTime] * 1000, // 转换为毫秒级时间戳
+                    senderId: String(result[GMC.senderUin]),
+                    quotedMsgId
+                } as RawChatMessage;
+
+                // 解析40800中的所有element（或者叫做fragment）
+                const rawMsgElements = this.parser.parseMessageSegment(result[GMC.msgContent]).messages;
+                for (const rawMsgElement of rawMsgElements) {
+                    switch (rawMsgElement.messageType) {
+                        case MessageType.TEXT: {
+                            processedMsg.messageContent += rawMsgElement.messageText;
+                            break;
+                        }
+                        case MessageType.IMAGE: {
+                            // TODO: 处理图片消息
+                            break;
+                        }
+                        case MessageType.VOICE: {
+                            // TODO: 处理语音消息
+                            break;
+                        }
+                        case MessageType.FILE: {
+                            // TODO: 处理文件消息
+                            break;
+                        }
+                    }
+                }
+
+                messages.push(processedMsg);
             }
-            return [];
+            return messages;
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }

@@ -2,7 +2,7 @@ import * as protobuf from "protobufjs";
 import { readFile } from "fs/promises";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import Logger from "@root/common/util/Logger";
-import { MsgDBParseResult } from "../@types/MsgDBParseResult";
+import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
 
 export class MessagePBParser {
     messageSegment: protobuf.Type | undefined;
@@ -19,14 +19,14 @@ export class MessagePBParser {
         this.messageSegment = root.lookupType("Message");
     }
 
-    public parseMessageSegment(buffer: Buffer): MsgDBParseResult | null {
+    public parseMessageSegment(buffer: Buffer): RawMsgContentParseResult {
         if (!this.messageSegment) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
         const errMsg = this.messageSegment.verify(buffer);
         if (errMsg) {
             this.LOGGER.error("Protobuf verify error:" + errMsg);
-            return null;
+            throw ErrorReasons.PROTOBUF_ERROR;
         }
 
         try {
@@ -39,10 +39,10 @@ export class MessagePBParser {
                 arrays: true,
                 objects: true
             });
-            return plain as MsgDBParseResult;
+            return plain as RawMsgContentParseResult;
         } catch (error) {
             this.LOGGER.error("Protobuf decode error:" + error);
-            return null;
+            throw ErrorReasons.PROTOBUF_ERROR;
         }
     }
 }

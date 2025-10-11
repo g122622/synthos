@@ -7,6 +7,7 @@ enum ErrorReasons {
     UNKNOWN_ERROR = "UNKNOWN_ERROR", // 未知错误
     UNINITIALIZED_ERROR = "UNINITIALIZED_ERROR", // 未初始化错误
     TYPE_ERROR = "TYPE_ERROR", // 类型错误
+    PROTOBUF_ERROR = "PROTOBUF_ERROR", // Protobuf验证/解析等错误
 }
 
 export default ErrorReasons;

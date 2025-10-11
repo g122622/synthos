@@ -1,5 +1,5 @@
 /**
- * QQNT 群聊消息表（group_msg_table）字段列编号枚举
+ * QQNT 数据库 群聊消息表（group_msg_table）字段列编号枚举
  *
  * 数据来源：
  * - [学习笔记 | QQNT 聊天记录导出](https://blog.reincarnatey.net/2024/0707-qqnt-history-export/)
