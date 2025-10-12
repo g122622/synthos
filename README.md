@@ -1,6 +1,6 @@
 ## 系统架构
 
-![alt text](Synthos架构5.drawio.png)
+![alt text](Synthos架构7.drawio.png)
 
 ## 快速开始
 
