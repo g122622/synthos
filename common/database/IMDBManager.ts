@@ -13,7 +13,7 @@ export class IMDBManager {
             maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase.maxDBDuration,
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS chat_messages (
-                    msgId TEXT PRIMARY KEY,
+                    msgId TEXT NOT NULL PRIMARY KEY,
                     messageContent TEXT,
                     groupId TEXT,
                     timestamp INTEGER,
@@ -32,7 +32,15 @@ export class IMDBManager {
         await this.db.run(
             `INSERT INTO chat_messages (
                 msgId, messageContent, groupId, timestamp, senderId, senderGroupNickname, senderNickname, quotedMsgId
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(msgId) DO UPDATE SET
+                messageContent = excluded.messageContent,
+                groupId = excluded.groupId,
+                timestamp = excluded.timestamp,
+                senderId = excluded.senderId,
+                senderGroupNickname = excluded.senderGroupNickname,
+                senderNickname = excluded.senderNickname,
+                quotedMsgId = excluded.quotedMsgId`,
             [
                 msg.msgId,
                 msg.messageContent,
