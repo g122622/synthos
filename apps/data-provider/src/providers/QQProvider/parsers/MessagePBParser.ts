@@ -5,8 +5,8 @@ import Logger from "@root/common/util/Logger";
 import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
 
 export class MessagePBParser {
-    messageSegment: protobuf.Type | undefined;
-    LOGGER = Logger.withTag("MessagePBParser");
+    private messageSegment: protobuf.Type | undefined;
+    private LOGGER = Logger.withTag("MessagePBParser");
 
     public async init() {
         // 1. 加载 .proto 文件（或直接用字符串） TODO：换一种加载方式，不要这么原始

@@ -9,4 +9,8 @@ export interface GlobalConfig {
             };
         };
     };
+    commonDatabase: {
+        dbBasePath: string;
+        maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把读写请求路由到新库
+    };
 }

@@ -7,7 +7,8 @@
             "@root/*": ["../../*"] // 指向 synthos 根目录
         },
         "outDir": "./dist",
-        "rootDir": "./src"
+        "rootDir": "./src",
+        "target": "es2023"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"],

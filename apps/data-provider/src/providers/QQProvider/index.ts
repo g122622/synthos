@@ -85,7 +85,9 @@ export class QQProvider implements IIMProvider {
                     "${GMC.groupUin}",
                     "${GMC.senderUin}",
                     "${GMC.replyMsgSeq}",
-                    "${GMC.msgContent}"
+                    "${GMC.msgContent}",
+                    "${GMC.sendMemberName}",
+                    "${GMC.sendNickName}"
                 FROM group_msg_table 
                 WHERE ${await this._getPatchSQL()} 
                 AND "${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd}
@@ -108,14 +110,16 @@ export class QQProvider implements IIMProvider {
                     }
                 }
                 // 生成消息
-                const processedMsg = {
+                const processedMsg: RawChatMessage = {
                     msgId: String(result[GMC.msgId]),
                     messageContent: "",
                     groupId: String(result[GMC.groupUin]),
                     timestamp: result[GMC.msgTime] * 1000, // 转换为毫秒级时间戳
                     senderId: String(result[GMC.senderUin]),
+                    senderGroupNickname: result[GMC.sendMemberName],
+                    senderNickname: result[GMC.sendNickName],
                     quotedMsgId
-                } as RawChatMessage;
+                };
 
                 // 解析40800中的所有element（或者叫做fragment）
                 const rawMsgElements = this.parser.parseMessageSegment(result[GMC.msgContent]).messages;
@@ -143,7 +147,7 @@ export class QQProvider implements IIMProvider {
                         //     // TODO: 处理文件消息
                         //     break;
                         // }
-                        // TODO: 处理其他消息类型，比如外链、小程序分享等
+                        // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
                         default: {
                             // 忽略其他类型的消息，不加入messages
                             this.LOGGER.debug(
@@ -172,7 +176,17 @@ export class QQProvider implements IIMProvider {
     private async _getMsgByGroupNumberAndMsgSeq(groupNumber: number, msgSeq: number): Promise<RawGroupMsgFromDB | null> {
         if (this.db) {
             // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
+            const sql = `SELECT 
+                            CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
+                            "${GMC.msgTime}",
+                            "${GMC.groupUin}",
+                            "${GMC.senderUin}",
+                            "${GMC.replyMsgSeq}",
+                            "${GMC.msgContent}",
+                            "${GMC.sendMemberName}",
+                            "${GMC.sendNickName}"
+             FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
+
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
