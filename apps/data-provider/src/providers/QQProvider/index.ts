@@ -53,7 +53,6 @@ export class QQProvider implements IIMProvider {
         await this.parser.init();
 
         this.LOGGER.success("初始化完成！");
-        console.dir(this.parser.parseMessageSegment((await this._getMsgByMsgId("7559996998089664786"))?.[40800]).messages);
     }
 
     /**
