@@ -1,3 +1,7 @@
+## 系统架构
+
+![alt text](Synthos架构5.drawio.png)
+
 ## 快速开始
 
 使用monorepo管理项目，使用pnpm管理依赖。
