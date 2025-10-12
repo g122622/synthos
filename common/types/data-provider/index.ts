@@ -7,8 +7,8 @@ export interface RawChatMessage {
     quotedMsgId?: string; // 引用的消息id
 }
 
-export interface ProcessedChunk {
+export interface ProcessedChatMessage {
+    msgId: string;
     sessionId: string;
-    content: string;
-    embedding?: number[];
+    preProcessedContent?: string;
 }

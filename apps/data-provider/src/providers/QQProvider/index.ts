@@ -8,7 +8,7 @@ import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
-import { MessageType } from "./@types/mappers/MessageType";
+import { MsgElementType } from "./@types/mappers/MsgElementType";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
@@ -53,6 +53,7 @@ export class QQProvider implements IIMProvider {
         await this.parser.init();
 
         this.LOGGER.success("初始化完成！");
+        console.dir(this.parser.parseMessageSegment((await this._getMsgByMsgId("7559996998089664786"))?.[40800]).messages);
     }
 
     /**
@@ -78,7 +79,18 @@ export class QQProvider implements IIMProvider {
             timeStart = Math.floor(timeStart / 1000);
             timeEnd = Math.ceil(timeEnd / 1000);
             // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.msgTime}" between ${timeStart} and ${timeEnd} `;
+            const sql = `
+                SELECT 
+                    CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
+                    "${GMC.msgTime}",
+                    "${GMC.groupUin}",
+                    "${GMC.senderUin}",
+                    "${GMC.replyMsgSeq}",
+                    "${GMC.msgContent}"
+                FROM group_msg_table 
+                WHERE ${await this._getPatchSQL()} 
+                AND "${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd}
+            `;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
@@ -110,27 +122,43 @@ export class QQProvider implements IIMProvider {
                 const rawMsgElements = this.parser.parseMessageSegment(result[GMC.msgContent]).messages;
                 for (const rawMsgElement of rawMsgElements) {
                     switch (rawMsgElement.messageType) {
-                        case MessageType.TEXT: {
+                        case MsgElementType.TEXT: {
                             processedMsg.messageContent += rawMsgElement.messageText;
                             break;
                         }
-                        case MessageType.IMAGE: {
-                            // TODO: 处理图片消息
+                        case MsgElementType.EMOJI: {
+                            if (rawMsgElement.emojiText) {
+                                processedMsg.messageContent += `[${rawMsgElement.emojiText}]`;
+                            }
                             break;
                         }
-                        case MessageType.VOICE: {
-                            // TODO: 处理语音消息
-                            break;
-                        }
-                        case MessageType.FILE: {
-                            // TODO: 处理文件消息
-                            break;
-                        }
+                        // case MsgElementType.IMAGE: {
+                        //     // TODO: 处理图片消息
+                        //     break;
+                        // }
+                        // case MsgElementType.VOICE: {
+                        //     // TODO: 处理语音消息
+                        //     break;
+                        // }
+                        // case MsgElementType.FILE: {
+                        //     // TODO: 处理文件消息
+                        //     break;
+                        // }
                         // TODO: 处理其他消息类型，比如外链、小程序分享等
+                        default: {
+                            // 忽略其他类型的消息，不加入messages
+                            this.LOGGER.debug(
+                                `未知的element类型: ${rawMsgElement.messageType}，忽略该element。本条消息的msgId: ${result[GMC.msgId]}`
+                            );
+                            break;
+                        }
                     }
                 }
-
-                messages.push(processedMsg);
+                if (processedMsg.messageContent === "") {
+                    this.LOGGER.debug(`msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息`);
+                } else {
+                    messages.push(processedMsg);
+                }
             }
             return messages;
         } else {

@@ -2,7 +2,7 @@
  * protobuf 消息元素类型（elementType / messageType）
  * 对应 proto 字段：uint32 messageType = 45002;
  */
-export enum MessageType {
+export enum MsgElementType {
     /**
      * 文本消息
      * elementType == 1
