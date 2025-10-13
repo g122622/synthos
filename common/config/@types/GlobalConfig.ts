@@ -1,3 +1,10 @@
+interface ModelConfig {
+    apiKey: string;
+    baseURL: string;
+    temperature: number;
+    maxTokens: number;
+}
+
 export interface GlobalConfig {
     dataProviders: {
         QQ: {
@@ -12,5 +19,13 @@ export interface GlobalConfig {
     commonDatabase: {
         dbBasePath: string;
         maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把读写请求路由到新库
+    };
+    logger: {
+        logLevel: "debug" | "info" | "success" | "warning" | "error";
+    };
+    ai: {
+        // 模型配置，key为模型名称，value为模型的具体配置
+        models: Record<string, ModelConfig>;
+        defaultModelConfig: ModelConfig;
     };
 }

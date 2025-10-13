@@ -10,7 +10,7 @@ import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
     const imdbManager = new IMDBManager();
     await imdbManager.init();
 
-    const results = await qqProvider.getMsgByTimeRange(getHoursAgoTimestamp(6), getHoursAgoTimestamp(3));
+    const results = await qqProvider.getMsgByTimeRange(getHoursAgoTimestamp(12), getHoursAgoTimestamp(0), "738075190");
     console.dir(results);
     await imdbManager.storeRawChatMessages(results);
 

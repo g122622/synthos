@@ -9,7 +9,7 @@ export class IMCtxBuilder implements ICtxBuilder {
         for (const message of messages) {
             content += message.preProcessedContent + "\n";
         }
-        return IMPromptStore.getSummarizePrompt(5, content);
+        return IMPromptStore.getSummarizePrompt(20, content);
     }
     async close(): Promise<void> {}
 }

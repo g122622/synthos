@@ -11,7 +11,7 @@ import { formatMsg } from "./formatMsg,";
     const splitter = new FixedSplitter();
     await splitter.init();
 
-    const results = await imdbManager.getRawChatMessagesByGroupIdAndTimeRange("738075190", getHoursAgoTimestamp(6), Date.now());
+    const results = await imdbManager.getRawChatMessagesByGroupIdAndTimeRange("738075190", getHoursAgoTimestamp(12), Date.now());
     const splitResultMap = await splitter.split(results);
     const preProcessedResults: ProcessedChatMessage[] = []
     for (let i = 0; i < results.length; i++) {
@@ -24,12 +24,6 @@ import { formatMsg } from "./formatMsg,";
         })
     }
     await imdbManager.storeProcessedChatMessages(preProcessedResults);
-
-    let res = '';
-    for (const item of preProcessedResults) {
-        res += item.preProcessedContent + '\n';
-    }
-    console.log(res);
 
     await imdbManager.close();
 })();

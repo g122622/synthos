@@ -70,9 +70,10 @@ export class QQProvider implements IIMProvider {
      * 从QQNT数据库中获取指定时间范围内的消息
      * @param timeStart 开始时间（毫秒级时间戳）
      * @param timeEnd 结束时间（毫秒级时间戳）
+     * @param groupId 群号（可选）
      * @returns 消息数组
      */
-    public async getMsgByTimeRange(timeStart: number, timeEnd: number): Promise<RawChatMessage[]> {
+    public async getMsgByTimeRange(timeStart: number, timeEnd: number, groupId: string = ''): Promise<RawChatMessage[]> {
         if (this.db) {
             // 转换为秒级时间戳
             timeStart = Math.floor(timeStart / 1000);
@@ -90,7 +91,8 @@ export class QQProvider implements IIMProvider {
                     "${GMC.sendNickName}"
                 FROM group_msg_table 
                 WHERE ${await this._getPatchSQL()} 
-                AND "${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd}
+                AND ("${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd})
+                ${groupId ? `AND "${GMC.groupUin}" = ${groupId}` : ""}
             `;
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
