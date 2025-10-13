@@ -1,5 +1,5 @@
 import ConfigManagerService from "../config/ConfigManagerService";
-import { RawChatMessage } from "../types/data-provider/index";
+import { ProcessedChatMessage, RawChatMessage } from "../types/data-provider/index";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 
@@ -57,6 +57,33 @@ export class IMDBManager {
     public async storeRawChatMessages(messages: RawChatMessage[]) {
         for (const msg of messages) {
             await this.storeRawChatMessage(msg);
+        }
+    }
+
+    public async getRawChatMessagesByGroupIdAndTimeRange(
+        groupId: string,
+        timeStart: number,
+        timeEnd: number
+    ): Promise<RawChatMessage[]> {
+        const results = (await this.db.all(`SELECT * FROM chat_messages WHERE groupId = ? AND (timestamp BETWEEN ? AND ?)`, [
+            groupId,
+            timeStart,
+            timeEnd
+        ])) as RawChatMessage[];
+        return results;
+    }
+
+    public async storeProcessedChatMessage(message: ProcessedChatMessage) {
+        // 执行这个函数的时候，数据库内已经通过storeRawChatMessage函数存储了原始消息，这里只需要更新原记录中的sessionId和preProcessedContent字段即可
+        await this.db.run(
+            `UPDATE chat_messages SET sessionId = ?, preProcessedContent = ? WHERE msgId = ?`,
+            [message.sessionId, message.preProcessedContent, message.msgId]
+        );
+    }
+
+    public async storeProcessedChatMessages(messages: ProcessedChatMessage[]) {
+        for (const msg of messages) {
+            await this.storeProcessedChatMessage(msg);
         }
     }
 

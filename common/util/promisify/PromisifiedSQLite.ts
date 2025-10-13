@@ -72,14 +72,18 @@ class PromisifiedSQLite {
 
     public run(sql: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function (err) {
-                if (err) {
-                    this.LOGGER.bgRed("Failed to run SQL: " + err.message);
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
+            this.db.run(
+                sql,
+                params,
+                (err => {
+                    if (err) {
+                        this.LOGGER.bgRed("Failed to run SQL: " + err.message);
+                        reject(err);
+                    } else {
+                        resolve();
+                    }
+                }).bind(this)
+            );
         });
     }
 

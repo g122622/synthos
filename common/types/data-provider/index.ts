@@ -11,7 +11,7 @@ export interface RawChatMessage {
 
 export interface ProcessedChatMessage {
     msgId: string;
-    sessionId: string;
+    sessionId: string; // 消息所属会话id
     // 格式类似"'杨浩然(群昵称：ユリの花)'：【引用来自'李嘉浩(群昵称：DEAR James·Jordan ≈)'的消息: 今年offer发了多少】@DEAR James·Jordan ≈ 我觉得今年会超发offer"
     preProcessedContent?: string;
 }

@@ -1,0 +1,15 @@
+{
+  "name": "preprocessing",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc --build",
+    "dev": "rm tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.15.0",
+  "dependencies": {}
+}
