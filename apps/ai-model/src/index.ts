@@ -4,6 +4,7 @@ import { AIDigestResult } from "@root/common/types/ai-model";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
+import getRandomHash from "@root/common/util/getRandomHash";
 import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
 
@@ -54,6 +55,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-prov
         for (const result of results) {
             Object.assign(result, { sessionId }); // 添加 sessionId
             result.contributors = JSON.stringify(result.contributors); // 转换为字符串
+            Object.assign(result, { topicId: getRandomHash(16) });
         }
         await agcDBManager.storeAIDigestResults(results as AIDigestResult[]);
         Logger.info(`存储摘要成功！`);

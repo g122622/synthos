@@ -1,5 +1,4 @@
 import ConfigManagerService from "../config/ConfigManagerService";
-import { ProcessedChatMessage, RawChatMessage } from "../types/data-provider/index";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { AIDigestResult } from "../types/ai-model";
@@ -12,6 +11,7 @@ export class AGCDBManager {
         this.db = new MultiFileSQLite({
             dbBasePath: (await ConfigManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
             maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase.maxDBDuration,
+            // 一个topicId会对应多个sessionId
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
                     topicId TEXT NOT NULL PRIMARY KEY,
@@ -27,13 +27,14 @@ export class AGCDBManager {
     public async storeAIDigestResult(result: AIDigestResult) {
         // to fix
         await this.db.run(
-            `INSERT INTO ai_digest_results (sessionId, topic, contributors, detail) VALUES (?,?,?,?)
-            ON CONFLICT(sessionId) DO UPDATE SET
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?)
+            ON CONFLICT(topicId) DO UPDATE SET
+                sessionId = excluded.sessionId,
                 topic = excluded.topic,
                 contributors = excluded.contributors,
                 detail = excluded.detail
             `,
-            [result.sessionId, result.topic, result.contributors, result.detail]
+            [result.topicId, result.sessionId, result.topic, result.contributors, result.detail]
         );
     }
 
@@ -43,9 +44,9 @@ export class AGCDBManager {
         }
     }
 
-    public async getAIDigestResultBySessionId(sessionId: string): Promise<AIDigestResult | null> {
-        const result = (await this.db.get(`SELECT * FROM ai_digest_results WHERE sessionId =?`, [
-            sessionId
+    public async getAIDigestResultByTopicId(topicId: string): Promise<AIDigestResult | null> {
+        const result = (await this.db.get(`SELECT * FROM ai_digest_results WHERE topicId =?`, [
+            topicId
         ])) as AIDigestResult | null;
         return result;
     }
