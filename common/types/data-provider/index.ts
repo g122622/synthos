@@ -17,3 +17,11 @@ export interface ProcessedChatMessage {
 }
 
 export type ProcessedChatMessageWithRawMessage = RawChatMessage & ProcessedChatMessage;
+
+// IM类型
+export enum IMTypes {
+    QQ = "QQ",
+    WeChat = "WeChat",
+    Telegram = "Telegram",
+    Discord = "Discord"
+}
