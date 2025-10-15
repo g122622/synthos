@@ -73,7 +73,7 @@ export class QQProvider implements IIMProvider {
      * @param groupId 群号（可选）
      * @returns 消息数组
      */
-    public async getMsgByTimeRange(timeStart: number, timeEnd: number, groupId: string = ''): Promise<RawChatMessage[]> {
+    public async getMsgByTimeRange(timeStart: number, timeEnd: number, groupId: string = ""): Promise<RawChatMessage[]> {
         if (this.db) {
             // 转换为秒级时间戳
             timeStart = Math.floor(timeStart / 1000);
@@ -160,7 +160,9 @@ export class QQProvider implements IIMProvider {
                     }
                 }
                 if (processedMsg.messageContent === "") {
-                    this.LOGGER.debug(`msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息`);
+                    this.LOGGER.debug(
+                        `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                    );
                 } else {
                     messages.push(processedMsg);
                 }

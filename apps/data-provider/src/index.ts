@@ -6,6 +6,7 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/types/data-provider";
 import { IIMProvider } from "./providers/@types/IIMProvider";
+import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
 (async () => {
     const LOGGER = Logger.withTag("data-provider-root-script");
@@ -24,6 +25,7 @@ import { IIMProvider } from "./providers/@types/IIMProvider";
     agendaInstance.define<TaskParameters<TaskHandlerTypes.ProvideData>>(
         TaskHandlerTypes.ProvideData,
         async job => {
+            LOGGER.info(`开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
 
             // 根据 IM 类型初始化对应的 IM 提供者
@@ -47,6 +49,7 @@ import { IIMProvider } from "./providers/@types/IIMProvider";
                 await imdbManager.storeRawChatMessages(results);
             }
             await activeProvider.close();
+            LOGGER.success(`任务完成: ${job.attrs.name}`);
         },
         {
             concurrency: 3,
@@ -54,12 +57,22 @@ import { IIMProvider } from "./providers/@types/IIMProvider";
         }
     );
 
-    await agendaInstance.schedule("every 10 minutes", TaskHandlerTypes.ProvideData, {
-        IMType: IMTypes.QQ,
-        groupIds: ["123456789"],
-        startTimeStamp: getHoursAgoTimestamp(1),
-        endTimeStamp: Date.now()
-    });
+    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchProvideData>>(
+        TaskHandlerTypes.DecideAndDispatchProvideData,
+        async job => {
+            LOGGER.info(`开始处理任务: ${job.attrs.name}`);
+            const config = await ConfigManagerService.getCurrentConfig();
+            // call provideData task
+            await agendaInstance.schedule("1 seconds", TaskHandlerTypes.ProvideData, {
+                IMType: IMTypes.QQ,
+                groupIds: config.dataProviders.QQ.groupIdsToObserve,
+                startTimeStamp: getHoursAgoTimestamp(1), // TODO
+                endTimeStamp: Date.now()
+            });
+
+            LOGGER.success(`任务完成: ${job.attrs.name}`);
+        }
+    );
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

@@ -6,7 +6,9 @@
 
 使用monorepo管理项目，使用pnpm管理依赖。
 
-首先需要在项目根目录下面放好配置文件 `synthos_config.json`
+重要：首先需要在项目根目录下面放好配置文件 `synthos_config.json`，配置文件的填写格式请自己参考源码中的相应类型声明。
+
+重要：此外，项目使用agenda进行任务编排和调度，底层依赖于MongoDB，需要提前下载安装好：[https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)
 
 1. 根目录安装依赖
 

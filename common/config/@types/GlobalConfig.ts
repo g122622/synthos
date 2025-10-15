@@ -14,6 +14,7 @@ export interface GlobalConfig {
                 enabled: boolean; // 是否启用数据库补丁
                 patchSQL: string; // 数据库补丁的SQL语句
             };
+            groupIdsToObserve: string[]; // 要观察的群聊ID列表
         };
     };
     commonDatabase: {

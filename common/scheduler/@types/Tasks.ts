@@ -2,6 +2,7 @@ import { IMTypes } from "../../types/data-provider";
 
 export enum TaskHandlerTypes {
     ProvideData = "ProvideData",
+    DecideAndDispatchProvideData = "DecideAndDispatchProvideData",
     Preprocess = "Preprocess",
     AISummarize = "AISummarize"
 }
@@ -13,11 +14,11 @@ interface TaskParamsMap {
         startTimeStamp: number;
         endTimeStamp: number;
     };
+    [TaskHandlerTypes.DecideAndDispatchProvideData]: {};
     [TaskHandlerTypes.Preprocess]: {};
     [TaskHandlerTypes.AISummarize]: {};
 }
 
-export type TaskParameters<T extends TaskHandlerTypes> = TaskParamsMap[T];
-
 // example
 // const taskParameters: TaskParameters<TaskHandlerTypes.ProvideData> = { IMType: IMTypes.QQ };
+export type TaskParameters<T extends TaskHandlerTypes> = TaskParamsMap[T];
