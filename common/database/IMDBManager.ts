@@ -25,6 +25,14 @@ export class IMDBManager {
                     preProcessedContent TEXT
                 );`
         });
+
+        // 释放imdbManager
+        process.on("SIGINT", async () => {
+            console.log("SIGINT received, closing...");
+            await this.close();
+            process.exit(0);
+        });
+
         this.LOGGER.info("初始化完成！");
     }
 

@@ -15,7 +15,10 @@ interface TaskParamsMap {
         endTimeStamp: number;
     };
     [TaskHandlerTypes.DecideAndDispatchProvideData]: {};
-    [TaskHandlerTypes.Preprocess]: {};
+    // 由于Provider抹平了各个im之间的差异，因此Preprocessor不需要指定IMType
+    [TaskHandlerTypes.Preprocess]: {
+        groupIds: string[];
+    };
     [TaskHandlerTypes.AISummarize]: {};
 }
 

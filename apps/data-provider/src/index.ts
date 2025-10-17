@@ -10,25 +10,18 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
 (async () => {
     const LOGGER = Logger.withTag("data-provider-root-script");
-    LOGGER.debug("QQProvider start to init");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();
-    // 释放imdbManager
-    process.on("SIGINT", async () => {
-        console.log("SIGINT received, closing...");
-        await imdbManager.close();
-        process.exit(0);
-    });
-    LOGGER.success("imdbManager init success");
 
-    const config = await ConfigManagerService.getCurrentConfig();
+    let config = await ConfigManagerService.getCurrentConfig();
 
     agendaInstance.define<TaskParameters<TaskHandlerTypes.ProvideData>>(
         TaskHandlerTypes.ProvideData,
         async job => {
-            LOGGER.info(`开始处理任务: ${job.attrs.name}`);
+            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
 
             // 根据 IM 类型初始化对应的 IM 提供者
             let activeProvider: IIMProvider;
@@ -51,7 +44,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
                 await imdbManager.storeRawChatMessages(results);
             }
             await activeProvider.close();
-            LOGGER.success(`任务完成: ${job.attrs.name}`);
+            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
             concurrency: 3,
@@ -62,17 +55,17 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
     agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchProvideData>>(
         TaskHandlerTypes.DecideAndDispatchProvideData,
         async job => {
-            LOGGER.info(`开始处理任务: ${job.attrs.name}`);
+            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             // call provideData task
             await agendaInstance.schedule("1 second", TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,
                 groupIds: Object.keys(config.groupConfigs), // TODO 支持wechat之后，需要修改这里
-                // 这里多请求3分钟的数据，是为了避免数据遗漏
-                startTimeStamp: getMinutesAgoTimestamp(config.dataProviders.agendaTaskIntervalInMinutes + 3),
+                // 这里多请求1分钟的数据，是为了避免数据遗漏
+                startTimeStamp: getMinutesAgoTimestamp(config.dataProviders.agendaTaskIntervalInMinutes + 1),
                 endTimeStamp: Date.now()
             });
 
-            LOGGER.success(`任务完成: ${job.attrs.name}`);
+            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
 
