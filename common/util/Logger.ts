@@ -33,7 +33,7 @@ class Logger {
 
     private getPrefix(): string {
         const time = this.getTimeString();
-        return "🌟 " + (this.tag ? `${time}${this.tag} ` : time) + `[${getCurrentFunctionName()}] `;
+        return "🎯 " + (this.tag ? `${time}${this.tag} ` : time) + `[${getCurrentFunctionName()}] `;
     }
 
     private getTimeString(): string {

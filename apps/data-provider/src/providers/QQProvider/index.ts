@@ -17,15 +17,16 @@ export class QQProvider implements IIMProvider {
     private parser = new MessagePBParser();
 
     public async init() {
+        const config = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ;
         // 1. 创建一个临时内存数据库（仅用于加载扩展）
         const tempDb = new PromisifiedSQLite(sqlite3);
         await tempDb.open(":memory:"); // 内存数据库，瞬间打开
         // 2. 通过这个临时连接加载扩展 → 全局注册 offset_vfs
-        await tempDb.loadExtension("Z:/sqlite_ext_ntqq_db.dll");
+        await tempDb.loadExtension(config.VFSExtPath);
         // 3. 关闭临时数据库
         await tempDb.close();
 
-        const dbPath = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbBasePath + "/nt_msg.db";
+        const dbPath = config.dbBasePath + "/nt_msg.db";
         // 打开QQNT数据库（原地读取，不复制）
         // @see https://docs.aaqwq.top/decrypt/decode_db.html#%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
         const db = new PromisifiedSQLite(sqlite3);
@@ -33,9 +34,9 @@ export class QQProvider implements IIMProvider {
         this.db = db;
 
         // 加密相关配置
-        this.LOGGER.info(`当前的dbKey: ${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey}`);
+        this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
         await db.exec(`
-            PRAGMA key = '${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbKey}';
+            PRAGMA key = '${config.dbKey}';
             PRAGMA cipher_page_size = 4096;
             PRAGMA kdf_iter = 4000;
             PRAGMA cipher_hmac_algorithm = HMAC_SHA1;

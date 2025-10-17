@@ -7,6 +7,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import { IMTypes } from "@root/common/types/data-provider";
 import { IIMProvider } from "./providers/@types/IIMProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { sleep } from "@root/common/util/promisify/sleep";
 
 (async () => {
     const LOGGER = Logger.withTag("data-provider-root-script");
@@ -63,16 +64,19 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             LOGGER.info(`开始处理任务: ${job.attrs.name}`);
             const config = await ConfigManagerService.getCurrentConfig();
             // call provideData task
-            await agendaInstance.schedule("1 seconds", TaskHandlerTypes.ProvideData, {
+            await agendaInstance.schedule("1 second", TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,
-                groupIds: config.dataProviders.QQ.groupIdsToObserve,
-                startTimeStamp: getHoursAgoTimestamp(1), // TODO
+                groupIds: Object.keys(config.groupConfigs), // TODO 支持wechat之后，需要修改这里
+                startTimeStamp: getHoursAgoTimestamp(1),
                 endTimeStamp: Date.now()
             });
 
             LOGGER.success(`任务完成: ${job.attrs.name}`);
         }
     );
+
+    // 每1小时触发一次DecideAndDispatchProvideData任务
+    await agendaInstance.every("1 hour", TaskHandlerTypes.DecideAndDispatchProvideData);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
