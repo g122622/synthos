@@ -17,7 +17,7 @@ class PromisifiedSQLite {
                     this.LOGGER.bgRed("Failed to open database: " + err.message);
                     reject(err);
                 } else {
-                    this.LOGGER.bgGreen("Opened database successfully, path: " + DBFilePath);
+                    this.LOGGER.success("Opened database successfully, path: " + DBFilePath);
                     resolve();
                 }
             });
@@ -31,7 +31,7 @@ class PromisifiedSQLite {
                     this.LOGGER.bgRed("Failed to load extension: " + err.message);
                     reject(err);
                 } else {
-                    this.LOGGER.bgGreen("Loaded extension successfully, path: " + extensionPath);
+                    this.LOGGER.success("Loaded extension successfully, path: " + extensionPath);
                     resolve();
                 }
             });
@@ -133,7 +133,7 @@ class PromisifiedSQLite {
                     this.LOGGER.bgRed("Failed to close database: " + err.message);
                     reject(err);
                 } else {
-                    this.LOGGER.bgGreen("Closed database successfully");
+                    this.LOGGER.success("Closed database successfully, path: " + this.db.filename);
                     resolve();
                 }
             });

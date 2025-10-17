@@ -14,6 +14,7 @@ interface GroupConfig {
 
 // 若无特殊说明，所有设置项都是必填的
 export interface GlobalConfig {
+    // 各层配置
     dataProviders: {
         QQ: {
             VFSExtPath: string; // sqlite vfs扩展路径
@@ -24,19 +25,29 @@ export interface GlobalConfig {
                 patchSQL: string; // 数据库补丁的SQL语句
             };
         };
+        agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
     };
-    commonDatabase: {
-        dbBasePath: string;
-        maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把读写请求路由到新库
-    };
-    logger: {
-        logLevel: "debug" | "info" | "success" | "warning" | "error";
+    preprocessors: {
+        agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
     };
     ai: {
         // 模型配置，key为模型名称，value为模型的具体配置
         models: Record<string, ModelConfig>;
         defaultModelConfig: ModelConfig;
         defaultModelName: string;
+        // 总结任务的配置
+        summarize: {
+            agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
+        }
+    };
+
+    // 共享配置
+    commonDatabase: {
+        dbBasePath: string;
+        maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把读写请求路由到新库
+    };
+    logger: {
+        logLevel: "debug" | "info" | "success" | "warning" | "error"; // 级别大于等于这个级别的日志才会被输出
     };
     groupConfigs: Record<string, GroupConfig>; // 群号到群配置的映射
 }

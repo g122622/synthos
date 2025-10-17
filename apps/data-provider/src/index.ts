@@ -1,13 +1,12 @@
 import Logger from "@root/common/util/Logger";
 import { QQProvider } from "./providers/QQProvider";
 import { IMDBManager } from "@root/common/database/IMDBManager";
-import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
+import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/types/data-provider";
 import { IIMProvider } from "./providers/@types/IIMProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
-import { sleep } from "@root/common/util/promisify/sleep";
 
 (async () => {
     const LOGGER = Logger.withTag("data-provider-root-script");
@@ -22,6 +21,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
         process.exit(0);
     });
     LOGGER.success("imdbManager init success");
+
+    const config = await ConfigManagerService.getCurrentConfig();
 
     agendaInstance.define<TaskParameters<TaskHandlerTypes.ProvideData>>(
         TaskHandlerTypes.ProvideData,
@@ -46,7 +47,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
                 const results = await activeProvider.getMsgByTimeRange(attrs.startTimeStamp, attrs.endTimeStamp, groupId);
-                console.dir(results);
+                LOGGER.success(`成功获取到 ${results.length} 有效条消息`);
                 await imdbManager.storeRawChatMessages(results);
             }
             await activeProvider.close();
@@ -62,12 +63,12 @@ import { sleep } from "@root/common/util/promisify/sleep";
         TaskHandlerTypes.DecideAndDispatchProvideData,
         async job => {
             LOGGER.info(`开始处理任务: ${job.attrs.name}`);
-            const config = await ConfigManagerService.getCurrentConfig();
             // call provideData task
             await agendaInstance.schedule("1 second", TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,
                 groupIds: Object.keys(config.groupConfigs), // TODO 支持wechat之后，需要修改这里
-                startTimeStamp: getHoursAgoTimestamp(1),
+                // 这里多请求3分钟的数据，是为了避免数据遗漏
+                startTimeStamp: getMinutesAgoTimestamp(config.dataProviders.agendaTaskIntervalInMinutes + 3),
                 endTimeStamp: Date.now()
             });
 
@@ -75,8 +76,12 @@ import { sleep } from "@root/common/util/promisify/sleep";
         }
     );
 
-    // 每1小时触发一次DecideAndDispatchProvideData任务
-    await agendaInstance.every("1 hour", TaskHandlerTypes.DecideAndDispatchProvideData);
+    // 每隔一段时间触发一次DecideAndDispatchProvideData任务
+    LOGGER.debug(`DecideAndDispatchProvideData任务将每隔${config.dataProviders.agendaTaskIntervalInMinutes}分钟执行一次`);
+    await agendaInstance.every(
+        config.dataProviders.agendaTaskIntervalInMinutes + " minutes",
+        TaskHandlerTypes.DecideAndDispatchProvideData
+    );
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

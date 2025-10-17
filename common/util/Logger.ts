@@ -1,6 +1,7 @@
 // logger.ts
 import { rainbow, pastel, atlas } from "gradient-string";
 import { getCurrentFunctionName } from "./getCurrentFunctionName";
+import ConfigManagerService from "../config/ConfigManagerService";
 
 type LogLevel =
     | "info"
@@ -21,9 +22,13 @@ type LogLevel =
 
 class Logger {
     private tag: string | null = null;
+    private logLevel: "debug" | "info" | "success" | "warning" | "error" = "info";
 
     constructor(tag: string | null = null) {
         this.tag = tag;
+        ConfigManagerService.getCurrentConfig().then(config => {
+            this.logLevel = config.logger.logLevel;
+        });
     }
 
     // 工厂方法：创建带 tag 的新 logger
@@ -82,20 +87,30 @@ class Logger {
     }
 
     // --- 语义化方法 ---
+    public debug(message: string) {
+        if (["debug"].includes(this.logLevel)) {
+            this.gray(message);
+        }
+    }
     public info(message: string) {
-        this.blue(message);
+        if (["debug", "info"].includes(this.logLevel)) {
+            this.blue(message);
+        }
     }
     public success(message: string) {
-        this.green(message);
+        if (["debug", "info", "success"].includes(this.logLevel)) {
+            this.green(message);
+        }
     }
     public warning(message: string) {
-        this.yellow(message);
+        if (["debug", "info", "success", "warning"].includes(this.logLevel)) {
+            this.yellow(message);
+        }
     }
     public error(message: string) {
-        this.red(message);
-    }
-    public debug(message: string) {
-        this.gray(message);
+        if (["debug", "info", "success", "warning", "error"].includes(this.logLevel)) {
+            this.red(message);
+        }
     }
 
     // --- 渐变方法 ---
