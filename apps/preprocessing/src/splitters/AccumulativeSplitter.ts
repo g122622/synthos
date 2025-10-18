@@ -3,40 +3,90 @@ import { ISplitter } from "./@types/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { KVStore } from "@root/common/util/KVStore";
+import { IMDBManager } from "@root/common/database/IMDBManager";
+import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
+import { ASSERT } from "@root/common/util/ASSERT";
+import ErrorReasons from "@root/common/types/ErrorReasons";
 
 export class AccumulativeSplitter implements ISplitter {
-    private kvStore: KVStore | null = null; // 用于存储 sessionId 的 KV 存储
+    private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 
     public async init() {
         const config = (await ConfigManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
     }
 
-    public async split(messages: ProcessedChatMessageWithRawMessage[]): Promise<Map<string, string>> {
+    public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
+        if (!this.kvStore) {
+            throw ErrorReasons.UNINITIALIZED_ERROR;
+        }
         const config = (await ConfigManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
-        const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp); // 从早到晚排序消息
-        const result = new Map<string, string>();
-        if (messages.length === 0) {
-            return result;
-        }
 
-        const firstMessageTime = sortedMessages[0].timestamp;
-        const splitTimeDuration = this.config.splitTimeDuration * 1000; // 转换为毫秒
-
-        let currentSessionId = getRandomHash(16); // 初始 sessionId
-        let currentGroupStartTime = firstMessageTime; // 当前组的起始时间
-        for (let i = 0; i < sortedMessages.length; i++) {
-            const msg = sortedMessages[i];
-            if (msg.timestamp - currentGroupStartTime >= splitTimeDuration) {
-                // 如果当前消息与当前组的起始时间超过了分割时间间隔，创建新的 sessionId
-                currentSessionId = getRandomHash(16); // 生成新的 sessionId
-                currentGroupStartTime = msg.timestamp; // 更新当前组的起始时间
+        const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {
+            // 为其分配一个新的 sessionId
+            msg.sessionId = getRandomHash(16); // 生成新的 sessionId
+            if (config.mode === "charCount") {
+                await this.kvStore!.put(msg.sessionId!, msg.messageContent!.length); // 存储新的 sessionId 及其容量
+            } else if (config.mode === "messageCount") {
+                await this.kvStore!.put(msg.sessionId!, 1); // 存储新的 sessionId 及其容量
+            } else {
+                throw ErrorReasons.INVALID_VALUE_ERROR;
             }
-            result.set(msg.msgId, currentSessionId);
+        };
+
+        const msgs = (
+            await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+                groupId,
+                getMinutesAgoTimestamp(minutesAgo),
+                Date.now()
+            )
+        ).sort((a, b) => a.timestamp - b.timestamp); // 从早到晚排序消息
+
+        for (let index = 0; index < msgs.length; index++) {
+            const msg = msgs[index];
+            if (!msg.sessionId) {
+                if (index === 0) {
+                    // 第一条消息，为其分配一个新的 sessionId
+                    await assignNewSessionId(msg);
+                } else {
+                    const previousMsgSessionId = msgs[index - 1].sessionId!;
+                    ASSERT(previousMsgSessionId !== undefined); // 上一条消息的 sessionId 一定存在
+                    const capacity = (await this.kvStore!.get(previousMsgSessionId))!; // 获取上一条消息的容量
+                    ASSERT(capacity !== undefined); // capacity一定存在
+                    ASSERT(capacity >= 0); // capacity一定非负
+
+                    if (
+                        (config.mode === "charCount" && capacity >= config.maxCharCount) ||
+                        (config.mode === "messageCount" && capacity >= config.maxMessageCount)
+                    ) {
+                        // 此时上一个sessionId的容量已满，为这条消息分配一个新的 sessionId
+                        await assignNewSessionId(msg);
+                    } else if (
+                        (config.mode === "charCount" && capacity < config.maxCharCount) ||
+                        (config.mode === "messageCount" && capacity < config.maxMessageCount)
+                    ) {
+                        // 此时上一个sessionId的容量未满，为这条消息分配上一个sessionId，并更新其容量
+                        msg.sessionId = previousMsgSessionId; // 分配上一个sessionId
+                        if (config.mode === "charCount") {
+                            await this.kvStore!.put(previousMsgSessionId, capacity + msg.messageContent!.length); // 更新容量
+                        } else if (config.mode === "messageCount") {
+                            await this.kvStore!.put(previousMsgSessionId, capacity + 1); // 更新容量
+                        } else {
+                            throw ErrorReasons.INVALID_VALUE_ERROR;
+                        }
+                    } else {
+                        throw ErrorReasons.UNKNOWN_ERROR;
+                    }
+                }
+            }
         }
 
-        return result;
+        return msgs;
     }
 
-    public async close() {}
+    public async close() {
+        if (this.kvStore) {
+            await this.kvStore.close(); // 关闭 KV 存储
+        }
+    }
 }

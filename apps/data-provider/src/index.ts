@@ -40,15 +40,17 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
                 const results = await activeProvider.getMsgByTimeRange(attrs.startTimeStamp, attrs.endTimeStamp, groupId);
-                LOGGER.success(`成功获取到 ${results.length} 有效条消息`);
+                LOGGER.success(`成功获取到 ${results.length} 条有效消息`);
                 await imdbManager.storeRawChatMessages(results);
+                await job.touch(); // 保证任务存活
             }
             await activeProvider.close();
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
             concurrency: 3,
-            priority: "high"
+            priority: "high",
+            lockLifetime: 10 * 60 * 1000, // 10分钟
         }
     );
 

@@ -30,10 +30,13 @@ export interface GlobalConfig {
     preprocessors: {
         agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
         AccumulativeSplitter: {
-            mode: 'charCount' | 'messageCount'; // 分割模式
+            mode: "charCount" | "messageCount"; // 分割模式
             maxCharCount: number; // 最大字符数
             maxMessageCount: number; // 最大消息数
             persistentKVStorePath: string; // 持久化KVStore路径（用于存储sessionId的使用量）
+        };
+        TimeoutSplitter: {
+            timeoutInMinutes: number; // 超时时间，单位为分钟
         }
     };
     ai: {

@@ -25,10 +25,14 @@ export class KVStore<T = any> {
     }
 
     /**
-     * 读取值，若 key 不存在则抛出错误（由 level 默认行为决定）
+     * 读取值
      */
-    async get(key: string): Promise<T> {
-        return await this.db.get(key);
+    async get(key: string): Promise<T | undefined> {
+        try {
+            return await this.db.get(key);
+        } catch (error) {
+            return undefined;
+        }
     }
 
     /**
