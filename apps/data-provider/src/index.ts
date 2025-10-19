@@ -40,7 +40,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
                 const results = await activeProvider.getMsgByTimeRange(attrs.startTimeStamp, attrs.endTimeStamp, groupId);
-                LOGGER.success(`成功获取到 ${results.length} 条有效消息`);
+                LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
                 await imdbManager.storeRawChatMessages(results);
                 await job.touch(); // 保证任务存活
             }
