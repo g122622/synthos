@@ -61,7 +61,8 @@ export class QQProvider implements IIMProvider {
      * @returns 数据库补丁SQL
      */
     private async _getPatchSQL() {
-        const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.enabled
+        const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch
+            .enabled
             ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
             : "";
         return patchSQL;
@@ -74,7 +75,11 @@ export class QQProvider implements IIMProvider {
      * @param groupId 群号（可选）
      * @returns 消息数组
      */
-    public async getMsgByTimeRange(timeStart: number, timeEnd: number, groupId: string = ""): Promise<RawChatMessage[]> {
+    public async getMsgByTimeRange(
+        timeStart: number,
+        timeEnd: number,
+        groupId: string = ""
+    ): Promise<RawChatMessage[]> {
         if (this.db) {
             // 转换为秒级时间戳
             timeStart = Math.floor(timeStart / 1000);
@@ -105,11 +110,16 @@ export class QQProvider implements IIMProvider {
                 // 生成quotedMsgId
                 let quotedMsgId: string | undefined = undefined;
                 if (result[GMC.replyMsgSeq]) {
-                    const originalMsg = await this._getMsgByGroupNumberAndMsgSeq(result[GMC.groupUin], result[GMC.replyMsgSeq]);
+                    const originalMsg = await this._getMsgByGroupNumberAndMsgSeq(
+                        result[GMC.groupUin],
+                        result[GMC.replyMsgSeq]
+                    );
                     if (originalMsg) {
                         quotedMsgId = originalMsg[GMC.msgId];
                     } else {
-                        this.LOGGER.warning(`无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`);
+                        this.LOGGER.warning(
+                            `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
+                        );
                     }
                 }
                 // 生成消息
@@ -125,7 +135,9 @@ export class QQProvider implements IIMProvider {
                 };
 
                 // 解析40800中的所有element（或者叫做fragment）
-                const rawMsgElements = this.parser.parseMessageSegment(result[GMC.msgContent]).messages;
+                const rawMsgElements = this.parser.parseMessageSegment(
+                    result[GMC.msgContent]
+                ).messages;
                 for (const rawMsgElement of rawMsgElements) {
                     switch (rawMsgElement.messageType) {
                         case MsgElementType.TEXT: {
@@ -178,7 +190,10 @@ export class QQProvider implements IIMProvider {
      * 根据群号（40030）和消息序号（40003）获取消息
      * @returns 消息数组
      */
-    private async _getMsgByGroupNumberAndMsgSeq(groupNumber: number, msgSeq: number): Promise<RawGroupMsgFromDB | null> {
+    private async _getMsgByGroupNumberAndMsgSeq(
+        groupNumber: number,
+        msgSeq: number
+    ): Promise<RawGroupMsgFromDB | null> {
         if (this.db) {
             // 生成SQL语句
             const sql = `SELECT 

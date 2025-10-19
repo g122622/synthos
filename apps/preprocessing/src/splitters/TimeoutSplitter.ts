@@ -10,18 +10,17 @@ export class TimeoutSplitter implements ISplitter {
     public async init() {}
 
     public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors.TimeoutSplitter;
+        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+            .TimeoutSplitter;
 
         // 获取配置的超时阈值（单位：毫秒）
         const timeoutThresholdMs = config.timeoutInMinutes * 60 * 1000;
 
-        const msgs = (
-            await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
-                groupId,
-                getMinutesAgoTimestamp(minutesAgo),
-                Date.now()
-            )
-        ).sort((a, b) => a.timestamp - b.timestamp); // 按时间从早到晚排序
+        const msgs = await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+            groupId,
+            getMinutesAgoTimestamp(minutesAgo),
+            Date.now()
+        );
 
         for (let i = 0; i < msgs.length; i++) {
             const msg = msgs[i];

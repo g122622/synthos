@@ -1,6 +1,11 @@
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
 
+/**
+ * 消息分割器接口。
+ * 分割器的实现不应该考虑provider的实现细节。
+ * 与provider不同，splitter既可以是无状态的，也可以是有状态的（比如用kv引擎持久化数据）。
+ */
 export interface ISplitter {
     init(): Promise<void>;
     /**

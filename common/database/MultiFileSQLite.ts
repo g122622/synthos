@@ -28,6 +28,16 @@ class MultiFileSQLite {
         this.sqlite3 = sqlite3;
         this.config = config;
         this.initialSQL = config.initialSQL || "";
+
+        // 释放
+        process.on("SIGINT", async () => {
+            this.LOGGER.warning("SIGINT received, closing...");
+            await this.close();
+            this.LOGGER.success("Closed!");
+            process.exit(0);
+        });
+
+        this.LOGGER.info("初始化完成！");
     }
 
     // 确保 dbBasePath 存在

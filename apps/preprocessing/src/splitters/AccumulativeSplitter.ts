@@ -12,7 +12,8 @@ export class AccumulativeSplitter implements ISplitter {
     private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 
     public async init() {
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
+        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+            .AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
     }
 
@@ -20,7 +21,8 @@ export class AccumulativeSplitter implements ISplitter {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
+        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+            .AccumulativeSplitter;
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {
             // 为其分配一个新的 sessionId
@@ -34,13 +36,11 @@ export class AccumulativeSplitter implements ISplitter {
             }
         };
 
-        const msgs = (
-            await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
-                groupId,
-                getMinutesAgoTimestamp(minutesAgo),
-                Date.now()
-            )
-        ).sort((a, b) => a.timestamp - b.timestamp); // 从早到晚排序消息
+        const msgs = await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+            groupId,
+            getMinutesAgoTimestamp(minutesAgo),
+            Date.now()
+        );
 
         for (let index = 0; index < msgs.length; index++) {
             const msg = msgs[index];
@@ -68,7 +68,10 @@ export class AccumulativeSplitter implements ISplitter {
                         // 此时上一个sessionId的容量未满，为这条消息分配上一个sessionId，并更新其容量
                         msg.sessionId = previousMsgSessionId; // 分配上一个sessionId
                         if (config.mode === "charCount") {
-                            await this.kvStore!.put(previousMsgSessionId, capacity + msg.messageContent!.length); // 更新容量
+                            await this.kvStore!.put(
+                                previousMsgSessionId,
+                                capacity + msg.messageContent!.length
+                            ); // 更新容量
                         } else if (config.mode === "messageCount") {
                             await this.kvStore!.put(previousMsgSessionId, capacity + 1); // 更新容量
                         } else {

@@ -10,7 +10,10 @@ export class MessagePBParser {
 
     public async init() {
         // 1. 加载 .proto 文件（或直接用字符串） TODO：换一种加载方式，不要这么原始
-        const protoContent = await readFile("./src/providers/QQProvider/parsers/messageSegment.proto", "utf8");
+        const protoContent = await readFile(
+            "./src/providers/QQProvider/parsers/messageSegment.proto",
+            "utf8"
+        );
 
         // 2. 动态构建 Root
         const root = protobuf.parse(protoContent).root;

@@ -10,8 +10,9 @@ export class AGCDBManager {
     public async init() {
         this.db = new MultiFileSQLite({
             dbBasePath: (await ConfigManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase.maxDBDuration,
-            // 一个topicId会对应多个sessionId
+            maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase
+                .maxDBDuration,
+            // 一个sessionId会对应多个topicId
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
                     topicId TEXT NOT NULL PRIMARY KEY,
@@ -49,6 +50,18 @@ export class AGCDBManager {
             topicId
         ])) as AIDigestResult | null;
         return result;
+    }
+
+    /**
+     * 检查一个sessionId是否已经被摘要过了
+     * 检查逻辑：如果给定的sessionId出现在了表的任意一行，则返回true，否则返回false
+     * @param sessionId 会话id
+     * @returns 是否已经被摘要过了
+     */
+    public isSessionIdSummarized(sessionId: string): Promise<boolean> {
+        return this.db.get(`SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`, [
+            sessionId
+        ]) as Promise<boolean>;
     }
 
     public async close() {

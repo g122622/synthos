@@ -25,15 +25,6 @@ export class IMDBManager {
                     preProcessedContent TEXT
                 );`
         });
-
-        // 释放imdbManager
-        process.on("SIGINT", async () => {
-            console.log("SIGINT received, closing...");
-            await this.close();
-            process.exit(0);
-        });
-
-        this.LOGGER.info("初始化完成！");
     }
 
     public async storeRawChatMessage(msg: RawChatMessage) {
@@ -68,6 +59,13 @@ export class IMDBManager {
         }
     }
 
+    /**
+     * 获取指定群组在指定时间范围内的所有消息
+     * @param groupId 群组ID
+     * @param timeStart 起始时间戳
+     * @param timeEnd 结束时间戳
+     * @returns 消息列表 ！！！已经按照时间从早到晚排序
+     */
     public async getRawChatMessagesByGroupIdAndTimeRange(
         groupId: string,
         timeStart: number,
@@ -78,9 +76,18 @@ export class IMDBManager {
             timeStart,
             timeEnd
         ])) as RawChatMessage[];
+        // 按照时间从早到晚排序
+        results.sort((a, b) => a.timestamp - b.timestamp);
         return results;
     }
 
+    /**
+     * 获取指定群组在指定时间范围内的所有消息，包含预处理后的消息
+     * @param groupId 群组ID
+     * @param timeStart 起始时间戳
+     * @param timeEnd 结束时间戳
+     * @returns 消息列表 ！！！已经按照时间从早到晚排序
+     */
     public async getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
         groupId: string,
         timeStart: number,
@@ -91,6 +98,8 @@ export class IMDBManager {
             timeStart,
             timeEnd
         ])) as ProcessedChatMessageWithRawMessage[];
+        // 按照时间从早到晚排序
+        results.sort((a, b) => a.timestamp - b.timestamp);
         return results;
     }
 

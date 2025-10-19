@@ -46,7 +46,11 @@ import { ISplitter } from "./splitters/@types/ISplitter";
                 }
                 await splitter.init();
                 const results = (
-                    await splitter.assignSessionId(imdbManager, groupId, attrs.startTimeInMinutesFromNow)
+                    await splitter.assignSessionId(
+                        imdbManager,
+                        groupId,
+                        attrs.startTimeInMinutesFromNow
+                    )
                 ).map<ProcessedChatMessage>(result => {
                     return {
                         sessionId: result.sessionId!,
@@ -80,7 +84,9 @@ import { ISplitter } from "./splitters/@types/ISplitter";
     );
 
     // 每隔一段时间触发一次DecideAndDispatchPreprocess任务
-    LOGGER.debug(`DecideAndDispatchPreprocess任务将每隔${config.preprocessors.agendaTaskIntervalInMinutes}分钟执行一次`);
+    LOGGER.debug(
+        `DecideAndDispatchPreprocess任务将每隔${config.preprocessors.agendaTaskIntervalInMinutes}分钟执行一次`
+    );
     await agendaInstance.every(
         config.preprocessors.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchPreprocess
