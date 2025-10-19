@@ -1,5 +1,5 @@
 import { TextGenerator } from "./generators/text/TextGenerator";
-import { IMCtxBuilder } from "./context/ctxBuilders/IMCtxBuilder";
+import { IMSummaryCtxBuilder } from "./context/ctxBuilders/IMSummaryCtxBuilder";
 import { AIDigestResult } from "@root/common/types/ai-model";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
@@ -10,7 +10,6 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-prov
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { sleep } from "@root/common/util/promisify/sleep";
 
 (async () => {
     const LOGGER = Logger.withTag("ai-model-root-script");
@@ -31,7 +30,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
 
             const textGenerator = new TextGenerator();
             await textGenerator.init();
-            const ctxBuilder = new IMCtxBuilder();
+            const ctxBuilder = new IMSummaryCtxBuilder();
             await ctxBuilder.init();
 
             for (const groupId of attrs.groupIds) {
@@ -79,7 +78,10 @@ import { sleep } from "@root/common/util/promisify/sleep";
                 for (const sessionId in sessions) {
                     await job.touch(); // 保证任务存活
 
-                    const ctx = await ctxBuilder.buildCtx(sessions[sessionId]);
+                    const ctx = await ctxBuilder.buildCtx(
+                        sessions[sessionId],
+                        config.groupConfigs[groupId].groupIntroduction
+                    );
                     LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
                     const resultStr = await textGenerator.generateText(
                         config.groupConfigs[groupId].aiModel!,

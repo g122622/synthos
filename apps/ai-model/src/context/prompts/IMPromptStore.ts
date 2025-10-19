@@ -1,7 +1,11 @@
 export class IMPromptStore {
     // TODO 补充背景信息，如：wj代表陈彦希、这个群的简介、主要话题方向、主要人员构成等
-    public static getSummarizePrompt(maxTopics: number, messages: string): string {
-        return `你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的几个准则：
+    public static getSummarizePrompt(
+        groupIntroduction: string,
+        maxTopics: number,
+        messages: string
+    ): string {
+        return `你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的全部准则：
         请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。
 
         对于每个话题，请提供：
@@ -17,6 +21,9 @@ export class IMPromptStore {
         - 群成员的昵称可能是自己的qq昵称，也可能是群昵称，也可能是真实姓名。
         - 聊天中出现的表情使用以下格式标出： [/大怨种]
         - 如果一个话题只对应聊天消息中的两三句话，或者类似早安晚安之类的打招呼，那么请不要返回这个话题。
+
+        群聊详情：
+        ${groupIntroduction}
 
         群聊记录：
         ${messages}
