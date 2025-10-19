@@ -15,6 +15,7 @@ class PromisifiedSQLite {
             this.db = new this.sqlite3.Database(DBFilePath, err => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to open database: " + err.message);
+                    this.LOGGER.debug("Database path: " + DBFilePath);
                     reject(err);
                 } else {
                     this.LOGGER.success("Opened database successfully, path: " + DBFilePath);
@@ -29,6 +30,7 @@ class PromisifiedSQLite {
             this.db.loadExtension(extensionPath, err => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to load extension: " + err.message);
+                    this.LOGGER.debug("Extension path: " + extensionPath);
                     reject(err);
                 } else {
                     this.LOGGER.success("Loaded extension successfully, path: " + extensionPath);
@@ -43,6 +45,7 @@ class PromisifiedSQLite {
             this.db.exec(sql, err => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to execute SQL: " + err.message);
+                    this.LOGGER.debug("SQL: " + sql);
                     reject(err);
                 } else {
                     resolve();
@@ -61,6 +64,7 @@ class PromisifiedSQLite {
             const statement = this.db.prepare(sql, err => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to prepare statement: " + err.message);
+                    this.LOGGER.debug("SQL: " + sql);
                     reject(err);
                 } else {
                     const stmt = new PromisifiedStatement(statement);
@@ -78,6 +82,8 @@ class PromisifiedSQLite {
                 (err => {
                     if (err) {
                         this.LOGGER.bgRed("Failed to run SQL: " + err.message);
+                        this.LOGGER.debug("SQL: " + sql);
+                        this.LOGGER.debug("Params: " + JSON.stringify(params));
                         reject(err);
                     } else {
                         resolve();
@@ -92,6 +98,8 @@ class PromisifiedSQLite {
             this.db.all(sql, params, (err, rows) => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to get all rows: " + err.message);
+                    this.LOGGER.debug("SQL: " + sql);
+                    this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
                 } else {
                     resolve(rows);
@@ -105,6 +113,8 @@ class PromisifiedSQLite {
             this.db.each(sql, params, callback, err => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to each rows: " + err.message);
+                    this.LOGGER.debug("SQL: " + sql);
+                    this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
                 } else {
                     resolve();
@@ -118,6 +128,8 @@ class PromisifiedSQLite {
             this.db.get(sql, params, (err, row) => {
                 if (err) {
                     this.LOGGER.bgRed("Failed to get row: " + err.message);
+                    this.LOGGER.debug("SQL: " + sql);
+                    this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
                 } else {
                     resolve(row);

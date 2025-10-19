@@ -28,7 +28,7 @@ export class AGCDBManager {
     public async storeAIDigestResult(result: AIDigestResult) {
         // to fix
         await this.db.run(
-            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?)
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
                 sessionId = excluded.sessionId,
                 topic = excluded.topic,
@@ -58,10 +58,13 @@ export class AGCDBManager {
      * @param sessionId 会话id
      * @returns 是否已经被摘要过了
      */
-    public isSessionIdSummarized(sessionId: string): Promise<boolean> {
-        return this.db.get(`SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`, [
-            sessionId
-        ]) as Promise<boolean>;
+    public async isSessionIdSummarized(sessionId: string): Promise<boolean> {
+        // 返回结果类似 { 'EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)': 0 }
+        const result = await this.db.get(
+            `SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`,
+            [sessionId]
+        );
+        return result[Object.keys(result)[0]] === 1;
     }
 
     public async close() {

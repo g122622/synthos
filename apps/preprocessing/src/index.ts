@@ -76,7 +76,10 @@ import { ISplitter } from "./splitters/@types/ISplitter";
 
             await agendaInstance.schedule("1 second", TaskHandlerTypes.Preprocess, {
                 groupIds: Object.keys(config.groupConfigs),
-                startTimeInMinutesFromNow: config.preprocessors.agendaTaskIntervalInMinutes * 10 // 乘以若干倍，以扩大时间窗口
+                startTimeInMinutesFromNow: Math.max(
+                    config.preprocessors.agendaTaskIntervalInMinutes * 10,
+                    24 * 60
+                ) // 乘以若干倍，以扩大时间窗口
             });
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
