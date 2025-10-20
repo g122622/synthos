@@ -1,0 +1,22 @@
+{
+    "name": "webui-backend",
+    "version": "1.0.0",
+    "description": "WebUI后端接口服务",
+    "main": "index.js",
+    "scripts": {
+        "build": "tsc --build",
+        "dev": "rm tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node dist/index.js"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "packageManager": "pnpm@10.15.0",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^5.1.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.3"
+    }
+}

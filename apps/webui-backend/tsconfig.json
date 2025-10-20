@@ -1,0 +1,18 @@
+{
+    "extends": "../../tsconfig.base.json", // 可选：继承根配置
+    "compilerOptions": {
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["src/*"],
+            "@root/*": ["../../*"] // 指向 synthos 根目录
+        },
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "target": "es2023"
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist"],
+    "references": [
+        { "path": "../../common" } // ✅ 引用公共包项目
+    ]
+}
