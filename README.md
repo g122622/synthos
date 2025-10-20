@@ -2,6 +2,12 @@
 
 ![alt text](Synthos架构7.drawio.png)
 
+## 任务单
+
+- 前端界面
+- 转发聊天记录跟随
+- 引用聊天记录跟随
+
 ## 快速开始
 
 使用monorepo管理项目，使用pnpm管理依赖。

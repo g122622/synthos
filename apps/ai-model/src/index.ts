@@ -10,6 +10,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-prov
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
+import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 
 (async () => {
     const LOGGER = Logger.withTag("ai-model-root-script");
@@ -27,6 +28,11 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
             config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+
+            if (!(await checkConnectivity())) {
+                LOGGER.error(`网络连接不可用，跳过当前任务`);
+                return;
+            }
 
             const textGenerator = new TextGenerator();
             await textGenerator.init();
@@ -90,6 +96,9 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
                     let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
                     try {
                         results = JSON.parse(resultStr);
+                        LOGGER.success(
+                            `session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
+                        );
                     } catch (error) {
                         LOGGER.error(
                             `session ${sessionId} 解析llm回传的json结果失败：${error}，跳过当前会话`
@@ -98,7 +107,6 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
                         console.log(resultStr);
                         continue; // 跳过当前会话
                     }
-                    LOGGER.success(`session ${sessionId} 生成摘要成功！`);
                     // 遍历这个session下的每个话题，增加必要的字段
                     for (const result of results) {
                         Object.assign(result, { sessionId }); // 添加 sessionId
