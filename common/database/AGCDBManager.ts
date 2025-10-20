@@ -52,6 +52,14 @@ export class AGCDBManager {
         return result;
     }
 
+    public async getAIDigestResultsBySessionId(sessionId: string): Promise<AIDigestResult[]> {
+        const results = (await this.db.all(
+            `SELECT * FROM ai_digest_results WHERE sessionId =?`,
+            [sessionId]
+        )) as AIDigestResult[];
+        return results;
+    }
+
     /**
      * 检查一个sessionId是否已经被摘要过了
      * 检查逻辑：如果给定的sessionId出现在了表的任意一行，则返回true，否则返回false

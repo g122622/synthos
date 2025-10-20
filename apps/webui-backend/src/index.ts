@@ -26,14 +26,24 @@ export class WebUIServer {
     }
 
     private setupRoutes(): void {
-        // 获取AI摘要结果
-        this.app.get("/api/ai-digest-results", this.handleGetAIDigestResults.bind(this));
-
         // 获取聊天消息
-        this.app.get("/api/chat-messages", this.handleGetChatMessages.bind(this));
+        this.app.get(
+            "/api/chat-messages-by-group-id",
+            this.handleGetChatMessagesByGroupId.bind(this)
+        );
+
+        // 获取AI摘要结果
+        this.app.get(
+            "/api/ai-digest-result-by-topic-id",
+            this.handleGetAIDigestResultByTopicId.bind(this)
+        );
+        this.app.get(
+            "/api/ai-digest-results-by-session-id",
+            this.handleGetAIDigestResultsBySessionId.bind(this)
+        );
 
         // 检查会话是否已摘要
-        this.app.get("/api/session-summarized", this.handleCheckSessionSummarized.bind(this));
+        this.app.get("/api/is-session-summarized", this.handleCheckSessionSummarized.bind(this));
 
         // 获取所有群组详情
         this.app.get("/api/group-details", this.handleGetAllGroupDetails.bind(this));
@@ -58,7 +68,7 @@ export class WebUIServer {
 
     // --- Route Handlers ---
 
-    private async handleGetAIDigestResults(req: Request, res: Response): Promise<void> {
+    private async handleGetAIDigestResultByTopicId(req: Request, res: Response): Promise<void> {
         try {
             const { topicId } = req.query;
 
@@ -79,7 +89,23 @@ export class WebUIServer {
         }
     }
 
-    private async handleGetChatMessages(req: Request, res: Response): Promise<void> {
+    private async handleGetAIDigestResultsBySessionId(req: Request, res: Response): Promise<void> {
+        try {
+            const { sessionId } = req.query;
+            if (!sessionId || typeof sessionId !== "string") {
+                res.status(400).json({ success: false, message: "缺少sessionId参数" });
+                return;
+            }
+
+            const results = await this.agcDBManager!.getAIDigestResultsBySessionId(sessionId);
+            res.json({ success: true, data: results });
+        } catch (error) {
+            this.LOGGER.error(`获取AI摘要结果失败: ${error}`);
+            res.status(500).json({ success: false, message: "服务器内部错误" });
+        }
+    }
+
+    private async handleGetChatMessagesByGroupId(req: Request, res: Response): Promise<void> {
         try {
             const { groupId, timeStart, timeEnd } = req.query;
 
