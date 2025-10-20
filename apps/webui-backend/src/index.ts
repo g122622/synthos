@@ -26,6 +26,9 @@ export class WebUIServer {
     }
 
     private setupRoutes(): void {
+        // 获取所有群组详情
+        this.app.get("/api/group-details", this.handleGetAllGroupDetails.bind(this));
+
         // 获取聊天消息
         this.app.get(
             "/api/chat-messages-by-group-id",
@@ -45,8 +48,8 @@ export class WebUIServer {
         // 检查会话是否已摘要
         this.app.get("/api/is-session-summarized", this.handleCheckSessionSummarized.bind(this));
 
-        // 获取所有群组详情
-        this.app.get("/api/group-details", this.handleGetAllGroupDetails.bind(this));
+        // 获取QQ号码对应的头像
+        this.app.get("/api/qq-avatar", this.handleGetQQAvatar.bind(this));
 
         // 健康检查
         this.app.get("/health", this.handleHealthCheck.bind(this));
@@ -166,6 +169,47 @@ export class WebUIServer {
         });
     }
 
+    /**
+     * 获取QQ号码对应的头像，使用 http://q1.qlogo.cn/g?b=qq&nk=QQ号码&s=100 接口
+     * 服务器下载头像之后，返回头像的base64编码
+     */
+    private async handleGetQQAvatar(req: Request, res: Response): Promise<void> {
+        function downloadImage(url: string): Promise<Buffer> {
+            return new Promise((resolve, reject) => {
+                https
+                    .get(url, res => {
+                        if (res.statusCode !== 200) {
+                            reject(new Error(`HTTP 状态码 ${res.statusCode}`));
+                            return;
+                        }
+
+                        const chunks: Buffer[] = [];
+                        res.on("data", chunk => chunks.push(chunk));
+                        res.on("end", () => resolve(Buffer.concat(chunks)));
+                    })
+                    .on("error", reject);
+            });
+        }
+
+        try {
+            const { qqNumber } = req.query;
+
+            if (!qqNumber || typeof qqNumber !== "string") {
+                res.status(400).json({ success: false, message: "缺少qqNumber参数" });
+                return;
+            }
+
+            const avatarUrl = `http://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=100`;
+            // 下载
+            const avatarBuffer = await downloadImage(avatarUrl);
+            const avatarBase64 = avatarBuffer.toString("base64");
+            res.json({ success: true, data: { avatarBase64 } });
+        } catch (error) {
+            this.LOGGER.error(`获取QQ头像失败: ${error}`);
+            res.status(500).json({ success: false, message: "服务器内部错误" });
+        }
+    }
+
     // --- Lifecycle Methods ---
 
     private async initializeDatabases(): Promise<void> {
@@ -193,11 +237,9 @@ export class WebUIServer {
     }
 }
 
-// 启动入口（可选，用于直接运行）
-if (require.main === module) {
-    const server = new WebUIServer();
-    server.start().catch(error => {
-        Logger.withTag("WebUI-Backend").error(`启动失败: ${error.message}`);
-        process.exit(1);
-    });
-}
+// 启动入口
+const server = new WebUIServer();
+server.start().catch(error => {
+    Logger.withTag("WebUI-Backend").error(`启动失败: ${error.message}`);
+    process.exit(1);
+});
