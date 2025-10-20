@@ -4,6 +4,7 @@ import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import Logger from "@root/common/util/Logger";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import https from "https";
 
 export class WebUIServer {
     private app: Express;
