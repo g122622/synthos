@@ -1,5 +1,7 @@
 # WebUI Backend API 文档
 
+目前后端地址部署在 http://localhost:3002/
+
 ## 通用响应格式
 
 ### 成功响应

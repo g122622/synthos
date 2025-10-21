@@ -41,7 +41,7 @@ export class MiscHandler extends BaseHandler {
                 return;
             }
 
-            const avatarUrl = `http://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=100`;
+            const avatarUrl = `https://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=100`;
             // 下载
             const avatarBuffer = await downloadImage(avatarUrl);
             const avatarBase64 = avatarBuffer.toString("base64");
