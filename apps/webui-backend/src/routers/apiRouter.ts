@@ -8,6 +8,18 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
     // 获取聊天消息
     app.get("/api/chat-messages-by-group-id", server.handleGetChatMessagesByGroupId.bind(server));
 
+    // 获取会话ID
+    app.get(
+        "/api/session-ids-by-group-id-and-time-range",
+        server.handleGetSessionIdsByGroupIdAndTimeRange.bind(server)
+    );
+
+    // 获取会话时间范围
+    app.get(
+        "/api/session-time-duration",
+        server.handleGetSessionTimeDuration.bind(server)
+    );
+
     // 获取AI摘要结果
     app.get(
         "/api/ai-digest-result-by-topic-id",

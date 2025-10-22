@@ -92,6 +92,17 @@ export class WebUIServer {
         return this.chatMessageHandler.handleGetChatMessagesByGroupId(req, res);
     }
 
+    public async handleGetSessionIdsByGroupIdAndTimeRange(
+        req: Request,
+        res: Response
+    ): Promise<void> {
+        return this.chatMessageHandler.handleGetSessionIdsByGroupIdAndTimeRange(req, res);
+    }
+
+    public async handleGetSessionTimeDuration(req: Request, res: Response): Promise<void> {
+        return this.chatMessageHandler.handleGetSessionTimeDuration(req, res);
+    }
+
     public async handleCheckSessionSummarized(req: Request, res: Response): Promise<void> {
         return this.aiDigestHandler.handleCheckSessionSummarized(req, res);
     }

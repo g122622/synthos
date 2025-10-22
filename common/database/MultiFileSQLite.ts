@@ -59,7 +59,9 @@ class MultiFileSQLite {
             .map(file => {
                 const name = basename(file, ".db");
                 const ts = parseInt(name, 10);
-                return isNaN(ts) ? null : { path: join(this.config.dbBasePath, file), timestamp: ts };
+                return isNaN(ts)
+                    ? null
+                    : { path: join(this.config.dbBasePath, file), timestamp: ts };
             })
             .filter(Boolean) as { path: string; timestamp: number }[];
 
@@ -88,7 +90,11 @@ class MultiFileSQLite {
         const maxDurationSec = this.config.maxDBDuration * 24 * 3600;
 
         // 检查是否需要切换到新库
-        if (this.activeDBPath && this.activeDBTimestamp && nowSeconds - this.activeDBTimestamp > maxDurationSec) {
+        if (
+            this.activeDBPath &&
+            this.activeDBTimestamp &&
+            nowSeconds - this.activeDBTimestamp > maxDurationSec
+        ) {
             // 标记旧库为非活跃，但不关闭（仍可能用于读）
             this.activeDBPath = null;
             this.activeDBTimestamp = null;
@@ -146,7 +152,12 @@ class MultiFileSQLite {
             const db = await this.getOrCreateDB(dbFiles[i].path);
             try {
                 const row = await db.get(sql, params);
-                if (row !== undefined) return row;
+                if (sql.includes("EXISTS")) {
+                    // 如果是 EXISTS 查询，只要找到一个就返回
+                    if (row[Object.keys(row)[0]] >= 1) return row[Object.keys(row)[0]];
+                } else {
+                    if (row !== undefined) return row;
+                }
             } catch (err) {
                 this.LOGGER.error(`Error in get() on ${dbFiles[i].path}: ${err.message}`);
             }
@@ -169,7 +180,11 @@ class MultiFileSQLite {
         return allRows;
     }
 
-    public async each(sql: string, params: any[] = [], callback: (err: Error | null, row: any) => void): Promise<void> {
+    public async each(
+        sql: string,
+        params: any[] = [],
+        callback: (err: Error | null, row: any) => void
+    ): Promise<void> {
         const dbFiles = await this.getAllDBPaths();
         for (const dbInfo of dbFiles) {
             const db = await this.getOrCreateDB(dbInfo.path);
