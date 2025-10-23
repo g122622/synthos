@@ -150,18 +150,21 @@ export class QQProvider implements IIMProvider {
                             }
                             break;
                         }
-                        // case MsgElementType.IMAGE: {
-                        //     // TODO: 处理图片消息
-                        //     break;
-                        // }
-                        // case MsgElementType.VOICE: {
-                        //     // TODO: 处理语音消息
-                        //     break;
-                        // }
-                        // case MsgElementType.FILE: {
-                        //     // TODO: 处理文件消息
-                        //     break;
-                        // }
+                        case MsgElementType.IMAGE: {
+                            // TODO: 处理图片消息
+                            processedMsg.messageContent += `[图片]`;
+                            break;
+                        }
+                        case MsgElementType.VOICE: {
+                            // TODO: 处理语音消息
+                            processedMsg.messageContent += `[语音]`;
+                            break;
+                        }
+                        case MsgElementType.FILE: {
+                            // TODO: 处理文件消息
+                            processedMsg.messageContent += `[文件][文件名：${rawMsgElement.fileName}]`;
+                            break;
+                        }
                         // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
                         default: {
                             // 忽略其他类型的消息，不加入messages
