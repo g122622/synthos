@@ -48,7 +48,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
-            concurrency: 3,
+            concurrency: 1,
             priority: "high",
             lockLifetime: 10 * 60 * 1000, // 10分钟
         }

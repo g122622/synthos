@@ -64,7 +64,7 @@ import { ISplitter } from "./splitters/@types/ISplitter";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
-            concurrency: 3,
+            concurrency: 1,
             priority: "high"
         }
     );

@@ -84,7 +84,9 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
                 for (const sessionId in sessions) {
                     await job.touch(); // 保证任务存活
 
-                    LOGGER.info(`开始处理session ${sessionId}，共 ${sessions[sessionId].length} 条消息`);
+                    LOGGER.info(
+                        `开始处理session ${sessionId}，共 ${sessions[sessionId].length} 条消息`
+                    );
                     if (sessions[sessionId].length <= 1) {
                         LOGGER.warning(
                             `session ${sessionId} 消息数量不足，消息数量为${sessionId}，跳过`
@@ -136,7 +138,7 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
-            concurrency: 3,
+            concurrency: 1,
             priority: "high",
             lockLifetime: 10 * 60 * 1000 // 10分钟
         }
@@ -154,6 +156,11 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
             });
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
+        },
+        {
+            concurrency: 1,
+            priority: "high",
+            lockLifetime: 10 * 60 * 1000 // 10分钟
         }
     );
 
@@ -165,6 +172,9 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
         config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchAISummarize
     );
+    // 立即执行一次DecideAndDispatch任务
+    LOGGER.info(`立即执行一次DecideAndDispatch任务`);
+    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
