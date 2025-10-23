@@ -2,6 +2,7 @@ import { readdir, mkdir } from "fs/promises";
 import { join, basename, extname } from "path";
 import { PromisifiedSQLite, PromisifiedStatement } from "../util/promisify/PromisifiedSQLite";
 import Logger from "../util/Logger";
+import { deepUnique } from "../util/deepUnique";
 const sqlite3 = require("sqlite3").verbose();
 
 interface CommonDatabaseConfig {
@@ -177,6 +178,8 @@ class MultiFileSQLite {
                 this.LOGGER.error(`Error in all() on ${dbInfo.path}: ${err.message}`);
             }
         }
+        // 对所有row进行深度比较，去重
+        allRows = deepUnique(allRows);
         return allRows;
     }
 

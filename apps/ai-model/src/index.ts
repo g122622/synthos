@@ -84,6 +84,14 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
                 for (const sessionId in sessions) {
                     await job.touch(); // 保证任务存活
 
+                    LOGGER.info(`开始处理session ${sessionId}，共 ${sessions[sessionId].length} 条消息`);
+                    if (sessions[sessionId].length <= 1) {
+                        LOGGER.warning(
+                            `session ${sessionId} 消息数量不足，消息数量为${sessionId}，跳过`
+                        );
+                        continue;
+                    }
+
                     const ctx = await ctxBuilder.buildCtx(
                         sessions[sessionId],
                         config.groupConfigs[groupId].groupIntroduction
@@ -99,6 +107,13 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
                         LOGGER.success(
                             `session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
                         );
+                        if (resultStr.length < 30) {
+                            LOGGER.warning(
+                                `session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`
+                            );
+                            console.log(resultStr);
+                            continue;
+                        }
                     } catch (error) {
                         LOGGER.error(
                             `session ${sessionId} 解析llm回传的json结果失败：${error}，跳过当前会话`
