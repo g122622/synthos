@@ -89,7 +89,7 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
                     );
                     if (sessions[sessionId].length <= 1) {
                         LOGGER.warning(
-                            `session ${sessionId} 消息数量不足，消息数量为${sessionId}，跳过`
+                            `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
                         );
                         continue;
                     }
