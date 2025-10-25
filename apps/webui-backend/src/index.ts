@@ -1,6 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
+import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import Logger from "@root/common/util/Logger";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
@@ -20,12 +21,14 @@ import { AIDigestHandler } from "./handlers/AIDigestHandler";
 import { ChatMessageHandler } from "./handlers/ChatMessageHandler";
 import { GroupConfigHandler } from "./handlers/GroupConfigHandler";
 import { MiscHandler } from "./handlers/MiscHandler";
+import { InterestScoreHandler } from "./handlers/InterestScoreHandler";
 
 export class WebUIServer {
     private app: Express;
     private readonly port: number;
     private agcDBManager: AGCDBManager | null = null;
     private imDBManager: IMDBManager | null = null;
+    private interestScoreDBManager: InterestScoreDBManager | null = null;
     private readonly LOGGER = Logger.withTag("WebUI-Backend");
 
     // 处理函数实例
@@ -33,16 +36,38 @@ export class WebUIServer {
     private chatMessageHandler: ChatMessageHandler;
     private groupConfigHandler: GroupConfigHandler;
     private miscHandler: MiscHandler;
+    private interestScoreHandler: InterestScoreHandler;
 
     constructor(port?: number) {
         this.port = port || parseInt(process.env.PORT || "3002", 10);
         this.app = express();
 
         // 初始化处理函数
-        this.aiDigestHandler = new AIDigestHandler(this.agcDBManager, this.imDBManager);
-        this.chatMessageHandler = new ChatMessageHandler(this.agcDBManager, this.imDBManager);
-        this.groupConfigHandler = new GroupConfigHandler(this.agcDBManager, this.imDBManager);
-        this.miscHandler = new MiscHandler(this.agcDBManager, this.imDBManager);
+        this.aiDigestHandler = new AIDigestHandler(
+            this.agcDBManager,
+            this.imDBManager,
+            this.interestScoreDBManager
+        );
+        this.chatMessageHandler = new ChatMessageHandler(
+            this.agcDBManager,
+            this.imDBManager,
+            this.interestScoreDBManager
+        );
+        this.groupConfigHandler = new GroupConfigHandler(
+            this.agcDBManager,
+            this.imDBManager,
+            this.interestScoreDBManager
+        );
+        this.miscHandler = new MiscHandler(
+            this.agcDBManager,
+            this.imDBManager,
+            this.interestScoreDBManager
+        );
+        this.interestScoreHandler = new InterestScoreHandler(
+            this.agcDBManager,
+            this.imDBManager,
+            this.interestScoreDBManager
+        );
 
         this.setupMiddleware();
         this.setupRoutes();
@@ -63,19 +88,41 @@ export class WebUIServer {
     }
 
     public async closeDatabases(): Promise<void> {
-        await closeDatabases(this.agcDBManager, this.imDBManager);
+        await closeDatabases(this.agcDBManager, this.imDBManager, this.interestScoreDBManager);
     }
 
     // 更新数据库管理器引用
-    public updateDBManagers(agcDBManager: AGCDBManager, imDBManager: IMDBManager): void {
+    public updateDBManagers(
+        agcDBManager: AGCDBManager,
+        imDBManager: IMDBManager,
+        interestScoreDBManager: InterestScoreDBManager
+    ): void {
         this.agcDBManager = agcDBManager;
         this.imDBManager = imDBManager;
+        this.interestScoreDBManager = interestScoreDBManager;
 
         // 更新处理函数中的数据库引用
-        this.aiDigestHandler = new AIDigestHandler(agcDBManager, imDBManager);
-        this.chatMessageHandler = new ChatMessageHandler(agcDBManager, imDBManager);
-        this.groupConfigHandler = new GroupConfigHandler(agcDBManager, imDBManager);
-        this.miscHandler = new MiscHandler(agcDBManager, imDBManager);
+        this.aiDigestHandler = new AIDigestHandler(
+            agcDBManager,
+            imDBManager,
+            interestScoreDBManager
+        );
+        this.chatMessageHandler = new ChatMessageHandler(
+            agcDBManager,
+            imDBManager,
+            interestScoreDBManager
+        );
+        this.groupConfigHandler = new GroupConfigHandler(
+            agcDBManager,
+            imDBManager,
+            interestScoreDBManager
+        );
+        this.miscHandler = new MiscHandler(agcDBManager, imDBManager, interestScoreDBManager);
+        this.interestScoreHandler = new InterestScoreHandler(
+            agcDBManager,
+            imDBManager,
+            interestScoreDBManager
+        );
     }
 
     // --- Route Handlers ---
@@ -119,11 +166,19 @@ export class WebUIServer {
         return this.miscHandler.handleGetQQAvatar(req, res);
     }
 
+    public async handleGetInterestScoreResult(req: Request, res: Response): Promise<void> {
+        return this.interestScoreHandler.handleGetInterestScoreResult(req, res);
+    }
+
+    public async handleCheckInterestScoreResultExist(req: Request, res: Response): Promise<void> {
+        return this.interestScoreHandler.handleCheckInterestScoreResultExist(req, res);
+    }
+
     // --- Lifecycle Methods ---
 
     private async initializeDatabases(): Promise<void> {
-        const { agcDBManager, imDBManager } = await initializeDatabases();
-        this.updateDBManagers(agcDBManager, imDBManager);
+        const { agcDBManager, imDBManager, interestScoreDBManager } = await initializeDatabases();
+        this.updateDBManagers(agcDBManager, imDBManager, interestScoreDBManager);
     }
 
     public async start(): Promise<void> {

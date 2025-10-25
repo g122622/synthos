@@ -38,4 +38,15 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
 
     // 健康检查
     app.get("/health", server.handleHealthCheck.bind(server));
+
+    app.get(
+        "/api/interest-score-result",
+        server.handleGetInterestScoreResult.bind(server)
+    );
+
+    // 检查InterestScore结果是否存在
+    app.get(
+        "/api/is-interest-score-result-exist",
+        server.handleCheckInterestScoreResultExist.bind(server)
+    );
 };

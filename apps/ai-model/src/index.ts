@@ -140,10 +140,7 @@ import { SemanticRater } from "./misc/SemanticRater";
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            agendaInstance.schedule(
-                "1 second",
-                TaskHandlerTypes.DecideAndDispatchInterestScore
-            )
+            agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchInterestScore);
         },
         {
             concurrency: 1,
@@ -245,7 +242,7 @@ import { SemanticRater } from "./misc/SemanticRater";
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
 
             await agendaInstance.schedule("1 second", TaskHandlerTypes.InterestScore, {
-                startTimeStamp: getHoursAgoTimestamp(24), // 24小时前
+                startTimeStamp: getHoursAgoTimestamp(24 * 3),
                 endTimeStamp: Date.now() // 现在
             });
 
