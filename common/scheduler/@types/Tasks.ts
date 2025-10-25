@@ -6,7 +6,9 @@ export enum TaskHandlerTypes {
     Preprocess = "Preprocess",
     DecideAndDispatchPreprocess = "DecideAndDispatchPreprocess",
     AISummarize = "AISummarize",
-    DecideAndDispatchAISummarize = "DecideAndDispatchAISummarize"
+    DecideAndDispatchAISummarize = "DecideAndDispatchAISummarize",
+    InterestScore = "InterestScore",
+    DecideAndDispatchInterestScore = "DecideAndDispatchInterestScore"
 }
 
 interface TaskParamsMap {
@@ -31,6 +33,11 @@ interface TaskParamsMap {
         endTimeStamp: number;
     };
     [TaskHandlerTypes.DecideAndDispatchAISummarize]: {};
+    [TaskHandlerTypes.InterestScore]: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    };
+    [TaskHandlerTypes.DecideAndDispatchInterestScore]: {};
 }
 
 // example

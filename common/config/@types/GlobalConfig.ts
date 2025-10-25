@@ -12,6 +12,11 @@ interface GroupConfig {
     aiModel: string | undefined; // 要使用的AI模型名。必须在ai.models里面有对应的配置
 }
 
+export interface UserInterest {
+    keyword: string;
+    liked: boolean;
+}
+
 // 若无特殊说明，所有设置项都是必填的
 export interface GlobalConfig {
     // 各层配置
@@ -37,7 +42,7 @@ export interface GlobalConfig {
         };
         TimeoutSplitter: {
             timeoutInMinutes: number; // 超时时间，单位为分钟
-        }
+        };
     };
     ai: {
         // 模型配置，key为模型名称，value为模型的具体配置
@@ -47,6 +52,12 @@ export interface GlobalConfig {
         // 总结任务的配置
         summarize: {
             agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
+        };
+        // 兴趣度指数打分任务的配置
+        interestScore: {
+            agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
+            UserInterestsPositiveKeywords: string[]; // 正向关键词
+            UserInterestsNegativeKeywords: string[]; // 负向关键词
         };
     };
 

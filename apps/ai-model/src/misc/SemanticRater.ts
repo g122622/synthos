@@ -1,16 +1,12 @@
 import Logger from "@root/common/util/Logger";
 import { pipeline, env } from "@huggingface/transformers";
 import type { DataArray } from "@huggingface/transformers";
+import { UserInterest } from "@root/common/config/@types/GlobalConfig";
 
 env.allowLocalModels = true;
 
 const QUERY_PREFIX = "为这个句子生成表示：";
 const MODEL_ID = "Xenova/bge-large-zh-v1.5";
-
-export interface UserInterest {
-    keyword: string;
-    liked: boolean;
-}
 
 export class SemanticRater {
     private embedder: any = null;
@@ -58,26 +54,11 @@ export class SemanticRater {
      * @param userInterests 用户兴趣关键词列表，每个包含 keyword 和 liked 标志
      * @param topicDetail 话题详情文本
      * @returns 打分值，范围 [-1, 1]
-     *   - 正向关键词（liked: true）提升分数
-     *   - 负向关键词（liked: false）降低分数
-     *   - 最终得分 = avg_sim(正向) - avg_sim(负向)
+     *   - 正向关键词（liked: true）：取与话题的最大相似度
+     *   - 负向关键词（liked: false）：取与话题的最大相似度
+     *   - 最终得分 = max_sim(正向) - max_sim(负向)
      */
     public async scoreTopic(userInterests: UserInterest[], topicDetail: string): Promise<number> {
-        // ### ✅ 设计思路
-        // 我们将用户兴趣拆分为两部分：
-        // - **正向查询（liked: true）** → 用 BGE 查询前缀编码，**加权聚合**
-        // - **负向查询（liked: false）** → 同样编码，但最终**从总分中减去其相似度**
-        // 最终得分公式（归一化到 [-1, 1]）：
-        // ```ts
-        // score = sim_pos - sim_neg
-        // // 然后 clamp 到 [-1, 1]
-        // ```
-        // > 💡 举例：
-        // >
-        // > - 正词：“北邮” → 与话题相似度 0.8
-        // > - 负词：“科软” → 与话题相似度 0.6
-        // > - 最终得分 = 0.8 - 0.6 = **0.2**
-
         if (userInterests.length === 0) {
             throw new Error("User interests cannot be empty");
         }
@@ -92,20 +73,26 @@ export class SemanticRater {
         let posSim = 0;
         let negSim = 0;
 
+        // 正向：取最大相似度（若无正向关键词，则为 0）
         if (positiveKeywords.length > 0) {
-            // TODO 目前是把用户提供的所有关键词都拼在一起，然后与topic比较余弦相似度。
-            // 未来可以考虑：
-            // 1. 每个关键词独立计算，然后求和。
-            // 2. 与正文内容而不是topic比较相似度，这样也许更准？
-            const posQuery = positiveKeywords.join("，");
-            const posVec = await this.getEmbedding(posQuery, true);
-            posSim = this.cosineSimilarity(posVec, topicVec);
+            const posSims = await Promise.all(
+                positiveKeywords.map(async keyword => {
+                    const vec = await this.getEmbedding(keyword, true);
+                    return this.cosineSimilarity(vec, topicVec);
+                })
+            );
+            posSim = Math.max(...posSims);
         }
 
+        // 负向：取最大相似度（若无负向关键词，则为 0）
         if (negativeKeywords.length > 0) {
-            const negQuery = negativeKeywords.join("，");
-            const negVec = await this.getEmbedding(negQuery, true);
-            negSim = this.cosineSimilarity(negVec, topicVec);
+            const negSims = await Promise.all(
+                negativeKeywords.map(async keyword => {
+                    const vec = await this.getEmbedding(keyword, true);
+                    return this.cosineSimilarity(vec, topicVec);
+                })
+            );
+            negSim = Math.max(...negSims);
         }
 
         let score = posSim - negSim; // 理论范围 [-1, 1]

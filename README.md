@@ -26,15 +26,17 @@
 
 ## 快速开始
 
-由于需要在本地跑BGE向量模型，建议电脑内存至少16GB。
+由于需要在本地跑BGE向量模型（经过实测这个模型峰值内存占用可达11GB，加上后台的MongoDB服务、若干Node进程和SQLite实例，总的内存占用可能会超过14GB），因此建议电脑内存最少也得16GB，推荐32GB甚至64GB。
+
+![alt text](image.png)
 
 使用monorepo管理项目，pnpm管理依赖，vitest进行单测。
 
 重要：首先需要在项目根目录下面放好配置文件 `synthos_config.json`，配置文件的填写格式请自己参考源码中的相应类型声明。
 
-重要：此外，项目使用agenda进行任务编排和调度，底层依赖于MongoDB，需要提前下载安装好：[https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)
+重要：此外，项目使用agenda进行任务编排和调度，底层依赖于MongoDB，需要提前下载安装好MongoDB社区版：[https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)
 
-重要：文本向量化依赖bge-large-zh-v1.5这个模型，本地跑CPU上。需要在这里下载： [https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx](https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx)
+重要：文本向量化依赖bge-large-zh-v1.5这个模型，本地跑CPU上。必须onnx格式，可以在这里下载： [https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx](https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx)
 huggingface速度较慢，建议使用多线程下载器。下载完成后放在 `根目录\node_modules\.pnpm\@huggingface+transformers@3.7.6\node_modules\@huggingface\transformers\.cache\Xenova\bge-large-zh-v1.5\onnx`
 
 1. 根目录安装依赖

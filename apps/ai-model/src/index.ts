@@ -3,6 +3,7 @@ import { IMSummaryCtxBuilder } from "./context/ctxBuilders/IMSummaryCtxBuilder";
 import { AIDigestResult } from "@root/common/types/ai-model";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
+import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import getRandomHash from "@root/common/util/getRandomHash";
 import Logger from "@root/common/util/Logger";
@@ -11,6 +12,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
+import { SemanticRater } from "./misc/SemanticRater";
 
 (async () => {
     const LOGGER = Logger.withTag("ai-model-root-script");
@@ -19,6 +21,8 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
     await imdbManager.init();
     const agcDBManager = new AGCDBManager();
     await agcDBManager.init();
+    const interestScoreDBManager = new InterestScoreDBManager();
+    await interestScoreDBManager.init();
 
     let config = await ConfigManagerService.getCurrentConfig();
 
@@ -164,6 +168,83 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
         }
     );
 
+    agendaInstance.define<TaskParameters<TaskHandlerTypes.InterestScore>>(
+        TaskHandlerTypes.InterestScore,
+        async job => {
+            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+            const attrs = job.attrs.data;
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+
+            const sessionIds = [] as string[];
+            for (const groupId of Object.keys(config.groupConfigs)) {
+                sessionIds.push(
+                    ...(await imdbManager.getSessionIdsByGroupIdAndTimeRange(
+                        groupId,
+                        attrs.startTimeStamp,
+                        attrs.endTimeStamp
+                    ))
+                );
+            }
+
+            const digestResults = [] as AIDigestResult[];
+            for (const sessionId of sessionIds) {
+                digestResults.push(
+                    ...(await agcDBManager.getAIDigestResultsBySessionId(sessionId))
+                );
+            }
+            LOGGER.info(`共获取到 ${digestResults.length} 条待打分的摘要结果`);
+
+            const rater = new SemanticRater();
+            for (const digestResult of digestResults) {
+                await job.touch(); // 保证任务存活
+                if (await interestScoreDBManager.isInterestScoreResultExist(digestResult.topicId)) {
+                    LOGGER.debug(`话题 ${digestResult.topicId} 已经计算过兴趣度，跳过`);
+                    continue;
+                }
+                // 转换参数格式
+                const argArr = [];
+                argArr.push(...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
+                    return {
+                        keyword,
+                        liked: true
+                    };
+                }));
+                argArr.push(...config.ai.interestScore.UserInterestsNegativeKeywords.map(keyword => {
+                    return {
+                        keyword,
+                        liked: false
+                    };
+                }))
+                const score = await rater.scoreTopic(
+                    argArr,
+                    `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
+                );
+                await interestScoreDBManager.storeInterestScoreResult(digestResult.topicId, score);
+            }
+
+            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
+        },
+        {
+            concurrency: 1,
+            priority: "high",
+            lockLifetime: 10 * 60 * 1000 // 10分钟
+        }
+    );
+
+    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchInterestScore>>(
+        TaskHandlerTypes.DecideAndDispatchInterestScore,
+        async job => {
+            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+
+            await agendaInstance.schedule("1 second", TaskHandlerTypes.InterestScore, {
+                startTimeStamp: getHoursAgoTimestamp(24), // 24小时前
+                endTimeStamp: Date.now() // 现在
+            });
+
+            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
+        }
+    );
+
     // 每隔一段时间触发一次DecideAndDispatch任务
     LOGGER.debug(
         `DecideAndDispatch任务将每隔${config.ai.summarize.agendaTaskIntervalInMinutes}分钟执行一次`
@@ -172,9 +253,14 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
         config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchAISummarize
     );
+    await agendaInstance.every(
+        config.ai.interestScore.agendaTaskIntervalInMinutes + " minutes",
+        TaskHandlerTypes.DecideAndDispatchInterestScore
+    );
+
     // 立即执行一次DecideAndDispatch任务
     LOGGER.info(`立即执行一次DecideAndDispatch任务`);
-    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
+    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchInterestScore);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
