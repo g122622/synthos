@@ -24,7 +24,10 @@ export class TextGenerator {
                 },
                 model: modelName,
                 temperature: config.ai?.models[modelName]?.temperature ?? config.ai.defaultModelConfig.temperature,
-                maxTokens: config.ai?.models[modelName]?.maxTokens ?? config.ai.defaultModelConfig.maxTokens
+                maxTokens: config.ai?.models[modelName]?.maxTokens ?? config.ai.defaultModelConfig.maxTokens,
+                reasoning: {
+                    effort: "minimal", // 默认不思考
+                }
             });
             this.models.set(modelName, chatModel);
             this.LOGGER.info(`Model ${modelName} 成功加载.`);
