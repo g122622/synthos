@@ -140,6 +140,10 @@ import { SemanticRater } from "./misc/SemanticRater";
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
+            agendaInstance.schedule(
+                "1 second",
+                TaskHandlerTypes.DecideAndDispatchInterestScore
+            )
         },
         {
             concurrency: 1,
@@ -203,18 +207,22 @@ import { SemanticRater } from "./misc/SemanticRater";
                 }
                 // 转换参数格式
                 const argArr = [];
-                argArr.push(...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
-                    return {
-                        keyword,
-                        liked: true
-                    };
-                }));
-                argArr.push(...config.ai.interestScore.UserInterestsNegativeKeywords.map(keyword => {
-                    return {
-                        keyword,
-                        liked: false
-                    };
-                }))
+                argArr.push(
+                    ...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
+                        return {
+                            keyword,
+                            liked: true
+                        };
+                    })
+                );
+                argArr.push(
+                    ...config.ai.interestScore.UserInterestsNegativeKeywords.map(keyword => {
+                        return {
+                            keyword,
+                            liked: false
+                        };
+                    })
+                );
                 const score = await rater.scoreTopic(
                     argArr,
                     `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
@@ -253,14 +261,10 @@ import { SemanticRater } from "./misc/SemanticRater";
         config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchAISummarize
     );
-    await agendaInstance.every(
-        config.ai.interestScore.agendaTaskIntervalInMinutes + " minutes",
-        TaskHandlerTypes.DecideAndDispatchInterestScore
-    );
 
     // 立即执行一次DecideAndDispatch任务
     LOGGER.info(`立即执行一次DecideAndDispatch任务`);
-    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchInterestScore);
+    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
