@@ -39,6 +39,8 @@
 重要：文本向量化依赖bge-large-zh-v1.5这个模型，本地跑CPU上。必须onnx格式，可以在这里下载： [https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx](https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx)
 huggingface速度较慢，建议使用多线程下载器。下载完成后放在 `根目录\node_modules\.pnpm\@huggingface+transformers@3.7.6\node_modules\@huggingface\transformers\.cache\Xenova\bge-large-zh-v1.5\onnx`
 
+重要：项目运行过程中产生的数据库，建议自己写脚本或者借助软件定期进行321备份，防止数据丢失。
+
 1. 根目录安装依赖
 
 ```bash

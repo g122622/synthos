@@ -12,7 +12,7 @@ export class IMSummaryCtxBuilder implements ICtxBuilder {
         for (const message of messages) {
             content += message.preProcessedContent + "\n";
         }
-        return IMPromptStore.getSummarizePrompt(groupIntroduction, 20, content);
+        return IMPromptStore.getSummarizePrompt(groupIntroduction, 50, content);
     }
     async close(): Promise<void> {}
 }
