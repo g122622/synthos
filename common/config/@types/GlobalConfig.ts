@@ -68,6 +68,7 @@ export interface GlobalConfig {
     };
     logger: {
         logLevel: "debug" | "info" | "success" | "warning" | "error"; // 级别大于等于这个级别的日志才会被输出
+        logDirectory: string; // 日志目录
     };
     groupConfigs: Record<string, GroupConfig>; // 群号到群配置的映射
 }
