@@ -83,6 +83,7 @@ import { ISplitter } from "./splitters/@types/ISplitter";
         TaskHandlerTypes.DecideAndDispatchPreprocess,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.Preprocess, {
                 groupIds: Object.keys(config.groupConfigs),

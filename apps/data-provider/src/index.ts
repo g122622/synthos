@@ -72,6 +72,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
         TaskHandlerTypes.DecideAndDispatchProvideData,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
             // call provideData task
             await agendaInstance.now(TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,

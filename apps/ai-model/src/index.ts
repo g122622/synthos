@@ -163,6 +163,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         TaskHandlerTypes.DecideAndDispatchAISummarize,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.AISummarize, {
                 groupIds: Object.keys(config.groupConfigs),
@@ -258,6 +259,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         TaskHandlerTypes.DecideAndDispatchInterestScore,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.InterestScore, {
                 startTimeStamp: getHoursAgoTimestamp(24 * 3),
@@ -267,19 +269,6 @@ import { SemanticRater } from "./misc/SemanticRater";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
-
-    // // 每隔一段时间触发一次DecideAndDispatch任务
-    // LOGGER.debug(
-    //     `DecideAndDispatch任务将每隔${config.ai.summarize.agendaTaskIntervalInMinutes}分钟执行一次`
-    // );
-    // await agendaInstance.every(
-    //     config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
-    //     TaskHandlerTypes.DecideAndDispatchAISummarize
-    // );
-
-    // // 立即执行一次DecideAndDispatch任务
-    // LOGGER.info(`立即执行一次DecideAndDispatch任务`);
-    // await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
