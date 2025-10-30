@@ -1,7 +1,7 @@
 import Logger from "@root/common/util/Logger";
 import { WebUIServer } from "../index";
 
-const LOGGER = Logger.withTag("WebUI-Backend");
+const LOGGER = Logger.withTag("📃 WebUI-Backend");
 
 export const setupGracefulShutdown = (server: WebUIServer): void => {
     process.on("SIGINT", () => gracefulShutdown(server));

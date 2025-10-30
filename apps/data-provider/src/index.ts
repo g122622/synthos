@@ -9,7 +9,7 @@ import { IIMProvider } from "./providers/@types/IIMProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
 (async () => {
-    const LOGGER = Logger.withTag("data-provider-root-script");
+    const LOGGER = Logger.withTag("🌏 data-provider-root-script");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();

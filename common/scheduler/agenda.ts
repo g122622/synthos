@@ -4,7 +4,7 @@ import Logger from "../util/Logger";
 const express = require("express");
 const Agendash = require("agendash");
 
-const LOGGER = Logger.withTag("common/scheduler");
+const LOGGER = Logger.withTag("🕗 common/scheduler");
 
 // 注意：这个实例在不同的node进程中不共享
 export const agendaInstance = new Agenda({

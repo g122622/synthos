@@ -3,7 +3,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import Logger from "@root/common/util/Logger";
 
-const LOGGER = Logger.withTag("WebUI-Backend");
+const LOGGER = Logger.withTag("📃 WebUI-Backend");
 
 export const initializeDatabases = async (): Promise<{
     agcDBManager: AGCDBManager;

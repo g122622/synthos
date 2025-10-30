@@ -10,7 +10,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import { ISplitter } from "./splitters/@types/ISplitter";
 
 (async () => {
-    const LOGGER = Logger.withTag("preprocessor-root-script");
+    const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();

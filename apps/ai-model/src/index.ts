@@ -15,7 +15,7 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { SemanticRater } from "./misc/SemanticRater";
 
 (async () => {
-    const LOGGER = Logger.withTag("ai-model-root-script");
+    const LOGGER = Logger.withTag("🤖 ai-model-root-script");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();
