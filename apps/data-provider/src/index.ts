@@ -95,8 +95,6 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
         config.dataProviders.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchProvideData
     );
-    // 立即执行一次DecideAndDispatchProvideData任务
-    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchProvideData);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

@@ -107,22 +107,21 @@ export class QQProvider implements IIMProvider {
             // 解析查询到的全部消息内容
             const messages: RawChatMessage[] = [];
             for (const result of results) {
-                // 生成quotedMsgId
+                // 获取引用的消息 quotedMsgId
                 let quotedMsgId: string | undefined = undefined;
                 if (result[GMC.replyMsgSeq]) {
-                    const originalMsg = await this._getMsgByGroupNumberAndMsgSeq(
+                    quotedMsgId = await this._getMsgIdByGroupNumberAndMsgSeq(
                         result[GMC.groupUin],
                         result[GMC.replyMsgSeq]
                     );
-                    if (originalMsg) {
-                        quotedMsgId = originalMsg[GMC.msgId];
-                    } else {
+                    if (!quotedMsgId) {
                         this.LOGGER.warning(
                             `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
                         );
                     }
                 }
-                // 生成消息
+
+                // 生成消息对象
                 const processedMsg: RawChatMessage = {
                     msgId: String(result[GMC.msgId]),
                     messageContent: "",
@@ -134,7 +133,7 @@ export class QQProvider implements IIMProvider {
                     quotedMsgId
                 };
 
-                // 解析40800中的所有element（或者叫做fragment）
+                // 获取消息正文：解析40800中的所有element（或者叫做fragment）
                 const rawMsgElements = this.parser.parseMessageSegment(
                     result[GMC.msgContent]
                 ).messages;
@@ -193,31 +192,25 @@ export class QQProvider implements IIMProvider {
      * 根据群号（40030）和消息序号（40003）获取消息
      * @returns 消息数组
      */
-    private async _getMsgByGroupNumberAndMsgSeq(
+    private async _getMsgIdByGroupNumberAndMsgSeq(
         groupNumber: number,
         msgSeq: number
-    ): Promise<RawGroupMsgFromDB | null> {
+    ): Promise<string | undefined> {
         if (this.db) {
-            // 生成SQL语句
-            const sql = `SELECT 
-                            CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
-                            "${GMC.msgTime}",
-                            "${GMC.groupUin}",
-                            "${GMC.senderUin}",
-                            "${GMC.replyMsgSeq}",
-                            "${GMC.msgContent}",
-                            "${GMC.sendMemberName}",
-                            "${GMC.sendNickName}"
-             FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.groupUin}" = ${groupNumber} and "${GMC.msgSeq}" = ${msgSeq}`;
+            const sql = `SELECT CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}"
+                         FROM group_msg_table 
+                         WHERE ${await this._getPatchSQL()} 
+                         AND "${GMC.msgSeq}" = ${msgSeq}
+                         AND "${GMC.groupUin}" = ${groupNumber}`;
 
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
             ASSERT(results.length <= 1);
             if (results.length === 0) {
-                return null;
+                return undefined;
             } else {
-                return results[0];
+                return results[0][GMC.msgId];
             }
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;

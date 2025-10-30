@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "pnpm --filter 'apps/*' build",
-    "dev": "pnpm --filter 'apps/*' dev",
-    "start": "pnpm --filter 'apps/*' start"
+    "build:all": "node scripts/launchAll.js",
+    "dev": "node scripts/launchAll.js",
+    "start": "node scripts/launchAll.js"
   },
   "keywords": [],
   "author": "",
