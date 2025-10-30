@@ -16,6 +16,10 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
     let config = await ConfigManagerService.getCurrentConfig();
 
+    await agendaInstance
+        .create(TaskHandlerTypes.ProvideData)
+        .unique({ name: TaskHandlerTypes.ProvideData }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.ProvideData>>(
         TaskHandlerTypes.ProvideData,
         async job => {
@@ -39,31 +43,43 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
-                const results = await activeProvider.getMsgByTimeRange(attrs.startTimeStamp, attrs.endTimeStamp, groupId);
+                const results = await activeProvider.getMsgByTimeRange(
+                    attrs.startTimeStamp,
+                    attrs.endTimeStamp,
+                    groupId
+                );
                 LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
                 await imdbManager.storeRawChatMessages(results);
                 await job.touch(); // 保证任务存活
             }
             await activeProvider.close();
+
+            await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchPreprocess);
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
             concurrency: 1,
             priority: "high",
-            lockLifetime: 10 * 60 * 1000, // 10分钟
+            lockLifetime: 10 * 60 * 1000 // 10分钟
         }
     );
 
+    await agendaInstance
+        .create(TaskHandlerTypes.DecideAndDispatchProvideData)
+        .unique({ name: TaskHandlerTypes.DecideAndDispatchProvideData }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchProvideData>>(
         TaskHandlerTypes.DecideAndDispatchProvideData,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             // call provideData task
-            await agendaInstance.schedule("1 second", TaskHandlerTypes.ProvideData, {
+            await agendaInstance.now(TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,
                 groupIds: Object.keys(config.groupConfigs), // TODO 支持wechat之后，需要修改这里
-                // 这里多请求1分钟的数据，是为了避免数据遗漏
-                startTimeStamp: getMinutesAgoTimestamp(config.dataProviders.agendaTaskIntervalInMinutes + 1),
+                // 这里多请求若干分钟的数据，是为了避免数据遗漏
+                startTimeStamp: getMinutesAgoTimestamp(
+                    config.dataProviders.agendaTaskIntervalInMinutes * 2
+                ),
                 endTimeStamp: Date.now()
             });
 
@@ -72,13 +88,15 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
     );
 
     // 每隔一段时间触发一次DecideAndDispatchProvideData任务
-    LOGGER.debug(`DecideAndDispatchProvideData任务将每隔${config.dataProviders.agendaTaskIntervalInMinutes}分钟执行一次`);
+    LOGGER.debug(
+        `DecideAndDispatchProvideData任务将每隔${config.dataProviders.agendaTaskIntervalInMinutes}分钟执行一次`
+    );
     await agendaInstance.every(
         config.dataProviders.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchProvideData
     );
     // 立即执行一次DecideAndDispatchProvideData任务
-    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchProvideData);
+    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchProvideData);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

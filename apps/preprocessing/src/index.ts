@@ -17,6 +17,10 @@ import { ISplitter } from "./splitters/@types/ISplitter";
 
     let config = await ConfigManagerService.getCurrentConfig();
 
+    await agendaInstance
+        .create(TaskHandlerTypes.Preprocess)
+        .unique({ name: TaskHandlerTypes.Preprocess }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.Preprocess>>(
         TaskHandlerTypes.Preprocess,
         async job => {
@@ -69,12 +73,16 @@ import { ISplitter } from "./splitters/@types/ISplitter";
         }
     );
 
+    await agendaInstance
+        .create(TaskHandlerTypes.DecideAndDispatchPreprocess)
+        .unique({ name: TaskHandlerTypes.DecideAndDispatchPreprocess }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchPreprocess>>(
         TaskHandlerTypes.DecideAndDispatchPreprocess,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
 
-            await agendaInstance.schedule("1 second", TaskHandlerTypes.Preprocess, {
+            await agendaInstance.now(TaskHandlerTypes.Preprocess, {
                 groupIds: Object.keys(config.groupConfigs),
                 startTimeInMinutesFromNow: Math.max(
                     config.preprocessors.agendaTaskIntervalInMinutes * 10,
@@ -85,17 +93,6 @@ import { ISplitter } from "./splitters/@types/ISplitter";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
-
-    // 每隔一段时间触发一次DecideAndDispatchPreprocess任务
-    LOGGER.debug(
-        `DecideAndDispatchPreprocess任务将每隔${config.preprocessors.agendaTaskIntervalInMinutes}分钟执行一次`
-    );
-    await agendaInstance.every(
-        config.preprocessors.agendaTaskIntervalInMinutes + " minutes",
-        TaskHandlerTypes.DecideAndDispatchPreprocess
-    );
-    // 立即执行一次DecideAndDispatchPreprocess任务
-    await agendaInstance.schedule("now", TaskHandlerTypes.DecideAndDispatchPreprocess);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

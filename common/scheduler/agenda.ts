@@ -12,8 +12,8 @@ export const agendaInstance = new Agenda({
         address: "mongodb://localhost:27017/synthos",
         collection: "synthos_jobs" // 自定义集合名
     },
-    processEvery: "30 seconds", // 每30秒检查一次待处理任务
-    maxConcurrency: 5,
+    processEvery: "10 seconds", // 每10秒检查一次待处理任务
+    maxConcurrency: 1,
     defaultLockLifetime: 60000 // 锁定1分钟防止崩溃后重复执行
 });
 

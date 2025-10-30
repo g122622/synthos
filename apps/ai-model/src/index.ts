@@ -26,6 +26,10 @@ import { SemanticRater } from "./misc/SemanticRater";
 
     let config = await ConfigManagerService.getCurrentConfig();
 
+    await agendaInstance
+        .create(TaskHandlerTypes.AISummarize)
+        .unique({ name: TaskHandlerTypes.AISummarize }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.AISummarize>>(
         TaskHandlerTypes.AISummarize,
         async job => {
@@ -124,6 +128,8 @@ import { SemanticRater } from "./misc/SemanticRater";
                         LOGGER.error(
                             `session ${sessionId} 解析llm回传的json结果失败：${error}，跳过当前会话`
                         );
+                        LOGGER.error(`原始请求ctx为：`);
+                        console.log(ctx);
                         LOGGER.error(`原始响应为：`);
                         console.log(resultStr);
                         continue; // 跳过当前会话
@@ -140,7 +146,7 @@ import { SemanticRater } from "./misc/SemanticRater";
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchInterestScore);
+            agendaInstance.now(TaskHandlerTypes.DecideAndDispatchInterestScore);
         },
         {
             concurrency: 1,
@@ -149,12 +155,16 @@ import { SemanticRater } from "./misc/SemanticRater";
         }
     );
 
+    await agendaInstance
+        .create(TaskHandlerTypes.DecideAndDispatchAISummarize)
+        .unique({ name: TaskHandlerTypes.DecideAndDispatchAISummarize }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchAISummarize>>(
         TaskHandlerTypes.DecideAndDispatchAISummarize,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
 
-            await agendaInstance.schedule("1 second", TaskHandlerTypes.AISummarize, {
+            await agendaInstance.now(TaskHandlerTypes.AISummarize, {
                 groupIds: Object.keys(config.groupConfigs),
                 startTimeStamp: getHoursAgoTimestamp(24), // 24小时前
                 endTimeStamp: Date.now() // 现在
@@ -169,6 +179,10 @@ import { SemanticRater } from "./misc/SemanticRater";
         }
     );
 
+    await agendaInstance
+        .create(TaskHandlerTypes.InterestScore)
+        .unique({ name: TaskHandlerTypes.InterestScore }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.InterestScore>>(
         TaskHandlerTypes.InterestScore,
         async job => {
@@ -236,12 +250,16 @@ import { SemanticRater } from "./misc/SemanticRater";
         }
     );
 
+    await agendaInstance
+        .create(TaskHandlerTypes.DecideAndDispatchInterestScore)
+        .unique({ name: TaskHandlerTypes.DecideAndDispatchInterestScore }, { insertOnly: true })
+        .save();
     agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchInterestScore>>(
         TaskHandlerTypes.DecideAndDispatchInterestScore,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
 
-            await agendaInstance.schedule("1 second", TaskHandlerTypes.InterestScore, {
+            await agendaInstance.now(TaskHandlerTypes.InterestScore, {
                 startTimeStamp: getHoursAgoTimestamp(24 * 3),
                 endTimeStamp: Date.now() // 现在
             });
@@ -250,18 +268,18 @@ import { SemanticRater } from "./misc/SemanticRater";
         }
     );
 
-    // 每隔一段时间触发一次DecideAndDispatch任务
-    LOGGER.debug(
-        `DecideAndDispatch任务将每隔${config.ai.summarize.agendaTaskIntervalInMinutes}分钟执行一次`
-    );
-    await agendaInstance.every(
-        config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
-        TaskHandlerTypes.DecideAndDispatchAISummarize
-    );
+    // // 每隔一段时间触发一次DecideAndDispatch任务
+    // LOGGER.debug(
+    //     `DecideAndDispatch任务将每隔${config.ai.summarize.agendaTaskIntervalInMinutes}分钟执行一次`
+    // );
+    // await agendaInstance.every(
+    //     config.ai.summarize.agendaTaskIntervalInMinutes + " minutes",
+    //     TaskHandlerTypes.DecideAndDispatchAISummarize
+    // );
 
-    // 立即执行一次DecideAndDispatch任务
-    LOGGER.info(`立即执行一次DecideAndDispatch任务`);
-    await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
+    // // 立即执行一次DecideAndDispatch任务
+    // LOGGER.info(`立即执行一次DecideAndDispatch任务`);
+    // await agendaInstance.schedule("1 second", TaskHandlerTypes.DecideAndDispatchAISummarize);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
