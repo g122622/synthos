@@ -65,6 +65,8 @@ import { ISplitter } from "./splitters/@types/ISplitter";
                 await imdbManager.storeProcessedChatMessages(results);
                 await splitter.close();
             }
+
+            await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchAISummarize);
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
