@@ -206,7 +206,10 @@ export class QQProvider implements IIMProvider {
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
-            ASSERT(results.length <= 1);
+            ASSERT(
+                results.length <= 1,
+                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，查询结果数: ${results.length}`
+            );
             if (results.length === 0) {
                 return undefined;
             } else {
@@ -229,7 +232,10 @@ export class QQProvider implements IIMProvider {
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
-            ASSERT(results.length <= 1);
+            ASSERT(
+                results.length <= 1,
+                `查询到多条消息，查询结果数: ${results.length}, msgId: ${msgId}`
+            );
             if (results.length === 0) {
                 return null;
             }
