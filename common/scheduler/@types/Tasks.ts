@@ -15,8 +15,6 @@ interface TaskParamsMap {
     [TaskHandlerTypes.ProvideData]: {
         IMType: IMTypes;
         groupIds: string[];
-        startTimeStamp: number;
-        endTimeStamp: number;
     };
     [TaskHandlerTypes.DecideAndDispatchProvideData]: {};
 

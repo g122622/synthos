@@ -9,7 +9,7 @@ interface FeedMessage {
 /**
  * 单条消息结构，对应 proto 中的 SingleMessage
  */
-interface SingleMessage {
+export interface SingleMessage {
     // ========== 基础字段 ==========
 
     /** elementId，唯一标识 (messageId = 45001) */

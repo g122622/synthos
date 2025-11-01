@@ -76,10 +76,10 @@ export class IMDBManager {
         timeStart: number,
         timeEnd: number
     ): Promise<RawChatMessage[]> {
-        const results = (await this.db.all(
+        const results = await this.db.all<RawChatMessage>(
             `SELECT * FROM chat_messages WHERE groupId = ? AND (timestamp BETWEEN ? AND ?)`,
             [groupId, timeStart, timeEnd]
-        )) as RawChatMessage[];
+        );
         // 按照时间从早到晚排序
         results.sort((a, b) => a.timestamp - b.timestamp);
         return results;
@@ -97,10 +97,10 @@ export class IMDBManager {
         timeStart: number,
         timeEnd: number
     ): Promise<ProcessedChatMessageWithRawMessage[]> {
-        const results = (await this.db.all(
+        const results = await this.db.all<ProcessedChatMessageWithRawMessage>(
             `SELECT * FROM chat_messages WHERE groupId = ? AND (timestamp BETWEEN ? AND ?)`,
             [groupId, timeStart, timeEnd]
-        )) as ProcessedChatMessageWithRawMessage[];
+        );
         // 按照时间从早到晚排序
         results.sort((a, b) => a.timestamp - b.timestamp);
         return results;
@@ -111,20 +111,25 @@ export class IMDBManager {
         timeStart: number,
         timeEnd: number
     ): Promise<string[]> {
-        const results = (await this.db.all(
+        const results = await this.db.all<{ sessionId: string }>(
             `SELECT DISTINCT sessionId FROM chat_messages WHERE groupId =? AND (timestamp BETWEEN? AND?) AND sessionId IS NOT NULL`,
             [groupId, timeStart, timeEnd]
-        )) as { sessionId: string }[];
+        );
         return results.map(r => r.sessionId);
     }
 
+    /**
+     * 获取指定会话的开始和结束时间
+     * @param sessionId 会话ID
+     * @returns 时间戳对象 { timeStart: 开始时间, timeEnd: 结束时间 } 或者 null 如果会话不存在
+     */
     public async getSessionTimeDuration(
         sessionId: string
     ): Promise<{ timeStart: number; timeEnd: number } | null> {
-        const results = (await this.db.all(
+        const results = await this.db.all<{ timeStart: number | null; timeEnd: number | null }>(
             `SELECT MIN(timestamp) AS timeStart, MAX(timestamp) AS timeEnd FROM chat_messages WHERE sessionId = ?`,
             [sessionId]
-        )) as { timeStart: number | null; timeEnd: number | null }[];
+        );
 
         // 过滤掉全 null 的行
         const validResults = results.filter(r => r.timeStart !== null && r.timeEnd !== null);
@@ -138,6 +143,18 @@ export class IMDBManager {
         const timeEnd = Math.max(...validResults.map(r => r.timeEnd!));
 
         return { timeStart, timeEnd };
+    }
+
+    /**
+     * 获取指定群组最新的一条已入库消息
+     * @param groupId 群组ID
+     * @returns 消息对象
+     */
+    public async getNewestRawChatMessageByGroupId(groupId: string): Promise<RawChatMessage> {
+        return await this.db.get<RawChatMessage>(
+            `SELECT * FROM chat_messages WHERE groupId =? ORDER BY timestamp DESC LIMIT 1`,
+            [groupId]
+        );
     }
 
     public async storeProcessedChatMessage(message: ProcessedChatMessage) {

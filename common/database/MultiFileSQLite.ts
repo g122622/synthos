@@ -146,7 +146,7 @@ class MultiFileSQLite {
 
     // ========== 读操作（遍历所有库，复用连接） ==========
 
-    public async get(sql: string, params: any[] = []): Promise<any> {
+    public async get<T>(sql: string, params: any[] = []): Promise<T | undefined> {
         const dbFiles = await this.getAllDBPaths();
         // 从最新到最旧查询（适合找最新记录）
         for (let i = dbFiles.length - 1; i >= 0; i--) {
@@ -166,9 +166,9 @@ class MultiFileSQLite {
         return undefined;
     }
 
-    public async all(sql: string, params: any[] = []): Promise<any[]> {
+    public async all<T>(sql: string, params: any[] = []): Promise<T[]> {
         const dbFiles = await this.getAllDBPaths();
-        let allRows: any[] = [];
+        let allRows: T[] = [];
         for (const dbInfo of dbFiles) {
             const db = await this.getOrCreateDB(dbInfo.path);
             try {

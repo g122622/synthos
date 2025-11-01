@@ -5,10 +5,11 @@ import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
-import { ASSERT } from "@root/common/util/ASSERT";
+import { ASSERT, ASSERT_NOT_FATAL } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
 import { MsgElementType } from "./@types/mappers/MsgElementType";
+import { SingleMessage } from "./@types/RawMsgContentParseResult";
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
 export class QQProvider implements IIMProvider {
@@ -66,6 +67,48 @@ export class QQProvider implements IIMProvider {
             ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
             : "";
         return patchSQL;
+    }
+
+    private async _parseMessageContent(rawMsgElements: SingleMessage[]): Promise<string> {
+        let result = "";
+        for (const rawMsgElement of rawMsgElements) {
+            switch (rawMsgElement.messageType) {
+                case MsgElementType.TEXT: {
+                    result += rawMsgElement.messageText;
+                    break;
+                }
+                case MsgElementType.EMOJI: {
+                    if (rawMsgElement.emojiText) {
+                        result += `[${rawMsgElement.emojiText}]`;
+                    }
+                    break;
+                }
+                case MsgElementType.IMAGE: {
+                    // TODO: 处理图片消息
+                    result += `[图片]`;
+                    break;
+                }
+                case MsgElementType.VOICE: {
+                    // TODO: 处理语音消息
+                    result += `[语音]`;
+                    break;
+                }
+                case MsgElementType.FILE: {
+                    // TODO: 处理文件消息
+                    result += `[文件][文件名：${rawMsgElement.fileName}]`;
+                    break;
+                }
+                // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
+                default: {
+                    // 忽略其他类型的消息，不加入messages
+                    this.LOGGER.debug(
+                        `未知的element类型: ${rawMsgElement.messageType}，忽略该element。`
+                    );
+                    break;
+                }
+            }
+        }
+        return result;
     }
 
     /**
@@ -134,46 +177,9 @@ export class QQProvider implements IIMProvider {
                 };
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
-                const rawMsgElements = this.parser.parseMessageSegment(
-                    result[GMC.msgContent]
-                ).messages;
-                for (const rawMsgElement of rawMsgElements) {
-                    switch (rawMsgElement.messageType) {
-                        case MsgElementType.TEXT: {
-                            processedMsg.messageContent += rawMsgElement.messageText;
-                            break;
-                        }
-                        case MsgElementType.EMOJI: {
-                            if (rawMsgElement.emojiText) {
-                                processedMsg.messageContent += `[${rawMsgElement.emojiText}]`;
-                            }
-                            break;
-                        }
-                        case MsgElementType.IMAGE: {
-                            // TODO: 处理图片消息
-                            processedMsg.messageContent += `[图片]`;
-                            break;
-                        }
-                        case MsgElementType.VOICE: {
-                            // TODO: 处理语音消息
-                            processedMsg.messageContent += `[语音]`;
-                            break;
-                        }
-                        case MsgElementType.FILE: {
-                            // TODO: 处理文件消息
-                            processedMsg.messageContent += `[文件][文件名：${rawMsgElement.fileName}]`;
-                            break;
-                        }
-                        // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
-                        default: {
-                            // 忽略其他类型的消息，不加入messages
-                            this.LOGGER.debug(
-                                `未知的element类型: ${rawMsgElement.messageType}，忽略该element。本条消息的msgId: ${result[GMC.msgId]}`
-                            );
-                            break;
-                        }
-                    }
-                }
+                processedMsg.messageContent = await this._parseMessageContent(
+                    this.parser.parseMessageSegment(result[GMC.msgContent]).messages
+                );
                 if (processedMsg.messageContent === "") {
                     this.LOGGER.debug(
                         `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
@@ -197,7 +203,8 @@ export class QQProvider implements IIMProvider {
         msgSeq: number
     ): Promise<string | undefined> {
         if (this.db) {
-            const sql = `SELECT CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}"
+            const sql = `SELECT CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
+                            "${GMC.msgContent}"
                          FROM group_msg_table 
                          WHERE ${await this._getPatchSQL()} 
                          AND "${GMC.msgSeq}" = ${msgSeq}
@@ -206,9 +213,9 @@ export class QQProvider implements IIMProvider {
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
             this.LOGGER.debug(`结果数量: ${results.length}`);
-            ASSERT(
+            ASSERT_NOT_FATAL(
                 results.length <= 1,
-                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，查询结果数: ${results.length}`
+                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，查询结果数: ${results.length}, results: ${JSON.stringify(results)}`
             );
             if (results.length === 0) {
                 return undefined;
@@ -234,7 +241,7 @@ export class QQProvider implements IIMProvider {
             this.LOGGER.debug(`结果数量: ${results.length}`);
             ASSERT(
                 results.length <= 1,
-                `查询到多条消息，查询结果数: ${results.length}, msgId: ${msgId}`
+                `查询到多条消息，查询结果数: ${results.length}, msgId: ${msgId}, results: ${JSON.stringify(results)}`
             );
             if (results.length === 0) {
                 return null;

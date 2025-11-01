@@ -34,10 +34,11 @@ export class InterestScoreDBManager {
         topicId: string,
         version: number = 1
     ): Promise<number | null> {
-        const result = await this.db.get(
+        const result = await this.db.get<{ scoreV1: number | null }>(
             `SELECT scoreV${version} FROM interset_score_results WHERE topicId = ?`,
             [topicId]
         );
+        // TODO 由于版本号是可配置的，下面这一行的scoreVx不应该写死
         return result?.scoreV1 || null;
     }
 

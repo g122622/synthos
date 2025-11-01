@@ -46,16 +46,18 @@ export class AGCDBManager {
     }
 
     public async getAIDigestResultByTopicId(topicId: string): Promise<AIDigestResult | null> {
-        const result = (await this.db.get(`SELECT * FROM ai_digest_results WHERE topicId =?`, [
-            topicId
-        ])) as AIDigestResult | null;
+        const result = await this.db.get<AIDigestResult>(
+            `SELECT * FROM ai_digest_results WHERE topicId =?`,
+            [topicId]
+        );
         return result;
     }
 
     public async getAIDigestResultsBySessionId(sessionId: string): Promise<AIDigestResult[]> {
-        const results = (await this.db.all(`SELECT * FROM ai_digest_results WHERE sessionId =?`, [
-            sessionId
-        ])) as AIDigestResult[];
+        const results = await this.db.all<AIDigestResult>(
+            `SELECT * FROM ai_digest_results WHERE sessionId =?`,
+            [sessionId]
+        );
         return results;
     }
 

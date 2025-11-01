@@ -44,8 +44,9 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
                 const results = await activeProvider.getMsgByTimeRange(
-                    attrs.startTimeStamp,
-                    attrs.endTimeStamp,
+                    (await imdbManager.getNewestRawChatMessageByGroupId(groupId)).timestamp -
+                        60 * 1000, // 从最新消息往前1分钟的数据
+                    Date.now(),
                     groupId
                 );
                 LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
@@ -76,12 +77,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
             // call provideData task
             await agendaInstance.now(TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,
-                groupIds: Object.keys(config.groupConfigs), // TODO 支持wechat之后，需要修改这里
-                // 这里多请求若干分钟的数据，是为了避免数据遗漏
-                startTimeStamp: getMinutesAgoTimestamp(
-                    config.dataProviders.agendaTaskIntervalInMinutes * 2
-                ),
-                endTimeStamp: Date.now()
+                groupIds: Object.keys(config.groupConfigs) // TODO 支持wechat之后，需要修改这里
             });
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
@@ -96,6 +92,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
         config.dataProviders.agendaTaskIntervalInMinutes + " minutes",
         TaskHandlerTypes.DecideAndDispatchProvideData
     );
+    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchProvideData);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器
