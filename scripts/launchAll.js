@@ -50,11 +50,15 @@ function buildProject(projectName) {
 
         buildProcess.on('close', (code) => {
             if (code === 0) {
-                console.log(`⚠️ 项目 ${projectName} 已退出`);
+                console.log(`⚠️ 项目 ${projectName} 已退出，退出码为0`);
                 resolve();
             } else {
-                console.error(`❌ 项目 ${projectName} 构建or运行失败，退出码: ${code}`);
-                reject(new Error(`Build failed for ${projectName} with code ${code}`));
+                console.error(`❌ 项目 ${projectName} 构建or运行失败，退出码不为0: ${code}`);
+                // 重启失败的项目
+                console.log(`🔄 尝试5min后重启项目 ${projectName}...`);
+                setTimeout(() => {
+                    buildProject(projectName).then(resolve).catch(reject);
+                }, 5 * 60 * 1000); // 5min后重试
             }
         });
 
@@ -80,7 +84,7 @@ function delay(ms) {
  * 顺序构建所有项目
  */
 async function buildAllProjects() {
-    console.log(`🏗️  开始构建所有项目，总共 ${buildOrder.length} 个`);
+    console.log(`🏗️ 开始构建&运行所有项目，总共 ${buildOrder.length} 个`);
     console.log(`📋 构建顺序: ${buildOrder.join(' → ')}`);
 
     for (let i = 0; i < buildOrder.length; i++) {
@@ -95,7 +99,7 @@ async function buildAllProjects() {
                 await delay(buildInterval);
             }
         } catch (error) {
-            console.error(`💥 构建过程中发生错误:`, error);
+            console.error(`💥 构建&运行过程中发生错误:`, error);
             process.exit(1);
         }
     }
@@ -105,6 +109,6 @@ async function buildAllProjects() {
 
 // 执行构建
 buildAllProjects().catch(error => {
-    console.error('构建过程发生未预期错误:', error);
+    console.error('构建&运行过程发生未预期错误:', error);
     process.exit(1);
 });
