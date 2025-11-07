@@ -49,19 +49,28 @@ import { ISplitter } from "./splitters/@types/ISplitter";
                     }
                 }
                 await splitter.init();
-                const results = (
-                    await splitter.assignSessionId(
-                        imdbManager,
-                        groupId,
-                        attrs.startTimeInMinutesFromNow
-                    )
-                ).map<ProcessedChatMessage>(result => {
-                    return {
-                        sessionId: result.sessionId!,
-                        msgId: result.msgId,
-                        preProcessedContent: formatMsg(result)
-                    };
-                });
+                const results = await Promise.all(
+                    (
+                        await splitter.assignSessionId(
+                            imdbManager,
+                            groupId,
+                            attrs.startTimeInMinutesFromNow
+                        )
+                    ).map<Promise<ProcessedChatMessage>>(async result => {
+                        return {
+                            sessionId: result.sessionId!,
+                            msgId: result.msgId,
+                            preProcessedContent: formatMsg(
+                                result,
+                                result.quotedMsgId
+                                    ? (await imdbManager.getRawChatMessageByMsgId(
+                                          result.quotedMsgId
+                                      ))
+                                    : undefined
+                            )
+                        };
+                    })
+                );
                 await imdbManager.storeProcessedChatMessages(results);
                 await splitter.close();
             }

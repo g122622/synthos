@@ -157,6 +157,22 @@ export class IMDBManager {
         );
     }
 
+    /**
+     * 根据消息id获取raw消息
+     * @param msgId 消息id
+     * @returns 消息对象
+     */
+    public async getRawChatMessageByMsgId(msgId: string): Promise<RawChatMessage> {
+        const result = await this.db.get<RawChatMessage>(
+            `SELECT * FROM chat_messages WHERE msgId =?`,
+            [msgId]
+        );
+        if (!result) {
+            this.LOGGER.warning(`未找到消息id为${msgId}的消息`);
+        }
+        return result;
+    }
+
     public async storeProcessedChatMessage(message: ProcessedChatMessage) {
         // 执行这个函数的时候，数据库内已经通过storeRawChatMessage函数存储了原始消息，这里只需要更新原记录中的sessionId和preProcessedContent字段即可
         await this.db.run(
