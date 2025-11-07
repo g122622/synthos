@@ -21,7 +21,7 @@ export class SemanticRater {
         this.modelLoadPromise = (async () => {
             this.LOGGER.info("Loading BGE model...");
             this.embedder = await pipeline("feature-extraction", MODEL_ID);
-            this.LOGGER.info("Model loaded.");
+            this.LOGGER.info(`Model loaded, current backends: ${JSON.stringify(env.backends)}`);
         })();
 
         await this.modelLoadPromise;
