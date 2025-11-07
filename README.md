@@ -57,7 +57,7 @@ pnpm i
 cd apps/data-provider
 ```
 
-3. 安装子项目依赖
+3. 逐个安装子项目依赖，务必安装完
 
 ```bash
 pnpm i
