@@ -2,19 +2,23 @@
 
 亮色模式：
 
-![alt text](前端截图1.webp)
+![alt text](./docs/assets/前端截图2.webp)
 
 暗黑模式：
 
-![alt text](前端截图2.webp)
+![alt text](./docs/assets/前端截图1.webp)
 
 细节：
 
-![alt text](前端截图3.webp)
+![alt text](./docs/assets/前端截图3.webp)
+
+群组管理：
+
+![alt text](./docs/assets/前端截图4.webp)
 
 ## 系统架构
 
-![alt text](Synthos架构7.drawio.png)
+![alt text](./docs/assets/Synthos架构7.drawio.png)
 
 ## TODO任务单
 
@@ -32,7 +36,7 @@
 
 使用monorepo管理项目，pnpm管理依赖，vitest进行单测。
 
-重要：首先需要在项目根目录下面放好配置文件 `synthos_config.json`，配置文件的填写格式请自己参考源码中的相应类型声明。
+重要：首先需要在项目根目录下面放好配置文件 `synthos_config.json`，配置文件的填写格式请自己参考源码中的相应类型声明。QQ的数据库密钥需要按照这里的教程准备好：[https://docs.aaqwq.top/](https://docs.aaqwq.top/)
 
 重要：此外，项目使用agenda进行任务编排和调度，底层依赖于MongoDB，需要提前下载安装好MongoDB社区版：[https://www.mongodb.com/try/download/community](https://www.mongodb.com/try/download/community)
 
@@ -59,8 +63,9 @@ cd apps/data-provider
 pnpm i
 ```
 
-4. 启动子项目
+4. 启动整个项目
 
 ```bash
-npm run build && cd dist && node index
+cd ../.. # 回到根目录
+npm run dev # 这个命令会启动所有子项目
 ```
