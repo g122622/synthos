@@ -7,6 +7,7 @@ env.allowLocalModels = true;
 
 const QUERY_PREFIX = "为这个句子生成表示：";
 const MODEL_ID = "Xenova/bge-large-zh-v1.5";
+const MAX_INPUT_LENGTH = 512; // 限制输入长度，避免Position Embedding超限
 
 export class SemanticRater {
     private embedder: any = null;
@@ -29,7 +30,13 @@ export class SemanticRater {
 
     private async getEmbedding(text: string, isQuery = false): Promise<DataArray> {
         await this.ensureModelLoaded();
-        const inputText = isQuery ? `${QUERY_PREFIX}${text}` : text;
+        let inputText = isQuery ? `${QUERY_PREFIX}${text}` : text;
+
+        if (inputText.length > MAX_INPUT_LENGTH) {
+            this.LOGGER.warning(`Input text is too long (length is ${inputText.length}), truncating to ${MAX_INPUT_LENGTH} characters`);
+            this.LOGGER.warning(`Original text is: ${inputText}`);
+            inputText = inputText.slice(0, MAX_INPUT_LENGTH);
+        }
 
         if (this.vectorCache.has(inputText)) {
             return this.vectorCache.get(inputText)!;
