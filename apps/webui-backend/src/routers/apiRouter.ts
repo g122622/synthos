@@ -9,15 +9,15 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
     app.get("/api/chat-messages-by-group-id", server.handleGetChatMessagesByGroupId.bind(server));
 
     // 获取会话ID
-    app.get(
-        "/api/session-ids-by-group-id-and-time-range",
-        server.handleGetSessionIdsByGroupIdAndTimeRange.bind(server)
+    app.post(
+        "/api/session-ids-by-group-ids-and-time-range",
+        server.handleGetSessionIdsByGroupIdsAndTimeRange.bind(server)
     );
 
     // 获取会话时间范围
-    app.get(
-        "/api/session-time-duration",
-        server.handleGetSessionTimeDuration.bind(server)
+    app.post(
+        "/api/session-time-durations",
+        server.handleGetSessionTimeDurations.bind(server)
     );
 
     // 获取AI摘要结果
@@ -25,9 +25,9 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
         "/api/ai-digest-result-by-topic-id",
         server.handleGetAIDigestResultByTopicId.bind(server)
     );
-    app.get(
-        "/api/ai-digest-results-by-session-id",
-        server.handleGetAIDigestResultsBySessionId.bind(server)
+    app.post(
+        "/api/ai-digest-results-by-session-ids",
+        server.handleGetAIDigestResultsBySessionIds.bind(server)
     );
 
     // 检查会话是否已摘要
@@ -39,14 +39,9 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
     // 健康检查
     app.get("/health", server.handleHealthCheck.bind(server));
 
-    app.get(
-        "/api/interest-score-result",
-        server.handleGetInterestScoreResult.bind(server)
-    );
-
-    // 检查InterestScore结果是否存在
-    app.get(
-        "/api/is-interest-score-result-exist",
-        server.handleCheckInterestScoreResultExist.bind(server)
+    // 获取兴趣度计算结果
+    app.post(
+        "/api/interest-score-results",
+        server.handleGetInterestScoreResults.bind(server)
     );
 };

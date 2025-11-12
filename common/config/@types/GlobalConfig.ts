@@ -60,6 +60,10 @@ export interface GlobalConfig {
             UserInterestsNegativeKeywords: string[]; // 负向关键词
         };
     };
+    webUI_Backend: {
+        port: number;
+        kvStoreBasePath: string;
+    };
 
     // 共享配置
     commonDatabase: {

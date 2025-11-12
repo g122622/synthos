@@ -25,7 +25,7 @@ import { InterestScoreHandler } from "./handlers/InterestScoreHandler";
 
 export class WebUIServer {
     private app: Express;
-    private readonly port: number;
+    private port: number = 3002;
     private agcDBManager: AGCDBManager | null = null;
     private imDBManager: IMDBManager | null = null;
     private interestScoreDBManager: InterestScoreDBManager | null = null;
@@ -39,7 +39,6 @@ export class WebUIServer {
     private interestScoreHandler: InterestScoreHandler;
 
     constructor(port?: number) {
-        this.port = port || parseInt(process.env.PORT || "3002", 10);
         this.app = express();
 
         // 初始化处理函数
@@ -131,23 +130,23 @@ export class WebUIServer {
         return this.aiDigestHandler.handleGetAIDigestResultByTopicId(req, res);
     }
 
-    public async handleGetAIDigestResultsBySessionId(req: Request, res: Response): Promise<void> {
-        return this.aiDigestHandler.handleGetAIDigestResultsBySessionId(req, res);
+    public async handleGetAIDigestResultsBySessionIds(req: Request, res: Response): Promise<void> {
+        return this.aiDigestHandler.handleGetAIDigestResultsBySessionIds(req, res);
     }
 
     public async handleGetChatMessagesByGroupId(req: Request, res: Response): Promise<void> {
         return this.chatMessageHandler.handleGetChatMessagesByGroupId(req, res);
     }
 
-    public async handleGetSessionIdsByGroupIdAndTimeRange(
+    public async handleGetSessionIdsByGroupIdsAndTimeRange(
         req: Request,
         res: Response
     ): Promise<void> {
-        return this.chatMessageHandler.handleGetSessionIdsByGroupIdAndTimeRange(req, res);
+        return this.chatMessageHandler.handleGetSessionIdsByGroupIdsAndTimeRange(req, res);
     }
 
-    public async handleGetSessionTimeDuration(req: Request, res: Response): Promise<void> {
-        return this.chatMessageHandler.handleGetSessionTimeDuration(req, res);
+    public async handleGetSessionTimeDurations(req: Request, res: Response): Promise<void> {
+        return this.chatMessageHandler.handleGetSessionTimeDurations(req, res);
     }
 
     public async handleCheckSessionSummarized(req: Request, res: Response): Promise<void> {
@@ -166,12 +165,8 @@ export class WebUIServer {
         return this.miscHandler.handleGetQQAvatar(req, res);
     }
 
-    public async handleGetInterestScoreResult(req: Request, res: Response): Promise<void> {
-        return this.interestScoreHandler.handleGetInterestScoreResult(req, res);
-    }
-
-    public async handleCheckInterestScoreResultExist(req: Request, res: Response): Promise<void> {
-        return this.interestScoreHandler.handleCheckInterestScoreResultExist(req, res);
+    public async handleGetInterestScoreResults(req: Request, res: Response): Promise<void> {
+        return this.interestScoreHandler.handleGetInterestScoreResults(req, res);
     }
 
     // --- Lifecycle Methods ---
@@ -183,6 +178,8 @@ export class WebUIServer {
 
     public async start(): Promise<void> {
         await this.initializeDatabases();
+
+        this.port = (await ConfigManagerService.getCurrentConfig()).webUI_Backend.port;
 
         this.app.listen(this.port, () => {
             this.LOGGER.success(`WebUI后端服务启动成功，端口: ${this.port}`);

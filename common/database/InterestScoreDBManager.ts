@@ -30,6 +30,7 @@ export class InterestScoreDBManager {
         );
     }
 
+    // 如果对应的topicid不存在 或者 topicid存在但是没有对应的分数，那么该项目对应的score为null
     public async getInterestScoreResult(
         topicId: string,
         version: number = 1

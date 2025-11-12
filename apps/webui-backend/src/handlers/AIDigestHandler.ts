@@ -23,15 +23,21 @@ export class AIDigestHandler extends BaseHandler {
         }
     }
 
-    public async handleGetAIDigestResultsBySessionId(req: Request, res: Response): Promise<void> {
+    public async handleGetAIDigestResultsBySessionIds(req: Request, res: Response): Promise<void> {
         try {
-            const { sessionId } = req.query;
-            if (!sessionId || typeof sessionId !== "string") {
-                res.status(400).json({ success: false, message: "缺少sessionId参数" });
+            const { sessionIds } = req.body;
+            if (!sessionIds || !Array.isArray(sessionIds)) {
+                res.status(400).json({ success: false, message: "缺少sessionIds参数" });
                 return;
             }
 
-            const results = await this.agcDBManager!.getAIDigestResultsBySessionId(sessionId);
+            const results = []
+            for (const sessionId of sessionIds) {
+                results.push({
+                    sessionId,
+                    result: await this.agcDBManager!.getAIDigestResultsBySessionId(sessionId)
+                });
+            }
             res.json({ success: true, data: results });
         } catch (error) {
             this.LOGGER.error(`获取AI摘要结果失败: ${error}`);
