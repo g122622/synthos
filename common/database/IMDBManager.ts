@@ -173,6 +173,10 @@ export class IMDBManager {
         return result;
     }
 
+    public execQuerySQL(sql: string, params: any[] = []): Promise<any[]> {
+        return this.db.all(sql, params);
+    }
+
     public async storeProcessedChatMessage(message: ProcessedChatMessage) {
         // 执行这个函数的时候，数据库内已经通过storeRawChatMessage函数存储了原始消息，这里只需要更新原记录中的sessionId和preProcessedContent字段即可
         await this.db.run(

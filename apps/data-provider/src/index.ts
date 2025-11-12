@@ -1,7 +1,7 @@
 import Logger from "@root/common/util/Logger";
 import { QQProvider } from "./providers/QQProvider";
 import { IMDBManager } from "@root/common/database/IMDBManager";
-import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
+import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/types/data-provider";
@@ -43,9 +43,21 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
             await activeProvider.init();
             for (const groupId of attrs.groupIds) {
+                // 计算开始时间
+                const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
+                let startTime = latestMessage?.timestamp
+                    ? latestMessage.timestamp - 60 * 1000
+                    : getHoursAgoTimestamp(3 * 24);
+                if (!latestMessage?.timestamp) {
+                    LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
+                }
+                if (Date.now() - startTime > 3 * 24 * 60 * 60 * 1000) {
+                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过3天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
+                    startTime = getHoursAgoTimestamp(3 * 24);
+                }
+
                 const results = await activeProvider.getMsgByTimeRange(
-                    (await imdbManager.getNewestRawChatMessageByGroupId(groupId)).timestamp -
-                        60 * 1000, // 从最新消息往前1分钟的数据
+                    startTime, // 从最新消息往前1分钟的数据
                     Date.now(),
                     groupId
                 );

@@ -161,6 +161,7 @@ class MultiFileSQLite {
                 }
             } catch (err) {
                 this.LOGGER.error(`Error in get() on ${dbFiles[i].path}: ${err.message}`);
+                throw err;
             }
         }
         return undefined;
@@ -176,6 +177,7 @@ class MultiFileSQLite {
                 allRows = allRows.concat(rows);
             } catch (err) {
                 this.LOGGER.error(`Error in all() on ${dbInfo.path}: ${err.message}`);
+                throw err;
             }
         }
         // 对所有row进行深度比较，去重
