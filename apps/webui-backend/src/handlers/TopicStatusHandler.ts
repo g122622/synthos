@@ -119,7 +119,9 @@ export class TopicStatusHandler extends BaseHandler {
             // 检查每个话题的收藏状态
             const favoriteStatus: Record<string, boolean> = {};
             for (const topicId of topicIds) {
-                favoriteStatus[topicId] = await (await this.favoriteStatusManager).isTopicFavorite(topicId);
+                favoriteStatus[topicId] = await (
+                    await this.favoriteStatusManager
+                ).isTopicFavorite(topicId);
             }
 
             res.json({
