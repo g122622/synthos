@@ -15,10 +15,7 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
     );
 
     // 获取会话时间范围
-    app.post(
-        "/api/session-time-durations",
-        server.handleGetSessionTimeDurations.bind(server)
-    );
+    app.post("/api/session-time-durations", server.handleGetSessionTimeDurations.bind(server));
 
     // 获取AI摘要结果
     app.get(
@@ -40,8 +37,15 @@ export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
     app.get("/health", server.handleHealthCheck.bind(server));
 
     // 获取兴趣度计算结果
-    app.post(
-        "/api/interest-score-results",
-        server.handleGetInterestScoreResults.bind(server)
-    );
+    app.post("/api/interest-score-results", server.handleGetInterestScoreResults.bind(server));
+
+    // 话题收藏状态管理
+    app.post("/api/topic/favorite/mark", server.handleMarkAsFavorite.bind(server));
+    app.post("/api/topic/favorite/remove", server.handleRemoveFromFavorites.bind(server));
+    app.post("/api/topic/favorite/status", server.handleCheckFavoriteStatus.bind(server));
+
+    // 话题已读状态管理
+    app.post("/api/topic/read/mark", server.handleMarkAsRead.bind(server));
+    app.post("/api/topic/read/unmark", server.handleMarkAsUnread.bind(server));
+    app.post("/api/topic/read/status", server.handleCheckReadStatus.bind(server));
 };

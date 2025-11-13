@@ -1,6 +1,8 @@
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
+import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
 import Logger from "@root/common/util/Logger";
 
 const LOGGER = Logger.withTag("📃 WebUI-Backend");
