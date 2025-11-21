@@ -116,15 +116,10 @@ QQ 数据库密钥配置方法详见：[https://docs.aaqwq.top/](https://docs.aa
 ### 2. 启动项目
 
 ```bash
-# 1. 根目录安装主依赖
-pnpm i
+# 1. 安装monorepo依赖
+pnpm i # 这不仅会安装根目录下的依赖，还会自动安装所有子项目的依赖
 
-# 2. 进入 data-provider 子项目并安装依赖
-cd apps/data-provider
-pnpm i
-
-# 3. 返回根目录，启动所有服务
-cd ../..
+# 2. 启动所有服务
 npm run dev
 ```
 

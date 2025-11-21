@@ -13,6 +13,7 @@ const buildOrder = [
     'preprocessing',
     'ai-model',
     'webui-backend',
+    'webui-frontend',
     'data-provider'
 ];
 

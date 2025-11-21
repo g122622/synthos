@@ -1,2 +1,7 @@
 onlyBuiltDependencies:
   - sqlite3
+  - '@journeyapps/sqlcipher'
+
+packages:
+  - 'apps/**'
+  
