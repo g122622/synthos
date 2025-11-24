@@ -1,7 +1,7 @@
 import { Express } from "express";
-import { WebUIServer } from "../index";
+import { WebUILocalServer } from "../index";
 
-export const setupApiRoutes = (app: Express, server: WebUIServer): void => {
+export const setupApiRoutes = (app: Express, server: WebUILocalServer): void => {
     // 获取所有群组详情
     app.get("/api/group-details", server.handleGetAllGroupDetails.bind(server));
 

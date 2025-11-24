@@ -27,7 +27,7 @@ export interface GlobalConfig {
             dbKey: string; // NTQQ的数据库密钥
             dbPatch: {
                 enabled: boolean; // 是否启用数据库补丁
-                patchSQL: string; // 数据库补丁的SQL语句
+                patchSQL?: string; // 数据库补丁的SQL语句，选填
             };
         };
         agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
@@ -64,11 +64,17 @@ export interface GlobalConfig {
         port: number;
         kvStoreBasePath: string;
     };
+    // 内网穿透服务配置（使用ngrok将webUI前后端暴露到公网）
+    webUI_Forwarder: {
+        enabled: boolean;
+        authTokenForFE?: string;
+        authTokenForBE?: string;
+    };
 
     // 共享配置
     commonDatabase: {
         dbBasePath: string;
-        maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把读写请求路由到新库
+        maxDBDuration: number; // 最大数据库持续时间（天），超过这个时间就会把写入请求路由到新库
     };
     logger: {
         logLevel: "debug" | "info" | "success" | "warning" | "error"; // 级别大于等于这个级别的日志才会被输出

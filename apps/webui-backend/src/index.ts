@@ -24,7 +24,7 @@ import { MiscHandler } from "./handlers/MiscHandler";
 import { InterestScoreHandler } from "./handlers/InterestScoreHandler";
 import { TopicStatusHandler } from "./handlers/TopicStatusHandler";
 
-export class WebUIServer {
+export class WebUILocalServer {
     private app: Express;
     private port: number = 3002;
     private agcDBManager: AGCDBManager | null = null;
@@ -227,7 +227,7 @@ export class WebUIServer {
 }
 
 // 启动入口
-const server = new WebUIServer();
+const server = new WebUILocalServer();
 server.start().catch(error => {
     Logger.withTag("WebUI-Backend").error(`启动失败: ${error.message}`);
     process.exit(1);

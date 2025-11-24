@@ -10,9 +10,9 @@ export class TopicReadStatusManager {
 
     /**
      * 获取单例实例
-     * @param dbPath 可选：数据库路径，默认为 './data/favorite_topics'
+     * @param dbPath 可选：数据库路径，默认为 './data/read_topics'
      */
-    static getInstance(dbPath: string = "./data/favorite_topics"): TopicReadStatusManager {
+    static getInstance(dbPath: string = "./data/read_topics"): TopicReadStatusManager {
         if (!TopicReadStatusManager.instance) {
             TopicReadStatusManager.instance = new TopicReadStatusManager(dbPath);
         }

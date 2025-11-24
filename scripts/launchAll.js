@@ -14,6 +14,7 @@ const buildOrder = [
     'ai-model',
     'webui-backend',
     'webui-frontend',
+    // 'webui-forwarder', // TODO 目前无法正常启动，待解决
     'data-provider'
 ];
 

@@ -1,7 +1,7 @@
-onlyBuiltDependencies:
-  - sqlite3
-  - '@journeyapps/sqlcipher'
-
 packages:
-  - 'apps/**'
-  
+  - apps/**
+
+onlyBuiltDependencies:
+  - '@journeyapps/sqlcipher'
+  - ngrok
+  - sqlite3
