@@ -1,8 +1,9 @@
 import ConfigManagerService from "../config/ConfigManagerService";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
+import { Disposable } from "../util/lifecycle/Disposable";
 
-export class InterestScoreDBManager {
+export class InterestScoreDBManager extends Disposable {
     private LOGGER = Logger.withTag("InterestScoreDBManager");
     private db: MultiFileSQLite;
 
@@ -17,6 +18,7 @@ export class InterestScoreDBManager {
                     scoreV1 REAL
                 );`
         });
+        this._registerDisposable(this.db);
         this.LOGGER.info("初始化完成！");
     }
 
@@ -53,9 +55,5 @@ export class InterestScoreDBManager {
             [topicId]
         );
         return result === 1;
-    }
-
-    public async close() {
-        await this.db.close();
     }
 }

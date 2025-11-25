@@ -10,9 +10,11 @@ import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
 import { MsgElementType } from "./@types/mappers/MsgElementType";
 import { SingleMessage } from "./@types/RawMsgContentParseResult";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
+
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
-export class QQProvider implements IIMProvider {
+export class QQProvider extends Disposable implements IIMProvider {
     private db: PromisifiedSQLite | null = null;
     private LOGGER = Logger.withTag("QQProvider");
     private parser = new MessagePBParser();
@@ -25,7 +27,7 @@ export class QQProvider implements IIMProvider {
         // 2. 通过这个临时连接加载扩展 → 全局注册 offset_vfs
         await tempDb.loadExtension(config.VFSExtPath);
         // 3. 关闭临时数据库
-        await tempDb.close();
+        await tempDb.dispose();
 
         const dbPath = config.dbBasePath + "/nt_msg.db";
         // 打开QQNT数据库（原地读取，不复制）
@@ -33,6 +35,7 @@ export class QQProvider implements IIMProvider {
         const db = new PromisifiedSQLite(sqlite3);
         await db.open(dbPath);
         this.db = db;
+        this._registerDisposable(this.db);
 
         // 加密相关配置
         this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
@@ -249,12 +252,6 @@ export class QQProvider implements IIMProvider {
             return results[0];
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;
-        }
-    }
-
-    public async close() {
-        if (this.db) {
-            await this.db.close();
         }
     }
 }

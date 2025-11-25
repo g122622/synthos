@@ -35,7 +35,7 @@ export const closeDatabases = async (
     imDBManager: IMDBManager | null,
     interestScoreDBManager: InterestScoreDBManager | null
 ): Promise<void> => {
-    if (agcDBManager) await agcDBManager.close();
-    if (imDBManager) await imDBManager.close();
-    if (interestScoreDBManager) await interestScoreDBManager.close();
+    if (agcDBManager) await agcDBManager.dispose();
+    if (imDBManager) await imDBManager.dispose();
+    if (interestScoreDBManager) await interestScoreDBManager.dispose();
 };

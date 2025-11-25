@@ -65,7 +65,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
                 await imdbManager.storeRawChatMessages(results);
                 await job.touch(); // 保证任务存活
             }
-            await activeProvider.close();
+            await activeProvider.dispose();
 
             await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchPreprocess);
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);

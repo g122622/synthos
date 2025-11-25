@@ -72,7 +72,7 @@ import { ISplitter } from "./splitters/@types/ISplitter";
                     })
                 );
                 await imdbManager.storeProcessedChatMessages(results);
-                await splitter.close();
+                await splitter.dispose();
             }
 
             await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchAISummarize);

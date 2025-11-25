@@ -3,6 +3,7 @@ import { join, basename, extname } from "path";
 import { PromisifiedSQLite, PromisifiedStatement } from "../util/promisify/PromisifiedSQLite";
 import Logger from "../util/Logger";
 import { deepUnique } from "../util/deepUnique";
+import { Disposable } from "../util/lifecycle/Disposable";
 const sqlite3 = require("sqlite3").verbose();
 
 interface CommonDatabaseConfig {
@@ -11,7 +12,7 @@ interface CommonDatabaseConfig {
     initialSQL?: string; // 初始SQL语句，用于创建表等。建立每个数据库连接时会自动执行一次
 }
 
-class MultiFileSQLite {
+class MultiFileSQLite extends Disposable  {
     private config: CommonDatabaseConfig;
     private sqlite3: any;
     private LOGGER = Logger.withTag("MultiFileSQLite");
@@ -26,17 +27,14 @@ class MultiFileSQLite {
     private initialSQL = ""; // 初始SQL语句，用于创建表等。建立每个数据库连接时会自动执行一次
 
     constructor(config: CommonDatabaseConfig) {
+        super();
+
         this.sqlite3 = sqlite3;
         this.config = config;
         this.initialSQL = config.initialSQL || "";
 
         // 释放
-        process.on("SIGINT", async () => {
-            this.LOGGER.warning("SIGINT received, closing...");
-            await this.close();
-            this.LOGGER.success("Closed!");
-            process.exit(0);
-        });
+        this._registerDisposableFunction(() => this.cleanupDBCache());
 
         this.LOGGER.info("初始化完成！");
     }
@@ -82,6 +80,7 @@ class MultiFileSQLite {
             await db.exec(this.initialSQL);
         }
         this.dbCache.set(path, db);
+        this._registerDisposable(db);
         return db;
     }
 
@@ -204,17 +203,7 @@ class MultiFileSQLite {
 
     // ========== 资源管理 ==========
 
-    public async close(): Promise<void> {
-        // 关闭所有缓存的数据库连接
-        const closePromises: Promise<void>[] = [];
-        this.dbCache.forEach((db, path) => {
-            closePromises.push(
-                db.close().catch(err => {
-                    this.LOGGER.error(`Error closing ${path}: ${err.message}`);
-                })
-            );
-        });
-        await Promise.all(closePromises);
+    private async cleanupDBCache(): Promise<void> {
         this.dbCache.clear();
         this.activeDBPath = null;
         this.activeDBTimestamp = null;

@@ -6,8 +6,9 @@ import {
 } from "../types/data-provider/index";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
+import { Disposable } from "../util/lifecycle/Disposable";
 
-export class IMDBManager {
+export class IMDBManager extends Disposable {
     private LOGGER = Logger.withTag("IMDBManager");
     private db: MultiFileSQLite;
 
@@ -30,6 +31,7 @@ export class IMDBManager {
                     preProcessedContent TEXT
                 );`
         });
+        this._registerDisposable(this.db);
     }
 
     public async storeRawChatMessage(msg: RawChatMessage) {
@@ -189,9 +191,5 @@ export class IMDBManager {
         for (const msg of messages) {
             await this.storeProcessedChatMessage(msg);
         }
-    }
-
-    public async close() {
-        await this.db.close();
     }
 }

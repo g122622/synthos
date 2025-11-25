@@ -1,8 +1,9 @@
 import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
 import { ICtxBuilder } from "./@types/ICtxBuilder";
 import { IMPromptStore } from "../prompts/IMPromptStore";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
-export class IMSummaryCtxBuilder implements ICtxBuilder {
+export class IMSummaryCtxBuilder extends Disposable implements ICtxBuilder {
     async init(): Promise<void> {}
     async buildCtx(
         messages: ProcessedChatMessageWithRawMessage[],
@@ -14,5 +15,4 @@ export class IMSummaryCtxBuilder implements ICtxBuilder {
         }
         return IMPromptStore.getSummarizePrompt(groupIntroduction, 50, content);
     }
-    async close(): Promise<void> {}
 }

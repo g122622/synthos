@@ -47,7 +47,7 @@ export class TopicFavoriteStatusManager {
      * 关闭底层数据库（应用退出时调用）
      */
     async close(): Promise<void> {
-        await this.store.close();
+        await this.store.dispose();
     }
 }
 

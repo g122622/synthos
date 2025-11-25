@@ -1,12 +1,11 @@
-import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
 import { ISplitter } from "./@types/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
-export class TimeoutSplitter implements ISplitter {
+export class TimeoutSplitter extends Disposable implements ISplitter {
     public async init() {}
 
     public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
@@ -46,6 +45,4 @@ export class TimeoutSplitter implements ISplitter {
 
         return msgs;
     }
-
-    public async close() {}
 }

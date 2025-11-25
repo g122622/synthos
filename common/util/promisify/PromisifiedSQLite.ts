@@ -1,11 +1,16 @@
 import Logger from "../Logger";
+import { Disposable } from "../lifecycle/Disposable";
 
-class PromisifiedSQLite {
+class PromisifiedSQLite extends Disposable {
     private sqlite3: any;
     private db: any;
     private LOGGER = Logger.withTag("PromisifiedSQLite");
 
     constructor(sqlite3: any) {
+        super();
+
+        this._registerDisposableFunction(() => this.close());
+
         this.sqlite3 = sqlite3;
         this.db = null;
     }
@@ -108,7 +113,11 @@ class PromisifiedSQLite {
         });
     }
 
-    public each(sql: string, params: any[] = [], callback: (err: Error | null, row: any) => void): Promise<void> {
+    public each(
+        sql: string,
+        params: any[] = [],
+        callback: (err: Error | null, row: any) => void
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             this.db.each(sql, params, callback, err => {
                 if (err) {
@@ -138,7 +147,7 @@ class PromisifiedSQLite {
         });
     }
 
-    public close(): Promise<void> {
+    private close(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.db.close(err => {
                 if (err) {

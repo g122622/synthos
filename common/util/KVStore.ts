@@ -1,11 +1,12 @@
 // KVStore.ts
 import { Level } from "level";
+import { Disposable } from "./lifecycle/Disposable";
 
 /**
  * 简洁的键值存储类，专为 Node.js 设计，自动使用 JSON 编码
  * 键为 string，值为任意可 JSON 序列化的类型
  */
-export class KVStore<T = any> {
+export class KVStore<T = any> extends Disposable {
     private db: Level<string, T>;
 
     /**
@@ -13,8 +14,11 @@ export class KVStore<T = any> {
      * @param location 数据库存储目录路径（如 './data/mydb'）
      */
     constructor(location: string) {
+        super();
         // 内部强制使用 JSON 编码，对外隐藏实现细节
         this.db = new Level<string, T>(location, { valueEncoding: "json" });
+        // 注册释放函数，确保数据库关闭
+        this._registerDisposableFunction(() => this.db.close());
     }
 
     /**
@@ -46,15 +50,10 @@ export class KVStore<T = any> {
      * 批量操作（原子性）
      * @param ops 操作数组，每个操作包含 type、key，put 操作还需 value
      */
-    async batch(ops: Array<{ type: "put"; key: string; value: T } | { type: "del"; key: string }>): Promise<void> {
+    async batch(
+        ops: Array<{ type: "put"; key: string; value: T } | { type: "del"; key: string }>
+    ): Promise<void> {
         await this.db.batch(ops);
-    }
-
-    /**
-     * 关闭数据库（建议在应用退出前调用）
-     */
-    async close(): Promise<void> {
-        await this.db.close();
     }
 }
 
@@ -85,7 +84,7 @@ export class KVStore<T = any> {
 //     ]);
 
 //     // 关闭
-//     await store.close();
+//     await store.dispose();
 // }
 
 // main().catch(console.error);

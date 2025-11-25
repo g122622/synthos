@@ -1,4 +1,6 @@
-export interface ICtxBuilder {
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
+
+export interface ICtxBuilder extends Disposable {
     init(): Promise<void>;
     /**
      * 依照给定的所有消息，构建一个上下文
@@ -6,5 +8,4 @@ export interface ICtxBuilder {
      * @returns 可以直接注入大模型的上下文
      */
     buildCtx(...params: any[]): Promise<string>;
-    close(): Promise<void>;
 }

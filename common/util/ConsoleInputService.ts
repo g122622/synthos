@@ -1,19 +1,25 @@
 import * as readline from "readline";
 import Logger from "./Logger";
+import { Disposable } from "../util/lifecycle/Disposable";
 
 /**
  * 控制台交互管理类，用于处理控制台的输入
  */
-class ConsoleInputService {
+class ConsoleInputService extends Disposable {
     // 使用readline模块创建接口实例
     private rl: readline.Interface;
     private LOGGER = Logger.withTag("ConsoleInputService");
 
     constructor() {
+        super();
         // 初始化readline实例，绑定标准输入输出流
         this.rl = readline.createInterface({
             input: process.stdin,
             output: process.stdout
+        });
+        // 注册Disposable函数，用于在实例销毁时关闭readline接口
+        this._registerDisposableFunction(() => {
+            this.rl.close(); // 关闭readline接口
         });
     }
 
@@ -72,13 +78,6 @@ class ConsoleInputService {
             this.LOGGER.error("请输入y或n!");
             return await this.yesOrNo(prompt);
         }
-    }
-
-    /**
-     * 关闭控制台输入流，释放资源
-     */
-    public close(): void {
-        this.rl.close();
     }
 }
 

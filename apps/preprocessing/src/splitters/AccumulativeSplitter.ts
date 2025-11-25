@@ -7,14 +7,16 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/types/ErrorReasons";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
-export class AccumulativeSplitter implements ISplitter {
+export class AccumulativeSplitter extends Disposable implements ISplitter {
     private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 
     public async init() {
         const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
             .AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
+        this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
 
     public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
@@ -85,11 +87,5 @@ export class AccumulativeSplitter implements ISplitter {
         }
 
         return msgs;
-    }
-
-    public async close() {
-        if (this.kvStore) {
-            await this.kvStore.close(); // 关闭 KV 存储
-        }
     }
 }

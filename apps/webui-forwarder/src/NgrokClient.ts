@@ -1,8 +1,9 @@
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
 const ngrok = require("ngrok");
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
-export class NgrokClient {
+export class NgrokClient extends Disposable {
     private urlForFE = "";
     private urlForBE = "";
     private LOGGER = Logger.withTag("NgrokClient");
@@ -37,10 +38,10 @@ export class NgrokClient {
         } catch (e) {
             this.LOGGER.error(`Ngrok客户端初始化失败, 错误信息: ${e}`);
         }
-    }
 
-    public async close() {
-        await ngrok.disconnect(); // 断开所有连接
-        this.LOGGER.success("Ngrok客户端已关闭");
+        this._registerDisposableFunction(async () => {
+            await ngrok.disconnect(); // 断开所有连接
+            this.LOGGER.success("Ngrok客户端已关闭");
+        });
     }
 }

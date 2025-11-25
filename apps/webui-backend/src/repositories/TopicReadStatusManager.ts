@@ -46,7 +46,7 @@ export class TopicReadStatusManager {
      * 关闭数据库连接（如需要）
      */
     async close(): Promise<void> {
-        await this.store.close();
+        await this.store.dispose();
     }
 }
 

@@ -2,8 +2,9 @@ import ConfigManagerService from "../config/ConfigManagerService";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { AIDigestResult } from "../types/ai-model";
+import { Disposable } from "../util/lifecycle/Disposable";
 
-export class AGCDBManager {
+export class AGCDBManager extends Disposable {
     private LOGGER = Logger.withTag("AGCDBManager");
     private db: MultiFileSQLite;
 
@@ -22,7 +23,7 @@ export class AGCDBManager {
                     detail TEXT
                 );`
         });
-        this.LOGGER.info("初始化完成！");
+        this._registerDisposable(this.db);
     }
 
     public async storeAIDigestResult(result: AIDigestResult) {
@@ -74,9 +75,5 @@ export class AGCDBManager {
             [sessionId]
         );
         return result === 1;
-    }
-
-    public async close() {
-        await this.db.close();
     }
 }
