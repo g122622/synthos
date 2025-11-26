@@ -9,6 +9,7 @@ enum ErrorReasons {
     UNINITIALIZED_ERROR = "UNINITIALIZED_ERROR", // 未初始化错误
     TYPE_ERROR = "TYPE_ERROR", // 类型错误
     PROTOBUF_ERROR = "PROTOBUF_ERROR", // Protobuf验证/解析等错误
+    CYCLIC_REFERENCE_ERROR = "CYCLIC_REFERENCE_ERROR", // 循环引用错误
 }
 
 export default ErrorReasons;
