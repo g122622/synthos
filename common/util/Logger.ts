@@ -26,14 +26,29 @@ class Logger {
         return new Logger(`[${tag}]`);
     }
 
-    private getPrefix(): string {
+    private getPrefix(level: string): string {
         const time = this.getTimeString();
-        return "🎯 " + (this.tag ? `${time}${this.tag} ` : time) + `[${getCurrentFunctionName()}] `;
+        const emojiMap: Record<string, string> = {
+            debug: "🐞",
+            info: "ℹ️ ",
+            success: "✅",
+            warning: "⚠️ ",
+            error: "❌"
+        };
+        return `${emojiMap[level]}  ${time}${("[" + level.toUpperCase() + "]").padEnd(9, " ")} ${this.tag ? `${this.tag} ` : ""}[${getCurrentFunctionName()}] `;
     }
 
     private getTimeString(): string {
         const now = new Date();
-        return `[${now.toLocaleTimeString()}::${String(now.getMilliseconds()).padStart(3, "0")}] `;
+        // 生成yyyy-MM-dd HH:mm:ss.SSS格式的时间字符串
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, "0"); // 月份从0开始，所以要加1
+        const day = String(now.getDate()).padStart(2, "0");
+        const hours = String(now.getHours()).padStart(2, "0");
+        const minutes = String(now.getMinutes()).padStart(2, "0");
+        const seconds = String(now.getSeconds()).padStart(2, "0");
+        const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+        return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}] `;
     }
 
     private async addLineToLogBuffer(line: string) {
@@ -66,49 +81,49 @@ class Logger {
     }
 
     // ANSI color log helper
-    private logWithColor(colorCode: string, message: string): void {
+    private logWithColor(colorCode: string, message: string, level: string): void {
         // 输出到控制台
-        console.log(`${colorCode}${this.getPrefix()}${message}\x1b[0m`);
+        console.log(`${colorCode}${this.getPrefix(level)}${message}\x1b[0m`);
         // 输出到文件
-        this.addLineToLogBuffer(`${this.getPrefix()}${message}`);
+        this.addLineToLogBuffer(`${this.getPrefix(level)}${message}`);
     }
 
     // Gradient log helper
-    private logWithGradient(fn: (msg: string) => string, message: string): void {
+    private logWithGradient(fn: (msg: string) => string, message: string, level: string): void {
         // 输出到控制台
-        console.log(fn(`${this.getPrefix()}${message}`));
+        console.log(fn(`${this.getPrefix(level)}${message}`));
         // 输出到文件
-        this.addLineToLogBuffer(`${this.getPrefix()}${message}`);
+        this.addLineToLogBuffer(`${this.getPrefix(level)}${message}`);
     }
 
     // --- 颜色方法 ---
-    public blue(message: string) {
-        this.logWithColor("\x1b[34m", message);
+    public blue(message: string, level: string = "info") {
+        this.logWithColor("\x1b[34m", message, level);
     }
-    public green(message: string) {
-        this.logWithColor("\x1b[32m", message);
+    public green(message: string, level: string = "success") {
+        this.logWithColor("\x1b[32m", message, level);
     }
-    public yellow(message: string) {
-        this.logWithColor("\x1b[33m", message);
+    public yellow(message: string, level: string = "warning") {
+        this.logWithColor("\x1b[33m", message, level);
     }
-    public red(message: string) {
-        this.logWithColor("\x1b[31m", message);
+    public red(message: string, level: string = "error") {
+        this.logWithColor("\x1b[31m", message, level);
     }
-    public gray(message: string) {
-        this.logWithColor("\x1b[30m", message);
+    public gray(message: string, level: string = "debug") {
+        this.logWithColor("\x1b[30m", message, level);
     }
 
-    public bgRed(message: string) {
-        this.logWithColor("\x1b[41m", message);
+    public bgRed(message: string, level: string = "error") {
+        this.logWithColor("\x1b[41m", message, level);
     }
-    public bgGreen(message: string) {
-        this.logWithColor("\x1b[42m", message);
+    public bgGreen(message: string, level: string = "success") {
+        this.logWithColor("\x1b[42m", message, level);
     }
-    public bgYellow(message: string) {
-        this.logWithColor("\x1b[43m", message);
+    public bgYellow(message: string, level: string = "warning") {
+        this.logWithColor("\x1b[43m", message, level);
     }
-    public bgBlue(message: string) {
-        this.logWithColor("\x1b[44m", message);
+    public bgBlue(message: string, level: string = "info") {
+        this.logWithColor("\x1b[44m", message, level);
     }
 
     // --- 语义化方法 ---
@@ -139,14 +154,14 @@ class Logger {
     }
 
     // --- 渐变方法 ---
-    public gradientWithPastel(message: string) {
-        this.logWithGradient(pastel, message);
+    public gradientWithPastel(message: string, level: string = "info") {
+        this.logWithGradient(pastel, message, level);
     }
-    public gradientWithAtlas(message: string) {
-        this.logWithGradient(atlas, message);
+    public gradientWithAtlas(message: string, level: string = "info") {
+        this.logWithGradient(atlas, message, level);
     }
-    public gradientWithRainbow(message: string) {
-        this.logWithGradient(rainbow, message);
+    public gradientWithRainbow(message: string, level: string = "info") {
+        this.logWithGradient(rainbow, message, level);
     }
 }
 
