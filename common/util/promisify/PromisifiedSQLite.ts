@@ -19,7 +19,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db = new this.sqlite3.Database(DBFilePath, err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to open database: " + err.message);
+                    this.LOGGER.error("Failed to open database: " + err.message);
                     this.LOGGER.debug("Database path: " + DBFilePath);
                     reject(err);
                 } else {
@@ -34,7 +34,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.loadExtension(extensionPath, err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to load extension: " + err.message);
+                    this.LOGGER.error("Failed to load extension: " + err.message);
                     this.LOGGER.debug("Extension path: " + extensionPath);
                     reject(err);
                 } else {
@@ -49,7 +49,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.exec(sql, err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to execute SQL: " + err.message);
+                    this.LOGGER.error("Failed to execute SQL: " + err.message);
                     this.LOGGER.debug("SQL: " + sql);
                     reject(err);
                 } else {
@@ -68,7 +68,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             const statement = this.db.prepare(sql, err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to prepare statement: " + err.message);
+                    this.LOGGER.error("Failed to prepare statement: " + err.message);
                     this.LOGGER.debug("SQL: " + sql);
                     reject(err);
                 } else {
@@ -86,7 +86,7 @@ class PromisifiedSQLite extends Disposable {
                 params,
                 (err => {
                     if (err) {
-                        this.LOGGER.bgRed("Failed to run SQL: " + err.message);
+                        this.LOGGER.error("Failed to run SQL: " + err.message);
                         this.LOGGER.debug("SQL: " + sql);
                         this.LOGGER.debug("Params: " + JSON.stringify(params));
                         reject(err);
@@ -102,7 +102,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.all(sql, params, (err, rows) => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to get all rows: " + err.message);
+                    this.LOGGER.error("Failed to get all rows: " + err.message);
                     this.LOGGER.debug("SQL: " + sql);
                     this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
@@ -121,7 +121,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.each(sql, params, callback, err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to each rows: " + err.message);
+                    this.LOGGER.error("Failed to each rows: " + err.message);
                     this.LOGGER.debug("SQL: " + sql);
                     this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
@@ -136,7 +136,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.get(sql, params, (err, row) => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to get row: " + err.message);
+                    this.LOGGER.error("Failed to get row: " + err.message);
                     this.LOGGER.debug("SQL: " + sql);
                     this.LOGGER.debug("Params: " + JSON.stringify(params));
                     reject(err);
@@ -151,7 +151,7 @@ class PromisifiedSQLite extends Disposable {
         return new Promise((resolve, reject) => {
             this.db.close(err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to close database: " + err.message);
+                    this.LOGGER.error("Failed to close database: " + err.message);
                     reject(err);
                 } else {
                     this.LOGGER.success("Closed database successfully, path: " + this.db.filename);
@@ -174,7 +174,7 @@ class PromisifiedStatement {
         return new Promise((resolve, reject) => {
             this.statement.get((err, row) => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to get row: " + err.message);
+                    this.LOGGER.error("Failed to get row: " + err.message);
                     reject(err);
                 } else {
                     resolve(row);
@@ -187,7 +187,7 @@ class PromisifiedStatement {
         return new Promise((resolve, reject) => {
             this.statement.finalize(err => {
                 if (err) {
-                    this.LOGGER.bgRed("Failed to finalize statement: " + err.message);
+                    this.LOGGER.error("Failed to finalize statement: " + err.message);
                     reject(err);
                 } else {
                     resolve();
