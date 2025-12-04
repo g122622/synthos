@@ -107,7 +107,11 @@ class Disposable implements IDisposable {
         return disposable;
     }
 
-    // ⚠️⚠️⚠️必须传入箭头函数避免this指向丢失
+    /**
+     * 注册一个异步函数
+     * @param func 需要管理生命周期的异步函数
+     * @note ⚠️⚠️⚠️必须传入箭头函数避免this指向丢失
+     */
     protected _registerDisposableFunction(func: () => Promise<void> | void): void {
         if (!func) {
             LOGGER.error("Cannot register null or undefined disposable");
