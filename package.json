@@ -7,7 +7,8 @@
     "build": "pnpm --filter 'apps/*' build",
     "build:all": "node scripts/launchAll.js",
     "dev": "node scripts/launchAll.js",
-    "start": "node scripts/launchAll.js"
+    "start": "node scripts/launchAll.js",
+    "test": "vitest"
   },
   "keywords": [],
   "author": "",

@@ -1,12 +1,13 @@
 // tests/SemanticRater.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { SemanticRater } from "../misc/SemanticRater"; // 路径按你项目调整
+import { SemanticRater } from "../misc/SemanticRater";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
     return {
         default: {
             withTag: () => ({
+                debug: console.log, // 输出到控制台
                 info: console.log, // 输出到控制台
                 warning: console.warn, // 输出到控制台
                 error: console.error // 输出到控制台

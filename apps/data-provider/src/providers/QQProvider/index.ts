@@ -11,9 +11,11 @@ import { MessagePBParser } from "./parsers/MessagePBParser";
 import { MsgElementType } from "./@types/mappers/MsgElementType";
 import { SingleMessage } from "./@types/RawMsgContentParseResult";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
 const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 
+@mustInitBeforeUse
 export class QQProvider extends Disposable implements IIMProvider {
     private db: PromisifiedSQLite | null = null;
     private LOGGER = Logger.withTag("QQProvider");
