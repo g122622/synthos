@@ -35,20 +35,3 @@ export interface AIDigestResult {
     contributors: string;
     detail: string;
 }
-
-// QQ头像响应
-export interface QQAvatarResponse {
-    avatarBase64: string;
-}
-
-// 分页参数
-export interface PaginationParams {
-    page: number;
-    pageSize: number;
-}
-
-// 时间筛选参数
-export interface TimeFilterParams {
-    timeStart: number;
-    timeEnd: number;
-}
