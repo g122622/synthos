@@ -1,0 +1,279 @@
+/**
+ * QQProvider 集成测试
+ *
+ * 此测试文件连接真实的 QQNT 数据库进行测试，需要：
+ * 1. 在项目根目录配置 synthos_config.json
+ * 2. 配置中包含有效的 QQ.dbBasePath、dbKey、VFSExtPath
+ * 3. VFS 扩展文件存在且可用
+ *
+ * 运行方式：
+ *   pnpm test -- QQProvider.integration.test.ts
+ *
+ * 如果配置不可用，测试会自动跳过
+ */
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { QQProvider } from "../providers/QQProvider";
+import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { existsSync } from "fs";
+
+// 检查集成测试是否可以运行
+async function canRunIntegrationTest(): Promise<{
+    canRun: boolean;
+    reason?: string;
+}> {
+    try {
+        const config = await ConfigManagerService.getCurrentConfig();
+        const qqConfig = config.dataProviders?.QQ;
+
+        if (!qqConfig) {
+            return { canRun: false, reason: "配置中缺少 dataProviders.QQ" };
+        }
+
+        if (!qqConfig.dbBasePath) {
+            return { canRun: false, reason: "配置中缺少 dbBasePath" };
+        }
+
+        if (!qqConfig.dbKey) {
+            return { canRun: false, reason: "配置中缺少 dbKey" };
+        }
+
+        if (!qqConfig.VFSExtPath) {
+            return { canRun: false, reason: "配置中缺少 VFSExtPath" };
+        }
+
+        // 检查 VFS 扩展文件是否存在
+        if (!existsSync(qqConfig.VFSExtPath)) {
+            return {
+                canRun: false,
+                reason: `VFS 扩展文件不存在: ${qqConfig.VFSExtPath}`
+            };
+        }
+
+        // 检查数据库文件是否存在
+        const dbPath = `${qqConfig.dbBasePath}/nt_msg.db`;
+        if (!existsSync(dbPath)) {
+            return {
+                canRun: false,
+                reason: `数据库文件不存在: ${dbPath}`
+            };
+        }
+
+        return { canRun: true };
+    } catch (error) {
+        return {
+            canRun: false,
+            reason: `加载配置失败: ${error instanceof Error ? error.message : String(error)}`
+        };
+    }
+}
+
+describe("QQProvider 集成测试", () => {
+    let qqProvider: QQProvider | null = null;
+    let skipTests = false;
+
+    beforeAll(async () => {
+        const checkResult = await canRunIntegrationTest();
+        if (!checkResult.canRun) {
+            console.log(`\n⏭️  跳过 QQProvider 集成测试: ${checkResult.reason}\n`);
+            skipTests = true;
+            return;
+        }
+
+        qqProvider = new QQProvider();
+        await qqProvider.init();
+    });
+
+    afterAll(async () => {
+        if (qqProvider) {
+            await qqProvider.dispose();
+        }
+    });
+
+    describe("getMsgByTimeRange", () => {
+        it("应能成功查询数据库并返回消息数组", async ctx => {
+            if (skipTests || !qqProvider) {
+                ctx.skip();
+                return;
+            }
+
+            // 查询最近 24 小时的消息
+            const now = Date.now();
+            const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+            const messages = await qqProvider.getMsgByTimeRange(oneDayAgo, now);
+
+            // 验证返回类型
+            expect(Array.isArray(messages)).toBe(true);
+
+            console.log(`查询到 ${messages.length} 条消息（最近24小时）`);
+        });
+
+        it("应能查询指定时间范围内的消息", async ctx => {
+            if (skipTests || !qqProvider) {
+                ctx.skip();
+                return;
+            }
+
+            // 查询最近 7 天的消息
+            const now = Date.now();
+            const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+            const messages = await qqProvider.getMsgByTimeRange(sevenDaysAgo, now);
+
+            expect(Array.isArray(messages)).toBe(true);
+
+            console.log(`查询到 ${messages.length} 条消息（最近7天）`);
+
+            // 如果有消息，验证消息结构
+            if (messages.length > 0) {
+                const firstMsg = messages[0];
+
+                // 验证必要字段存在
+                expect(firstMsg).toHaveProperty("msgId");
+                expect(firstMsg).toHaveProperty("messageContent");
+                expect(firstMsg).toHaveProperty("groupId");
+                expect(firstMsg).toHaveProperty("timestamp");
+                expect(firstMsg).toHaveProperty("senderId");
+
+                // 验证字段类型
+                expect(typeof firstMsg.msgId).toBe("string");
+                expect(typeof firstMsg.messageContent).toBe("string");
+                expect(typeof firstMsg.groupId).toBe("string");
+                expect(typeof firstMsg.timestamp).toBe("number");
+                expect(typeof firstMsg.senderId).toBe("string");
+
+                // 验证时间戳在合理范围内
+                expect(firstMsg.timestamp).toBeGreaterThanOrEqual(sevenDaysAgo);
+                expect(firstMsg.timestamp).toBeLessThanOrEqual(now);
+
+                console.log("第一条消息示例:", {
+                    msgId: firstMsg.msgId,
+                    groupId: firstMsg.groupId,
+                    senderId: firstMsg.senderId,
+                    senderNickname: firstMsg.senderNickname || firstMsg.senderGroupNickname,
+                    contentPreview:
+                        firstMsg.messageContent.length > 50
+                            ? firstMsg.messageContent.substring(0, 50) + "..."
+                            : firstMsg.messageContent,
+                    timestamp: new Date(firstMsg.timestamp).toLocaleString()
+                });
+            }
+        });
+
+        it("应能按群号过滤消息", async ctx => {
+            if (skipTests || !qqProvider) {
+                ctx.skip();
+                return;
+            }
+
+            // 先查询所有消息获取一个群号
+            const now = Date.now();
+            const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+            const allMessages = await qqProvider.getMsgByTimeRange(oneDayAgo, now);
+
+            if (allMessages.length === 0) {
+                console.log("没有消息可供测试群号过滤");
+                return;
+            }
+
+            // 获取第一条消息的群号进行过滤测试
+            const testGroupId = allMessages[0].groupId;
+
+            const filteredMessages = await qqProvider.getMsgByTimeRange(
+                oneDayAgo,
+                now,
+                testGroupId
+            );
+
+            expect(Array.isArray(filteredMessages)).toBe(true);
+
+            // 验证所有返回的消息都属于指定群
+            for (const msg of filteredMessages) {
+                expect(msg.groupId).toBe(testGroupId);
+            }
+
+            console.log(`群 ${testGroupId} 在最近24小时内有 ${filteredMessages.length} 条消息`);
+        });
+
+        it("空时间范围应返回空数组", async ctx => {
+            if (skipTests || !qqProvider) {
+                ctx.skip();
+                return;
+            }
+
+            // 查询一个很早的时间范围（1970年）
+            const veryOldStart = 0;
+            const veryOldEnd = 1000;
+
+            const messages = await qqProvider.getMsgByTimeRange(veryOldStart, veryOldEnd);
+
+            expect(Array.isArray(messages)).toBe(true);
+            expect(messages.length).toBe(0);
+        });
+
+        it("应正确处理消息内容中的各种类型", async ctx => {
+            if (skipTests || !qqProvider) {
+                ctx.skip();
+                return;
+            }
+
+            // 查询较长时间范围以获取更多消息类型
+            const now = Date.now();
+            const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+
+            const messages = await qqProvider.getMsgByTimeRange(thirtyDaysAgo, now);
+
+            if (messages.length === 0) {
+                console.log("没有消息可供测试");
+                return;
+            }
+
+            // 统计消息类型
+            const stats = {
+                textOnly: 0,
+                withEmoji: 0,
+                withImage: 0,
+                withVoice: 0,
+                withFile: 0,
+                withQuote: 0
+            };
+
+            for (const msg of messages) {
+                const content = msg.messageContent;
+
+                if (!content.includes("[") && !content.includes("]")) {
+                    stats.textOnly++;
+                }
+                if (
+                    content.includes("[") &&
+                    !content.includes("[图片]") &&
+                    !content.includes("[语音]") &&
+                    !content.includes("[文件]")
+                ) {
+                    stats.withEmoji++;
+                }
+                if (content.includes("[图片]")) {
+                    stats.withImage++;
+                }
+                if (content.includes("[语音]")) {
+                    stats.withVoice++;
+                }
+                if (content.includes("[文件]")) {
+                    stats.withFile++;
+                }
+                if (msg.quotedMsgId) {
+                    stats.withQuote++;
+                }
+            }
+
+            console.log("消息类型统计（最近30天）:", stats);
+
+            // 验证所有消息内容都是字符串且非空（因为空消息已被过滤）
+            for (const msg of messages) {
+                expect(typeof msg.messageContent).toBe("string");
+                expect(msg.messageContent.length).toBeGreaterThan(0);
+            }
+        });
+    });
+});
