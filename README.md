@@ -28,6 +28,8 @@ Synthos 是一个基于 `Node.js` 和 `TypeScript` 构建的智能聊天记录�
 
 ![系统架构图](./docs/assets/Synthos架构7.drawio.png)
 
+Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/synthos)
+
 ---
 
 ## 核心功能特性
