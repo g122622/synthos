@@ -7,7 +7,7 @@
  */
 
 import Logger from "../Logger";
-import ErrorReasons from "../../types/ErrorReasons";
+import ErrorReasons from "../../contracts/ErrorReasons";
 
 interface IDisposable {
     dispose(): Promise<void> | void;

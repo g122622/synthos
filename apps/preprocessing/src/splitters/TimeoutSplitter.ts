@@ -1,4 +1,4 @@
-import { ISplitter } from "./@types/ISplitter";
+import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { IMDBManager } from "@root/common/database/IMDBManager";

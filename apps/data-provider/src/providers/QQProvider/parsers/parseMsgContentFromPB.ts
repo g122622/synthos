@@ -1,6 +1,6 @@
 // 基于有限状态机的消息解析器，用于从 Protocol Buffer 格式的消息中提取文本内容。
 // ！！！目前已经废弃，被MessageSegmentPBParser取代。
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 
 /**

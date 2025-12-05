@@ -1,4 +1,4 @@
-import { IMTypes } from "../../types/data-provider";
+import { IMTypes } from "../../contracts/data-provider";
 
 export enum TaskHandlerTypes {
     ProvideData = "ProvideData",

@@ -1,4 +1,4 @@
-import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
+import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { ICtxBuilder } from "./@types/ICtxBuilder";
 import { IMPromptStore } from "../prompts/IMPromptStore";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";

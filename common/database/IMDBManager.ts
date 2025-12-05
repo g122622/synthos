@@ -3,7 +3,7 @@ import {
     ProcessedChatMessage,
     RawChatMessage,
     ProcessedChatMessageWithRawMessage
-} from "../types/data-provider/index";
+} from "../contracts/data-provider/index";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { Disposable } from "../util/lifecycle/Disposable";

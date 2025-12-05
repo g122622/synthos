@@ -1,13 +1,13 @@
 import { TextGenerator } from "./generators/text/TextGenerator";
 import { IMSummaryCtxBuilder } from "./context/ctxBuilders/IMSummaryCtxBuilder";
-import { AIDigestResult } from "@root/common/types/ai-model";
+import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import getRandomHash from "@root/common/util/getRandomHash";
 import Logger from "@root/common/util/Logger";
-import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
+import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";

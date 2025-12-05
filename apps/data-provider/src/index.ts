@@ -4,8 +4,8 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { IMTypes } from "@root/common/types/data-provider";
-import { IIMProvider } from "./providers/@types/IIMProvider";
+import { IMTypes } from "@root/common/contracts/data-provider";
+import { IIMProvider } from "./providers/contracts/IIMProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
 (async () => {

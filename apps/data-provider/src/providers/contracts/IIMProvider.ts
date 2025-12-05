@@ -1,4 +1,4 @@
-import { RawChatMessage } from "@root/common/types/data-provider";
+import { RawChatMessage } from "@root/common/contracts/data-provider";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
 export interface IIMProvider extends Disposable {

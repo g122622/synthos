@@ -1,6 +1,6 @@
 import * as protobuf from "protobufjs";
 import { readFile } from "fs/promises";
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";

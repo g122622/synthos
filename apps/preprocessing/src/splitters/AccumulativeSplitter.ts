@@ -1,12 +1,12 @@
-import { ProcessedChatMessageWithRawMessage } from "@root/common/types/data-provider";
-import { ISplitter } from "./@types/ISplitter";
+import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
+import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { KVStore } from "@root/common/util/KVStore";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 

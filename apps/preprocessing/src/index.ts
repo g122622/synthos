@@ -2,12 +2,12 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AccumulativeSplitter } from "./splitters/AccumulativeSplitter";
 import { TimeoutSplitter } from "./splitters/TimeoutSplitter";
 import Logger from "@root/common/util/Logger";
-import { ProcessedChatMessage } from "@root/common/types/data-provider";
+import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
 import { formatMsg } from "./formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { ISplitter } from "./splitters/@types/ISplitter";
+import { ISplitter } from "./splitters/contracts/ISplitter";
 
 (async () => {
     const LOGGER = Logger.withTag("🏭 preprocessor-root-script");

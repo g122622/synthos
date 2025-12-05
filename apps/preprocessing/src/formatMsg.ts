@@ -1,4 +1,4 @@
-import { RawChatMessage } from "@root/common/types/data-provider";
+import { RawChatMessage } from "@root/common/contracts/data-provider";
 
 export function formatMsg(msg: RawChatMessage, quotedMsgId?: RawChatMessage): string {
     // 格式类似"'杨浩然(群昵称：ユリの花)'：【引用来自'李嘉浩(群昵称：DEAR James·Jordan ≈)'的消息: 今年offer发了多少】@DEAR James·Jordan ≈ 我觉得今年会超发offer"

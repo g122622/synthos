@@ -1,9 +1,9 @@
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
-import { RawChatMessage } from "@root/common/types/data-provider/index";
-import { IIMProvider } from "../@types/IIMProvider";
+import { RawChatMessage } from "@root/common/contracts/data-provider/index";
+import { IIMProvider } from "../contracts/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT, ASSERT_NOT_FATAL } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";

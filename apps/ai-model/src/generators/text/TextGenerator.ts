@@ -1,6 +1,6 @@
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { ChatOpenAI } from "@langchain/openai";
-import ErrorReasons from "@root/common/types/ErrorReasons";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
