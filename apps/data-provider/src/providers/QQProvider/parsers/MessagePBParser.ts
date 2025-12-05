@@ -51,8 +51,4 @@ export class MessagePBParser extends Disposable {
             throw ErrorReasons.PROTOBUF_ERROR;
         }
     }
-
-    public async dispose() {
-        this.messageSegment = undefined;
-    }
 }
