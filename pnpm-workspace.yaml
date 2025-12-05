@@ -2,6 +2,13 @@ packages:
   - apps/**
 
 onlyBuiltDependencies:
+  - '@heroui/shared-utils'
   - '@journeyapps/sqlcipher'
+  - '@tailwindcss/oxide'
+  - classic-level
+  - esbuild
   - ngrok
+  - onnxruntime-node
+  - protobufjs
+  - sharp
   - sqlite3

@@ -3,8 +3,11 @@ import { readFile } from "fs/promises";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
-export class MessagePBParser {
+@mustInitBeforeUse
+export class MessagePBParser extends Disposable {
     private messageSegment: protobuf.Type | undefined;
     private LOGGER = Logger.withTag("MessagePBParser");
 
@@ -47,5 +50,9 @@ export class MessagePBParser {
             this.LOGGER.error("Protobuf decode error:" + error);
             throw ErrorReasons.PROTOBUF_ERROR;
         }
+    }
+
+    public async dispose() {
+        this.messageSegment = undefined;
     }
 }

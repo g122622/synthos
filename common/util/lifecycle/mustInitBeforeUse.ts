@@ -7,28 +7,29 @@ import { Disposable } from "./Disposable";
  * 赦免所有来自 Disposable 基类的方法/属性（如 dispose, isDisposed, _registerDisposable 等）
  */
 export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(constructor: T) {
-    return class extends constructor {
-        private _$initialized = false;
+    // 赦免的方法/属性列表（包括 Disposable 基类的和额外指定的）
+    const exemptedKeys = new Set<string | symbol>([
+        // Disposable 基类的公共/保护成员（字符串形式）
+        "dispose",
+        "isDisposed",
+        "_registerDisposable",
+        "_registerDisposableFunction",
+        "_isDisposed",
+        "_disposables", // dispose 内部会访问此属性
+        // 其他可能需要赦免的
+        "constructor",
+        "init" // init 自身当然要赦免
+        // Symbol 属性（虽然一般不会有，但安全起见可处理）
+    ]);
 
-        // 赦免的方法/属性列表（包括 Disposable 基类的和额外指定的）
-        private static readonly _$exemptedKeys = new Set<string | symbol>([
-            // Disposable 基类的公共/保护成员（字符串形式）
-            "dispose",
-            "isDisposed",
-            "_registerDisposable",
-            "_registerDisposableFunction",
-            "_isDisposed",
-            // 其他可能需要赦免的
-            "constructor",
-            "init" // init 自身当然要赦免
-            // Symbol 属性（虽然一般不会有，但安全起见可处理）
-        ]);
+    const DecoratedClass = class extends constructor {
+        private _$initialized = false;
 
         // 覆盖 init 方法：支持异步，标记已初始化
         async init(...args: any[]): Promise<void> {
             // 如果父类有 init（比如子类自己定义了），先调用它
             // @ts-ignore
-            if (super.init && super.init !== (mustInitBeforeUse as any).prototype.init) {
+            if (super.init && super.init !== DecoratedClass.prototype.init) {
                 // @ts-ignore
                 const result = super.init(...args);
                 if (result instanceof Promise) {
@@ -44,7 +45,7 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
             return new Proxy(this, {
                 get(target, prop, receiver) {
                     // 赦免规则 1：内置豁免列表
-                    if (mustInitBeforeUse.prototype.constructor._$exemptedKeys.has(String(prop))) {
+                    if (exemptedKeys.has(String(prop))) {
                         return Reflect.get(target, prop, receiver);
                     }
 
@@ -76,5 +77,7 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
                 }
             });
         }
-    } as T;
+    };
+
+    return DecoratedClass as T;
 }

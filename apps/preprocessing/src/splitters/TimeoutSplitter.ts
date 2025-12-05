@@ -4,7 +4,9 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class TimeoutSplitter extends Disposable implements ISplitter {
     public async init() {}
 

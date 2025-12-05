@@ -7,7 +7,9 @@ import {
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { Disposable } from "../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class IMDBManager extends Disposable {
     private LOGGER = Logger.withTag("IMDBManager");
     private db: MultiFileSQLite;

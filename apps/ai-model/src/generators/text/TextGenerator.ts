@@ -3,7 +3,9 @@ import { ChatOpenAI } from "@langchain/openai";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class TextGenerator extends Disposable {
     private models = new Map<string, ChatOpenAI>();
     private activeModel: ChatOpenAI | null = null;

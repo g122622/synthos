@@ -2,7 +2,9 @@ import ConfigManagerService from "../config/ConfigManagerService";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { Disposable } from "../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class InterestScoreDBManager extends Disposable {
     private LOGGER = Logger.withTag("InterestScoreDBManager");
     private db: MultiFileSQLite;

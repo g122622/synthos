@@ -8,7 +8,9 @@ import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/types/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class AccumulativeSplitter extends Disposable implements ISplitter {
     private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 

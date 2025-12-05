@@ -3,7 +3,9 @@ import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { AIDigestResult } from "../types/ai-model";
 import { Disposable } from "../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class AGCDBManager extends Disposable {
     private LOGGER = Logger.withTag("AGCDBManager");
     private db: MultiFileSQLite;

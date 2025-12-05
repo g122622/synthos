@@ -19,7 +19,7 @@ const sqlite3 = require("@journeyapps/sqlcipher").verbose();
 export class QQProvider extends Disposable implements IIMProvider {
     private db: PromisifiedSQLite | null = null;
     private LOGGER = Logger.withTag("QQProvider");
-    private parser = new MessagePBParser();
+    private messagePBParser = this._registerDisposable(new MessagePBParser());
 
     public async init() {
         const config = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ;
@@ -36,8 +36,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         // @see https://docs.aaqwq.top/decrypt/decode_db.html#%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
         const db = new PromisifiedSQLite(sqlite3);
         await db.open(dbPath);
-        this.db = db;
-        this._registerDisposable(this.db);
+        this.db = this._registerDisposable(db);
 
         // 加密相关配置
         this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
@@ -57,7 +56,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         await stmt.finalize();
 
         // 初始化消息解析器
-        await this.parser.init();
+        await this.messagePBParser.init();
 
         this.LOGGER.success("初始化完成！");
     }
@@ -183,7 +182,7 @@ export class QQProvider extends Disposable implements IIMProvider {
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
                 processedMsg.messageContent = await this._parseMessageContent(
-                    this.parser.parseMessageSegment(result[GMC.msgContent]).messages
+                    this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
                 );
                 if (processedMsg.messageContent === "") {
                     this.LOGGER.debug(
