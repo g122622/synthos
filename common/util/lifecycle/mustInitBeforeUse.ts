@@ -24,19 +24,25 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
 
     const DecoratedClass = class extends constructor {
         private _$initialized = false;
+        private _$initializing = false; // 标记是否正在初始化，因为我们可能会在 init 中调用其他方法，这些方法也需要豁免
 
         // 覆盖 init 方法：支持异步，标记已初始化
         async init(...args: any[]): Promise<void> {
-            // 如果父类有 init（比如子类自己定义了），先调用它
-            // @ts-ignore
-            if (super.init && super.init !== DecoratedClass.prototype.init) {
+            this._$initializing = true; // 进入初始化
+            try {
+                // 如果父类有 init（比如子类自己定义了），先调用它
                 // @ts-ignore
-                const result = super.init(...args);
-                if (result instanceof Promise) {
-                    await result;
+                if (super.init && super.init !== DecoratedClass.prototype.init) {
+                    // @ts-ignore
+                    const result = super.init(...args);
+                    if (result instanceof Promise) {
+                        await result;
+                    }
                 }
+                this._$initialized = true;
+            } finally {
+                this._$initializing = false; // 退出初始化
             }
-            this._$initialized = true;
         }
 
         constructor(...args: any[]) {
@@ -59,7 +65,12 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
                     }
 
                     // 检查是否已初始化
-                    if (!(target as any)._isDisposed && !(target as any)._$initialized) {
+                    if (
+                        !(target as any)._isDisposed &&
+                        !(target as any)._$initialized &&
+                        !(target as any)._$initializing
+                    ) {
+                        // 只有既未初始化，又不在初始化过程中，才报错
                         throw new Error(
                             `Class "${constructor.name}" must be initialized with await .init() before use. ` +
                                 `Attempted to access property "${String(prop)}".`

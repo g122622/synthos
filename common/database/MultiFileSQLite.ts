@@ -4,7 +4,8 @@ import { PromisifiedSQLite, PromisifiedStatement } from "../util/promisify/Promi
 import Logger from "../util/Logger";
 import { deepUnique } from "../util/deepUnique";
 import { Disposable } from "../util/lifecycle/Disposable";
-const sqlite3 = require("sqlite3").verbose();
+import sqlite3 from "sqlite3";
+sqlite3.verbose();
 
 interface CommonDatabaseConfig {
     dbBasePath: string;

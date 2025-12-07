@@ -103,7 +103,7 @@ vi.mock("@root/common/util/lifecycle/Disposable", () => ({
 }));
 
 // 在所有 mock 之后导入被测试的模块
-import { QQProvider } from "../providers/QQProvider";
+import { QQProvider } from "../providers/QQProvider/QQProvider";
 
 // ==================== 测试用例 ====================
 

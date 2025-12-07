@@ -1,10 +1,10 @@
 import Logger from "@root/common/util/Logger";
-import { QQProvider } from "./providers/QQProvider";
+import { QQProvider } from "./providers/QQProvider/QQProvider";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { IMTypes } from "@root/common/contracts/data-provider";
+import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "./providers/contracts/IIMProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 

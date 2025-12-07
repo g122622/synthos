@@ -158,11 +158,17 @@ class Disposable implements IDisposable {
 
                 // 清除这个对象的所有属性（除了 _isDisposed）
                 // ⚠️ 注意：这是一种激进的内存清理策略，确保不会有悬垂引用
-                for (const key in this) {
-                    if (key !== "_isDisposed" && this.hasOwnProperty(key)) {
-                        delete this[key];
-                    }
-                }
+                // TODO Fix me:
+                // 但可能会导致一些问题，比如：
+                // Error disposing objects: TypeError: Cannot read properties of undefined (reading 'clear')
+                // at file:///D:/FR_Projects/synthos/common/dist/util/lifecycle/Disposable.js:133:31
+                // 原因未知。
+
+                // for (const key in this) {
+                //     if (key !== "_isDisposed" && this.hasOwnProperty(key)) {
+                //         delete this[key];
+                //     }
+                // }
 
                 this._isDisposed = true;
             })

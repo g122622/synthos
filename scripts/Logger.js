@@ -19,6 +19,10 @@ class Logger {
         console.log(`\x1b[31m${this.getTimeString() + message}\x1b[0m`);
     }
 
+    gray(message) {
+        console.log(`\x1b[30m${this.getTimeString() + message}\x1b[0m`);
+    }
+
     bgRed(message) {
         console.log(`\x1b[41m${this.getTimeString() + message}\x1b[0m`);
     }
@@ -33,6 +37,11 @@ class Logger {
 
     bgBlue(message) {
         console.log(`\x1b[44m${this.getTimeString() + message}\x1b[0m`);
+    }
+
+    debug(message) {
+        // 想调试的时候把这个注释去掉
+        // this.gray(message);
     }
 
     info(message) {

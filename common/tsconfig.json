@@ -1,11 +1,12 @@
 {
-  "compilerOptions": {
-    "composite": true,          // ✅ 启用项目引用
-    "declaration": true,        // 必须生成 .d.ts
-    "outDir": "./dist",
-    "rootDir": "./",
-    "module": "esnext",
-    "moduleResolution": "bundler",
-  },
-  "exclude": ["node_modules", "dist"]
+    "compilerOptions": {
+        "composite": true, // ✅ 启用项目引用
+        "declaration": true, // 必须生成 .d.ts
+        "outDir": "./dist",
+        "rootDir": "./",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "target": "es2023"
+    },
+    "exclude": ["node_modules", "dist"]
 }

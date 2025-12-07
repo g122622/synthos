@@ -1,11 +1,11 @@
 {
-    "name": "webui-backend",
+    "name": "webui-forwarder",
     "version": "1.0.0",
     "description": "WebUI前后端接口转发服务，用于暴露到公网",
     "main": "index.js",
     "scripts": {
         "build": "tsc --build",
-        "dev": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fix-esm-extensions.mjs && node dist/index.js"
+        "dev": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js"
     },
     "keywords": [],
     "author": "",
@@ -14,6 +14,5 @@
     "dependencies": {
         "ngrok": "^5.0.0-beta.2"
     },
-    "devDependencies": {
-    }
+    "devDependencies": {}
 }

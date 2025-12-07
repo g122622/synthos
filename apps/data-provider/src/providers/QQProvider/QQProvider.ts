@@ -12,8 +12,8 @@ import { MsgElementType } from "./@types/mappers/MsgElementType";
 import { SingleMessage } from "./@types/RawMsgContentParseResult";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-
-const sqlite3 = require("@journeyapps/sqlcipher").verbose();
+import sqlite3 from "@journeyapps/sqlcipher";
+sqlite3.verbose();
 
 @mustInitBeforeUse
 export class QQProvider extends Disposable implements IIMProvider {

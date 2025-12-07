@@ -12,7 +12,7 @@
  * 如果配置不可用，测试会自动跳过
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { QQProvider } from "../providers/QQProvider";
+import { QQProvider } from "../providers/QQProvider/QQProvider";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { existsSync } from "fs";
 
@@ -219,8 +219,8 @@ describe("QQProvider 集成测试", () => {
             }
 
             // 查询一个很早的时间范围（1970年）
-            const veryOldStart = 0;
-            const veryOldEnd = 1000;
+            const veryOldStart = 1000;
+            const veryOldEnd = 2000;
 
             const messages = await qqProvider.getMsgByTimeRange(veryOldStart, veryOldEnd);
 

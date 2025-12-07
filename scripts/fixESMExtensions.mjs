@@ -1,4 +1,4 @@
-// scripts/fix-esm-extensions.mjs
+// scripts/fixESMExtensions.mjs
 import { readdir, readFile, writeFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { parse } from 'acorn';
@@ -17,7 +17,6 @@ function isRelativePath(path) {
 }
 
 async function fixImportsInFile(filePath) {
-    console.log(`🔍 Checking ${filePath}`);
     const code = await readFile(filePath, 'utf8');
     let updated = false;
 
@@ -74,7 +73,6 @@ async function fixImportsInFile(filePath) {
 }
 
 async function walkDir(dir) {
-    console.log(`🔍 Scanning ${dir}`);
     const files = await readdir(dir);
     for (const file of files) {
         const fullPath = join(dir, file);

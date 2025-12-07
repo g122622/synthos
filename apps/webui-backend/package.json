@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "build": "tsc --build",
-        "dev": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node dist/index.js"
+        "dev": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js"
     },
     "keywords": [],
     "author": "",
