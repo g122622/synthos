@@ -9,10 +9,11 @@ import { ASSERT, ASSERT_NOT_FATAL } from "@root/common/util/ASSERT";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
 import { MsgElementType } from "./@types/mappers/MsgElementType";
-import { SingleMessage } from "./@types/RawMsgContentParseResult";
+import { MsgElement } from "./@types/RawMsgContentParseResult";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import sqlite3 from "@journeyapps/sqlcipher";
+import { MsgType } from "./@types/mappers/MsgType";
 sqlite3.verbose();
 
 @mustInitBeforeUse
@@ -73,10 +74,10 @@ export class QQProvider extends Disposable implements IIMProvider {
         return patchSQL;
     }
 
-    private async _parseMessageContent(rawMsgElements: SingleMessage[]): Promise<string> {
+    private async _parseMessageContent(rawMsgElements: MsgElement[]): Promise<string> {
         let result = "";
         for (const rawMsgElement of rawMsgElements) {
-            switch (rawMsgElement.messageType) {
+            switch (rawMsgElement.elementType) {
                 case MsgElementType.TEXT: {
                     result += rawMsgElement.messageText;
                     break;
@@ -106,7 +107,7 @@ export class QQProvider extends Disposable implements IIMProvider {
                 default: {
                     // 忽略其他类型的消息，不加入messages
                     this.LOGGER.debug(
-                        `未知的element类型: ${rawMsgElement.messageType}，忽略该element。`
+                        `未知的element类型: ${rawMsgElement.elementType}，忽略该element。`
                     );
                     break;
                 }
@@ -141,7 +142,9 @@ export class QQProvider extends Disposable implements IIMProvider {
                     "${GMC.replyMsgSeq}",
                     "${GMC.msgContent}",
                     "${GMC.sendMemberName}",
-                    "${GMC.sendNickName}"
+                    "${GMC.sendNickName}",
+                    "${GMC.msgType}",
+                    "${GMC.extraData}"
                 FROM group_msg_table 
                 WHERE ${await this._getPatchSQL()} 
                 AND ("${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd})
@@ -156,16 +159,25 @@ export class QQProvider extends Disposable implements IIMProvider {
             for (const result of results) {
                 // 获取引用的消息 quotedMsgId
                 let quotedMsgId: string | undefined = undefined;
-                if (result[GMC.replyMsgSeq]) {
-                    quotedMsgId = await this._getMsgIdByGroupNumberAndMsgSeq(
+
+                if (result[GMC.msgType] === MsgType.REPLY) {
+                    const id1 = await this._getMsgIdByGroupNumberAndMsgSeq(
                         result[GMC.groupUin],
                         result[GMC.replyMsgSeq]
                     );
-                    if (!quotedMsgId) {
+                    if (!id1) {
                         this.LOGGER.warning(
                             `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
                         );
                     }
+
+                    console.log(this.messagePBParser.parseMessageSegment(result[GMC.extraData]));
+                    const id2 = this.messagePBParser.parseMessageSegment(result[GMC.extraData])
+                        .extraMessage.msgId;
+
+                    console.log("本消息id:" + result[GMC.msgId]);
+                    console.log("id1", id1);
+                    console.log("id2", id2); // TODO 发现id2 总是等于 本消息id + 1
                 }
 
                 // 生成消息对象

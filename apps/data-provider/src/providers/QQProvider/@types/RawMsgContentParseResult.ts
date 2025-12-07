@@ -1,22 +1,28 @@
+// 本文件需要和 messageSegment.proto 定义的结构保持一致
+
 /**
- * 动态消息中的标题或内容结构
+ * 消息容器，对应 proto 中的 Message
+ * repeated MsgElement messages = 40800;
  */
-interface FeedMessage {
-    /** text = 48178 */
-    text: string;
+export interface RawMsgContentParseResult {
+    messages: MsgElement[];
+    extraMessage: QuotedMsg;
 }
 
 /**
- * 单条消息结构，对应 proto 中的 SingleMessage
+ * 单条消息结构，对应 proto 中的 MsgElement
  */
-export interface SingleMessage {
+export interface MsgElement {
     // ========== 基础字段 ==========
 
-    /** elementId，唯一标识 (messageId = 45001) */
-    messageId: string;
+    /** elementId，唯一标识 (elementId = 45001) */
+    elementId: string;
 
-    /** elementType (messageType = 45002) */
-    messageType: number;
+    /** elementType (elementType = 45002) */
+    elementType: number;
+
+    /** 45004 */
+    msgId: string;
 
     // ========== 文本消息 (elementType == 1) ==========
 
@@ -119,7 +125,7 @@ export interface SingleMessage {
 
     // ========== 引用/回复消息 (elementType == 7) ==========
 
-    /** 被引用的消息 msgid (replyMsgId = 47401) */
+    /** 被引用的消息 msgid (replyMsgId = 47401) 经过测试，即使是引用消息，这个字段值依然为0，怀疑已经被官方废弃*/
     replyMsgId: string;
 
     /** 引用消息序列号 (replyMsgSeq = 47402) */
@@ -139,7 +145,7 @@ export interface SingleMessage {
      * gy: sourceMsgIdInRecords = 47422 字段会引起解析错误，暂时不使用
      * (replyMessage = 47423)
      */
-    replyMessage: SingleMessage | null;
+    replyMessage: MsgElement | null;
 
     // ========== 卡片消息 (elementType == 10) ==========
 
@@ -195,7 +201,7 @@ export interface SingleMessage {
 
     // ========== 其他通用字段 ==========
 
-    /** 发送者 ID (senderId = 40020) */
+    /** 发送者 ID (senderId = 40020) 需注意并不是QQ号！*/
     senderId: string;
 
     /** 接收者 ID (receiverId = 40021) */
@@ -212,9 +218,20 @@ export interface SingleMessage {
 }
 
 /**
- * 消息容器，对应 proto 中的 Message
- * repeated SingleMessage messages = 40800;
+ * 动态消息中的标题或内容结构
  */
-export interface RawMsgContentParseResult {
-    messages: SingleMessage[];
+interface FeedMessage {
+    /** text = 48178 */
+    text: string;
+}
+
+interface QuotedMsg {
+    /** 消息ID (msgId = 40001) */
+    msgId: string;
+
+    /** 消息随机值 (msgRandom = 40002) */
+    msgRandom: string;
+
+    /** 群聊消息ID (msgSeq = 40003) */
+    msgSeq: string;
 }
