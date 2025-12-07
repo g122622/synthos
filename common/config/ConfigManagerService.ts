@@ -1,17 +1,29 @@
 import { readFile } from "fs/promises";
 import { GlobalConfig } from "./@types/GlobalConfig";
+import { findFileUpwards } from "../util/file/findFileUpwards";
+import { ASSERT } from "../util/ASSERT";
 
 class ConfigManagerService {
-    private configPath: string = "config.json";
+    private configPath: Promise<string>;
 
-    constructor(configPath: string) {
-        this.configPath = configPath;
+    constructor(configPath?: string) {
+        if (configPath) {
+            this.configPath = Promise.resolve(configPath);
+        } else {
+            // 从当前目录开始逐层向上层查找synthos_config.json文件
+            const absolutePath = findFileUpwards("synthos_config.json");
+            this.configPath = absolutePath;
+        }
     }
 
     public async getCurrentConfig(): Promise<GlobalConfig> {
-        const configContent = await readFile(this.configPath, "utf8");
+        const configPath = await this.configPath;
+        ASSERT(configPath, "未找到配置文件");
+        const configContent = await readFile(configPath, "utf8");
         return JSON.parse(configContent) as GlobalConfig;
     }
 }
 
-export default new ConfigManagerService("../../synthos_config.json");
+const instance = new ConfigManagerService();
+
+export default instance;

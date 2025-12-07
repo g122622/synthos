@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "build": "pnpm --filter 'apps/*' build",
     "build:all": "node scripts/launchAll.js",
@@ -35,6 +36,9 @@
     "typescript": "^5.9.3"
   },
   "devDependencies": {
+    "acorn": "^8.15.0",
+    "estree-walker": "^3.0.3",
+    "magic-string": "^0.30.21",
     "tsconfig-paths": "^4.2.0",
     "vitest": "^4.0.3"
   }

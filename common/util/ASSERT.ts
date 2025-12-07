@@ -6,6 +6,8 @@ export function ASSERT(condition: any, message?: string) {
         console.trace();
         // 给当前进程发送SIGINT信号，终止进程
         process.kill(process.pid, "SIGINT");
+        // 抛出异常
+        throw new Error("断言失败！" + (message? message : ""));
     }
 }
 

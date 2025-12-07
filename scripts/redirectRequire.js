@@ -1,8 +1,11 @@
 // 脚本描述：构建结束后将类似 require("@root/common/util/Logger") 的语句路径替换为 require("../../../common/dist/util/Logger")
+import Logger from "./Logger.js";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'node:url';
 
-const Logger = require('./Logger');
-const fs = require('fs');
-const path = require('path');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 Logger.bgBlue('[Redirect] 🧐 开始处理');
 
@@ -35,19 +38,18 @@ apps.forEach(app => {
                 const content = fs.readFileSync(filePath, 'utf8');
                 let newContent = content;
 
-                newContent = content.replace(/require\("@root\/common\/([^"]*)"\)/g, (match, p1) => {
-                    // 当前文件相对于项目根的路径：假设脚本在 scripts/ 下，项目根是 ../
-                    // filePath 是绝对或相对于脚本的路径，比如 '../apps/app1/dist/utils/a.js'
-                    const fileDir = path.dirname(filePath);
-                    // 项目根目录（脚本在 scripts/，项目根是 path.join(__dirname, '..')）
+                newContent = content.replace(/(['"])(@root\/common[^'"]*)\1/g, (match, quote, p1) => {
+                    // 提取路径核心部分（去掉 @root/common/ 前缀）
+                    const pathPart = p1.replace(/^@root\/common\//, '');
                     const projectRoot = path.join(__dirname, '..');
-                    // 计算从当前文件到 common/dist/... 的相对路径
-                    const relativePath = path.relative(fileDir, path.join(projectRoot, 'common/dist', p1));
-                    // 转为 POSIX 路径（避免 Windows \ 问题）
+                    const targetPath = path.join(projectRoot, 'common/dist', pathPart); // 修正：这里直接用 'common' 而不是 'common/dist'
+
+                    // 计算相对路径（关键优化：避免重复拼接 common/dist）
+                    const relativePath = path.relative(path.dirname(filePath), targetPath);
                     const posixRelativePath = relativePath.split(path.sep).join('/');
 
-                    Logger.info(`[Redirect] 文件路径：${filePath}，匹配到的路径：${match}，替换为：${posixRelativePath}`);
-                    return `require("${posixRelativePath}")`;
+                    Logger.info(`[Redirect] 文件路径：${filePath}，匹配到的路径：${p1}，替换为：${posixRelativePath}`);
+                    return `${quote}${posixRelativePath}${quote}`;
                 });
 
                 if (content !== newContent) {

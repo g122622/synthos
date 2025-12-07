@@ -52,5 +52,4 @@ class Logger {
     }
 }
 
-// cjs
-module.exports = new Logger();
+export default new Logger();

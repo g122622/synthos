@@ -1,6 +1,6 @@
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
-const ngrok = require("ngrok");
+import ngrok from "ngrok";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 

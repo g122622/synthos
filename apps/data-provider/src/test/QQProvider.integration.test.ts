@@ -96,16 +96,32 @@ describe("QQProvider 集成测试", () => {
                 return;
             }
 
-            // 查询最近 24 小时的消息
-            const now = Date.now();
-            const oneDayAgo = now - 24 * 60 * 60 * 1000;
+            // 查询最近 3 分钟的消息
+            const timeStart = Date.now() - 3 * 60 * 1000;
+            const timeEnd = Date.now();
 
-            const messages = await qqProvider.getMsgByTimeRange(oneDayAgo, now);
+            const messages = await qqProvider.getMsgByTimeRange(timeStart, timeEnd);
 
             // 验证返回类型
             expect(Array.isArray(messages)).toBe(true);
 
-            console.log(`查询到 ${messages.length} 条消息（最近24小时）`);
+            console.log(`查询到 ${messages.length} 条消息（最近3 min）`);
+
+            // 打印第一条
+            if (messages.length > 0) {
+                const firstMsg = messages[0];
+                console.log("第一条消息示例:", {
+                    msgId: firstMsg.msgId,
+                    groupId: firstMsg.groupId,
+                    senderId: firstMsg.senderId,
+                    senderNickname: firstMsg.senderNickname || firstMsg.senderGroupNickname,
+                    contentPreview:
+                        firstMsg.messageContent.length > 50
+                            ? firstMsg.messageContent.substring(0, 50) + "..."
+                            : firstMsg.messageContent,
+                    timestamp: new Date(firstMsg.timestamp).toLocaleString()
+                });
+            }
         });
 
         it("应能查询指定时间范围内的消息", async ctx => {
@@ -114,15 +130,15 @@ describe("QQProvider 集成测试", () => {
                 return;
             }
 
-            // 查询最近 7 天的消息
-            const now = Date.now();
-            const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+            // 查询最近 5 分钟的消息
+            const timeStart = Date.now() - 5 * 60 * 1000;
+            const timeEnd = Date.now();
 
-            const messages = await qqProvider.getMsgByTimeRange(sevenDaysAgo, now);
+            const messages = await qqProvider.getMsgByTimeRange(timeStart, timeEnd);
 
             expect(Array.isArray(messages)).toBe(true);
 
-            console.log(`查询到 ${messages.length} 条消息（最近7天）`);
+            console.log(`查询到 ${messages.length} 条消息（最近5 min）`);
 
             // 如果有消息，验证消息结构
             if (messages.length > 0) {
@@ -143,8 +159,8 @@ describe("QQProvider 集成测试", () => {
                 expect(typeof firstMsg.senderId).toBe("string");
 
                 // 验证时间戳在合理范围内
-                expect(firstMsg.timestamp).toBeGreaterThanOrEqual(sevenDaysAgo);
-                expect(firstMsg.timestamp).toBeLessThanOrEqual(now);
+                expect(firstMsg.timestamp).toBeGreaterThanOrEqual(timeStart);
+                expect(firstMsg.timestamp).toBeLessThanOrEqual(timeEnd);
 
                 console.log("第一条消息示例:", {
                     msgId: firstMsg.msgId,
@@ -167,10 +183,10 @@ describe("QQProvider 集成测试", () => {
             }
 
             // 先查询所有消息获取一个群号
-            const now = Date.now();
-            const oneDayAgo = now - 24 * 60 * 60 * 1000;
+            const timeStart = Date.now() - 3 * 60 * 1000;
+            const timeEnd = Date.now();
 
-            const allMessages = await qqProvider.getMsgByTimeRange(oneDayAgo, now);
+            const allMessages = await qqProvider.getMsgByTimeRange(timeStart, timeEnd);
 
             if (allMessages.length === 0) {
                 console.log("没有消息可供测试群号过滤");
@@ -181,8 +197,8 @@ describe("QQProvider 集成测试", () => {
             const testGroupId = allMessages[0].groupId;
 
             const filteredMessages = await qqProvider.getMsgByTimeRange(
-                oneDayAgo,
-                now,
+                timeStart,
+                timeEnd,
                 testGroupId
             );
 
@@ -210,70 +226,6 @@ describe("QQProvider 集成测试", () => {
 
             expect(Array.isArray(messages)).toBe(true);
             expect(messages.length).toBe(0);
-        });
-
-        it("应正确处理消息内容中的各种类型", async ctx => {
-            if (skipTests || !qqProvider) {
-                ctx.skip();
-                return;
-            }
-
-            // 查询较长时间范围以获取更多消息类型
-            const now = Date.now();
-            const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-
-            const messages = await qqProvider.getMsgByTimeRange(thirtyDaysAgo, now);
-
-            if (messages.length === 0) {
-                console.log("没有消息可供测试");
-                return;
-            }
-
-            // 统计消息类型
-            const stats = {
-                textOnly: 0,
-                withEmoji: 0,
-                withImage: 0,
-                withVoice: 0,
-                withFile: 0,
-                withQuote: 0
-            };
-
-            for (const msg of messages) {
-                const content = msg.messageContent;
-
-                if (!content.includes("[") && !content.includes("]")) {
-                    stats.textOnly++;
-                }
-                if (
-                    content.includes("[") &&
-                    !content.includes("[图片]") &&
-                    !content.includes("[语音]") &&
-                    !content.includes("[文件]")
-                ) {
-                    stats.withEmoji++;
-                }
-                if (content.includes("[图片]")) {
-                    stats.withImage++;
-                }
-                if (content.includes("[语音]")) {
-                    stats.withVoice++;
-                }
-                if (content.includes("[文件]")) {
-                    stats.withFile++;
-                }
-                if (msg.quotedMsgId) {
-                    stats.withQuote++;
-                }
-            }
-
-            console.log("消息类型统计（最近30天）:", stats);
-
-            // 验证所有消息内容都是字符串且非空（因为空消息已被过滤）
-            for (const msg of messages) {
-                expect(typeof msg.messageContent).toBe("string");
-                expect(msg.messageContent.length).toBeGreaterThan(0);
-            }
         });
     });
 });

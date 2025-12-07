@@ -4,6 +4,7 @@ import { getCurrentFunctionName } from "./getCurrentFunctionName";
 import ConfigManagerService from "../config/ConfigManagerService";
 import { appendFile, mkdir, access } from "fs/promises";
 import { join } from "path";
+import { nextTick } from "process";
 
 class Logger {
     private tag: string | null = null;
@@ -13,11 +14,14 @@ class Logger {
 
     constructor(tag: string | null = null) {
         this.tag = tag;
-        ConfigManagerService.getCurrentConfig().then(config => {
-            this.logLevel = config.logger.logLevel;
-            this.logDirectory = config.logger.logDirectory;
-            // 启动定时器，每1秒将缓冲区中的日志写入文件
-            setInterval(() => this.flushLogBuffer(), 1000);
+        // 由于ConfigManagerService间接引用了Logger，为避免循环引用带来的Temporal Dead Zone问题，使用nextTick延迟初始化
+        nextTick(() => {
+            ConfigManagerService.getCurrentConfig().then(config => {
+                this.logLevel = config.logger.logLevel;
+                this.logDirectory = config.logger.logDirectory;
+                // 启动定时器，每1秒将缓冲区中的日志写入文件
+                setInterval(() => this.flushLogBuffer(), 1000);
+            });
         });
     }
 

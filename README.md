@@ -2,9 +2,9 @@
 
 ## 项目简介
 
-Synthos 是一个基于 `Node.js` 和 `TypeScript` 构建的智能聊天记录分析系统，专注于 QQ 聊天记录的全链路数据处理与 AI 总结功能。项目采用现代化的 monorepo 架构，融合自然语言处理、向量模型、任务调度与 Web 前端展示，为用户提供从原始聊天记录导入、上下文理解、兴趣度分析到可视化摘要输出的一站式解决方案。
+Synthos 是一个基于 `Node.js` 和 `TypeScript` 构建的智能聊天记录分析系统，专注于 QQ 聊天记录的全链路数据处理与 AI 总结功能。项目采用现代化的 Monorepo 架构，融合自然语言处理、向量模型、任务调度与 Web 前端展示，为用户提供从原始聊天记录导入、上下文理解、兴趣度分析到可视化摘要输出的一站式解决方案。
 
-无论是个人用户希望回顾重要对话，还是团队管理者需要洞察群聊趋势，Synthos 都能通过 AI 赋能，让海量聊天信息变得可读、可查、可理解。
+无论是个人用户希望回顾重要对话，还是团队管理者需要洞察群聊趋势，Synthos 都能通过 AI 赋能，**让分散在不同群聊、不同时间的海量聊天信息变得可读、可查、可理解，将流式、易失的聊天记录沉淀为结构化、持久化的个人专属知识库**。
 
 ---
 
@@ -60,10 +60,10 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 - **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储）
 - **🧐向量语义模型**：`bge-large-zh-v1.5`（本地 ONNX 向量化），用于兴趣打分和 RAG
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
-- **🕗任务调度与编排框架**：Agenda.js  
-- **🧪单元测试框架**：Vitest  
-- **🌏Web 后端框架**：Express.js
-- **⚛️Web 前端框架**：React + ECharts + HeroUI
+- **🕗任务调度与编排框架**：Agenda
+- **🧪测试框架**：Vitest  
+- **🌏Web 后端框架**：Express
+- **⚛️Web 前端框架**：React + ECharts + HeroUI + Tailwind CSS
 
 ### 模块划分
 
