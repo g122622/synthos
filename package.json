@@ -31,9 +31,11 @@
     "onnxruntime-common": "^1.23.0",
     "onnxruntime-node": "^1.23.0",
     "prettier": "^3.6.2",
+    "reflect-metadata": "^0.2.2",
     "rimraf": "^6.0.1",
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
+    "tsyringe": "^4.10.0",
     "typescript": "^5.9.3"
   },
   "devDependencies": {

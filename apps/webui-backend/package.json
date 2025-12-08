@@ -13,7 +13,8 @@
     "packageManager": "pnpm@10.15.0",
     "dependencies": {
         "cors": "^2.8.5",
-        "express": "^5.1.0"
+        "express": "^5.1.0",
+        "zod": "^4.1.13"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",

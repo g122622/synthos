@@ -1,13 +1,33 @@
-import express, { Express, Request, Response } from "express";
+/**
+ * WebUI 后端服务入口
+ */
+import "reflect-metadata";
+import express, { Express } from "express";
+import * as path from "path";
+
+// 基础设施
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import Logger from "@root/common/util/Logger";
 import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
+// DI 容器
+import {
+    registerDBManagers,
+    registerStatusManagers,
+    registerServices,
+    registerControllers
+} from "./di/container";
+
+// 仓库
+import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
+import { TopicReadStatusManager } from "./repositories/TopicReadStatusManager";
+
 // 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
 import { setupJsonMiddleware } from "./middleware/jsonMiddleware";
+import { errorHandler } from "./errors/errorHandler";
 
 // 路由
 import { setupApiRoutes } from "./routers/apiRouter";
@@ -16,13 +36,7 @@ import { setupApiRoutes } from "./routers/apiRouter";
 import { setupGracefulShutdown } from "./lifecycle/gracefulShutdown";
 import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitialization";
 
-// 处理函数
-import { AIDigestHandler } from "./handlers/AIDigestHandler";
-import { ChatMessageHandler } from "./handlers/ChatMessageHandler";
-import { GroupConfigHandler } from "./handlers/GroupConfigHandler";
-import { MiscHandler } from "./handlers/MiscHandler";
-import { InterestScoreHandler } from "./handlers/InterestScoreHandler";
-import { TopicStatusHandler } from "./handlers/TopicStatusHandler";
+const LOGGER = Logger.withTag("WebUI-Backend");
 
 export class WebUILocalServer {
     private app: Express;
@@ -30,54 +44,10 @@ export class WebUILocalServer {
     private agcDBManager: AGCDBManager | null = null;
     private imDBManager: IMDBManager | null = null;
     private interestScoreDBManager: InterestScoreDBManager | null = null;
-    private readonly LOGGER = Logger.withTag("WebUI-Backend");
 
-    // 处理函数实例
-    private aiDigestHandler: AIDigestHandler;
-    private chatMessageHandler: ChatMessageHandler;
-    private groupConfigHandler: GroupConfigHandler;
-    private miscHandler: MiscHandler;
-    private interestScoreHandler: InterestScoreHandler;
-    private topicStatusHandler: TopicStatusHandler;
-
-    constructor(port?: number) {
+    constructor() {
         this.app = express();
-
-        // 初始化处理函数
-        this.aiDigestHandler = new AIDigestHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-        this.chatMessageHandler = new ChatMessageHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-        this.groupConfigHandler = new GroupConfigHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-        this.miscHandler = new MiscHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-        this.interestScoreHandler = new InterestScoreHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-        this.topicStatusHandler = new TopicStatusHandler(
-            this.agcDBManager,
-            this.imDBManager,
-            this.interestScoreDBManager
-        );
-
         this.setupMiddleware();
-        this.setupRoutes();
-        this.setupGracefulShutdown();
     }
 
     private setupMiddleware(): void {
@@ -86,7 +56,9 @@ export class WebUILocalServer {
     }
 
     private setupRoutes(): void {
-        setupApiRoutes(this.app, this);
+        setupApiRoutes(this.app);
+        // 错误处理中间件必须放在最后
+        this.app.use(errorHandler);
     }
 
     private setupGracefulShutdown(): void {
@@ -97,131 +69,66 @@ export class WebUILocalServer {
         await closeDatabases(this.agcDBManager, this.imDBManager, this.interestScoreDBManager);
     }
 
-    // 更新数据库管理器引用
-    public updateDBManagers(
-        agcDBManager: AGCDBManager,
-        imDBManager: IMDBManager,
-        interestScoreDBManager: InterestScoreDBManager
-    ): void {
+    private async initializeDatabases(): Promise<void> {
+        const { agcDBManager, imDBManager, interestScoreDBManager } = await initializeDatabases();
         this.agcDBManager = agcDBManager;
         this.imDBManager = imDBManager;
         this.interestScoreDBManager = interestScoreDBManager;
+    }
 
-        // 更新处理函数中的数据库引用
-        this.aiDigestHandler = new AIDigestHandler(
-            agcDBManager,
-            imDBManager,
-            interestScoreDBManager
+    private async initializeStatusManagers(): Promise<{
+        favoriteStatusManager: TopicFavoriteStatusManager;
+        readStatusManager: TopicReadStatusManager;
+    }> {
+        const config = await ConfigManagerService.getCurrentConfig();
+        const favoriteStatusManager = TopicFavoriteStatusManager.getInstance(
+            path.join(config.webUI_Backend.kvStoreBasePath, "favorite_topics")
         );
-        this.chatMessageHandler = new ChatMessageHandler(
-            agcDBManager,
-            imDBManager,
-            interestScoreDBManager
+        const readStatusManager = TopicReadStatusManager.getInstance(
+            path.join(config.webUI_Backend.kvStoreBasePath, "read_topics")
         );
-        this.groupConfigHandler = new GroupConfigHandler(
-            agcDBManager,
-            imDBManager,
-            interestScoreDBManager
+        return { favoriteStatusManager, readStatusManager };
+    }
+
+    private async registerDependencies(): Promise<void> {
+        // 1. 注册 DBManagers
+        registerDBManagers(
+            this.agcDBManager!,
+            this.imDBManager!,
+            this.interestScoreDBManager!
         );
-        this.miscHandler = new MiscHandler(agcDBManager, imDBManager, interestScoreDBManager);
-        this.interestScoreHandler = new InterestScoreHandler(
-            agcDBManager,
-            imDBManager,
-            interestScoreDBManager
-        );
-        this.topicStatusHandler = new TopicStatusHandler(
-            agcDBManager,
-            imDBManager,
-            interestScoreDBManager
-        );
-    }
 
-    // --- Route Handlers ---
+        // 2. 注册 Status Managers
+        const { favoriteStatusManager, readStatusManager } = await this.initializeStatusManagers();
+        registerStatusManagers(favoriteStatusManager, readStatusManager);
 
-    public async handleGetAIDigestResultByTopicId(req: Request, res: Response): Promise<void> {
-        return this.aiDigestHandler.handleGetAIDigestResultByTopicId(req, res);
-    }
+        // 3. 注册 Services
+        registerServices();
 
-    public async handleGetAIDigestResultsBySessionIds(req: Request, res: Response): Promise<void> {
-        return this.aiDigestHandler.handleGetAIDigestResultsBySessionIds(req, res);
-    }
-
-    public async handleGetChatMessagesByGroupId(req: Request, res: Response): Promise<void> {
-        return this.chatMessageHandler.handleGetChatMessagesByGroupId(req, res);
-    }
-
-    public async handleGetSessionIdsByGroupIdsAndTimeRange(
-        req: Request,
-        res: Response
-    ): Promise<void> {
-        return this.chatMessageHandler.handleGetSessionIdsByGroupIdsAndTimeRange(req, res);
-    }
-
-    public async handleGetSessionTimeDurations(req: Request, res: Response): Promise<void> {
-        return this.chatMessageHandler.handleGetSessionTimeDurations(req, res);
-    }
-
-    public async handleCheckSessionSummarized(req: Request, res: Response): Promise<void> {
-        return this.aiDigestHandler.handleCheckSessionSummarized(req, res);
-    }
-
-    public async handleGetAllGroupDetails(req: Request, res: Response): Promise<void> {
-        return this.groupConfigHandler.handleGetAllGroupDetails(req, res);
-    }
-
-    public handleHealthCheck(req: Request, res: Response): void {
-        return this.miscHandler.handleHealthCheck(req, res);
-    }
-
-    public async handleGetQQAvatar(req: Request, res: Response): Promise<void> {
-        return this.miscHandler.handleGetQQAvatar(req, res);
-    }
-
-    public async handleGetInterestScoreResults(req: Request, res: Response): Promise<void> {
-        return this.interestScoreHandler.handleGetInterestScoreResults(req, res);
-    }
-
-    // --- Topic Status Handlers ---
-
-    public async handleMarkAsFavorite(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleMarkAsFavorite(req, res);
-    }
-
-    public async handleRemoveFromFavorites(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleRemoveFromFavorites(req, res);
-    }
-
-    public async handleCheckFavoriteStatus(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleCheckFavoriteStatus(req, res);
-    }
-
-    public async handleMarkAsRead(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleMarkAsRead(req, res);
-    }
-
-    public async handleMarkAsUnread(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleMarkAsUnread(req, res);
-    }
-
-    public async handleCheckReadStatus(req: Request, res: Response): Promise<void> {
-        return this.topicStatusHandler.handleCheckReadStatus(req, res);
-    }
-
-    // --- Lifecycle Methods ---
-
-    private async initializeDatabases(): Promise<void> {
-        const { agcDBManager, imDBManager, interestScoreDBManager } = await initializeDatabases();
-        this.updateDBManagers(agcDBManager, imDBManager, interestScoreDBManager);
+        // 4. 注册 Controllers
+        registerControllers();
     }
 
     public async start(): Promise<void> {
+        // 1. 初始化数据库
         await this.initializeDatabases();
 
+        // 2. 注册依赖
+        await this.registerDependencies();
+
+        // 3. 设置路由（必须在依赖注册后）
+        this.setupRoutes();
+
+        // 4. 设置优雅关闭
+        this.setupGracefulShutdown();
+
+        // 5. 获取端口配置
         this.port = (await ConfigManagerService.getCurrentConfig()).webUI_Backend.port;
 
+        // 6. 启动服务
         this.app.listen(this.port, () => {
-            this.LOGGER.success(`WebUI后端服务启动成功，端口: ${this.port}`);
-            this.LOGGER.info(`健康检查地址: http://localhost:${this.port}/health`);
+            LOGGER.success(`WebUI后端服务启动成功，端口: ${this.port}`);
+            LOGGER.info(`健康检查地址: http://localhost:${this.port}/health`);
         });
     }
 }
@@ -229,6 +136,6 @@ export class WebUILocalServer {
 // 启动入口
 const server = new WebUILocalServer();
 server.start().catch(error => {
-    Logger.withTag("WebUI-Backend").error(`启动失败: ${error.message}`);
+    LOGGER.error(`启动失败: ${error.message}`);
     process.exit(1);
 });
