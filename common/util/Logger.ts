@@ -11,16 +11,22 @@ class Logger {
     private logLevel: "debug" | "info" | "success" | "warning" | "error" = "info";
     private logDirectory: string = ""; // 日志目录
     private logBuffer: string[] = []; // 日志缓冲区
+    private isTestEnv: boolean = false; // 是否为测试环境
 
     constructor(tag: string | null = null) {
         this.tag = tag;
+        // 检测是否在 vitest 测试环境中运行
+        this.isTestEnv = process.env.VITEST === "true";
         // 由于ConfigManagerService间接引用了Logger，为避免循环引用带来的Temporal Dead Zone问题，使用nextTick延迟初始化
         nextTick(() => {
             ConfigManagerService.getCurrentConfig().then(config => {
                 this.logLevel = config.logger.logLevel;
                 this.logDirectory = config.logger.logDirectory;
-                // 启动定时器，每1秒将缓冲区中的日志写入文件
-                setInterval(() => this.flushLogBuffer(), 1000);
+                // 测试环境下不启动定时器，日志不落盘
+                if (!this.isTestEnv) {
+                    // 启动定时器，每1秒将缓冲区中的日志写入文件
+                    setInterval(() => this.flushLogBuffer(), 1000);
+                }
             });
         });
     }
@@ -56,6 +62,8 @@ class Logger {
     }
 
     private async addLineToLogBuffer(line: string) {
+        // 测试环境下不写入缓冲区，日志不落盘
+        if (this.isTestEnv) return;
         this.logBuffer.push(line);
     }
 
