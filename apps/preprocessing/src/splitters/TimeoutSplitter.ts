@@ -1,6 +1,7 @@
+import "reflect-metadata";
+import { getConfigManagerService } from "@root/common/di/container";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
@@ -11,7 +12,7 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
     public async init() {}
 
     public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .TimeoutSplitter;
 
         // 获取配置的超时阈值（单位：毫秒）

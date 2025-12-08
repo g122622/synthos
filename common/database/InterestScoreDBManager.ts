@@ -1,4 +1,5 @@
-import ConfigManagerService from "../config/ConfigManagerService";
+import "reflect-metadata";
+import { getConfigManagerService } from "../di/container";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { Disposable } from "../util/lifecycle/Disposable";
@@ -10,10 +11,10 @@ export class InterestScoreDBManager extends Disposable {
     private db: MultiFileSQLite;
 
     public async init() {
+        const configService = getConfigManagerService();
         this.db = new MultiFileSQLite({
-            dbBasePath: (await ConfigManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase
-                .maxDBDuration,
+            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
+            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS interset_score_results (
                     topicId TEXT NOT NULL PRIMARY KEY,

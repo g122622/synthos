@@ -1,8 +1,15 @@
 /**
  * 依赖注入的 Token 定义
  */
+import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+// 导出共享 Token
+export { COMMON_TOKENS };
 
 export const TOKENS = {
+    // 引用共享的 ConfigManagerService Token
+    ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
+
     // DBManagers (作为 Repository 层)
     AGCDBManager: Symbol.for("AGCDBManager"),
     IMDBManager: Symbol.for("IMDBManager"),

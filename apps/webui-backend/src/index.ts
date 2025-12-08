@@ -10,15 +10,18 @@ import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import Logger from "@root/common/util/Logger";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
 
 // DI 容器
 import {
     registerDBManagers,
     registerStatusManagers,
     registerServices,
-    registerControllers
+    registerControllers,
+    registerConfigManagerService,
+    container
 } from "./di/container";
+import { TOKENS } from "./di/tokens";
+import type ConfigManagerServiceType from "@root/common/config/ConfigManagerService";
 
 // 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
@@ -76,11 +79,18 @@ export class WebUILocalServer {
         this.interestScoreDBManager = interestScoreDBManager;
     }
 
+    /**
+     * 获取 ConfigManagerService 实例
+     */
+    private getConfigManagerService(): typeof ConfigManagerServiceType {
+        return container.resolve<typeof ConfigManagerServiceType>(TOKENS.ConfigManagerService);
+    }
+
     private async initializeStatusManagers(): Promise<{
         favoriteStatusManager: TopicFavoriteStatusManager;
         readStatusManager: TopicReadStatusManager;
     }> {
-        const config = await ConfigManagerService.getCurrentConfig();
+        const config = await this.getConfigManagerService().getCurrentConfig();
         const favoriteStatusManager = TopicFavoriteStatusManager.getInstance(
             path.join(config.webUI_Backend.kvStoreBasePath, "favorite_topics")
         );
@@ -91,6 +101,9 @@ export class WebUILocalServer {
     }
 
     private async registerDependencies(): Promise<void> {
+        // 0. 注册 ConfigManagerService（必须最先注册）
+        registerConfigManagerService();
+
         // 1. 注册 DBManagers
         registerDBManagers(
             this.agcDBManager!,
@@ -123,7 +136,7 @@ export class WebUILocalServer {
         this.setupGracefulShutdown();
 
         // 5. 获取端口配置
-        this.port = (await ConfigManagerService.getCurrentConfig()).webUI_Backend.port;
+        this.port = (await this.getConfigManagerService().getCurrentConfig()).webUI_Backend.port;
 
         // 6. 启动服务
         this.app.listen(this.port, () => {

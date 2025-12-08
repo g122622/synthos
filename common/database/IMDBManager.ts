@@ -1,4 +1,5 @@
-import ConfigManagerService from "../config/ConfigManagerService";
+import "reflect-metadata";
+import { getConfigManagerService } from "../di/container";
 import {
     ProcessedChatMessage,
     RawChatMessage,
@@ -15,10 +16,10 @@ export class IMDBManager extends Disposable {
     private db: MultiFileSQLite;
 
     public async init() {
+        const configService = getConfigManagerService();
         this.db = new MultiFileSQLite({
-            dbBasePath: (await ConfigManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase
-                .maxDBDuration,
+            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
+            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS chat_messages (
                     msgId TEXT NOT NULL PRIMARY KEY,

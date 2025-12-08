@@ -1,7 +1,8 @@
+import "reflect-metadata";
+import { getConfigManagerService } from "@root/common/di/container";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
 import { KVStore } from "@root/common/util/KVStore";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
@@ -15,7 +16,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
     private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 
     public async init() {
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
@@ -25,7 +26,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
-        const config = (await ConfigManagerService.getCurrentConfig()).preprocessors
+        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .AccumulativeSplitter;
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {

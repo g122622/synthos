@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { TextGenerator } from "./generators/text/TextGenerator";
 import { IMSummaryCtxBuilder } from "./context/ctxBuilders/IMSummaryCtxBuilder";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
@@ -8,13 +9,17 @@ import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/
 import getRandomHash from "@root/common/util/getRandomHash";
 import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { SemanticRater } from "./misc/SemanticRater";
 
 (async () => {
+    // 初始化 DI 容器
+    registerConfigManagerService();
+    const configManagerService = getConfigManagerService();
+
     const LOGGER = Logger.withTag("🤖 ai-model-root-script");
 
     const imdbManager = new IMDBManager();
@@ -24,7 +29,7 @@ import { SemanticRater } from "./misc/SemanticRater";
     const interestScoreDBManager = new InterestScoreDBManager();
     await interestScoreDBManager.init();
 
-    let config = await ConfigManagerService.getCurrentConfig();
+    let config = await configManagerService.getCurrentConfig();
 
     await agendaInstance
         .create(TaskHandlerTypes.AISummarize)
@@ -35,7 +40,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             if (!(await checkConnectivity())) {
                 LOGGER.error(`网络连接不可用，跳过当前任务`);
@@ -163,7 +168,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         TaskHandlerTypes.DecideAndDispatchAISummarize,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.AISummarize, {
                 groupIds: Object.keys(config.groupConfigs),
@@ -189,7 +194,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             const sessionIds = [] as string[];
             for (const groupId of Object.keys(config.groupConfigs)) {
@@ -259,7 +264,7 @@ import { SemanticRater } from "./misc/SemanticRater";
         TaskHandlerTypes.DecideAndDispatchInterestScore,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.InterestScore, {
                 startTimeStamp: getHoursAgoTimestamp(24 * 3),

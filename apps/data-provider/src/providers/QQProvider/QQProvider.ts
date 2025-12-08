@@ -1,4 +1,5 @@
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import "reflect-metadata";
+import { getConfigManagerService } from "@root/common/di/container";
 import { RawChatMessage } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "../contracts/IIMProvider";
 import Logger from "@root/common/util/Logger";
@@ -23,7 +24,7 @@ export class QQProvider extends Disposable implements IIMProvider {
     private messagePBParser = this._registerDisposable(new MessagePBParser());
 
     public async init() {
-        const config = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ;
+        const config = (await getConfigManagerService().getCurrentConfig()).dataProviders.QQ;
         // 1. 创建一个临时内存数据库（仅用于加载扩展）
         const tempDb = new PromisifiedSQLite(sqlite3);
         await tempDb.open(":memory:"); // 内存数据库，瞬间打开
@@ -67,10 +68,8 @@ export class QQProvider extends Disposable implements IIMProvider {
      * @returns 数据库补丁SQL
      */
     private async _getPatchSQL() {
-        const patchSQL = (await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch
-            .enabled
-            ? `(${(await ConfigManagerService.getCurrentConfig()).dataProviders.QQ.dbPatch.patchSQL})`
-            : "";
+        const qqConfig = (await getConfigManagerService().getCurrentConfig()).dataProviders.QQ;
+        const patchSQL = qqConfig.dbPatch.enabled ? `(${qqConfig.dbPatch.patchSQL})` : "";
         return patchSQL;
     }
 

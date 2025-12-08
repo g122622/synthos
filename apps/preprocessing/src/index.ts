@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AccumulativeSplitter } from "./splitters/AccumulativeSplitter";
 import { TimeoutSplitter } from "./splitters/TimeoutSplitter";
@@ -5,17 +6,21 @@ import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
 import { formatMsg } from "./formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ISplitter } from "./splitters/contracts/ISplitter";
 
 (async () => {
+    // 初始化 DI 容器
+    registerConfigManagerService();
+    const configManagerService = getConfigManagerService();
+
     const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();
 
-    let config = await ConfigManagerService.getCurrentConfig();
+    let config = await configManagerService.getCurrentConfig();
 
     await agendaInstance
         .create(TaskHandlerTypes.Preprocess)
@@ -26,7 +31,7 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             for (const groupId of attrs.groupIds) {
                 let splitter: ISplitter;
@@ -92,7 +97,7 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
         TaskHandlerTypes.DecideAndDispatchPreprocess,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.Preprocess, {
                 groupIds: Object.keys(config.groupConfigs),

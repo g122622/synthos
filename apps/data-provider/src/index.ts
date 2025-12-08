@@ -1,3 +1,4 @@
+import "reflect-metadata";
 import Logger from "@root/common/util/Logger";
 import { QQProvider } from "./providers/QQProvider/QQProvider";
 import { IMDBManager } from "@root/common/database/IMDBManager";
@@ -6,15 +7,19 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "./providers/contracts/IIMProvider";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 
 (async () => {
+    // 初始化 DI 容器
+    registerConfigManagerService();
+    const configManagerService = getConfigManagerService();
+
     const LOGGER = Logger.withTag("🌏 data-provider-root-script");
 
     const imdbManager = new IMDBManager();
     await imdbManager.init();
 
-    let config = await ConfigManagerService.getCurrentConfig();
+    let config = await configManagerService.getCurrentConfig();
 
     await agendaInstance
         .create(TaskHandlerTypes.ProvideData)
@@ -25,7 +30,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
             const attrs = job.attrs.data;
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             // 根据 IM 类型初始化对应的 IM 提供者
             let activeProvider: IIMProvider;
@@ -85,7 +90,7 @@ import ConfigManagerService from "@root/common/config/ConfigManagerService";
         TaskHandlerTypes.DecideAndDispatchProvideData,
         async job => {
             LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
+            config = await configManagerService.getCurrentConfig(); // 刷新配置
             // call provideData task
             await agendaInstance.now(TaskHandlerTypes.ProvideData, {
                 IMType: IMTypes.QQ,

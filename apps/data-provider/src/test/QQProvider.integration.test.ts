@@ -11,10 +11,14 @@
  *
  * 如果配置不可用，测试会自动跳过
  */
+import "reflect-metadata";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { QQProvider } from "../providers/QQProvider/QQProvider";
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { existsSync } from "fs";
+
+// 初始化 DI 容器
+registerConfigManagerService();
 
 // 检查集成测试是否可以运行
 async function canRunIntegrationTest(): Promise<{
@@ -22,7 +26,7 @@ async function canRunIntegrationTest(): Promise<{
     reason?: string;
 }> {
     try {
-        const config = await ConfigManagerService.getCurrentConfig();
+        const config = await getConfigManagerService().getCurrentConfig();
         const qqConfig = config.dataProviders?.QQ;
 
         if (!qqConfig) {

@@ -4,6 +4,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { TOKENS } from "./tokens";
+import { registerConfigManagerService } from "@root/common/di/container";
 
 // DBManagers
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
@@ -85,5 +86,5 @@ export function getContainer() {
     return container;
 }
 
-export { container };
+export { container, registerConfigManagerService };
 

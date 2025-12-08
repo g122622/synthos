@@ -1,4 +1,5 @@
-import ConfigManagerService from "../config/ConfigManagerService";
+import "reflect-metadata";
+import { getConfigManagerService } from "../di/container";
 import Logger from "../util/Logger";
 import { MultiFileSQLite } from "./MultiFileSQLite";
 import { AIDigestResult } from "../contracts/ai-model";
@@ -11,10 +12,10 @@ export class AGCDBManager extends Disposable {
     private db: MultiFileSQLite;
 
     public async init() {
+        const configService = getConfigManagerService();
         this.db = new MultiFileSQLite({
-            dbBasePath: (await ConfigManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await ConfigManagerService.getCurrentConfig()).commonDatabase
-                .maxDBDuration,
+            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
+            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
             // 一个sessionId会对应多个topicId
             initialSQL: `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (

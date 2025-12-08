@@ -1,8 +1,11 @@
+import "reflect-metadata";
 import { readFile } from "fs/promises";
+import { injectable } from "tsyringe";
 import { GlobalConfig } from "./@types/GlobalConfig";
 import { findFileUpwards } from "../util/file/findFileUpwards";
 import { ASSERT } from "../util/ASSERT";
 
+@injectable()
 class ConfigManagerService {
     private configPath: Promise<string>;
 

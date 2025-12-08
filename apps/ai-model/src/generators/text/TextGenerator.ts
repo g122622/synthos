@@ -1,4 +1,5 @@
-import ConfigManagerService from "@root/common/config/ConfigManagerService";
+import "reflect-metadata";
+import { getConfigManagerService } from "@root/common/di/container";
 import { ChatOpenAI } from "@langchain/openai";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
@@ -23,7 +24,7 @@ export class TextGenerator extends Disposable {
     private async useModel(modelName: string) {
         // 懒加载：当需要使用某个模型时才创建实例
         if (!this.models.has(modelName)) {
-            const config = await ConfigManagerService.getCurrentConfig();
+            const config = await getConfigManagerService().getCurrentConfig();
             const chatModel = new ChatOpenAI({
                 openAIApiKey:
                     config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey, // 从配置中获取 API Key
