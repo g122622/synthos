@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@heroui/accordion": "^2.0.0",
+    "@heroui/scroll-shadow": "^2.0.0",
+    "@heroui/slider": "^2.0.0",
+    "@heroui/tabs": "^2.0.0",
     "@heroui/button": "^2.2.27",
     "@heroui/card": "^2.2.21",
     "@heroui/code": "^2.2.21",
