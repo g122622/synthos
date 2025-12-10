@@ -7,6 +7,7 @@ export interface RawChatMessage {
     senderGroupNickname: string; // 消息发送者的群昵称
     senderNickname: string; // 消息发送者的昵称
     quotedMsgId?: string; // 引用的消息id
+    quotedMsgContent?: string; // 引用的消息内容
 }
 
 export interface ProcessedChatMessage {

@@ -12,6 +12,7 @@ export class MessagePBParser extends Disposable {
     private LOGGER = Logger.withTag("MessagePBParser");
 
     public async init() {
+        this.LOGGER.info("Initializing MessagePBParser...");
         // 1. 加载 .proto 文件（或直接用字符串） TODO：换一种加载方式，不要这么原始
         const pathCandidates = [
             "./src/providers/QQProvider/parsers/messageSegment.proto",
@@ -20,7 +21,9 @@ export class MessagePBParser extends Disposable {
         let protoContent: string | undefined = undefined;
         for (const path of pathCandidates) {
             try {
+                this.LOGGER.info(`Trying to read file ${path}...`);
                 protoContent = await readFile(path, "utf8");
+                this.LOGGER.info(`Successfully read file ${path}`);
                 break;
             } catch (error) {
                 this.LOGGER.warning(`Failed to read file ${path}: ${error}`);
@@ -32,10 +35,14 @@ export class MessagePBParser extends Disposable {
         }
 
         // 2. 动态构建 Root
+        this.LOGGER.info("Building Root from messageSegment.proto...");
+        console.dir(protobuf.parse)
         const root = protobuf.parse(protoContent).root;
+        this.LOGGER.info("Successfully parsed messageSegment.proto");
 
         // 3. 获取 MessageSegment 类型
         this.messageSegment = root.lookupType("Message");
+        this.LOGGER.info("Successfully looked up MessageSegment type");
     }
 
     public parseMessageSegment(buffer: Buffer): RawMsgContentParseResult {

@@ -234,4 +234,6 @@ interface QuotedMsg {
 
     /** 群聊消息ID (msgSeq = 40003) */
     msgSeq: string;
+
+    messages: MsgElement[]; // 被引用的消息正文
 }

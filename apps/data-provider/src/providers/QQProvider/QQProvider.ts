@@ -58,7 +58,9 @@ export class QQProvider extends Disposable implements IIMProvider {
         await stmt.finalize();
 
         // 初始化消息解析器
+        console.log("初始化消息解析器...");
         await this.messagePBParser.init();
+        console.log("消息解析器初始化完成！");
 
         this.LOGGER.success("初始化完成！");
     }
@@ -156,29 +158,6 @@ export class QQProvider extends Disposable implements IIMProvider {
             // 解析查询到的全部消息内容
             const messages: RawChatMessage[] = [];
             for (const result of results) {
-                // 获取引用的消息 quotedMsgId
-                let quotedMsgId: string | undefined = undefined;
-
-                if (result[GMC.msgType] === MsgType.REPLY) {
-                    const id1 = await this._getMsgIdByGroupNumberAndMsgSeq(
-                        result[GMC.groupUin],
-                        result[GMC.replyMsgSeq]
-                    );
-                    if (!id1) {
-                        this.LOGGER.warning(
-                            `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
-                        );
-                    }
-
-                    console.log(this.messagePBParser.parseMessageSegment(result[GMC.extraData]));
-                    const id2 = this.messagePBParser.parseMessageSegment(result[GMC.extraData])
-                        .extraMessage.msgId;
-
-                    console.log("本消息id:" + result[GMC.msgId]);
-                    console.log("id1", id1);
-                    console.log("id2", id2); // TODO 发现id2 总是等于 本消息id + 1
-                }
-
                 // 生成消息对象
                 const processedMsg: RawChatMessage = {
                     msgId: String(result[GMC.msgId]),
@@ -187,9 +166,22 @@ export class QQProvider extends Disposable implements IIMProvider {
                     timestamp: result[GMC.msgTime] * 1000, // 转换为毫秒级时间戳
                     senderId: String(result[GMC.senderUin]),
                     senderGroupNickname: result[GMC.sendMemberName],
-                    senderNickname: result[GMC.sendNickName],
-                    quotedMsgId
+                    senderNickname: result[GMC.sendNickName]
                 };
+
+                // 处理引用消息，现在获取被引用消息的消息正文而不是id，减少一次开销极大的数据库查询，极大提升性能
+                if (result[GMC.msgType] === MsgType.REPLY) {
+                    const quotedMsgContent = await this._parseMessageContent(
+                        this.messagePBParser.parseMessageSegment(result[GMC.extraData]).extraMessage
+                            .messages
+                    );
+                    if (quotedMsgContent === "") {
+                        this.LOGGER.debug(
+                            `msgId: ${result[GMC.msgId]}的引用消息内容为空，忽略该消息。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                        );
+                    }
+                    processedMsg.quotedMsgContent = quotedMsgContent;
+                }
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
                 processedMsg.messageContent = await this._parseMessageContent(

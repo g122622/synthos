@@ -30,18 +30,47 @@ export class IMDBManager extends Disposable {
                     senderGroupNickname TEXT,
                     senderNickname TEXT,
                     quotedMsgId TEXT,
+                    quotedMsgContent TEXT,
                     sessionId TEXT,
                     preProcessedContent TEXT
                 );`
         });
         this._registerDisposable(this.db);
+
+        // =============== 执行数据库迁移 ===============
+        // this.LOGGER.info("执行数据库迁移...");
+        // await this.db.migrateDatabases([
+        //     // 兼容旧版本 SQLite 的备选方案
+        //     `CREATE TABLE IF NOT EXISTS chat_messages_new (
+        //         msgId TEXT NOT NULL PRIMARY KEY,
+        //         messageContent TEXT,
+        //         groupId TEXT,
+        //         timestamp INTEGER,
+        //         senderId TEXT,
+        //         senderGroupNickname TEXT,
+        //         senderNickname TEXT,
+        //         quotedMsgId TEXT,
+        //         quotedMsgContent TEXT,
+        //         sessionId TEXT,
+        //         preProcessedContent TEXT
+        //     );
+        //     INSERT INTO chat_messages_new SELECT 
+        //         msgId, messageContent, groupId, timestamp, senderId, 
+        //         senderGroupNickname, senderNickname, quotedMsgId, 
+        //         NULL AS quotedMsgContent,  -- 初始化新字段为NULL
+        //         sessionId, preProcessedContent 
+        //     FROM chat_messages;
+        //     DROP TABLE chat_messages;
+        //     ALTER TABLE chat_messages_new RENAME TO chat_messages;`
+        // ]);
+        // ============================================
     }
 
     public async storeRawChatMessage(msg: RawChatMessage) {
         await this.db.run(
             `INSERT INTO chat_messages (
                 msgId, messageContent, groupId, timestamp, senderId, senderGroupNickname, senderNickname, quotedMsgId
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(msgId) DO UPDATE SET
                 messageContent = excluded.messageContent,
                 groupId = excluded.groupId,
@@ -49,7 +78,8 @@ export class IMDBManager extends Disposable {
                 senderId = excluded.senderId,
                 senderGroupNickname = excluded.senderGroupNickname,
                 senderNickname = excluded.senderNickname,
-                quotedMsgId = excluded.quotedMsgId`,
+                quotedMsgId = excluded.quotedMsgId,
+                quotedMsgContent = excluded.quotedMsgContent`,
             [
                 msg.msgId,
                 msg.messageContent,
@@ -58,7 +88,8 @@ export class IMDBManager extends Disposable {
                 msg.senderId,
                 msg.senderGroupNickname,
                 msg.senderNickname,
-                msg.quotedMsgId
+                msg.quotedMsgId,
+                msg.quotedMsgContent
             ]
         );
     }

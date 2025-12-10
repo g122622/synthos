@@ -13,7 +13,7 @@ interface CommonDatabaseConfig {
     initialSQL?: string; // 初始SQL语句，用于创建表等。建立每个数据库连接时会自动执行一次
 }
 
-class MultiFileSQLite extends Disposable  {
+class MultiFileSQLite extends Disposable {
     private config: CommonDatabaseConfig;
     private sqlite3: any;
     private LOGGER = Logger.withTag("MultiFileSQLite");
@@ -208,6 +208,37 @@ class MultiFileSQLite extends Disposable  {
         this.dbCache.clear();
         this.activeDBPath = null;
         this.activeDBTimestamp = null;
+    }
+
+    // ========== 迁移 ==========
+
+    public async migrateDatabases(migrationSQLs: string[]): Promise<void> {
+        const dbFiles = await this.getAllDBPaths();
+        for (const dbInfo of dbFiles) {
+            const db = await this.getOrCreateDB(dbInfo.path);
+            for (const sql of migrationSQLs) {
+                try {
+                    await db.exec(sql);
+                    this.LOGGER.info(`Migration applied to ${dbInfo.path}: ${sql}`);
+                } catch (err) {
+                    if (
+                        err.message.includes("duplicate column name") ||
+                        err.message.includes("already exists")
+                    ) {
+                        this.LOGGER.debug(
+                            `Migration skipped for ${dbInfo.path} (column exists): ${sql}`
+                        );
+                    } else if (err.message.includes("no such table")) {
+                        this.LOGGER.warning(`Table not found during migration: ${dbInfo.path}`);
+                    } else {
+                        this.LOGGER.error(
+                            `Migration failed for ${dbInfo.path}: ${err.message}\nSQL: ${sql}`
+                        );
+                        throw err;
+                    }
+                }
+            }
+        }
     }
 }
 

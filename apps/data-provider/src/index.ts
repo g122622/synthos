@@ -47,18 +47,20 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
             }
 
             await activeProvider.init();
+            LOGGER.debug(`IM provider initialized for ${attrs.IMType}`);
             for (const groupId of attrs.groupIds) {
+                LOGGER.debug(`开始获取群 ${groupId} 的消息`);
                 // 计算开始时间
                 const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
                 let startTime = latestMessage?.timestamp
                     ? latestMessage.timestamp - 60 * 1000
-                    : getHoursAgoTimestamp(3 * 24);
+                    : getHoursAgoTimestamp(15 * 24);
                 if (!latestMessage?.timestamp) {
                     LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
                 }
-                if (Date.now() - startTime > 3 * 24 * 60 * 60 * 1000) {
-                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过3天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
-                    startTime = getHoursAgoTimestamp(3 * 24);
+                if (Date.now() - startTime > 15 * 24 * 60 * 60 * 1000) {
+                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过15天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
+                    startTime = getHoursAgoTimestamp(15 * 24);
                 }
 
                 const results = await activeProvider.getMsgByTimeRange(
