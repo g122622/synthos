@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from "vitest";
 import { MsgElementType } from "../providers/QQProvider/@types/mappers/MsgElementType";
 import { GroupMsgColumn as GMC } from "../providers/QQProvider/@types/mappers/GroupMsgColumn";
+import { MsgType } from "../providers/QQProvider/@types/mappers/MsgType";
 
 // ==================== Mock 区域 ====================
 
@@ -78,9 +79,11 @@ vi.mock("../providers/QQProvider/parsers/MessagePBParser", () => {
     };
 });
 
-// Mock sqlcipher
+// Mock sqlcipher - 需要提供 default 导出，因为 QQProvider.ts 使用 default import
 vi.mock("@journeyapps/sqlcipher", () => ({
-    verbose: () => ({})
+    default: {
+        verbose: () => ({})
+    }
 }));
 
 // Mock mustInitBeforeUse - 使其变成透传装饰器
@@ -197,7 +200,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.TEXT,
+                        elementType: MsgElementType.TEXT,
                         messageText: "你好，世界！"
                     }
                 ]
@@ -227,7 +230,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.EMOJI,
+                        elementType: MsgElementType.EMOJI,
                         emojiText: "微笑"
                     }
                 ]
@@ -249,7 +252,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.IMAGE
+                        elementType: MsgElementType.IMAGE
                     }
                 ]
             });
@@ -270,7 +273,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.VOICE
+                        elementType: MsgElementType.VOICE
                     }
                 ]
             });
@@ -291,7 +294,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.FILE,
+                        elementType: MsgElementType.FILE,
                         fileName: "test.pdf"
                     }
                 ]
@@ -313,12 +316,12 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.TEXT,
+                        elementType: MsgElementType.TEXT,
                         messageText: "今天天气真好"
                     },
                     {
                         messageId: "elem_2",
-                        messageType: MsgElementType.EMOJI,
+                        elementType: MsgElementType.EMOJI,
                         emojiText: "太阳"
                     }
                 ]
@@ -340,7 +343,7 @@ describe("QQProvider", () => {
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: 999, // 未知类型
+                        elementType: 999, // 未知类型
                         messageText: ""
                     }
                 ]
@@ -398,38 +401,51 @@ describe("QQProvider", () => {
             await qqProvider.init();
         });
 
-        it("应正确获取被引用消息的 msgId", async () => {
+        it("应正确获取被引用消息的内容", async () => {
             const mockTimestamp = 1700000000000;
             const mockGroupId = "123456789";
-            const replyMsgSeq = 100;
-            const quotedMsgId = "1111111111111111111";
+            const quotedMsgContent = "这是被引用的原始消息";
 
             const mockRow = {
                 [GMC.msgId]: "2222222222222222222",
                 [GMC.msgTime]: Math.floor(mockTimestamp / 1000),
                 [GMC.groupUin]: mockGroupId,
                 [GMC.senderUin]: "987654321",
-                [GMC.replyMsgSeq]: replyMsgSeq,
+                [GMC.replyMsgSeq]: null,
                 [GMC.msgContent]: Buffer.from("mock"),
+                [GMC.msgType]: MsgType.REPLY,
+                [GMC.extraData]: Buffer.from("mock extra data"),
                 [GMC.sendMemberName]: "测试用户",
                 [GMC.sendNickName]: "测试昵称"
             };
 
-            // 第一次 all 调用返回主消息
-            // 第二次 all 调用返回被引用的消息
-            mockDbMethods.all
-                .mockResolvedValueOnce([mockRow])
-                .mockResolvedValueOnce([{ [GMC.msgId]: quotedMsgId }]);
+            mockDbMethods.all.mockResolvedValueOnce([mockRow]);
 
-            mockParserMethods.parseMessageSegment.mockReturnValue({
-                messages: [
-                    {
-                        messageId: "elem_1",
-                        messageType: MsgElementType.TEXT,
-                        messageText: "回复消息"
-                    }
-                ]
-            });
+            // 根据调用顺序返回不同结果：
+            // 第一次调用（处理 extraData）返回引用消息内容
+            // 第二次调用（处理 msgContent）返回主消息内容
+            mockParserMethods.parseMessageSegment
+                .mockReturnValueOnce({
+                    extraMessage: {
+                        messages: [
+                            {
+                                messageId: "quoted_elem_1",
+                                elementType: MsgElementType.TEXT,
+                                messageText: quotedMsgContent
+                            }
+                        ]
+                    },
+                    messages: []
+                })
+                .mockReturnValueOnce({
+                    messages: [
+                        {
+                            messageId: "elem_1",
+                            elementType: MsgElementType.TEXT,
+                            messageText: "回复消息"
+                        }
+                    ]
+                });
 
             const result = await qqProvider.getMsgByTimeRange(
                 mockTimestamp - 1000,
@@ -437,33 +453,34 @@ describe("QQProvider", () => {
             );
 
             expect(result).toHaveLength(1);
-            expect(result[0].quotedMsgId).toBe(quotedMsgId);
+            expect(result[0].quotedMsgContent).toBe(quotedMsgContent);
+            expect(result[0].messageContent).toBe("回复消息");
         });
 
-        it("找不到被引用消息时 quotedMsgId 应为 undefined", async () => {
+        it("非引用消息时 quotedMsgContent 应为 undefined", async () => {
             const mockTimestamp = 1700000000000;
             const mockGroupId = "123456789";
-            const replyMsgSeq = 100;
 
             const mockRow = {
                 [GMC.msgId]: "2222222222222222222",
                 [GMC.msgTime]: Math.floor(mockTimestamp / 1000),
                 [GMC.groupUin]: mockGroupId,
                 [GMC.senderUin]: "987654321",
-                [GMC.replyMsgSeq]: replyMsgSeq,
+                [GMC.replyMsgSeq]: null,
                 [GMC.msgContent]: Buffer.from("mock"),
+                [GMC.msgType]: MsgType.TEXT, // 非引用消息
                 [GMC.sendMemberName]: "测试用户",
                 [GMC.sendNickName]: "测试昵称"
             };
 
-            mockDbMethods.all.mockResolvedValueOnce([mockRow]).mockResolvedValueOnce([]); // 找不到被引用的消息
+            mockDbMethods.all.mockResolvedValueOnce([mockRow]);
 
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
                     {
                         messageId: "elem_1",
-                        messageType: MsgElementType.TEXT,
-                        messageText: "回复消息"
+                        elementType: MsgElementType.TEXT,
+                        messageText: "普通消息"
                     }
                 ]
             });
@@ -474,7 +491,7 @@ describe("QQProvider", () => {
             );
 
             expect(result).toHaveLength(1);
-            expect(result[0].quotedMsgId).toBeUndefined();
+            expect(result[0].quotedMsgContent).toBeUndefined();
         });
     });
 
