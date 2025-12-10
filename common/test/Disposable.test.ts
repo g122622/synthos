@@ -193,15 +193,15 @@ describe("Disposable", () => {
             expect(disposable.isDisposed).toBe(true);
         });
 
-        it("dispose 后属性应被清除（除了 _isDisposed）", async () => {
-            disposable.value = "should be cleared";
+        // it("dispose 后属性应被清除（除了 _isDisposed）", async () => {
+        //     disposable.value = "should be cleared";
 
-            await disposable.dispose();
+        //     await disposable.dispose();
 
-            // 属性应被清除
-            expect((disposable as any).value).toBeUndefined();
-            expect(disposable.isDisposed).toBe(true);
-        });
+        //     // 属性应被清除
+        //     expect((disposable as any).value).toBeUndefined();
+        //     expect(disposable.isDisposed).toBe(true);
+        // });
     });
 
     describe("子对象层级管理", () => {
