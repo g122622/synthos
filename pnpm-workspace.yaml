@@ -12,3 +12,4 @@ onlyBuiltDependencies:
   - protobufjs
   - sharp
   - sqlite3
+  - better-sqlite3

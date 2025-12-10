@@ -8,7 +8,9 @@ export enum TaskHandlerTypes {
     AISummarize = "AISummarize",
     DecideAndDispatchAISummarize = "DecideAndDispatchAISummarize",
     InterestScore = "InterestScore",
-    DecideAndDispatchInterestScore = "DecideAndDispatchInterestScore"
+    DecideAndDispatchInterestScore = "DecideAndDispatchInterestScore",
+    GenerateEmbedding = "GenerateEmbedding",
+    DecideAndDispatchGenerateEmbedding = "DecideAndDispatchGenerateEmbedding"
 }
 
 interface TaskParamsMap {
@@ -36,6 +38,11 @@ interface TaskParamsMap {
         endTimeStamp: number;
     };
     [TaskHandlerTypes.DecideAndDispatchInterestScore]: {};
+    [TaskHandlerTypes.GenerateEmbedding]: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    };
+    [TaskHandlerTypes.DecideAndDispatchGenerateEmbedding]: {};
 }
 
 // example

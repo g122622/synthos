@@ -59,6 +59,14 @@ export interface GlobalConfig {
             UserInterestsPositiveKeywords: string[]; // 正向关键词
             UserInterestsNegativeKeywords: string[]; // 负向关键词
         };
+        // 向量嵌入任务的配置
+        embedding: {
+            ollamaBaseURL: string; // Ollama 服务地址，如 "http://localhost:11434"
+            model: string; // 嵌入模型名，如 "bge-m3"
+            batchSize: number; // 批量处理大小
+            vectorDBPath: string; // 向量数据库文件路径
+            dimension: number; // 向量维度，bge-m3 为 1024
+        };
     };
     webUI_Backend: {
         port: number;
