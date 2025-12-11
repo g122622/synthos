@@ -86,7 +86,7 @@ class MultiFileSQLite extends Disposable {
     }
 
     // 获取当前活跃数据库（自动滚动）
-    private async getActiveDB(): Promise<PromisifiedSQLite> {
+    public async getActiveDB(): Promise<PromisifiedSQLite> {
         const nowSeconds = Math.floor(Date.now() / 1000);
         const maxDurationSec = this.config.maxDBDuration * 24 * 3600;
 

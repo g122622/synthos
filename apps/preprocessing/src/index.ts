@@ -68,9 +68,7 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                             preProcessedContent: formatMsg(
                                 result,
                                 result.quotedMsgId
-                                    ? (await imdbManager.getRawChatMessageByMsgId(
-                                          result.quotedMsgId
-                                      ))
+                                    ? await imdbManager.getRawChatMessageByMsgId(result.quotedMsgId)
                                     : undefined
                             )
                         };
@@ -103,7 +101,7 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                 groupIds: Object.keys(config.groupConfigs),
                 startTimeInMinutesFromNow: Math.max(
                     config.preprocessors.agendaTaskIntervalInMinutes * 10,
-                    24 * 60
+                    24 * 60 * 25
                 ) // 乘以若干倍，以扩大时间窗口
             });
 

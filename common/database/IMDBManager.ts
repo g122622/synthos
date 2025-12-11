@@ -54,11 +54,11 @@ export class IMDBManager extends Disposable {
         //         sessionId TEXT,
         //         preProcessedContent TEXT
         //     );
-        //     INSERT INTO chat_messages_new SELECT 
-        //         msgId, messageContent, groupId, timestamp, senderId, 
-        //         senderGroupNickname, senderNickname, quotedMsgId, 
+        //     INSERT INTO chat_messages_new SELECT
+        //         msgId, messageContent, groupId, timestamp, senderId,
+        //         senderGroupNickname, senderNickname, quotedMsgId,
         //         NULL AS quotedMsgContent,  -- 初始化新字段为NULL
-        //         sessionId, preProcessedContent 
+        //         sessionId, preProcessedContent
         //     FROM chat_messages;
         //     DROP TABLE chat_messages;
         //     ALTER TABLE chat_messages_new RENAME TO chat_messages;`
@@ -95,8 +95,77 @@ export class IMDBManager extends Disposable {
     }
 
     public async storeRawChatMessages(messages: RawChatMessage[]) {
-        for (const msg of messages) {
-            await this.storeRawChatMessage(msg);
+        if (messages.length === 0) return;
+
+        // 获取当前活跃数据库连接（确保整个操作在同一个连接）
+        const activeDB = await this.db.getActiveDB(); // 需要将 getActiveDB 改为 public 或 protected
+
+        // 计算每批大小（每条消息9个参数，SQLite 默认最大999参数）
+        const MAX_SQLITE_PARAMS = 999;
+        const paramsPerRecord = 9;
+        const batchSize = Math.min(100, Math.floor(MAX_SQLITE_PARAMS / paramsPerRecord));
+
+        // 构建基础SQL模板（带冲突处理）
+        const baseSql = `
+        INSERT INTO chat_messages (
+            msgId, messageContent, groupId, timestamp, senderId, 
+            senderGroupNickname, senderNickname, quotedMsgId, quotedMsgContent
+        ) VALUES ${Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")}
+        ON CONFLICT(msgId) DO UPDATE SET
+            messageContent = excluded.messageContent,
+            groupId = excluded.groupId,
+            timestamp = excluded.timestamp,
+            senderId = excluded.senderId,
+            senderGroupNickname = excluded.senderGroupNickname,
+            senderNickname = excluded.senderNickname,
+            quotedMsgId = excluded.quotedMsgId,
+            quotedMsgContent = excluded.quotedMsgContent
+    `.trim();
+
+        // 开始事务
+        await activeDB.run("BEGIN IMMEDIATE TRANSACTION");
+
+        try {
+            for (let i = 0; i < messages.length; i += batchSize) {
+                const batch = messages.slice(i, i + batchSize);
+
+                // 动态生成当前批次的SQL（处理最后一批不足batchSize的情况）
+                const currentBatchSize = batch.length;
+                const sql =
+                    currentBatchSize === batchSize
+                        ? baseSql
+                        : baseSql.replace(
+                              Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", "),
+                              Array(currentBatchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
+                          );
+
+                // 收集参数
+                const params: any[] = [];
+                batch.forEach(msg => {
+                    params.push(
+                        msg.msgId,
+                        msg.messageContent,
+                        msg.groupId,
+                        msg.timestamp,
+                        msg.senderId,
+                        msg.senderGroupNickname,
+                        msg.senderNickname,
+                        msg.quotedMsgId,
+                        msg.quotedMsgContent
+                    );
+                });
+
+                // 执行批量插入
+                await activeDB.run(sql, params);
+            }
+
+            // 提交事务
+            await activeDB.run("COMMIT");
+        } catch (err) {
+            // 出错时回滚
+            await activeDB.run("ROLLBACK");
+            this.LOGGER.error(`Failed to store messages batch: ${err.message}`);
+            throw new Error(`Failed to store messages batch: ${err.message}`);
         }
     }
 
@@ -222,8 +291,23 @@ export class IMDBManager extends Disposable {
     }
 
     public async storeProcessedChatMessages(messages: ProcessedChatMessage[]) {
-        for (const msg of messages) {
-            await this.storeProcessedChatMessage(msg);
+        if (messages.length === 0) return;
+
+        // 获取当前活跃数据库连接（连接复用）
+        const activeDB = await this.db.getActiveDB();
+
+        await activeDB.run("BEGIN IMMEDIATE TRANSACTION");
+        try {
+            for (const msg of messages) {
+                await activeDB.run(
+                    `UPDATE chat_messages SET sessionId = ?, preProcessedContent = ? WHERE msgId = ?`,
+                    [msg.sessionId, msg.preProcessedContent, msg.msgId]
+                );
+            }
+            await activeDB.run("COMMIT");
+        } catch (err) {
+            await activeDB.run("ROLLBACK");
+            throw err;
         }
     }
 }
