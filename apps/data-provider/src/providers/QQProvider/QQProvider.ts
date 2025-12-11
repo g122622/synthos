@@ -58,9 +58,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         await stmt.finalize();
 
         // 初始化消息解析器
-        console.log("初始化消息解析器...");
         await this.messagePBParser.init();
-        console.log("消息解析器初始化完成！");
 
         this.LOGGER.success("初始化完成！");
     }
@@ -169,18 +167,54 @@ export class QQProvider extends Disposable implements IIMProvider {
                     senderNickname: result[GMC.sendNickName]
                 };
 
-                // 处理引用消息，现在获取被引用消息的消息正文而不是id，减少一次开销极大的数据库查询，极大提升性能
+                // 处理引用消息，首先尝试获取被引用消息的消息正文而不是id，减少一次开销极大的数据库查询，极大提升性能
                 if (result[GMC.msgType] === MsgType.REPLY) {
-                    const quotedMsgContent = await this._parseMessageContent(
-                        this.messagePBParser.parseMessageSegment(result[GMC.extraData]).extraMessage
-                            .messages
+                    this.LOGGER.debug(`这是一条引用消息！`);
+                    ASSERT(
+                        !!result[GMC.replyMsgSeq],
+                        "MsgType为REPLY时，对应的replyMsgSeq应该也是有效的"
                     );
-                    if (quotedMsgContent === "") {
-                        this.LOGGER.debug(
-                            `msgId: ${result[GMC.msgId]}的引用消息内容为空，忽略该消息。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                    try {
+                        const quotedMsgContent = await this._parseMessageContent(
+                            this.messagePBParser.parseMessageSegment(result[GMC.extraData])
+                                .extraMessage.messages
                         );
+                        if (!quotedMsgContent) {
+                            this.LOGGER.warning(
+                                `msgId: ${result[GMC.msgId]}的引用消息内容为空。放弃获取该条消息的引用。
+                                发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                            );
+                            throw ErrorReasons.EMPTY_VALUE_ERROR;
+                        }
+                        processedMsg.quotedMsgContent = quotedMsgContent;
+                    } catch (error) {
+                        if (
+                            error === ErrorReasons.EMPTY_VALUE_ERROR ||
+                            error === ErrorReasons.PROTOBUF_ERROR
+                        ) {
+                            // ⚠️⚠️⚠️实验发现如果消息的消息正文为空，那么大概率其id也是找不到的，所以这里直接忽略该条消息，下面代码不执行了
+
+                            // // 引用消息内容为空或者protobuf解析出错，尝试获取其id
+                            // this.LOGGER.warning(
+                            //     `msgId: ${result[GMC.msgId]}的引用消息内容为空或者protobuf解析出错，尝试获取其id。
+                            // 发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                            // );
+                            // // 获取引用的消息 quotedMsgId
+                            // let quotedMsgId: string | undefined = undefined;
+                            // quotedMsgId = await this._getMsgIdByGroupNumberAndMsgSeq(
+                            //     result[GMC.groupUin],
+                            //     result[GMC.replyMsgSeq]
+                            // );
+                            // if (!quotedMsgId) {
+                            //     this.LOGGER.warning(
+                            //         `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
+                            //     );
+                            // }
+                            // processedMsg.quotedMsgId = quotedMsgId;
+                        } else {
+                            throw error;
+                        }
                     }
-                    processedMsg.quotedMsgContent = quotedMsgContent;
                 }
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
@@ -189,7 +223,8 @@ export class QQProvider extends Disposable implements IIMProvider {
                 );
                 if (processedMsg.messageContent === "") {
                     this.LOGGER.debug(
-                        `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
+                        `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。
+                        发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
                     );
                 } else {
                     messages.push(processedMsg);
@@ -222,7 +257,8 @@ export class QQProvider extends Disposable implements IIMProvider {
             this.LOGGER.debug(`结果数量: ${results.length}`);
             ASSERT_NOT_FATAL(
                 results.length <= 1,
-                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，查询结果数: ${results.length}, results: ${JSON.stringify(results)}`
+                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，
+                查询结果数: ${results.length}, results: ${JSON.stringify(results)}`
             );
             if (results.length === 0) {
                 return undefined;

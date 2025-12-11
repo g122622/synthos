@@ -54,13 +54,13 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
                 const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
                 let startTime = latestMessage?.timestamp
                     ? latestMessage.timestamp - 60 * 1000
-                    : getHoursAgoTimestamp(15 * 24);
+                    : getHoursAgoTimestamp(25 * 24);
                 if (!latestMessage?.timestamp) {
                     LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
                 }
-                if (Date.now() - startTime > 15 * 24 * 60 * 60 * 1000) {
-                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过15天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
-                    startTime = getHoursAgoTimestamp(15 * 24);
+                if (Date.now() - startTime > 25 * 24 * 60 * 60 * 1000) {
+                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过25天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
+                    startTime = getHoursAgoTimestamp(25 * 24);
                 }
 
                 const results = await activeProvider.getMsgByTimeRange(

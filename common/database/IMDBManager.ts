@@ -69,7 +69,7 @@ export class IMDBManager extends Disposable {
     public async storeRawChatMessage(msg: RawChatMessage) {
         await this.db.run(
             `INSERT INTO chat_messages (
-                msgId, messageContent, groupId, timestamp, senderId, senderGroupNickname, senderNickname, quotedMsgId
+                msgId, messageContent, groupId, timestamp, senderId, senderGroupNickname, senderNickname, quotedMsgId, quotedMsgContent
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(msgId) DO UPDATE SET
                 messageContent = excluded.messageContent,

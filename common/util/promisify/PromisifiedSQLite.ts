@@ -87,8 +87,8 @@ class PromisifiedSQLite extends Disposable {
                 (err => {
                     if (err) {
                         this.LOGGER.error("Failed to run SQL: " + err.message);
-                        this.LOGGER.debug("SQL: " + sql);
-                        this.LOGGER.debug("Params: " + JSON.stringify(params));
+                        this.LOGGER.error("SQL: " + sql);
+                        this.LOGGER.error("Params: " + JSON.stringify(params));
                         reject(err);
                     } else {
                         resolve();
