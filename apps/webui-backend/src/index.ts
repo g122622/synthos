@@ -15,6 +15,7 @@ import Logger from "@root/common/util/Logger";
 import {
     registerDBManagers,
     registerStatusManagers,
+    registerRAGClient,
     registerServices,
     registerControllers,
     registerConfigManagerService,
@@ -115,10 +116,15 @@ export class WebUILocalServer {
         const { favoriteStatusManager, readStatusManager } = await this.initializeStatusManagers();
         registerStatusManagers(favoriteStatusManager, readStatusManager);
 
-        // 3. 注册 Services
+        // 3. 注册 RAG RPC 客户端
+        const config = await this.getConfigManagerService().getCurrentConfig();
+        const rpcPort = config.ai?.rpc?.port || 7979;
+        registerRAGClient(`http://localhost:${rpcPort}`);
+
+        // 4. 注册 Services
         registerServices();
 
-        // 4. 注册 Controllers
+        // 5. 注册 Controllers
         registerControllers();
     }
 

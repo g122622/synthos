@@ -67,6 +67,10 @@ export interface GlobalConfig {
             vectorDBPath: string; // 向量数据库文件路径
             dimension: number; // 向量维度，bge-m3 为 1024
         };
+        // RPC 服务配置
+        rpc: {
+            port: number; // RPC 服务端口，默认 7979
+        };
     };
     webUI_Backend: {
         port: number;

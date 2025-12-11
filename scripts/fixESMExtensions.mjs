@@ -68,7 +68,7 @@ async function fixImportsInFile(filePath) {
     if (updated) {
         const result = magic.toString();
         await writeFile(filePath, result, 'utf8');
-        console.log(`🔧 Patched imports in ${filePath}`);
+        // console.log(`🔧 Patched imports in ${filePath}`);
     }
 }
 

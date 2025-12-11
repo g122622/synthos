@@ -13,6 +13,7 @@ import { GroupConfigController } from "../controllers/GroupConfigController";
 import { InterestScoreController } from "../controllers/InterestScoreController";
 import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
+import { SearchController } from "../controllers/SearchController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -22,6 +23,7 @@ export const setupApiRoutes = (app: Express): void => {
     const interestScoreController = container.resolve<InterestScoreController>(TOKENS.InterestScoreController);
     const miscController = container.resolve<MiscController>(TOKENS.MiscController);
     const topicStatusController = container.resolve<TopicStatusController>(TOKENS.TopicStatusController);
+    const searchController = container.resolve<SearchController>(TOKENS.SearchController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -115,5 +117,18 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/topic/read/status",
         asyncHandler((req, res) => topicStatusController.checkReadStatus(req, res))
+    );
+
+    // ==================== 搜索和问答 ====================
+    // 语义搜索
+    app.post(
+        "/api/search",
+        asyncHandler((req, res) => searchController.search(req, res))
+    );
+
+    // RAG 问答
+    app.post(
+        "/api/ask",
+        asyncHandler((req, res) => searchController.ask(req, res))
     );
 };

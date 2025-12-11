@@ -3,7 +3,8 @@
  * Description: 实现 IDisposable 接口的基类
  * Detail: 实现 IDisposable 接口的基类，提供注册和释放资源的方法，并提供是否已释放的状态
  * Note: 该类主要用于管理生命周期相关的资源，如事件监听、定时器、已打开的文件资源等。
- * 支持自动追踪根节点对象，并响应系统信号进行优雅退出。
+ * 支持自动追踪根节点对象，自动维护依赖间的树形结构，并响应系统信号进行优雅退出。
+ * （退出时会自动从树根开始递归释放所有资源）
  */
 
 import Logger from "../Logger";
@@ -29,7 +30,7 @@ class Disposable implements IDisposable {
      */
     public static enableGlobalSignalHandling() {
         const handleSignal = async (signal: string) => {
-            LOGGER.info(`Received ${signal}. Disposing all root objects...`);
+            LOGGER.warning(`收到${signal}信号. 全局错误处理器介入. 开始递归释放所有资源...`);
 
             const promises: Promise<void>[] = [];
 
@@ -37,7 +38,7 @@ class Disposable implements IDisposable {
             const currentRoots = Array.from(Disposable._roots);
 
             for (const root of currentRoots) {
-                // 调用 dispose，你的 dispose 方法兼容同步和异步
+                // 调用 dispose，兼容同步和异步
                 const result = root.dispose();
                 if (result instanceof Promise) {
                     promises.push(result);
@@ -46,10 +47,10 @@ class Disposable implements IDisposable {
 
             try {
                 await Promise.allSettled(promises);
-                LOGGER.info("All resources disposed. Exiting process.");
+                LOGGER.success("所有资源已释放. 退出进程.");
                 process.exit(0);
             } catch (error) {
-                LOGGER.error("Error during global disposal: " + error);
+                LOGGER.error("全局释放过程中发生错误: " + error);
                 process.exit(1);
             }
         };
@@ -57,6 +58,18 @@ class Disposable implements IDisposable {
         // 监听 Ctrl+C 和 终止信号
         process.on("SIGINT", () => handleSignal("SIGINT"));
         process.on("SIGTERM", () => handleSignal("SIGTERM"));
+
+        // 监听未捕获的异常，一旦发生未捕获的异常，会自动释放所有资源并退出进程
+        process.on("uncaughtException", (error) => {
+            LOGGER.error("Uncaught exception: " + error);
+            handleSignal("uncaughtException");
+        });
+
+        // 监听未处理的拒绝的 Promise，一旦发生未处理的拒绝的 Promise，会自动释放所有资源并退出进程
+        process.on("unhandledRejection", (reason, promise) => {
+            LOGGER.error("Unhandled rejection: " + reason);
+            handleSignal("unhandledRejection");
+        });
     }
 
     // =========================================================================
@@ -123,7 +136,7 @@ class Disposable implements IDisposable {
     }
 
     /**
-     * 释放所有资源。这个函数不允许被重写。
+     * 释放所有资源。这个函数不允许被override。
      */
     async dispose() {
         // 🆕 无论自己是不是根，一旦被销毁，就不应该再存在于根集合中

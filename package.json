@@ -17,6 +17,8 @@
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
     "@hokify/agenda": "^6.3.0",
+    "@trpc/server": "^10.45.2",
+    "@trpc/client": "^10.45.2",
     "@types/express": "^5.0.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.0",
@@ -36,7 +38,8 @@
     "sqlite3": "^5.1.7",
     "ts-node": "^10.9.2",
     "tsyringe": "^4.10.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "acorn": "^8.15.0",

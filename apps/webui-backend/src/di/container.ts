@@ -22,6 +22,10 @@ import { GroupConfigService } from "../services/GroupConfigService";
 import { InterestScoreService } from "../services/InterestScoreService";
 import { MiscService } from "../services/MiscService";
 import { TopicStatusService } from "../services/TopicStatusService";
+import { SearchService } from "../services/SearchService";
+
+// RPC Clients
+import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
 
 // Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
@@ -30,6 +34,7 @@ import { GroupConfigController } from "../controllers/GroupConfigController";
 import { InterestScoreController } from "../controllers/InterestScoreController";
 import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
+import { SearchController } from "../controllers/SearchController";
 
 /**
  * 注册所有 DBManager 实例
@@ -56,6 +61,15 @@ export function registerStatusManagers(
 }
 
 /**
+ * 注册 RAG RPC 客户端
+ * @param rpcBaseUrl RAG RPC 服务地址
+ */
+export function registerRAGClient(rpcBaseUrl: string): void {
+    const client = createRAGClient(rpcBaseUrl);
+    container.registerInstance(TOKENS.RAGClient, client);
+}
+
+/**
  * 注册所有 Services
  */
 export function registerServices(): void {
@@ -65,6 +79,7 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.InterestScoreService, InterestScoreService);
     container.registerSingleton(TOKENS.MiscService, MiscService);
     container.registerSingleton(TOKENS.TopicStatusService, TopicStatusService);
+    container.registerSingleton(TOKENS.SearchService, SearchService);
 }
 
 /**
@@ -77,6 +92,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.InterestScoreController, InterestScoreController);
     container.registerSingleton(TOKENS.MiscController, MiscController);
     container.registerSingleton(TOKENS.TopicStatusController, TopicStatusController);
+    container.registerSingleton(TOKENS.SearchController, SearchController);
 }
 
 /**

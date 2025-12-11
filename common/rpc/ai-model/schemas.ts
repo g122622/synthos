@@ -1,0 +1,50 @@
+/**
+ * AI Model RPC Schemas
+ * 定义 RPC 接口的输入/输出类型
+ */
+import { z } from "zod";
+
+// ========== 搜索接口 ==========
+
+export const SearchInputSchema = z.object({
+    query: z.string().min(1, "查询内容不能为空"),
+    limit: z.number().int().positive().default(10)
+});
+
+export const SearchResultItemSchema = z.object({
+    topicId: z.string(),
+    topic: z.string(),
+    detail: z.string(),
+    distance: z.number(),
+    contributors: z.string()
+});
+
+export const SearchOutputSchema = z.array(SearchResultItemSchema);
+
+// ========== RAG 问答接口 ==========
+
+export const AskInputSchema = z.object({
+    question: z.string().min(1, "问题不能为空"),
+    topK: z.number().int().positive().default(5)
+});
+
+export const ReferenceItemSchema = z.object({
+    topicId: z.string(),
+    topic: z.string(),
+    relevance: z.number()
+});
+
+export const AskOutputSchema = z.object({
+    answer: z.string(),
+    references: z.array(ReferenceItemSchema)
+});
+
+// ========== 导出类型 ==========
+
+export type SearchInput = z.infer<typeof SearchInputSchema>;
+export type SearchResultItem = z.infer<typeof SearchResultItemSchema>;
+export type SearchOutput = z.infer<typeof SearchOutputSchema>;
+
+export type AskInput = z.infer<typeof AskInputSchema>;
+export type ReferenceItem = z.infer<typeof ReferenceItemSchema>;
+export type AskOutput = z.infer<typeof AskOutputSchema>;

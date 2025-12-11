@@ -16,6 +16,8 @@ import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { SemanticRater } from "./misc/SemanticRater";
 import { OllamaEmbeddingService } from "./embedding/OllamaEmbeddingService";
 import { VectorDBManager } from "./embedding/VectorDBManager";
+import { RagRPCImpl, startRAGRPCServer } from "./rpc/index";
+import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
 
 (async () => {
     // 初始化 DI 容器
@@ -412,6 +414,35 @@ import { VectorDBManager } from "./embedding/VectorDBManager";
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
+
+    // ========== 启动 RPC Server ==========
+
+    // 初始化 Ollama 嵌入服务（用于 RPC 查询）
+    const embeddingService = new OllamaEmbeddingService(
+        config.ai.embedding.ollamaBaseURL,
+        config.ai.embedding.model,
+        config.ai.embedding.dimension
+    );
+
+    // 初始化 TextGenerator（用于 RAG 问答）
+    const textGenerator = new TextGenerator();
+    await textGenerator.init();
+
+    // 创建 RPC 实现
+    const ragCtxBuilder = new RAGCtxBuilder();
+    await ragCtxBuilder.init();
+    const rpcImpl = new RagRPCImpl(
+        vectorDBManager,
+        embeddingService,
+        agcDBManager,
+        textGenerator,
+        config.ai.defaultModelName,
+        ragCtxBuilder
+    );
+
+    // 启动 RPC 服务器
+    const rpcPort = config.ai.rpc?.port || 7979;
+    startRAGRPCServer(rpcImpl, rpcPort);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

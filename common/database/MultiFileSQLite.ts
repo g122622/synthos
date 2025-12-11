@@ -208,6 +208,7 @@ class MultiFileSQLite extends Disposable {
         this.dbCache.clear();
         this.activeDBPath = null;
         this.activeDBTimestamp = null;
+        this.LOGGER.info("DB cache cleaned up.");
     }
 
     // ========== 迁移 ==========

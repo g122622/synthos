@@ -1,8 +1,10 @@
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
-import { ICtxBuilder } from "./@types/ICtxBuilder";
+import { ICtxBuilder } from "./contracts/ICtxBuilder";
 import { IMPromptStore } from "../prompts/IMPromptStore";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
+@mustInitBeforeUse
 export class IMSummaryCtxBuilder extends Disposable implements ICtxBuilder {
     async init(): Promise<void> {}
     async buildCtx(
