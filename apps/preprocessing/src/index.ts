@@ -69,7 +69,8 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                                 result,
                                 result.quotedMsgId
                                     ? await imdbManager.getRawChatMessageByMsgId(result.quotedMsgId)
-                                    : undefined
+                                    : undefined,
+                                result.quotedMsgContent
                             )
                         };
                     })
