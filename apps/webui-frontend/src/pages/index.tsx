@@ -17,7 +17,7 @@ export default function IndexPage() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8 w-full max-w-6xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8 w-full max-w-6xl">
                     <Card className="max-w-full">
                         <CardHeader>
                             <h3 className="text-xl font-bold">聊天记录管理</h3>
@@ -42,6 +42,20 @@ export default function IndexPage() {
                         <CardFooter>
                             <Button as={Link} color="primary" href="/ai-digest" variant="shadow">
                                 查看摘要结果
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
+                    <Card className="max-w-full">
+                        <CardHeader>
+                            <h3 className="text-xl font-bold">🔍 智能问答</h3>
+                        </CardHeader>
+                        <CardBody>
+                            <p className="text-default-500">基于群聊记录的语义搜索和AI问答，快速查找相关话题</p>
+                        </CardBody>
+                        <CardFooter>
+                            <Button as={Link} color="secondary" href="/rag" variant="shadow">
+                                开始问答
                             </Button>
                         </CardFooter>
                     </Card>

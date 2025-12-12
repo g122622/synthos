@@ -21,6 +21,10 @@ export const siteConfig = {
             href: "/latest-topics"
         },
         {
+            label: "🔍智能问答",
+            href: "/rag"
+        },
+        {
             label: "⚙️群组管理",
             href: "/groups"
         }
@@ -41,6 +45,10 @@ export const siteConfig = {
         {
             label: "🔥最新话题",
             href: "/latest-topics"
+        },
+        {
+            label: "🔍智能问答",
+            href: "/rag"
         },
         {
             label: "⚙️群组管理",

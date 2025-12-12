@@ -6,6 +6,7 @@ import IndexPage from "@/pages/index";
 import ChatMessagesPage from "@/pages/chat-messages";
 import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
+import RagPage from "@/pages/rag";
 
 function App() {
     return (
@@ -15,6 +16,7 @@ function App() {
             <Route element={<AIDigestPage />} path="/ai-digest" />
             <Route element={<GroupsPage />} path="/groups" />
             <Route element={<LatestTopicsPage />} path="/latest-topics" />
+            <Route element={<RagPage />} path="/rag" />
         </Routes>
     );
 }

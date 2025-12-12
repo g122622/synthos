@@ -1,0 +1,356 @@
+/**
+ * RAG 智能问答页面
+ * 提供语义搜索和 AI 问答功能
+ */
+import { useState, useCallback } from "react";
+import { Button } from "@heroui/button";
+import { Card, CardBody, CardHeader } from "@heroui/card";
+import { Input, Textarea } from "@heroui/input";
+import { Tabs, Tab } from "@heroui/tabs";
+import { Chip } from "@heroui/chip";
+import { Spinner } from "@heroui/spinner";
+import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Link } from "@heroui/link";
+import { Search, MessageSquare, Sparkles, BookOpen, Users } from "lucide-react";
+
+import DefaultLayout from "@/layouts/default";
+import { title, subtitle } from "@/components/primitives";
+import { search, ask, SearchResultItem, AskResponse } from "@/api/ragApi";
+
+export default function RagPage() {
+    // 搜索状态
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [searchLimit, setSearchLimit] = useState(10);
+
+    // 问答状态
+    const [question, setQuestion] = useState("");
+    const [askResponse, setAskResponse] = useState<AskResponse | null>(null);
+    const [askLoading, setAskLoading] = useState(false);
+    const [topK, setTopK] = useState(5);
+
+    // 当前 Tab
+    const [activeTab, setActiveTab] = useState("search");
+
+    // 处理搜索
+    const handleSearch = useCallback(async () => {
+        if (!searchQuery.trim()) return;
+
+        setSearchLoading(true);
+        try {
+            const response = await search(searchQuery, searchLimit);
+            if (response.success) {
+                setSearchResults(response.data);
+            } else {
+                console.error("搜索失败:", response.message);
+            }
+        } catch (error) {
+            console.error("搜索出错:", error);
+        } finally {
+            setSearchLoading(false);
+        }
+    }, [searchQuery, searchLimit]);
+
+    // 处理问答
+    const handleAsk = useCallback(async () => {
+        if (!question.trim()) return;
+
+        setAskLoading(true);
+        try {
+            const response = await ask(question, topK);
+            if (response.success) {
+                setAskResponse(response.data);
+            } else {
+                console.error("问答失败:", response.message);
+            }
+        } catch (error) {
+            console.error("问答出错:", error);
+        } finally {
+            setAskLoading(false);
+        }
+    }, [question, topK]);
+
+    // 渲染搜索结果卡片
+    const renderSearchResultCard = (item: SearchResultItem, index: number) => (
+        <Card key={item.topicId} className="w-full mb-4">
+            <CardHeader className="flex gap-3 pb-0">
+                <div className="flex flex-col flex-1">
+                    <div className="flex items-center gap-2">
+                        <Chip size="sm" color="primary" variant="flat">
+                            #{index + 1}
+                        </Chip>
+                        <p className="text-lg font-semibold">{item.topic}</p>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Users className="w-4 h-4 text-default-400" />
+                        <p className="text-small text-default-500">{item.contributors}</p>
+                    </div>
+                </div>
+                <Chip size="sm" color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} variant="flat">
+                    相关度: {Math.round((1 - item.distance) * 100)}%
+                </Chip>
+            </CardHeader>
+            <CardBody>
+                <p className="text-default-600">{item.detail}</p>
+                <div className="flex justify-end mt-2">
+                    <Link href={`/ai-digest?topicId=${item.topicId}`} className="text-primary text-sm">
+                        查看详情 →
+                    </Link>
+                </div>
+            </CardBody>
+        </Card>
+    );
+
+    // 渲染问答结果
+    const renderAskResult = () => {
+        if (!askResponse) return null;
+
+        return (
+            <div className="space-y-4">
+                {/* AI 回答 */}
+                <Card className="w-full">
+                    <CardHeader className="flex gap-3">
+                        <Sparkles className="w-6 h-6 text-primary" />
+                        <div className="flex flex-col">
+                            <p className="text-lg font-semibold">AI 回答</p>
+                            <p className="text-small text-default-500">基于群聊记录生成</p>
+                        </div>
+                    </CardHeader>
+                    <CardBody>
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                            {askResponse.answer.split("\n").map((line, index) => (
+                                <p key={index} className="mb-2 whitespace-pre-wrap">
+                                    {line}
+                                </p>
+                            ))}
+                        </div>
+                    </CardBody>
+                </Card>
+
+                {/* 参考来源 */}
+                {askResponse.references.length > 0 && (
+                    <Card className="w-full">
+                        <CardHeader className="flex gap-3">
+                            <BookOpen className="w-6 h-6 text-secondary" />
+                            <div className="flex flex-col">
+                                <p className="text-lg font-semibold">参考来源</p>
+                                <p className="text-small text-default-500">共 {askResponse.references.length} 个相关话题</p>
+                            </div>
+                        </CardHeader>
+                        <CardBody>
+                            <Accordion variant="bordered">
+                                {askResponse.references.map((ref, index) => (
+                                    <AccordionItem
+                                        key={ref.topicId}
+                                        aria-label={ref.topic}
+                                        title={
+                                            <div className="flex items-center justify-between w-full pr-4">
+                                                <span>{ref.topic}</span>
+                                                <Chip
+                                                    size="sm"
+                                                    color={ref.relevance > 0.8 ? "success" : ref.relevance > 0.6 ? "warning" : "default"}
+                                                    variant="flat"
+                                                >
+                                                    相关度: {Math.round(ref.relevance * 100)}%
+                                                </Chip>
+                                            </div>
+                                        }
+                                        startContent={
+                                            <Chip size="sm" color="secondary" variant="flat">
+                                                #{index + 1}
+                                            </Chip>
+                                        }
+                                    >
+                                        <div className="flex justify-end">
+                                            <Link href={`/ai-digest?topicId=${ref.topicId}`} className="text-primary text-sm">
+                                                查看话题详情 →
+                                            </Link>
+                                        </div>
+                                    </AccordionItem>
+                                ))}
+                            </Accordion>
+                        </CardBody>
+                    </Card>
+                )}
+            </div>
+        );
+    };
+
+    return (
+        <DefaultLayout>
+            <section className="flex flex-col items-center justify-start gap-4 py-8 md:py-10">
+                {/* 标题区域 */}
+                <div className="inline-block max-w-2xl text-center justify-center">
+                    <h1 className={title()}>RAG&nbsp;</h1>
+                    <h1 className={title({ color: "violet" })}>智能问答</h1>
+                    <div className={subtitle({ class: "mt-4" })}>基于群聊记录的语义搜索和 AI 问答系统，帮你快速找到相关话题或获取智能回答</div>
+                </div>
+
+                {/* Tab 切换 */}
+                <div className="w-full max-w-4xl mt-6">
+                    <Tabs
+                        aria-label="RAG功能选项"
+                        color="primary"
+                        variant="bordered"
+                        selectedKey={activeTab}
+                        onSelectionChange={key => setActiveTab(key as string)}
+                        classNames={{
+                            tabList: "w-full justify-center"
+                        }}
+                    >
+                        {/* 搜索 Tab */}
+                        <Tab
+                            key="search"
+                            title={
+                                <div className="flex items-center gap-2">
+                                    <Search className="w-4 h-4" />
+                                    <span>语义搜索</span>
+                                </div>
+                            }
+                        >
+                            <div className="mt-6 space-y-6">
+                                {/* 搜索输入区 */}
+                                <Card className="w-full">
+                                    <CardBody className="gap-4">
+                                        <div className="flex gap-4 flex-col sm:flex-row">
+                                            <Input
+                                                className="flex-1"
+                                                placeholder="输入搜索内容，如：React 性能优化"
+                                                value={searchQuery}
+                                                onChange={e => setSearchQuery(e.target.value)}
+                                                onKeyDown={e => e.key === "Enter" && handleSearch()}
+                                                startContent={<Search className="w-4 h-4 text-default-400" />}
+                                                size="lg"
+                                            />
+                                            <Input
+                                                type="number"
+                                                label="结果数量"
+                                                className="w-full sm:w-28"
+                                                value={searchLimit.toString()}
+                                                onChange={e => setSearchLimit(parseInt(e.target.value) || 10)}
+                                                min={1}
+                                                max={50}
+                                                size="lg"
+                                            />
+                                        </div>
+                                        <Button
+                                            color="primary"
+                                            size="lg"
+                                            className="w-full sm:w-auto"
+                                            onClick={handleSearch}
+                                            isLoading={searchLoading}
+                                            startContent={!searchLoading && <Search className="w-4 h-4" />}
+                                        >
+                                            搜索
+                                        </Button>
+                                    </CardBody>
+                                </Card>
+
+                                {/* 搜索结果 */}
+                                {searchLoading && (
+                                    <div className="flex justify-center py-8">
+                                        <Spinner size="lg" label="搜索中..." />
+                                    </div>
+                                )}
+
+                                {!searchLoading && searchResults.length > 0 && (
+                                    <div>
+                                        <h3 className="text-lg font-semibold mb-4">
+                                            找到 {searchResults.length} 个相关话题
+                                        </h3>
+                                        {searchResults.map((item, index) => renderSearchResultCard(item, index))}
+                                    </div>
+                                )}
+
+                                {!searchLoading && searchQuery && searchResults.length === 0 && (
+                                    <div className="text-center py-8 text-default-500">未找到相关话题，请尝试其他关键词</div>
+                                )}
+                            </div>
+                        </Tab>
+
+                        {/* 问答 Tab */}
+                        <Tab
+                            key="ask"
+                            title={
+                                <div className="flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4" />
+                                    <span>AI 问答</span>
+                                </div>
+                            }
+                        >
+                            <div className="mt-6 space-y-6">
+                                {/* 问答输入区 */}
+                                <Card className="w-full">
+                                    <CardBody className="gap-4">
+                                        <Textarea
+                                            placeholder="输入你的问题，如：React 18 有哪些新特性？群友们是怎么看的？"
+                                            value={question}
+                                            onChange={e => setQuestion(e.target.value)}
+                                            minRows={3}
+                                            size="lg"
+                                        />
+                                        <div className="flex gap-4 items-end flex-col sm:flex-row">
+                                            <Input
+                                                type="number"
+                                                label="参考话题数"
+                                                className="w-full sm:w-32"
+                                                value={topK.toString()}
+                                                onChange={e => setTopK(parseInt(e.target.value) || 5)}
+                                                min={1}
+                                                max={10}
+                                                size="lg"
+                                            />
+                                            <Button
+                                                color="secondary"
+                                                size="lg"
+                                                className="w-full sm:w-auto"
+                                                onClick={handleAsk}
+                                                isLoading={askLoading}
+                                                startContent={!askLoading && <Sparkles className="w-4 h-4" />}
+                                            >
+                                                获取 AI 回答
+                                            </Button>
+                                        </div>
+                                    </CardBody>
+                                </Card>
+
+                                {/* 问答结果 */}
+                                {askLoading && (
+                                    <div className="flex justify-center py-8">
+                                        <Spinner size="lg" label="AI 正在思考中..." />
+                                    </div>
+                                )}
+
+                                {!askLoading && askResponse && renderAskResult()}
+
+                                {!askLoading && question && !askResponse && (
+                                    <div className="text-center py-8 text-default-500">点击 "获取 AI 回答" 按钮开始问答</div>
+                                )}
+                            </div>
+                        </Tab>
+                    </Tabs>
+                </div>
+
+                {/* 功能说明 */}
+                <div className="w-full max-w-4xl mt-8">
+                    <Card className="w-full bg-default-50">
+                        <CardBody>
+                            <h3 className="text-lg font-semibold mb-3">💡 使用说明</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-default-600">
+                                <div>
+                                    <p className="font-medium mb-1">🔍 语义搜索</p>
+                                    <p>输入关键词或自然语言描述，系统会找出语义最相关的群聊话题。支持模糊匹配和同义词理解。</p>
+                                </div>
+                                <div>
+                                    <p className="font-medium mb-1">💬 AI 问答</p>
+                                    <p>直接提问，AI 会基于群聊记录中的相关内容生成回答，并列出参考来源。</p>
+                                </div>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+            </section>
+        </DefaultLayout>
+    );
+}
