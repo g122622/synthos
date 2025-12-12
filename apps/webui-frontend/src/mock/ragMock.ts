@@ -10,64 +10,56 @@ const mockTopics: SearchResultItem[] = [
     {
         topicId: "topic-001",
         topic: "React 18 新特性讨论",
-        detail:
-            "群友们讨论了 React 18 的新特性，包括 Concurrent Mode、Suspense 改进、自动批处理等。大家普遍认为新的并发渲染机制能够显著提升用户体验，但同时也带来了一些学习成本。",
+        detail: "群友们讨论了 React 18 的新特性，包括 Concurrent Mode、Suspense 改进、自动批处理等。大家普遍认为新的并发渲染机制能够显著提升用户体验，但同时也带来了一些学习成本。",
         distance: 0.15,
         contributors: "张三, 李四, 王五"
     },
     {
         topicId: "topic-002",
         topic: "TypeScript 类型体操技巧",
-        detail:
-            "分享了一些高级 TypeScript 类型技巧，如条件类型、映射类型、模板字面量类型等。讨论了如何在实际项目中合理使用这些特性，避免过度复杂化代码。",
+        detail: "分享了一些高级 TypeScript 类型技巧，如条件类型、映射类型、模板字面量类型等。讨论了如何在实际项目中合理使用这些特性，避免过度复杂化代码。",
         distance: 0.22,
         contributors: "李四, 赵六"
     },
     {
         topicId: "topic-003",
         topic: "前端性能优化实践",
-        detail:
-            "讨论了前端性能优化的各种方案，包括代码分割、懒加载、虚拟滚动、图片优化等。分享了使用 Lighthouse 进行性能审计的经验。",
+        detail: "讨论了前端性能优化的各种方案，包括代码分割、懒加载、虚拟滚动、图片优化等。分享了使用 Lighthouse 进行性能审计的经验。",
         distance: 0.28,
         contributors: "王五, 钱七, 孙八"
     },
     {
         topicId: "topic-004",
         topic: "Vite vs Webpack 构建工具对比",
-        detail:
-            "对比了 Vite 和 Webpack 两种构建工具的优缺点。Vite 在开发环境下启动速度更快，但 Webpack 生态更加成熟。讨论了不同场景下的选择建议。",
+        detail: "对比了 Vite 和 Webpack 两种构建工具的优缺点。Vite 在开发环境下启动速度更快，但 Webpack 生态更加成熟。讨论了不同场景下的选择建议。",
         distance: 0.32,
         contributors: "张三, 周九"
     },
     {
         topicId: "topic-005",
         topic: "Node.js 后端架构设计",
-        detail:
-            "讨论了 Node.js 后端项目的架构设计，包括分层架构、依赖注入、错误处理、日志记录等最佳实践。推荐了 NestJS 框架作为企业级应用的选择。",
+        detail: "讨论了 Node.js 后端项目的架构设计，包括分层架构、依赖注入、错误处理、日志记录等最佳实践。推荐了 NestJS 框架作为企业级应用的选择。",
         distance: 0.35,
         contributors: "李四, 吴十"
     },
     {
         topicId: "topic-006",
         topic: "CSS 现代布局技术",
-        detail:
-            "分享了 CSS Grid 和 Flexbox 的高级用法，讨论了响应式设计的最佳实践。介绍了 Container Queries 等新特性。",
+        detail: "分享了 CSS Grid 和 Flexbox 的高级用法，讨论了响应式设计的最佳实践。介绍了 Container Queries 等新特性。",
         distance: 0.38,
         contributors: "赵六, 钱七"
     },
     {
         topicId: "topic-007",
         topic: "AI 辅助编程工具体验",
-        detail:
-            "讨论了 GitHub Copilot、ChatGPT 等 AI 辅助编程工具的使用体验。大家分享了各自的使用技巧和注意事项，认为 AI 工具能显著提升开发效率。",
+        detail: "讨论了 GitHub Copilot、ChatGPT 等 AI 辅助编程工具的使用体验。大家分享了各自的使用技巧和注意事项，认为 AI 工具能显著提升开发效率。",
         distance: 0.41,
         contributors: "张三, 王五, 周九"
     },
     {
         topicId: "topic-008",
         topic: "微前端架构实践",
-        detail:
-            "讨论了微前端架构的实现方案，包括 qiankun、Module Federation 等。分析了微前端的适用场景和潜在问题。",
+        detail: "讨论了微前端架构的实现方案，包括 qiankun、Module Federation 等。分析了微前端的适用场景和潜在问题。",
         distance: 0.45,
         contributors: "李四, 孙八"
     }
@@ -165,6 +157,7 @@ export const mockSearch = async (query: string, limit: number = 10): Promise<Api
     const results = mockTopics
         .filter(topic => {
             const text = `${topic.topic} ${topic.detail}`.toLowerCase();
+
             return keywords.some(keyword => text.includes(keyword));
         })
         .slice(0, limit);
@@ -189,6 +182,7 @@ export const mockAsk = async (question: string, topK: number = 5): Promise<ApiRe
 
     // 根据问题关键词选择合适的回答
     let response: AskResponse;
+
     if (lowerQuestion.includes("react")) {
         response = mockAnswers.react;
     } else if (lowerQuestion.includes("typescript") || lowerQuestion.includes("类型")) {

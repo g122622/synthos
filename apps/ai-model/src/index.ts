@@ -407,7 +407,7 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
             config = await configManagerService.getCurrentConfig(); // 刷新配置
 
             await agendaInstance.now(TaskHandlerTypes.GenerateEmbedding, {
-                startTimeStamp: getHoursAgoTimestamp(24 * 3), // 3天前
+                startTimeStamp: getHoursAgoTimestamp(24 * 365),
                 endTimeStamp: Date.now() // 现在
             });
 

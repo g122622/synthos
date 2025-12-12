@@ -48,6 +48,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - [WIP] 主动拉取历史聊天记录（⚠️目前技术实现遇到困难）
 > - [WIP] 每天生成日报  
 > - ✅ 已完成 兴趣度指数：用户给出自己的兴趣偏好（关键词标签组），系统根据用户的兴趣偏好为每个话题打分，排序后推荐给用户。（用户也可以标记不喜欢的话题，此时话题得分为负数）
+> - ✅ 已完成 向量嵌入与语义检索：基于 Ollama + bge-m3 生成话题向量嵌入，支持 RAG 语义搜索
 
 ---
 
@@ -57,8 +58,11 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 
 - **🧑‍💻语言**：TypeScript + Node.js（未来可能引入 Python + grpc 🤔?）
 - **🎯项目管理**：Pnpm + Monorepo  
-- **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储）
-- **🧐向量语义模型**：`bge-large-zh-v1.5`（本地 ONNX 向量化），用于兴趣打分和 RAG
+- **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
+- **🧐向量语义模型**：
+  - `bge-large-zh-v1.5`（本地 ONNX 向量化），用于兴趣打分
+  - `bge-m3`（Ollama 部署，1024维），用于 RAG 向量检索
+- **📦向量数据库**：基于 better-sqlite3 + sqlite-vec 的轻量级向量存储方案
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
 - **🕗任务调度与编排框架**：Agenda
 - **🧪测试框架**：Vitest  
@@ -71,7 +75,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 |------|------|
 | `data-provider` | 从 QQ 等 IM 平台获取原始聊天记录 |
 | `preprocessing` | 清洗、分组、上下文拼接、引用解析 |
-| `ai-model` | 文本向量化、主题提取、摘要生成、兴趣度计算 |
+| `ai-model` | 文本向量化、主题提取、摘要生成、兴趣度计算、向量嵌入存储与检索（RAG） |
 | `webui-backend` | 提供 RESTful API，支持群组管理、消息查询、结果获取 |
 | `common` | 共享类型定义、配置管理、数据库工具、日志系统 |
 
@@ -79,11 +83,12 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 
 ## 快速开始
 
-> ⚠️ **硬件要求**  
+> ⚠️ **推荐硬件配置**  
 >
-> - 由于需在本地运行 BGE 向量模型（峰值内存占用约 11GB），加上 MongoDB、Node 进程和 SQLite 实例，**建议内存 ≥16GB，推荐 32GB 或 64GB**。
-> - CPU 随意。
-> - 够用的硬盘空间。
+> - 由于需在本地运行 BGE 向量模型（峰值内存占用约 11GB）以及 Ollama 服务，加上 MongoDB、Node 进程和 SQLite 实例，**建议内存 ≥16GB，推荐 32GB 或 64GB**。
+> - 中高端 CPU
+> - 支持 CUDA 的 GPU
+> - 够用的硬盘空间（Ollama 模型约需 2-10GB，取决于使用的模型）。
 
 ![硬件要求](./docs/assets/hardware.png)
 
@@ -108,13 +113,56 @@ https://huggingface.co/Xenova/bge-large-zh-v1.5/resolve/main/onnx/model.onnx
 根目录/node_modules/.pnpm/@huggingface+transformers@3.7.6/node_modules/@huggingface/transformers/.cache/Xenova/bge-large-zh-v1.5/onnx/
 ```
 
+#### 安装 Ollama 并下载 bge-m3 模型（用于 RAG 向量检索）
+
+项目使用 Ollama 部署 `bge-m3` 模型生成 1024 维嵌入向量，用于话题的语义检索。
+
+1. **安装 Ollama**：访问 [Ollama 官网](https://ollama.ai/) 下载并安装
+
+2. **拉取 bge-m3 模型**：
+
+```bash
+ollama pull bge-m3
+```
+
+3. **确保 Ollama 服务运行**：默认监听 `http://localhost:11434`
+
+> 💡 **提示**：Ollama 服务会在系统启动时自动运行。如需手动启动，执行 `ollama serve`。
+
 #### 准备配置文件
 
 在项目根目录创建 `synthos_config.json`，格式请参考 [`./common/config/@types/GlobalConfig.ts`](d:\FR_Projects\synthos\common\config\@types\GlobalConfig.ts)。  
 QQ 数据库密钥配置方法详见：[https://docs.aaqwq.top/](https://docs.aaqwq.top/)
 
-> 💡 **运维建议**：数据无价，项目运行中产生的 SQLite 和 LevelDB 数据库建议定期执行“3-2-1”备份策略（3份副本、2种介质、1份异地），防止数据丢失。
+附：**向量嵌入相关配置示例**（配置文件中的 `ai.embedding` 和 `ai.rpc` 部分）：
 
+```json
+{
+  "ai": {
+    "embedding": {
+      "ollamaBaseURL": "http://localhost:11434",
+      "model": "bge-m3",
+      "batchSize": 10,
+      "vectorDBPath": "./data/vectors.db",
+      "dimension": 1024
+    },
+    "rpc": {
+      "port": 7979
+    }
+  }
+}
+```
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| `ollamaBaseURL` | Ollama 服务地址 | `http://localhost:11434` |
+| `model` | 嵌入模型名称 | `bge-m3` |
+| `batchSize` | 批量生成向量的大小 | `10` |
+| `vectorDBPath` | 向量数据库存储路径 | - |
+| `dimension` | 向量维度（需与模型匹配） | `1024` |
+| `rpc.port` | RAG RPC 服务端口 | `7979` |
+
+> 💡 **运维建议**：数据无价，项目运行中产生的 SQLite、LevelDB 数据库以及向量数据库建议定期执行"3-2-1"备份策略（3份副本、2种介质、1份异地），防止数据丢失。
 ### 2. 启动项目
 
 ```bash
