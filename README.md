@@ -1,5 +1,7 @@
 # Synthos：智能聊天记录全链路分析系统
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/g122622/synthos)
+
 ## 项目简介
 
 Synthos 是一个基于 `Node.js` 和 `TypeScript` 构建的智能聊天记录分析系统，专注于 QQ 聊天记录的全链路数据处理与 AI 总结功能。项目采用现代化的 Monorepo 架构，融合自然语言处理、向量模型、任务调度与 Web 前端展示，为用户提供从原始聊天记录导入、上下文理解、兴趣度分析到可视化摘要输出的一站式解决方案。
