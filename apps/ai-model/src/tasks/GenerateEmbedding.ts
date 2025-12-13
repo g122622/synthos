@@ -8,6 +8,7 @@ import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { VectorDBManager } from "../embedding/VectorDBManager";
+import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 
 export async function setupGenerateEmbeddingTask(
     imdbManager: IMDBManager,
@@ -35,6 +36,7 @@ export async function setupGenerateEmbeddingTask(
                 config.ai.embedding.model,
                 config.ai.embedding.dimension
             );
+            LOGGER.success(`Ollama 服务初始化完成，模型: ${config.ai.embedding.model}`);
 
             // 检查 Ollama 服务是否可用
             if (!(await embeddingService.isAvailable())) {
@@ -67,30 +69,30 @@ export async function setupGenerateEmbeddingTask(
             const allTopicIds = digestResults.map(r => r.topicId);
             const topicIdsWithoutEmbedding = vectorDBManager.filterWithoutEmbedding(allTopicIds);
             LOGGER.info(`其中 ${topicIdsWithoutEmbedding.length} 条需要生成嵌入向量`);
-
             if (topicIdsWithoutEmbedding.length === 0) {
                 LOGGER.info("没有需要生成嵌入的话题，任务完成");
                 return;
             }
 
-            // 构建待处理的 digest 映射
+            // 构建待处理的 digest 映射 && 进行数据清洗
             const digestMap = new Map<string, AIDigestResult>();
             for (const digest of digestResults) {
-                digestMap.set(digest.topicId, digest);
+                digestMap.set(digest.topicId, anonymizeDigestDetail(digest));
             }
 
-            // 按批次处理
+            // 开始处理。按批次处理
             const batchSize = config.ai.embedding.batchSize;
             for (let i = 0; i < topicIdsWithoutEmbedding.length; i += batchSize) {
                 await job.touch(); // 保证任务存活
 
-                const batchTopicIds = topicIdsWithoutEmbedding.slice(i, i + batchSize);
+                const currentBatchTopicIds = topicIdsWithoutEmbedding.slice(i, i + batchSize);
                 LOGGER.info(
-                    `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(topicIdsWithoutEmbedding.length / batchSize)}，共 ${batchTopicIds.length} 条`
+                    `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(topicIdsWithoutEmbedding.length / batchSize)}，
+                    当前批次共 ${currentBatchTopicIds.length} 条`
                 );
 
                 // 构建输入文本
-                const texts = batchTopicIds.map(topicId => {
+                const texts = currentBatchTopicIds.map(topicId => {
                     const digest = digestMap.get(topicId)!;
                     return `话题：${digest.topic} 正文内容：${digest.detail}`;
                 });
@@ -100,7 +102,7 @@ export async function setupGenerateEmbeddingTask(
                     const embeddings = await embeddingService.embedBatch(texts);
 
                     // 批量存储
-                    const items = batchTopicIds.map((topicId, idx) => ({
+                    const items = currentBatchTopicIds.map((topicId, idx) => ({
                         topicId,
                         embedding: embeddings[idx]
                     }));
