@@ -9,7 +9,7 @@ interface GroupConfig {
     IM: "QQ" | "WeChat";
     splitStrategy: "realtime" | "accumulative"; // 消息分割策略
     groupIntroduction: string; // 群简介，用于拼接在context里面
-    aiModel: string | undefined; // 要使用的AI模型名。必须在ai.models里面有对应的配置
+    aiModels: string[]; // 要使用的AI模型名。必须在ai.models里面有对应的配置。使用的时候会从第一个开始尝试，如果失败了就会尝试下一个。
 }
 
 export interface UserInterest {
@@ -49,6 +49,7 @@ export interface GlobalConfig {
         models: Record<string, ModelConfig>;
         defaultModelConfig: ModelConfig;
         defaultModelName: string;
+        pinnedModels: string[]; // 固定的模型列表，优先级最高，会最先尝试
         // 总结任务的配置
         summarize: {
             agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
