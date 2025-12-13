@@ -3,8 +3,8 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import Logger from "@root/common/util/Logger";
 import { getConfigManagerService } from "@root/common/di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
-import { TextGenerator } from "@/generators/text/TextGenerator";
-import { IMSummaryCtxBuilder } from "@/context/ctxBuilders/IMSummaryCtxBuilder";
+import { TextGenerator } from "../generators/text/TextGenerator";
+import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";

@@ -6,7 +6,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
-import { SemanticRater } from "@/misc/SemanticRater";
+import { SemanticRater } from "../misc/SemanticRater";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 
 export async function setupInterestScoreTask(

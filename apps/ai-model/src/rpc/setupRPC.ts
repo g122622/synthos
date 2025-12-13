@@ -1,9 +1,9 @@
-import { OllamaEmbeddingService } from "@/embedding/OllamaEmbeddingService";
+import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { startRAGRPCServer } from "./server";
-import { TextGenerator } from "@/generators/text/TextGenerator";
-import { RAGCtxBuilder } from "@/context/ctxBuilders/RAGCtxBuilder";
-import { RagRPCImpl } from "@/rag/RagRPCImpl";
-import { VectorDBManager } from "@/embedding/VectorDBManager";
+import { TextGenerator } from "../generators/text/TextGenerator";
+import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { RagRPCImpl } from "../rag/RagRPCImpl";
+import { VectorDBManager } from "../embedding/VectorDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { getConfigManagerService } from "@root/common/di/container";
 

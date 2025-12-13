@@ -6,8 +6,8 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
-import { OllamaEmbeddingService } from "@/embedding/OllamaEmbeddingService";
-import { VectorDBManager } from "@/embedding/VectorDBManager";
+import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
+import { VectorDBManager } from "../embedding/VectorDBManager";
 
 export async function setupGenerateEmbeddingTask(
     imdbManager: IMDBManager,
