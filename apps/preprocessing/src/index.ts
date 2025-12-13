@@ -53,6 +53,8 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                         break;
                     }
                 }
+
+                // 开始消息分割，分配sessionId
                 await splitter.init();
                 const results = await Promise.all(
                     (
@@ -77,6 +79,9 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                 );
                 await imdbManager.storeProcessedChatMessages(results);
                 await splitter.dispose();
+
+                LOGGER.success(`为群${groupId}分配了${results.length}条消息`);
+                await job.touch(); // 保活
             }
 
             await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchAISummarize);

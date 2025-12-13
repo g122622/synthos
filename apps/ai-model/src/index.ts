@@ -80,7 +80,7 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
                         return true;
                     }
                 });
-                LOGGER.debug(`群 ${groupId} 成功获取到 ${msgs.length} 条有效消息`);
+                LOGGER.info(`群 ${groupId} 成功获取到 ${msgs.length} 条有效消息`);
 
                 /* 按照 sessionId 分组 */
                 const sessions: Record<string, ProcessedChatMessageWithRawMessage[]> = {};
@@ -102,33 +102,37 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
                 const newestSessionId = msgs[msgs.length - 1].sessionId;
                 delete sessions[newestSessionId];
                 LOGGER.debug(`删掉了最后一个sessionId为 ${newestSessionId} 的session`);
-                LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个需要处理的sessionId组`);
+                LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个需要处理的session`);
 
                 /* 遍历每个session */
                 for (const sessionId in sessions) {
                     await job.touch(); // 保证任务存活
-
-                    LOGGER.info(
-                        `开始处理session ${sessionId}，共 ${sessions[sessionId].length} 条消息`
-                    );
-                    if (sessions[sessionId].length <= 1) {
-                        LOGGER.warning(
-                            `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
-                        );
-                        continue;
-                    }
-
-                    const ctx = await ctxBuilder.buildCtx(
-                        sessions[sessionId],
-                        config.groupConfigs[groupId].groupIntroduction
-                    );
-                    LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
-                    const resultStr = await textGenerator.generateText(
-                        config.groupConfigs[groupId].aiModel!,
-                        ctx
-                    );
-                    let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
                     try {
+                        LOGGER.info(
+                            `开始处理session ${sessionId}，该session内共由 ${sessions[sessionId].length} 条消息`
+                        );
+                        if (sessions[sessionId].length <= 3) {
+                            LOGGER.warning(
+                                `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
+                            );
+                            continue;
+                        }
+
+                        // 1. 构建上下文
+                        const ctx = await ctxBuilder.buildCtx(
+                            sessions[sessionId],
+                            config.groupConfigs[groupId].groupIntroduction
+                        );
+                        LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
+
+                        // 2. 调用大模型生成摘要
+                        const resultStr = await textGenerator.generateText(
+                            config.groupConfigs[groupId].aiModel!,
+                            ctx
+                        );
+                        let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
+
+                        // 3. 解析llm回传的json结果
                         results = JSON.parse(resultStr);
                         LOGGER.success(
                             `session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
@@ -140,24 +144,21 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
                             console.log(resultStr);
                             continue;
                         }
+
+                        // 4. 遍历ai生成的结果数组，添加sessionId、topicId，并解析contributors
+                        for (const result of results) {
+                            Object.assign(result, { sessionId }); // 添加 sessionId
+                            result.contributors = JSON.stringify(result.contributors); // 转换为字符串
+                            Object.assign(result, { topicId: getRandomHash(16) });
+                        }
+
+                        // 5. 存储摘要结果
+                        await agcDBManager.storeAIDigestResults(results as AIDigestResult[]);
+                        LOGGER.success(`session ${sessionId} 存储摘要成功！`);
                     } catch (error) {
-                        LOGGER.error(
-                            `session ${sessionId} 解析llm回传的json结果失败：${error}，跳过当前会话`
-                        );
-                        LOGGER.error(`原始请求ctx为：`);
-                        console.log(ctx);
-                        LOGGER.error(`原始响应为：`);
-                        console.log(resultStr);
+                        LOGGER.error(`session ${sessionId} 生成摘要失败，错误信息为：${error}, 跳过该session`);
                         continue; // 跳过当前会话
                     }
-                    // 遍历这个session下的每个话题，增加必要的字段
-                    for (const result of results) {
-                        Object.assign(result, { sessionId }); // 添加 sessionId
-                        result.contributors = JSON.stringify(result.contributors); // 转换为字符串
-                        Object.assign(result, { topicId: getRandomHash(16) });
-                    }
-                    await agcDBManager.storeAIDigestResults(results as AIDigestResult[]);
-                    LOGGER.success(`session ${sessionId} 存储摘要成功！`);
                 }
             }
 
@@ -183,7 +184,7 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
 
             await agendaInstance.now(TaskHandlerTypes.AISummarize, {
                 groupIds: Object.keys(config.groupConfigs),
-                startTimeStamp: getHoursAgoTimestamp(24), // 24小时前
+                startTimeStamp: getHoursAgoTimestamp(24 * 30), // 30天前
                 endTimeStamp: Date.now() // 现在
             });
 
@@ -195,6 +196,8 @@ import { RAGCtxBuilder } from "./context/ctxBuilders/RAGCtxBuilder";
             lockLifetime: 10 * 60 * 1000 // 10分钟
         }
     );
+
+    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchAISummarize);
 
     await agendaInstance
         .create(TaskHandlerTypes.InterestScore)

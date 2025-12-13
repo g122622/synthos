@@ -14,7 +14,7 @@ export const agendaInstance = new Agenda({
     },
     processEvery: "10 seconds", // 每10秒检查一次待处理任务
     maxConcurrency: 1,
-    defaultLockLifetime: 60000 // 锁定1分钟防止崩溃后重复执行
+    defaultLockLifetime: 60000 * 10 // 任务默认锁定时间为10分钟，如想延长，可以调用job.touch()
 });
 
 agendaInstance.on("ready", () => {
