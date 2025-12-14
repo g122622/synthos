@@ -55,7 +55,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, showCopyBu
                         </div>
                     ),
                     th: ({ node, ...props }) => <th className="border border-gray-300 px-4 py-2 bg-gray-100 dark:bg-gray-800" {...props} />,
-                    td: ({ node, ...props }) => <td className="border border-gray-300 px-4 py-2" {...props} />
+                    td: ({ node, ...props }) => <td className="border border-gray-300 px-4 py-2" {...props} />,
+                    // 灰色分割线
+                    hr: ({ node, ...props }) => <hr className="my-3 border-gray-300" {...props} />
                 }}
                 remarkPlugins={[remarkGfm]}
             >

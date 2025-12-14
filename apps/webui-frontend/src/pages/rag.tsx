@@ -2,7 +2,7 @@
  * RAG 智能问答页面
  * 提供语义搜索和 AI 问答功能
  */
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input, Textarea } from "@heroui/input";
@@ -70,15 +70,13 @@ export default function RagPage() {
 
             if (response.success) {
                 setAskResponse(response.data);
-                
+
                 // 获取话题的收藏和已读状态
                 const topicIds = response.data.references.map(ref => ref.topicId);
+
                 if (topicIds.length > 0) {
                     try {
-                        const [favoriteRes, readRes] = await Promise.all([
-                            getTopicsFavoriteStatus(topicIds),
-                            getTopicsReadStatus(topicIds)
-                        ]);
+                        const [favoriteRes, readRes] = await Promise.all([getTopicsFavoriteStatus(topicIds), getTopicsReadStatus(topicIds)]);
 
                         // 检查API返回的数据结构并相应处理
                         if (favoriteRes.success && favoriteRes.data) {
@@ -122,14 +120,7 @@ export default function RagPage() {
 
     // 渲染搜索结果卡片
     const renderSearchResultCard = (item: SearchResultItem, index: number) => (
-        <TopicPopover
-            key={item.topicId}
-            topicId={item.topicId}
-            favoriteTopics={favoriteTopics}
-            readTopics={readTopics}
-            onToggleFavorite={toggleFavorite}
-            onMarkAsRead={markAsRead}
-        >
+        <TopicPopover key={item.topicId} favoriteTopics={favoriteTopics} readTopics={readTopics} topicId={item.topicId} onMarkAsRead={markAsRead} onToggleFavorite={toggleFavorite}>
             <Card key={item.topicId} className="w-full mb-4">
                 <CardHeader className="flex gap-3 pb-0">
                     <div className="flex flex-col flex-1">
@@ -168,14 +159,14 @@ export default function RagPage() {
             <div className="space-y-4">
                 {/* AI 回答 */}
                 <Card className="w-full">
-                    <CardHeader className="flex gap-3">
+                    <CardHeader className="flex gap-3 pl-7 pt-5">
                         <Sparkles className="w-6 h-6 text-primary" />
                         <div className="flex flex-col">
                             <p className="text-lg font-semibold">AI 回答</p>
                             <p className="text-small text-default-500">基于群聊记录生成</p>
                         </div>
                     </CardHeader>
-                    <CardBody>
+                    <CardBody className="p-7 pt-3">
                         <MarkdownRenderer content={askResponse.answer} />
                     </CardBody>
                 </Card>
@@ -203,13 +194,7 @@ export default function RagPage() {
                                         }
                                         title={
                                             <div className="flex items-center justify-between w-full pr-4">
-                                                <TopicPopover
-                                                    topicId={ref.topicId}
-                                                    favoriteTopics={favoriteTopics}
-                                                    readTopics={readTopics}
-                                                    onToggleFavorite={toggleFavorite}
-                                                    onMarkAsRead={markAsRead}
-                                                >
+                                                <TopicPopover favoriteTopics={favoriteTopics} readTopics={readTopics} topicId={ref.topicId} onMarkAsRead={markAsRead} onToggleFavorite={toggleFavorite}>
                                                     <span className="cursor-pointer">{ref.topic}</span>
                                                 </TopicPopover>
                                                 <Chip color={ref.relevance > 0.8 ? "success" : ref.relevance > 0.6 ? "warning" : "default"} size="sm" variant="flat">
