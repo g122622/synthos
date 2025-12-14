@@ -2,7 +2,7 @@
  * RAG 智能问答页面
  * 提供语义搜索和 AI 问答功能
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input, Textarea } from "@heroui/input";
@@ -16,6 +16,9 @@ import { Search, MessageSquare, Sparkles, BookOpen, Users } from "lucide-react";
 import DefaultLayout from "@/layouts/default";
 import { title, subtitle } from "@/components/primitives";
 import { search, ask, SearchResultItem, AskResponse } from "@/api/ragApi";
+import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
+import TopicPopover from "@/components/TopicPopover";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default function RagPage() {
     // 搜索状态
@@ -32,6 +35,10 @@ export default function RagPage() {
 
     // 当前 Tab
     const [activeTab, setActiveTab] = useState("search");
+
+    // 收藏和已读状态
+    const [favoriteTopics, setFavoriteTopics] = useState<Record<string, boolean>>({});
+    const [readTopics, setReadTopics] = useState<Record<string, boolean>>({});
 
     // 处理搜索
     const handleSearch = useCallback(async () => {
@@ -63,6 +70,30 @@ export default function RagPage() {
 
             if (response.success) {
                 setAskResponse(response.data);
+                
+                // 获取话题的收藏和已读状态
+                const topicIds = response.data.references.map(ref => ref.topicId);
+                if (topicIds.length > 0) {
+                    try {
+                        const [favoriteRes, readRes] = await Promise.all([
+                            getTopicsFavoriteStatus(topicIds),
+                            getTopicsReadStatus(topicIds)
+                        ]);
+
+                        // 检查API返回的数据结构并相应处理
+                        if (favoriteRes.success && favoriteRes.data) {
+                            // 直接使用返回的数据，它已经是Record<string, boolean>格式
+                            setFavoriteTopics(prev => ({ ...prev, ...favoriteRes.data }));
+                        }
+
+                        if (readRes.success && readRes.data) {
+                            // 直接使用返回的数据，它已经是Record<string, boolean>格式
+                            setReadTopics(prev => ({ ...prev, ...readRes.data }));
+                        }
+                    } catch (error) {
+                        console.error("获取话题状态失败:", error);
+                    }
+                }
             } else {
                 console.error("问答失败:", response.message);
             }
@@ -73,35 +104,60 @@ export default function RagPage() {
         }
     }, [question, topK]);
 
+    // 切换收藏状态
+    const toggleFavorite = useCallback((topicId: string) => {
+        setFavoriteTopics(prev => ({
+            ...prev,
+            [topicId]: !prev[topicId]
+        }));
+    }, []);
+
+    // 标记为已读
+    const markAsRead = useCallback((topicId: string) => {
+        setReadTopics(prev => ({
+            ...prev,
+            [topicId]: true
+        }));
+    }, []);
+
     // 渲染搜索结果卡片
     const renderSearchResultCard = (item: SearchResultItem, index: number) => (
-        <Card key={item.topicId} className="w-full mb-4">
-            <CardHeader className="flex gap-3 pb-0">
-                <div className="flex flex-col flex-1">
-                    <div className="flex items-center gap-2">
-                        <Chip color="primary" size="sm" variant="flat">
-                            #{index + 1}
-                        </Chip>
-                        <p className="text-lg font-semibold">{item.topic}</p>
+        <TopicPopover
+            key={item.topicId}
+            topicId={item.topicId}
+            favoriteTopics={favoriteTopics}
+            readTopics={readTopics}
+            onToggleFavorite={toggleFavorite}
+            onMarkAsRead={markAsRead}
+        >
+            <Card key={item.topicId} className="w-full mb-4">
+                <CardHeader className="flex gap-3 pb-0">
+                    <div className="flex flex-col flex-1">
+                        <div className="flex items-center gap-2">
+                            <Chip color="primary" size="sm" variant="flat">
+                                #{index + 1}
+                            </Chip>
+                            <p className="text-lg font-semibold">{item.topic}</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                            <Users className="w-4 h-4 text-default-400" />
+                            <p className="text-small text-default-500">{item.contributors}</p>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                        <Users className="w-4 h-4 text-default-400" />
-                        <p className="text-small text-default-500">{item.contributors}</p>
+                    <Chip color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} size="sm" variant="flat">
+                        相关度: {Math.round((1 - item.distance) * 100)}%
+                    </Chip>
+                </CardHeader>
+                <CardBody>
+                    <p className="text-default-600">{item.detail}</p>
+                    <div className="flex justify-end mt-2">
+                        <Link className="text-primary text-sm" href={`/ai-digest?topicId=${item.topicId}`}>
+                            查看详情 →
+                        </Link>
                     </div>
-                </div>
-                <Chip color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} size="sm" variant="flat">
-                    相关度: {Math.round((1 - item.distance) * 100)}%
-                </Chip>
-            </CardHeader>
-            <CardBody>
-                <p className="text-default-600">{item.detail}</p>
-                <div className="flex justify-end mt-2">
-                    <Link className="text-primary text-sm" href={`/ai-digest?topicId=${item.topicId}`}>
-                        查看详情 →
-                    </Link>
-                </div>
-            </CardBody>
-        </Card>
+                </CardBody>
+            </Card>
+        </TopicPopover>
     );
 
     // 渲染问答结果
@@ -120,13 +176,7 @@ export default function RagPage() {
                         </div>
                     </CardHeader>
                     <CardBody>
-                        <div className="prose prose-sm max-w-none dark:prose-invert">
-                            {askResponse.answer.split("\n").map((line, index) => (
-                                <p key={index} className="mb-2 whitespace-pre-wrap">
-                                    {line}
-                                </p>
-                            ))}
-                        </div>
+                        <MarkdownRenderer content={askResponse.answer} />
                     </CardBody>
                 </Card>
 
@@ -153,14 +203,23 @@ export default function RagPage() {
                                         }
                                         title={
                                             <div className="flex items-center justify-between w-full pr-4">
-                                                <span>{ref.topic}</span>
+                                                <TopicPopover
+                                                    topicId={ref.topicId}
+                                                    favoriteTopics={favoriteTopics}
+                                                    readTopics={readTopics}
+                                                    onToggleFavorite={toggleFavorite}
+                                                    onMarkAsRead={markAsRead}
+                                                >
+                                                    <span className="cursor-pointer">{ref.topic}</span>
+                                                </TopicPopover>
                                                 <Chip color={ref.relevance > 0.8 ? "success" : ref.relevance > 0.6 ? "warning" : "default"} size="sm" variant="flat">
                                                     相关度: {Math.round(ref.relevance * 100)}%
                                                 </Chip>
                                             </div>
                                         }
                                     >
-                                        <div className="flex justify-end">
+                                        <div className="flex justify-between items-center">
+                                            <div>在话题标题上悬停以查看详情</div>
                                             <Link className="text-primary text-sm" href={`/ai-digest?topicId=${ref.topicId}`}>
                                                 查看话题详情 →
                                             </Link>
