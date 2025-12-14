@@ -74,10 +74,10 @@ export async function setupGenerateEmbeddingTask(
                 return;
             }
 
-            // 构建待处理的 digest 映射 && 进行数据清洗
+            // 构建待处理的 digest 映射
             const digestMap = new Map<string, AIDigestResult>();
             for (const digest of digestResults) {
-                digestMap.set(digest.topicId, anonymizeDigestDetail(digest));
+                digestMap.set(digest.topicId, digest);
             }
 
             // 开始处理。按批次处理
@@ -87,15 +87,15 @@ export async function setupGenerateEmbeddingTask(
 
                 const currentBatchTopicIds = topicIdsWithoutEmbedding.slice(i, i + batchSize);
                 LOGGER.info(
-                    `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(topicIdsWithoutEmbedding.length / batchSize)}，
-                    当前批次共 ${currentBatchTopicIds.length} 条`
+                    `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(topicIdsWithoutEmbedding.length / batchSize)}，当前批次共 ${currentBatchTopicIds.length} 条`
                 );
 
-                // 构建输入文本
+                // 构建输入文本 && 进行数据清洗
                 const texts = currentBatchTopicIds.map(topicId => {
-                    const digest = digestMap.get(topicId)!;
-                    return `话题：${digest.topic} 正文内容：${digest.detail}`;
+                    const digest = anonymizeDigestDetail(digestMap.get(topicId)!);
+                    return `${digest.topic} ${digest.detail}`;
                 });
+                LOGGER.success(`已构建&清洗 ${texts.length} 条输入文本，示例：${texts[0]}`);
 
                 try {
                     // 批量生成嵌入向量
@@ -110,7 +110,7 @@ export async function setupGenerateEmbeddingTask(
 
                     LOGGER.success(`批次处理完成，已存储 ${items.length} 条向量`);
                 } catch (error) {
-                    LOGGER.error(`批次处理失败: ${error}`);
+                    LOGGER.error(`批次处理失败: ${error}，继续处理下一批次`);
                     // 继续处理下一批次，不中断整个任务
                 }
             }

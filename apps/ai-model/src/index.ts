@@ -37,12 +37,12 @@ import { setupRPC } from "./rpc/setupRPC";
     await setupRPC(vectorDBManager, agcDBManager);
 
     // 定义各大任务
-    await setupAISummarizeTask(imdbManager, agcDBManager);
-    await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
-    await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
+    // await setupAISummarizeTask(imdbManager, agcDBManager);
+    // await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
+    // await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
 
     // 调试：立即执行一次 xxx 任务
-    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchGenerateEmbedding);
+    // await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchGenerateEmbedding);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

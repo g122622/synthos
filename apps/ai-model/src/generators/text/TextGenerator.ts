@@ -5,6 +5,8 @@ import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { duplicateElements } from "@root/common/util/core/duplicateElements";
+import { sleep } from "@root/common/util/promisify/sleep";
 
 @mustInitBeforeUse
 export class TextGenerator extends Disposable {
@@ -66,5 +68,35 @@ export class TextGenerator extends Disposable {
             console.error(error);
             throw error;
         }
+    }
+
+    public async generateTextWithCandidates(modelNames: string[], input: string): Promise<string> {
+        const config = await getConfigManagerService().getCurrentConfig();
+        // 从第一个开始尝试，如果失败了就会尝试下一个
+        const modelCandidates = [
+            ...duplicateElements(config.ai.pinnedModels, 2), // 失败重复机制：每个模型重复2次
+            ...modelNames
+        ];
+        let resultStr = "";
+        for (const modelName of modelCandidates) {
+            try {
+                resultStr = await this.generateText(modelName, input);
+                if (resultStr) {
+                    break; // 如果成功，跳出循环
+                } else {
+                    throw new Error(`生成的摘要为空`);
+                }
+            } catch (error) {
+                this.LOGGER.error(
+                    `模型 ${modelName} 生成摘要失败，错误信息为：${error}, 尝试下一个模型`
+                );
+                await sleep(10000); // 等待10秒
+                continue; // 跳过当前模型，尝试下一个
+            }
+        }
+        if (!resultStr) {
+            throw new Error(`所有模型都生成摘要失败，跳过`);
+        }
+        return resultStr;
     }
 }

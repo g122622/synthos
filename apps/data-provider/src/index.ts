@@ -74,7 +74,6 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
             }
             await activeProvider.dispose();
 
-            await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchPreprocess);
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {

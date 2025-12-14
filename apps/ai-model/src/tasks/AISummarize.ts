@@ -11,8 +11,6 @@ import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
-import { duplicateElements } from "@root/common/util/core/duplicateElements";
-import { sleep } from "@root/common/util/promisify/sleep";
 
 export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManager: AGCDBManager) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
@@ -104,31 +102,10 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                         LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
                         // 2. 调用大模型生成摘要
-                        // 从第一个开始尝试，如果失败了就会尝试下一个
-                        const modelCandidates = [
-                            ...duplicateElements(config.ai.pinnedModels, 2), // 失败重复机制：每个模型重复2次
-                            ...config.groupConfigs[groupId].aiModels
-                        ];
-                        let resultStr = "";
-                        for (const modelName of modelCandidates) {
-                            try {
-                                resultStr = await textGenerator.generateText(modelName, ctx);
-                                if (resultStr) {
-                                    break; // 如果成功，跳出循环
-                                } else {
-                                    throw new Error(`生成的摘要为空`);
-                                }
-                            } catch (error) {
-                                LOGGER.error(
-                                    `模型 ${modelName} 生成摘要失败，错误信息为：${error}, 尝试下一个模型`
-                                );
-                                await sleep(10000); // 等待10秒
-                                continue; // 跳过当前模型，尝试下一个
-                            }
-                        }
-                        if (!resultStr) {
-                            throw new Error(`session ${sessionId} 所有模型都生成摘要失败，跳过`);
-                        }
+                        const resultStr = await textGenerator.generateTextWithCandidates(
+                            config.groupConfigs[groupId].aiModels,
+                            ctx
+                        );
 
                         // 3. 解析llm回传的json结果
                         let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
@@ -164,7 +141,6 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            agendaInstance.now(TaskHandlerTypes.DecideAndDispatchInterestScore);
         },
         {
             concurrency: 1,

@@ -81,8 +81,6 @@ export async function setupInterestScoreTask(
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            // 触发向量嵌入生成任务
-            agendaInstance.now(TaskHandlerTypes.DecideAndDispatchGenerateEmbedding);
         },
         {
             concurrency: 1,

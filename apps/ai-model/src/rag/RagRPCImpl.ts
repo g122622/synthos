@@ -29,7 +29,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.info(`收到搜索请求: "${input.query}", limit=${input.limit}`);
 
         // 1. 将查询转换为向量
-        const queryEmbedding = await this.embeddingService.embed(input.query);
+        const queryEmbedding = await this.embeddingService.embed(
+            `为这个句子生成向量表示：${input.query}`
+        );
         this.LOGGER.debug(`查询向量生成完成，维度: ${queryEmbedding.length}`);
 
         // 2. 向量搜索
@@ -74,7 +76,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 2. 构建 RAG prompt
         const topicsContext = searchResults
-            .map((r, i) => `【话题${i + 1}: ${r.topic}】\n${r.detail}`)
+            .map(
+                (r, i) => `【话题${i + 1}: ${r.topic}】\n【参与者: ${r.contributors}】\n${r.detail}`
+            )
             .join("\n\n");
 
         const prompt = await this.ragCtxBuilder.buildCtx(input.question, topicsContext);
@@ -82,7 +86,10 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 3. 调用 LLM 生成回答
-        const answer = await this.textGenerator.generateText(this.defaultModelName, prompt);
+        const answer = await this.textGenerator.generateTextWithCandidates(
+            [this.defaultModelName],
+            prompt
+        );
         this.LOGGER.success(`LLM 回答生成完成，长度: ${answer.length}`);
 
         // 4. 构建引用列表

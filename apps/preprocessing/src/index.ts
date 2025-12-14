@@ -84,7 +84,6 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                 await job.touch(); // 保活
             }
 
-            await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchAISummarize);
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {

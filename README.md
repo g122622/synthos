@@ -50,7 +50,11 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - [WIP] 主动拉取历史聊天记录（⚠️目前技术实现遇到困难）
 > - [WIP] 每天生成日报  
 > - [TODO] 将兴趣度打分后端模型迁移至ollama的bge-m3，以利用GPU加速
-> - [TODO] 支持在打分或者rag向量生成时，自动将群昵称替换为类似“用户1”这样的昵称，避免抽象昵称影响模型理解
+> - ✅ 支持在打分或者rag向量生成时，自动将群昵称替换为类似“用户1”这样的昵称，避免抽象昵称影响模型理解
+> - [TODO] 用户输入rag问题后，先让llm生成查询计划，然后再查向量数据库
+> - [TODO] 构建rag问答上下文时，插入当前日期和每个话题的日期，以提高模型回答的准确性
+> - [TODO] RAG前端问答页面支持 1. 解析话题，并在鼠标hover后自动展示话题详情浮层 2. 渲染markdown 3. 支持全文复制
+> - [TODO] RAG支持记忆历史会话
 > - ✅ 已完成 兴趣度指数：用户给出自己的兴趣偏好（关键词标签组），系统根据用户的兴趣偏好为每个话题打分，排序后推荐给用户。（用户也可以标记不喜欢的话题，此时话题得分为负数）
 > - ✅ 已完成 向量嵌入与语义检索：基于 Ollama + bge-m3 生成话题向量嵌入，支持 RAG 语义搜索
 
@@ -60,15 +64,17 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 
 ### 核心技术栈
 
-- **🧑‍💻语言**：TypeScript + Node.js（未来可能引入 Python + grpc 🤔?）
+- **🧑‍💻语言**：纯 TypeScript + Node
 - **🎯项目管理**：Pnpm + Monorepo  
+- **💬RPC库**：tRPC
+- **💉依赖注入框架**：TSyringe
+- **🕗任务调度与编排框架**：Agenda
 - **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
 - **🧐向量语义模型**：
   - `bge-large-zh-v1.5`（本地 ONNX 向量化），用于兴趣打分
   - `bge-m3`（Ollama 部署，1024维），用于 RAG 向量检索
 - **📦向量数据库**：基于 better-sqlite3 + sqlite-vec 的轻量级向量存储方案
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
-- **🕗任务调度与编排框架**：Agenda
 - **🧪测试框架**：Vitest  
 - **🌏Web 后端框架**：Express
 - **⚛️Web 前端框架**：React + ECharts + HeroUI + Tailwind CSS

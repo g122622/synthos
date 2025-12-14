@@ -40,6 +40,7 @@ export default function RagPage() {
         setSearchLoading(true);
         try {
             const response = await search(searchQuery, searchLimit);
+
             if (response.success) {
                 setSearchResults(response.data);
             } else {
@@ -59,6 +60,7 @@ export default function RagPage() {
         setAskLoading(true);
         try {
             const response = await ask(question, topK);
+
             if (response.success) {
                 setAskResponse(response.data);
             } else {
@@ -77,7 +79,7 @@ export default function RagPage() {
             <CardHeader className="flex gap-3 pb-0">
                 <div className="flex flex-col flex-1">
                     <div className="flex items-center gap-2">
-                        <Chip size="sm" color="primary" variant="flat">
+                        <Chip color="primary" size="sm" variant="flat">
                             #{index + 1}
                         </Chip>
                         <p className="text-lg font-semibold">{item.topic}</p>
@@ -87,14 +89,14 @@ export default function RagPage() {
                         <p className="text-small text-default-500">{item.contributors}</p>
                     </div>
                 </div>
-                <Chip size="sm" color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} variant="flat">
+                <Chip color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} size="sm" variant="flat">
                     相关度: {Math.round((1 - item.distance) * 100)}%
                 </Chip>
             </CardHeader>
             <CardBody>
                 <p className="text-default-600">{item.detail}</p>
                 <div className="flex justify-end mt-2">
-                    <Link href={`/ai-digest?topicId=${item.topicId}`} className="text-primary text-sm">
+                    <Link className="text-primary text-sm" href={`/ai-digest?topicId=${item.topicId}`}>
                         查看详情 →
                     </Link>
                 </div>
@@ -144,26 +146,22 @@ export default function RagPage() {
                                     <AccordionItem
                                         key={ref.topicId}
                                         aria-label={ref.topic}
+                                        startContent={
+                                            <Chip color="secondary" size="sm" variant="flat">
+                                                #{index + 1}
+                                            </Chip>
+                                        }
                                         title={
                                             <div className="flex items-center justify-between w-full pr-4">
                                                 <span>{ref.topic}</span>
-                                                <Chip
-                                                    size="sm"
-                                                    color={ref.relevance > 0.8 ? "success" : ref.relevance > 0.6 ? "warning" : "default"}
-                                                    variant="flat"
-                                                >
+                                                <Chip color={ref.relevance > 0.8 ? "success" : ref.relevance > 0.6 ? "warning" : "default"} size="sm" variant="flat">
                                                     相关度: {Math.round(ref.relevance * 100)}%
                                                 </Chip>
                                             </div>
                                         }
-                                        startContent={
-                                            <Chip size="sm" color="secondary" variant="flat">
-                                                #{index + 1}
-                                            </Chip>
-                                        }
                                     >
                                         <div className="flex justify-end">
-                                            <Link href={`/ai-digest?topicId=${ref.topicId}`} className="text-primary text-sm">
+                                            <Link className="text-primary text-sm" href={`/ai-digest?topicId=${ref.topicId}`}>
                                                 查看话题详情 →
                                             </Link>
                                         </div>
@@ -191,13 +189,13 @@ export default function RagPage() {
                 <div className="w-full max-w-4xl mt-6">
                     <Tabs
                         aria-label="RAG功能选项"
-                        color="primary"
-                        variant="bordered"
-                        selectedKey={activeTab}
-                        onSelectionChange={key => setActiveTab(key as string)}
                         classNames={{
                             tabList: "w-full justify-center"
                         }}
+                        color="primary"
+                        selectedKey={activeTab}
+                        variant="bordered"
+                        onSelectionChange={key => setActiveTab(key as string)}
                     >
                         {/* 搜索 Tab */}
                         <Tab
@@ -217,30 +215,30 @@ export default function RagPage() {
                                             <Input
                                                 className="flex-1"
                                                 placeholder="输入搜索内容，如：React 性能优化"
+                                                size="lg"
+                                                startContent={<Search className="w-4 h-4 text-default-400" />}
                                                 value={searchQuery}
                                                 onChange={e => setSearchQuery(e.target.value)}
                                                 onKeyDown={e => e.key === "Enter" && handleSearch()}
-                                                startContent={<Search className="w-4 h-4 text-default-400" />}
-                                                size="lg"
                                             />
                                             <Input
-                                                type="number"
-                                                label="结果数量"
                                                 className="w-full sm:w-28"
+                                                label="结果数量"
+                                                max={50}
+                                                min={1}
+                                                size="lg"
+                                                type="number"
                                                 value={searchLimit.toString()}
                                                 onChange={e => setSearchLimit(parseInt(e.target.value) || 10)}
-                                                min={1}
-                                                max={50}
-                                                size="lg"
                                             />
                                         </div>
                                         <Button
-                                            color="primary"
-                                            size="lg"
                                             className="w-full sm:w-auto"
-                                            onClick={handleSearch}
+                                            color="primary"
                                             isLoading={searchLoading}
+                                            size="lg"
                                             startContent={!searchLoading && <Search className="w-4 h-4" />}
+                                            onClick={handleSearch}
                                         >
                                             搜索
                                         </Button>
@@ -250,22 +248,18 @@ export default function RagPage() {
                                 {/* 搜索结果 */}
                                 {searchLoading && (
                                     <div className="flex justify-center py-8">
-                                        <Spinner size="lg" label="搜索中..." />
+                                        <Spinner label="搜索中..." size="lg" />
                                     </div>
                                 )}
 
                                 {!searchLoading && searchResults.length > 0 && (
                                     <div>
-                                        <h3 className="text-lg font-semibold mb-4">
-                                            找到 {searchResults.length} 个相关话题
-                                        </h3>
+                                        <h3 className="text-lg font-semibold mb-4">找到 {searchResults.length} 个相关话题</h3>
                                         {searchResults.map((item, index) => renderSearchResultCard(item, index))}
                                     </div>
                                 )}
 
-                                {!searchLoading && searchQuery && searchResults.length === 0 && (
-                                    <div className="text-center py-8 text-default-500">未找到相关话题，请尝试其他关键词</div>
-                                )}
+                                {!searchLoading && searchQuery && searchResults.length === 0 && <div className="text-center py-8 text-default-500">未找到相关话题，请尝试其他关键词</div>}
                             </div>
                         </Tab>
 
@@ -284,30 +278,30 @@ export default function RagPage() {
                                 <Card className="w-full">
                                     <CardBody className="gap-4">
                                         <Textarea
+                                            minRows={3}
                                             placeholder="输入你的问题，如：React 18 有哪些新特性？群友们是怎么看的？"
+                                            size="lg"
                                             value={question}
                                             onChange={e => setQuestion(e.target.value)}
-                                            minRows={3}
-                                            size="lg"
                                         />
                                         <div className="flex gap-4 items-end flex-col sm:flex-row">
                                             <Input
-                                                type="number"
-                                                label="参考话题数"
                                                 className="w-full sm:w-32"
+                                                label="参考话题数"
+                                                max={50}
+                                                min={1}
+                                                size="lg"
+                                                type="number"
                                                 value={topK.toString()}
                                                 onChange={e => setTopK(parseInt(e.target.value) || 5)}
-                                                min={1}
-                                                max={10}
-                                                size="lg"
                                             />
                                             <Button
-                                                color="secondary"
-                                                size="lg"
                                                 className="w-full sm:w-auto"
-                                                onClick={handleAsk}
+                                                color="secondary"
                                                 isLoading={askLoading}
+                                                size="lg"
                                                 startContent={!askLoading && <Sparkles className="w-4 h-4" />}
+                                                onClick={handleAsk}
                                             >
                                                 获取 AI 回答
                                             </Button>
@@ -318,15 +312,13 @@ export default function RagPage() {
                                 {/* 问答结果 */}
                                 {askLoading && (
                                     <div className="flex justify-center py-8">
-                                        <Spinner size="lg" label="AI 正在思考中..." />
+                                        <Spinner label="AI 正在思考中..." size="lg" />
                                     </div>
                                 )}
 
                                 {!askLoading && askResponse && renderAskResult()}
 
-                                {!askLoading && question && !askResponse && (
-                                    <div className="text-center py-8 text-default-500">点击 "获取 AI 回答" 按钮开始问答</div>
-                                )}
+                                {!askLoading && question && !askResponse && <div className="text-center py-8 text-default-500">点击 "获取 AI 回答" 按钮开始问答</div>}
                             </div>
                         </Tab>
                     </Tabs>
