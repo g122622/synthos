@@ -25,7 +25,7 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             const result = searchResults[i];
             const indexStr = String(i + 1); // 使用索引作为键
             
-            const digest = await agcDB.getAIDigestResultByTopicId(result.topicId);
+            const digest = await agcDB.getAIDigestResultByTopicId(result.topicId!);
             if (digest && digest.sessionId) {
                 const timeRange = await imDB.getSessionTimeDuration(digest.sessionId);
                 if (timeRange) {

@@ -84,8 +84,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             this.agcDB,
             this.imDB
         );
-
-        this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);
+        this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 3. 调用 LLM 生成回答
         const answer = await this.textGenerator.generateTextWithCandidates(
