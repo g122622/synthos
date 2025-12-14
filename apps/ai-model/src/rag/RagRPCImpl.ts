@@ -68,7 +68,6 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 1. 搜索相关话题
         const searchResults = await this.search({ query: input.question, limit: input.topK });
-
         if (searchResults.length === 0) {
             this.LOGGER.warning("未找到相关话题");
             return {
@@ -77,36 +76,13 @@ export class RagRPCImpl implements RAGRPCImplementation {
             };
         }
 
-        // 2. 获取话题日期信息
-        const topicDates: { [topicId: string]: { startTime: string; endTime: string } } = {};
-        for (const result of searchResults) {
-            const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId);
-            if (digest && digest.sessionId) {
-                const timeRange = await this.imDB.getSessionTimeDuration(digest.sessionId);
-                if (timeRange) {
-                    topicDates[result.topicId] = {
-                        startTime: formatTimestamp(timeRange.timeStart),
-                        endTime: formatTimestamp(timeRange.timeEnd)
-                    };
-                }
-            } else {
-                this.LOGGER.warning(`未找到话题 ${result.topicId} 的摘要信息或会话id，跳过`);
-            }
-        }
-
-        // 3. 构建 RAG prompt
-        const topicsContext = searchResults
-            .map(
-                (r, i) => `【话题${i + 1}: ${r.topic}】\n【参与者: ${r.contributors}】\n${r.detail}`
-            )
-            .join("\n\n");
-
-        const currentDate = getCurrentFormattedTime();
+        // 2. 构建 RAG prompt
         const prompt = await this.ragCtxBuilder.buildCtx(
             input.question,
-            topicsContext,
-            currentDate,
-            topicDates
+            searchResults,
+            getCurrentFormattedTime(),
+            this.agcDB,
+            this.imDB
         );
 
         this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);

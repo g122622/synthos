@@ -8,14 +8,12 @@ export class RagPromptStore {
      * @param question 用户问题
      * @param topics 相关话题内容
      * @param currentDate 当前日期（可选）
-     * @param topicDates 话题日期映射（可选）
      * @returns 完整的 prompt
      */
     public static getRagPrompt(
         question: string, 
         topics: string, 
-        currentDate?: string,
-        topicDates?: { [topicId: string]: { startTime: string; endTime: string } }
+        currentDate?: string
     ): string {
         let prompt = `你是一个智能助手，请根据以下检索到的话题内容回答用户问题。`;
         
@@ -25,14 +23,6 @@ export class RagPromptStore {
         }
         
         prompt += `\n\n【相关话题】\n${topics}`;
-        
-        // 添加话题日期信息（如果有）
-        if (topicDates) {
-            prompt += `\n\n【话题时间范围】\n`;
-            for (const [topicId, dateRange] of Object.entries(topicDates)) {
-                prompt += `话题${topicId}: ${dateRange.startTime} 至 ${dateRange.endTime}\n`;
-            }
-        }
         
         prompt += `\n【用户问题】\n${question}\n\n【回答要求】
 1. 遵从上述话题内容回答问题，考虑话题发生的时间背景
