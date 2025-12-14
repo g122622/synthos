@@ -6,9 +6,11 @@ import { RAGRPCImplementation, SearchOutput, AskOutput } from "@root/common/rpc/
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
+import { IMDBManager } from "@root/common/database/IMDBManager";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { getCurrentFormattedTime, formatTimestamp } from "@root/common/util/TimeUtils";
 
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
@@ -17,6 +19,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         private vectorDB: VectorDBManager,
         private embeddingService: OllamaEmbeddingService,
         private agcDB: AGCDBManager,
+        private imDB: IMDBManager,
         private textGenerator: TextGenerator,
         private defaultModelName: string,
         private ragCtxBuilder: RAGCtxBuilder
@@ -74,14 +77,37 @@ export class RagRPCImpl implements RAGRPCImplementation {
             };
         }
 
-        // 2. 构建 RAG prompt
+        // 2. 获取话题日期信息
+        const topicDates: { [topicId: string]: { startTime: string; endTime: string } } = {};
+        for (const result of searchResults) {
+            const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId);
+            if (digest && digest.sessionId) {
+                const timeRange = await this.imDB.getSessionTimeDuration(digest.sessionId);
+                if (timeRange) {
+                    topicDates[result.topicId] = {
+                        startTime: formatTimestamp(timeRange.timeStart),
+                        endTime: formatTimestamp(timeRange.timeEnd)
+                    };
+                }
+            } else {
+                this.LOGGER.warning(`未找到话题 ${result.topicId} 的摘要信息或会话id，跳过`);
+            }
+        }
+
+        // 3. 构建 RAG prompt
         const topicsContext = searchResults
             .map(
                 (r, i) => `【话题${i + 1}: ${r.topic}】\n【参与者: ${r.contributors}】\n${r.detail}`
             )
             .join("\n\n");
 
-        const prompt = await this.ragCtxBuilder.buildCtx(input.question, topicsContext);
+        const currentDate = getCurrentFormattedTime();
+        const prompt = await this.ragCtxBuilder.buildCtx(
+            input.question,
+            topicsContext,
+            currentDate,
+            topicDates
+        );
 
         this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);
 

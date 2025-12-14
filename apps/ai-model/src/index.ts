@@ -34,7 +34,7 @@ import { setupRPC } from "./rpc/setupRPC";
     );
     await vectorDBManager.init();
     // 初始化 RPC 服务
-    await setupRPC(vectorDBManager, agcDBManager);
+    await setupRPC(vectorDBManager, agcDBManager, imdbManager);
 
     // 定义各大任务
     // await setupAISummarizeTask(imdbManager, agcDBManager);

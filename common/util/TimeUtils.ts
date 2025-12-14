@@ -19,3 +19,29 @@ export function getMinutesAgoTimestamp(arg: number): number {
     const millisecondsInMinute = 60 * 1000; // 1 分钟对应的毫秒数
     return now - arg * millisecondsInMinute;
 }
+
+/**
+ * 将时间戳格式化为自然文本格式 yyyy-mm-dd-hh:mm:ss
+ * @param timestamp 毫秒时间戳
+ * @returns 格式化后的日期字符串
+ */
+export function formatTimestamp(timestamp: number): string {
+    const date = new Date(timestamp);
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}-${hours}:${minutes}:${seconds}`;
+}
+
+/**
+ * 获取当前时间的格式化字符串 yyyy-mm-dd-hh:mm:ss
+ * @returns 格式化后的当前日期字符串
+ */
+export function getCurrentFormattedTime(): string {
+    return formatTimestamp(Date.now());
+}
