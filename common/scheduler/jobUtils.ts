@@ -2,6 +2,7 @@ import { agendaInstance } from "./agenda";
 import { TaskHandlerTypes, TaskParamsMap } from "./@types/Tasks";
 import { sleep } from "../util/promisify/sleep";
 import Logger from "../util/Logger";
+import { ObjectId } from "bson";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
 
@@ -10,14 +11,14 @@ const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
  * 通过轮询 MongoDB 中的 Job 状态来判断任务是否完成
  *
  * @param taskName - 任务名称（TaskHandlerTypes 枚举值）
- * @param pollIntervalMs - 轮询间隔（毫秒），默认 5000ms
- * @param timeoutMs - 超时时间（毫秒），默认 30分钟
+ * @param pollIntervalMs - 轮询间隔（毫秒）
+ * @param timeoutMs - 超时时间（毫秒）
  * @returns Promise<boolean> - 任务成功完成返回 true，超时或失败返回 false
  */
-export async function waitForJobCompletion(
+export async function waitForJobCompletionV1(
     taskName: TaskHandlerTypes,
-    pollIntervalMs: number = 5000,
-    timeoutMs: number = 30 * 60 * 1000
+    pollIntervalMs: number,
+    timeoutMs: number
 ): Promise<boolean> {
     const startTime = Date.now();
 
@@ -75,6 +76,96 @@ export async function waitForJobCompletion(
     return false;
 }
 
+// 修改后的 waitForJobCompletion
+export function waitForJobCompletionV2(
+    taskName: TaskHandlerTypes,
+    jobId: string, // 需要传入具体任务ID
+    timeoutMs: number = 30 * 60 * 1000
+): Promise<boolean> {
+    return new Promise(resolve => {
+        const timeout = setTimeout(() => {
+            agendaInstance.removeListener(`success:${taskName}`, onSuccess);
+            agendaInstance.removeListener(`fail:${taskName}`, onFail);
+            LOGGER.error(`任务 [${taskName}] (ID:${jobId}) 等待超时（${timeoutMs}ms）`);
+            resolve(false);
+        }, timeoutMs);
+
+        const onSuccess = (job: any) => {
+            if (job.attrs._id.toString() === jobId) {
+                clearTimeout(timeout);
+                LOGGER.success(`任务 [${taskName}] (ID:${jobId}) 已成功完成`);
+                resolve(true);
+            }
+        };
+
+        const onFail = (err: Error, job: any) => {
+            if (job?.attrs?._id.toString() === jobId) {
+                clearTimeout(timeout);
+                LOGGER.error(`任务 [${taskName}] (ID:${jobId}) 失败: ${err.message}`);
+                resolve(false);
+            }
+        };
+
+        agendaInstance.once(`success:${taskName}`, onSuccess);
+        agendaInstance.once(`fail:${taskName}`, onFail);
+    });
+}
+
+export async function waitForJobCompletionByIdV3(
+    jobId: string,
+    pollIntervalMs: number,
+    timeoutMs: number
+): Promise<boolean> {
+    const startTime = Date.now();
+
+    LOGGER.info(
+        `开始等待任务ID [${jobId}] 完成，轮询间隔: ${pollIntervalMs}ms，超时时间: ${timeoutMs}ms`
+    );
+
+    while (Date.now() - startTime < timeoutMs) {
+        await sleep(pollIntervalMs);
+
+        // 通过ID获取任务
+        const jobs = await agendaInstance.jobs({ _id: new ObjectId(jobId) } as any);
+        const job = jobs[0];
+
+        if (!job) {
+            LOGGER.warning(`任务ID [${jobId}] 不存在，继续等待...`);
+            continue;
+        }
+
+        const attrs = job.attrs;
+
+        // 检查任务是否失败
+        if (attrs.failedAt) {
+            const failedAtTime = attrs.failedAt.getTime();
+            if (failedAtTime > startTime) {
+                LOGGER.error(`任务ID [${jobId}] 执行失败，失败原因: ${attrs.failReason}`);
+                return false;
+            }
+        }
+
+        // 检查任务是否完成
+        const currentLastFinishedAt = attrs.lastFinishedAt?.getTime() || 0;
+        if (currentLastFinishedAt > startTime) {
+            LOGGER.success(
+                `任务ID [${jobId}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`
+            );
+            return true;
+        }
+
+        // 检查任务是否正在运行
+        if (attrs.lockedAt && !attrs.lastFinishedAt) {
+            LOGGER.debug(`任务ID [${jobId}] 正在运行中...`);
+        } else if (attrs.nextRunAt && attrs.nextRunAt.getTime() > Date.now()) {
+            LOGGER.debug(`任务ID [${jobId}] 等待调度，下次运行时间: ${attrs.nextRunAt}`);
+        }
+    }
+
+    LOGGER.error(`任务ID [${jobId}] 等待超时（${timeoutMs}ms）`);
+    return false;
+}
+
 /**
  * 立即调度一个任务并等待其完成
  *
@@ -87,16 +178,17 @@ export async function waitForJobCompletion(
 export async function scheduleAndWaitForJob<T extends TaskHandlerTypes>(
     taskName: T,
     data: TaskParamsMap[T],
-    pollIntervalMs: number = 5000,
-    timeoutMs: number = 30 * 60 * 1000
+    pollIntervalMs: number,
+    timeoutMs: number
 ): Promise<boolean> {
     LOGGER.info(`调度任务 [${taskName}]`);
 
     // 调度任务
-    await agendaInstance.now(taskName, data);
+    const job = await agendaInstance.now(taskName, data);
 
     // 等待任务完成
-    return waitForJobCompletion(taskName, pollIntervalMs, timeoutMs);
+    // return waitForJobCompletionV2(taskName, job.attrs._id.toString(), timeoutMs);
+    return waitForJobCompletionByIdV3(job.attrs._id.toString(), pollIntervalMs, timeoutMs);
 }
 
 /**

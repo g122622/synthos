@@ -6,9 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter 'apps/*' build",
-    "build:all": "node scripts/launchAll.js",
-    "dev": "node scripts/launchAll.js",
-    "start": "node scripts/launchAll.js",
+    "build:all": "node scripts/launchAll.cjs",
+    "dev": "node scripts/launchAll.cjs",
+    "start": "node scripts/launchAll.cjs",
     "test": "vitest",
     "linecount": "node scripts/countLines.mjs"
   },
@@ -18,12 +18,13 @@
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
     "@hokify/agenda": "^6.3.0",
-    "@trpc/server": "^10.45.2",
     "@trpc/client": "^10.45.2",
+    "@trpc/server": "^10.45.2",
     "@types/express": "^5.0.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.0",
     "agendash": "^4.0.0",
+    "bson": "^7.0.0",
     "dotenv": "^17.2.3",
     "eslint": "^9.37.0",
     "express": "^5.1.0",

@@ -5,7 +5,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import { cleanupStaleJobs, scheduleAndWaitForJob } from "@root/common/scheduler/jobUtils";
 import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
-import { IMTypes } from "@root/common/contracts/data-provider";
+import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { sleep } from "@root/common/util/promisify/sleep";
 
 /**
@@ -121,21 +121,21 @@ import { sleep } from "@root/common/util/promisify/sleep";
             await job.touch();
 
             // ==================== 步骤 5: InterestScore ====================
-            LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
-            const interestScoreSuccess = await scheduleAndWaitForJob(
-                TaskHandlerTypes.InterestScore,
-                {
-                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
-                    endTimeStamp: Date.now()
-                },
-                POLL_INTERVAL,
-                TASK_TIMEOUT
-            );
-            if (!interestScoreSuccess) {
-                LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-                job.fail("InterestScore task failed");
-                return;
-            }
+            // LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
+            // const interestScoreSuccess = await scheduleAndWaitForJob(
+            //     TaskHandlerTypes.InterestScore,
+            //     {
+            //         startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+            //         endTimeStamp: Date.now()
+            //     },
+            //     POLL_INTERVAL,
+            //     TASK_TIMEOUT
+            // );
+            // if (!interestScoreSuccess) {
+            //     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
+            //     job.fail("InterestScore task failed");
+            //     return;
+            // }
 
             LOGGER.success(`🎉 Pipeline 任务全部完成！`);
         },
@@ -156,7 +156,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
         TaskHandlerTypes.InterestScore
     ]);
 
-    await sleep(20 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
+    await sleep(30 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
 
     // 读取配置，设置定时执行 Pipeline
     const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes ?? 60; // 默认每小时执行一次
