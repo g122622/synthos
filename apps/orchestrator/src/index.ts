@@ -43,7 +43,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
             LOGGER.info(`Pipeline 配置 - 处理群组: ${groupIds.join(", ")}`);
 
             // 任务超时时间配置（毫秒）
-            const TASK_TIMEOUT = 30 * 60 * 1000; // 30分钟
+            const TASK_TIMEOUT = 90 * 60 * 1000; // 90分钟
             const POLL_INTERVAL = 5000; // 5秒
 
             // ==================== 步骤 1: ProvideData ====================
@@ -142,7 +142,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
         {
             concurrency: 1,
             priority: "high",
-            lockLifetime: 60 * 60 * 1000 // 1小时（Pipeline 整体超时）
+            lockLifetime: 90 * 60 * 1000 // 90min（Pipeline 整体超时）
         }
     );
 
