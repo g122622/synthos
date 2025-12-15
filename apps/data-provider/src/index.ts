@@ -2,7 +2,7 @@ import "reflect-metadata";
 import Logger from "@root/common/util/Logger";
 import { QQProvider } from "./providers/QQProvider/QQProvider";
 import { IMDBManager } from "@root/common/database/IMDBManager";
-import { getHoursAgoTimestamp, getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
+import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
@@ -54,13 +54,13 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
                 const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
                 let startTime = latestMessage?.timestamp
                     ? latestMessage.timestamp - 60 * 1000
-                    : getHoursAgoTimestamp(25 * 24);
+                    : getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
                 if (!latestMessage?.timestamp) {
                     LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
                 }
-                if (Date.now() - startTime > 25 * 24 * 60 * 60 * 1000) {
-                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过25天，使用默认时间范围。最新消息时间：${latestMessage?.timestamp}`);
-                    startTime = getHoursAgoTimestamp(25 * 24);
+                if (Date.now() - startTime > attrs.startTimeInHoursFromNow * 60 * 60 * 1000) {
+                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过${attrs.startTimeInHoursFromNow}小时，使用该范围。最新消息时间：${latestMessage?.timestamp}`);
+                    startTime = getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
                 }
 
                 const results = await activeProvider.getMsgByTimeRange(
@@ -82,35 +82,6 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
             lockLifetime: 10 * 60 * 1000 // 10分钟
         }
     );
-
-    await agendaInstance
-        .create(TaskHandlerTypes.DecideAndDispatchProvideData)
-        .unique({ name: TaskHandlerTypes.DecideAndDispatchProvideData }, { insertOnly: true })
-        .save();
-    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchProvideData>>(
-        TaskHandlerTypes.DecideAndDispatchProvideData,
-        async job => {
-            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await configManagerService.getCurrentConfig(); // 刷新配置
-            // call provideData task
-            await agendaInstance.now(TaskHandlerTypes.ProvideData, {
-                IMType: IMTypes.QQ,
-                groupIds: Object.keys(config.groupConfigs) // TODO 支持wechat之后，需要修改这里
-            });
-
-            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-        }
-    );
-
-    // 每隔一段时间触发一次DecideAndDispatchProvideData任务
-    LOGGER.debug(
-        `DecideAndDispatchProvideData任务将每隔${config.dataProviders.agendaTaskIntervalInMinutes}分钟执行一次`
-    );
-    await agendaInstance.every(
-        config.dataProviders.agendaTaskIntervalInMinutes + " minutes",
-        TaskHandlerTypes.DecideAndDispatchProvideData
-    );
-    await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchProvideData);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

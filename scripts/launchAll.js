@@ -9,7 +9,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 
 // 构建顺序配置（可按需调整）
+// 注意：orchestrator 需要在所有任务处理器启动后再启动，以确保任务已注册
 const buildOrder = [
+    'orchestrator',  // Pipeline 调度器，需要先启动
     'preprocessing',
     'ai-model',
     'webui-backend',

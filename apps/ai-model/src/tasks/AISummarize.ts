@@ -10,7 +10,6 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/getRandomHash";
-import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 
 export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManager: AGCDBManager) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
@@ -146,31 +145,6 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
             concurrency: 1,
             priority: "high",
             lockLifetime: 20 * 60 * 1000 // 20分钟
-        }
-    );
-
-    await agendaInstance
-        .create(TaskHandlerTypes.DecideAndDispatchAISummarize)
-        .unique({ name: TaskHandlerTypes.DecideAndDispatchAISummarize }, { insertOnly: true })
-        .save();
-    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchAISummarize>>(
-        TaskHandlerTypes.DecideAndDispatchAISummarize,
-        async job => {
-            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await configManagerService.getCurrentConfig(); // 刷新配置
-
-            await agendaInstance.now(TaskHandlerTypes.AISummarize, {
-                groupIds: Object.keys(config.groupConfigs),
-                startTimeStamp: getHoursAgoTimestamp(24 * 30), // 30天前
-                endTimeStamp: Date.now() // 现在
-            });
-
-            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-        },
-        {
-            concurrency: 1,
-            priority: "high",
-            lockLifetime: 10 * 60 * 1000 // 10分钟
         }
     );
 }

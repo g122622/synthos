@@ -1,8 +1,7 @@
 // lib/agenda.ts
 import { Agenda } from "@hokify/agenda";
 import Logger from "../util/Logger";
-// const express = require("express");
-// const Agendash = require("agendash");
+import { TaskHandlerTypes } from "./@types/Tasks";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler");
 
@@ -19,11 +18,4 @@ export const agendaInstance = new Agenda({
 
 agendaInstance.on("ready", () => {
     LOGGER.success("Agenda实例创建成功");
-    // const expressApp = express();
-    // LOGGER.success("Express实例创建成功");
-    // expressApp.use("/dash", Agendash(agendaInstance));
-    // LOGGER.success("Agendash挂载成功");
-    // expressApp.listen(3001, () => {
-    //     LOGGER.success("Agendash监听成功");
-    // });
 });

@@ -30,10 +30,8 @@ export interface GlobalConfig {
                 patchSQL?: string; // 数据库补丁的SQL语句，选填
             };
         };
-        agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
     };
     preprocessors: {
-        agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
         AccumulativeSplitter: {
             mode: "charCount" | "messageCount"; // 分割模式
             maxCharCount: number; // 最大字符数
@@ -50,13 +48,8 @@ export interface GlobalConfig {
         defaultModelConfig: ModelConfig;
         defaultModelName: string;
         pinnedModels: string[]; // 固定的模型列表，优先级最高，会最先尝试
-        // 总结任务的配置
-        summarize: {
-            agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
-        };
         // 兴趣度指数打分任务的配置
         interestScore: {
-            agendaTaskIntervalInMinutes: number; // 任务执行间隔，单位为分钟
             UserInterestsPositiveKeywords: string[]; // 正向关键词
             UserInterestsNegativeKeywords: string[]; // 负向关键词
         };
@@ -76,6 +69,11 @@ export interface GlobalConfig {
     webUI_Backend: {
         port: number;
         kvStoreBasePath: string;
+    };
+    // Pipeline 调度器配置
+    orchestrator: {
+        pipelineIntervalInMinutes: number; // Pipeline 执行间隔，单位为分钟
+        dataSeekTimeWindowInHours: number; // 数据获取任务的数据时间窗口，单位为小时
     };
     // 内网穿透服务配置（使用ngrok将webUI前后端暴露到公网）
     webUI_Forwarder: {

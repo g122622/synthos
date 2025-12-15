@@ -5,7 +5,6 @@ import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBMan
 import Logger from "@root/common/util/Logger";
 import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 import { VectorDBManager } from "./embedding/VectorDBManager";
 import { setupAISummarizeTask } from "./tasks/AISummarize";
 import { setupInterestScoreTask } from "./tasks/InterestScore";
@@ -36,13 +35,10 @@ import { setupRPC } from "./rpc/setupRPC";
     // 初始化 RPC 服务
     await setupRPC(vectorDBManager, agcDBManager, imdbManager);
 
-    // 定义各大任务
-    // await setupAISummarizeTask(imdbManager, agcDBManager);
-    // await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
-    // await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
-
-    // 调试：立即执行一次 xxx 任务
-    // await agendaInstance.now(TaskHandlerTypes.DecideAndDispatchGenerateEmbedding);
+    // 定义各大任务（由 orchestrator 统一调度，此处只注册任务处理器）
+    await setupAISummarizeTask(imdbManager, agcDBManager);
+    await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
+    await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

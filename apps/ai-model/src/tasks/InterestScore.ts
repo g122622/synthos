@@ -5,7 +5,6 @@ import { getConfigManagerService } from "@root/common/di/container";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { SemanticRater } from "../misc/SemanticRater";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 
@@ -86,25 +85,6 @@ export async function setupInterestScoreTask(
             concurrency: 1,
             priority: "high",
             lockLifetime: 10 * 60 * 1000 // 10分钟
-        }
-    );
-
-    await agendaInstance
-        .create(TaskHandlerTypes.DecideAndDispatchInterestScore)
-        .unique({ name: TaskHandlerTypes.DecideAndDispatchInterestScore }, { insertOnly: true })
-        .save();
-    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchInterestScore>>(
-        TaskHandlerTypes.DecideAndDispatchInterestScore,
-        async job => {
-            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await configManagerService.getCurrentConfig(); // 刷新配置
-
-            await agendaInstance.now(TaskHandlerTypes.InterestScore, {
-                startTimeStamp: getHoursAgoTimestamp(24 * 3),
-                endTimeStamp: Date.now() // 现在
-            });
-
-            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
 }

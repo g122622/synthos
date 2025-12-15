@@ -5,7 +5,6 @@ import { getConfigManagerService } from "@root/common/di/container";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
@@ -123,25 +122,6 @@ export async function setupGenerateEmbeddingTask(
             concurrency: 1,
             priority: "high",
             lockLifetime: 10 * 60 * 1000 // 10分钟
-        }
-    );
-
-    await agendaInstance
-        .create(TaskHandlerTypes.DecideAndDispatchGenerateEmbedding)
-        .unique({ name: TaskHandlerTypes.DecideAndDispatchGenerateEmbedding }, { insertOnly: true })
-        .save();
-    agendaInstance.define<TaskParameters<TaskHandlerTypes.DecideAndDispatchGenerateEmbedding>>(
-        TaskHandlerTypes.DecideAndDispatchGenerateEmbedding,
-        async job => {
-            LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-            config = await configManagerService.getCurrentConfig(); // 刷新配置
-
-            await agendaInstance.now(TaskHandlerTypes.GenerateEmbedding, {
-                startTimeStamp: getHoursAgoTimestamp(24 * 365),
-                endTimeStamp: Date.now() // 现在
-            });
-
-            LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         }
     );
 }

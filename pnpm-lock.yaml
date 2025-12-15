@@ -145,6 +145,8 @@ importers:
 
   apps/db-cli: {}
 
+  apps/orchestrator: {}
+
   apps/preprocessing: {}
 
   apps/webui-backend:
