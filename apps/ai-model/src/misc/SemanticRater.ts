@@ -1,40 +1,30 @@
 import Logger from "@root/common/util/Logger";
-import { pipeline, env } from "@huggingface/transformers";
-import type { DataArray } from "@huggingface/transformers";
+import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { UserInterest } from "@root/common/config/@types/GlobalConfig";
 
-env.allowLocalModels = true;
-
 const QUERY_PREFIX = "为这个句子生成表示：";
-const MODEL_ID = "Xenova/bge-large-zh-v1.5";
-const MAX_INPUT_LENGTH = 512; // 限制输入长度，避免Position Embedding超限
+const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
 
 export class SemanticRater {
-    private embedder: any = null;
-    private modelLoadPromise: Promise<void> | null = null;
-    private vectorCache = new Map<string, DataArray>();
+    private embeddingService: OllamaEmbeddingService;
+    private vectorCache = new Map<string, Float32Array>();
     private LOGGER = Logger.withTag("SemanticRater");
 
-    private async ensureModelLoaded(): Promise<void> {
-        if (this.embedder) return;
-        if (this.modelLoadPromise) return this.modelLoadPromise;
-
-        this.modelLoadPromise = (async () => {
-            this.LOGGER.info("Loading BGE model...");
-            this.embedder = await pipeline("feature-extraction", MODEL_ID);
-            this.LOGGER.info(`Model loaded, current backends: ${JSON.stringify(env.backends)}`);
-        })();
-
-        await this.modelLoadPromise;
+    /**
+     * 构造函数
+     * @param embeddingService OllamaEmbeddingService 实例
+     */
+    constructor(embeddingService: OllamaEmbeddingService) {
+        this.embeddingService = embeddingService;
+        this.LOGGER.info("SemanticRater 初始化完成");
     }
 
-    private async getEmbedding(text: string, isQuery = false): Promise<DataArray> {
-        await this.ensureModelLoaded();
+    private async getEmbedding(text: string, isQuery: boolean): Promise<Float32Array> {
         let inputText = isQuery ? `${QUERY_PREFIX}${text}` : text;
 
         if (inputText.length > MAX_INPUT_LENGTH) {
-            this.LOGGER.warning(`Input text is too long (length is ${inputText.length}), truncating to ${MAX_INPUT_LENGTH} characters`);
-            this.LOGGER.warning(`Original text is: ${inputText}`);
+            this.LOGGER.warning(`输入文本过长 (长度为 ${inputText.length})，截断至 ${MAX_INPUT_LENGTH} 字符`);
+            this.LOGGER.warning(`原始文本：${inputText}`);
             inputText = inputText.slice(0, MAX_INPUT_LENGTH);
         }
 
@@ -42,12 +32,7 @@ export class SemanticRater {
             return this.vectorCache.get(inputText)!;
         }
 
-        const output = await this.embedder(inputText, {
-            pooling: "cls",
-            normalize: true
-        });
-
-        const vector = output.data as DataArray;
+        const vector = await this.embeddingService.embed(inputText);
         this.vectorCache.set(inputText, vector);
         return vector;
     }
@@ -115,7 +100,7 @@ export class SemanticRater {
         return scores;
     }
 
-    private cosineSimilarity(a: DataArray, b: DataArray): number {
+    private cosineSimilarity(a: Float32Array, b: Float32Array): number {
         let dot = 0;
         for (let i = 0; i < a.length; i++) {
             dot += a[i] * b[i];

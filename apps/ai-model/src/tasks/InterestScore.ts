@@ -6,6 +6,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { SemanticRater } from "../misc/SemanticRater";
+import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 
 export async function setupInterestScoreTask(
@@ -28,6 +29,19 @@ export async function setupInterestScoreTask(
             const attrs = job.attrs.data;
             config = await configManagerService.getCurrentConfig(); // 刷新配置
 
+            // 初始化 Ollama 嵌入服务
+            const embeddingService = new OllamaEmbeddingService(
+                config.ai.embedding.ollamaBaseURL,
+                config.ai.embedding.model,
+                config.ai.embedding.dimension
+            );
+
+            // 检查 Ollama 服务是否可用
+            if (!(await embeddingService.isAvailable())) {
+                LOGGER.error("Ollama 服务不可用，跳过当前任务");
+                return;
+            }
+
             const sessionIds = [] as string[];
             for (const groupId of Object.keys(config.groupConfigs)) {
                 sessionIds.push(
@@ -47,7 +61,7 @@ export async function setupInterestScoreTask(
             }
             LOGGER.info(`共获取到 ${digestResults.length} 条待打分的摘要结果`);
 
-            const rater = new SemanticRater();
+            const rater = new SemanticRater(embeddingService);
             for (const digestResult of digestResults) {
                 await job.touch(); // 保证任务存活
                 if (await interestScoreDBManager.isInterestScoreResultExist(digestResult.topicId)) {
