@@ -23,6 +23,7 @@ import { InterestScoreService } from "../services/InterestScoreService";
 import { MiscService } from "../services/MiscService";
 import { TopicStatusService } from "../services/TopicStatusService";
 import { SearchService } from "../services/SearchService";
+import { ConfigService } from "../services/ConfigService";
 
 // RPC Clients
 import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
@@ -35,6 +36,7 @@ import { InterestScoreController } from "../controllers/InterestScoreController"
 import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
+import { ConfigController } from "../controllers/ConfigController";
 
 /**
  * 注册所有 DBManager 实例
@@ -80,6 +82,7 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.MiscService, MiscService);
     container.registerSingleton(TOKENS.TopicStatusService, TopicStatusService);
     container.registerSingleton(TOKENS.SearchService, SearchService);
+    container.registerSingleton(TOKENS.ConfigService, ConfigService);
 }
 
 /**
@@ -93,6 +96,16 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.MiscController, MiscController);
     container.registerSingleton(TOKENS.TopicStatusController, TopicStatusController);
     container.registerSingleton(TOKENS.SearchController, SearchController);
+    container.registerSingleton(TOKENS.ConfigController, ConfigController);
+}
+
+/**
+ * 注册配置面板模式所需的依赖（轻量级模式）
+ * 仅注册 ConfigService 和 ConfigController
+ */
+export function registerConfigPanelDependencies(): void {
+    container.registerSingleton(TOKENS.ConfigService, ConfigService);
+    container.registerSingleton(TOKENS.ConfigController, ConfigController);
 }
 
 /**

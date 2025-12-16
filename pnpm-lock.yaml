@@ -83,6 +83,9 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.25.76
+      zod-to-json-schema:
+        specifier: ^3.24.1
+        version: 3.25.0(zod@3.25.76)
     devDependencies:
       acorn:
         specifier: ^8.15.0
@@ -119,7 +122,7 @@ importers:
         version: 11.10.0
       langchain:
         specifier: 1.0.0-alpha.8
-        version: 1.0.0-alpha.8(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(openai@5.12.2(zod@4.1.13))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        version: 1.0.0-alpha.8(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(openai@5.12.2(zod@4.1.13))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.0(zod@4.1.13))
       protobufjs:
         specifier: ^7.5.4
         version: 7.5.4
@@ -5943,6 +5946,11 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod-to-json-schema@3.25.0:
+    resolution: {integrity: sha512-HvWtU2UG41LALjajJrML6uQejQhNJx+JBO9IflpSja4R03iNWfKXrj6W2h7ljuLyc1nKS+9yDyL/9tD1U/yBnQ==}
+    peerDependencies:
+      zod: ^3.25 || ^4
+
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
@@ -7914,13 +7922,15 @@ snapshots:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
 
-  '@langchain/langgraph@1.0.1(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.1.13)':
+  '@langchain/langgraph@1.0.1(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.0(zod@4.1.13))(zod@4.1.13)':
     dependencies:
       '@langchain/core': 1.0.0-alpha.6(openai@5.12.2(zod@4.1.13))
       '@langchain/langgraph-checkpoint': 1.0.0(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))
       '@langchain/langgraph-sdk': 1.0.0(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       uuid: 10.0.0
       zod: 4.1.13
+    optionalDependencies:
+      zod-to-json-schema: 3.25.0(zod@4.1.13)
     transitivePeerDependencies:
       - react
       - react-dom
@@ -11340,10 +11350,10 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  langchain@1.0.0-alpha.8(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(openai@5.12.2(zod@4.1.13))(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  langchain@1.0.0-alpha.8(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(openai@5.12.2(zod@4.1.13))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.0(zod@4.1.13)):
     dependencies:
       '@langchain/core': 1.0.0-alpha.6(openai@5.12.2(zod@4.1.13))
-      '@langchain/langgraph': 1.0.1(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod@4.1.13)
+      '@langchain/langgraph': 1.0.1(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(zod-to-json-schema@3.25.0(zod@4.1.13))(zod@4.1.13)
       '@langchain/langgraph-checkpoint': 0.1.1(@langchain/core@1.0.0-alpha.6(openai@5.12.2(zod@4.1.13)))
       uuid: 10.0.0
       zod: 4.1.13
@@ -13393,6 +13403,15 @@ snapshots:
   yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod-to-json-schema@3.25.0(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
+
+  zod-to-json-schema@3.25.0(zod@4.1.13):
+    dependencies:
+      zod: 4.1.13
+    optional: true
 
   zod@3.25.76: {}
 

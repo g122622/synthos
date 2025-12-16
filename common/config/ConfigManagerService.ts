@@ -1,10 +1,12 @@
 import "reflect-metadata";
-import { readFile, access } from "fs/promises";
+import { readFile, writeFile, access } from "fs/promises";
 import { injectable } from "tsyringe";
 import { dirname, join } from "path";
-import { GlobalConfig } from "./@types/GlobalConfig";
+import { GlobalConfig, GlobalConfigSchema, PartialGlobalConfig } from "./@types/GlobalConfig";
 import { findFileUpwards } from "../util/file/findFileUpwards";
 import { ASSERT } from "../util/ASSERT";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import type { JsonSchema7Type } from "zod-to-json-schema";
 
 @injectable()
 class ConfigManagerService {
@@ -20,6 +22,29 @@ class ConfigManagerService {
         }
     }
 
+    /**
+     * 获取配置文件路径
+     */
+    public async getConfigPath(): Promise<string | null> {
+        try {
+            return await this.configPath;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * 获取 override 配置文件路径
+     */
+    public async getOverridePath(): Promise<string | null> {
+        const configPath = await this.getConfigPath();
+        if (!configPath) return null;
+        return join(dirname(configPath), "synthos_config_override.json");
+    }
+
+    /**
+     * 获取当前合并后的配置
+     */
     public async getCurrentConfig(): Promise<GlobalConfig> {
         const configPath = await this.configPath;
         ASSERT(configPath, "未找到配置文件");
@@ -34,7 +59,7 @@ class ConfigManagerService {
 
         if (overrideExists) {
             const overrideContent = await readFile(overridePath, "utf8");
-            const overrideConfig = JSON.parse(overrideContent) as Partial<GlobalConfig>;
+            const overrideConfig = JSON.parse(overrideContent) as PartialGlobalConfig;
             // 深度合并配置，override 中非 undefined 的值优先
             return this.deepMerge(config, overrideConfig);
         }
@@ -43,9 +68,101 @@ class ConfigManagerService {
     }
 
     /**
+     * 获取原始配置（不含 override）
+     */
+    public async getBaseConfig(): Promise<GlobalConfig | null> {
+        const configPath = await this.getConfigPath();
+        if (!configPath) return null;
+
+        try {
+            const configContent = await readFile(configPath, "utf8");
+            return JSON.parse(configContent) as GlobalConfig;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * 获取 override 配置
+     */
+    public async getOverrideConfig(): Promise<PartialGlobalConfig | null> {
+        const overridePath = await this.getOverridePath();
+        if (!overridePath) return null;
+
+        try {
+            const overrideContent = await readFile(overridePath, "utf8");
+            return JSON.parse(overrideContent) as PartialGlobalConfig;
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * 保存 override 配置
+     * @param config 要保存的 override 配置
+     */
+    public async saveOverrideConfig(config: PartialGlobalConfig): Promise<void> {
+        const overridePath = await this.getOverridePath();
+        ASSERT(overridePath, "无法确定 override 配置文件路径");
+
+        // 验证配置格式
+        const partialSchema = GlobalConfigSchema.deepPartial();
+        const validationResult = partialSchema.safeParse(config);
+        if (!validationResult.success) {
+            throw new Error(`配置验证失败: ${validationResult.error.message}`);
+        }
+
+        await writeFile(overridePath, JSON.stringify(config, null, 2), "utf8");
+    }
+
+    /**
+     * 获取配置的 JSON Schema
+     * 用于前端动态生成表单和验证
+     */
+    public getConfigJsonSchema(): JsonSchema7Type {
+        return zodToJsonSchema(GlobalConfigSchema, {
+            name: "GlobalConfig",
+            $refStrategy: "none", // 展开所有引用，方便前端使用
+        });
+    }
+
+    /**
+     * 验证配置是否有效
+     * @param config 要验证的配置
+     * @returns 验证结果，成功返回 true，失败返回错误信息
+     */
+    public validateConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
+        const result = GlobalConfigSchema.safeParse(config);
+        if (result.success) {
+            return { success: true };
+        }
+        return {
+            success: false,
+            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`),
+        };
+    }
+
+    /**
+     * 验证部分配置（override 配置）
+     * @param config 要验证的部分配置
+     * @returns 验证结果
+     */
+    public validatePartialConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
+        const partialSchema = GlobalConfigSchema.deepPartial();
+        const result = partialSchema.safeParse(config);
+        if (result.success) {
+            return { success: true };
+        }
+        return {
+            success: false,
+            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`),
+        };
+    }
+
+    /**
      * 深度合并两个对象，source 中非 undefined 的值会覆盖 target 中的值
      */
-    private deepMerge<T extends object>(target: T, source: Partial<T>): T {
+    private deepMerge<T extends object>(target: T, source: Record<string, unknown>): T {
         const result = { ...target };
 
         for (const key in source) {
@@ -66,7 +183,7 @@ class ConfigManagerService {
                 // 递归合并嵌套对象
                 (result as Record<string, unknown>)[key] = this.deepMerge(
                     targetValue as object,
-                    sourceValue as object
+                    sourceValue as Record<string, unknown>
                 );
             } else {
                 (result as Record<string, unknown>)[key] = sourceValue;
@@ -78,6 +195,12 @@ class ConfigManagerService {
 }
 
 const instance = new ConfigManagerService();
+
+/**
+ * ConfigManagerService 实例类型
+ * 用于依赖注入时的类型标注
+ */
+export type IConfigManagerService = ConfigManagerService;
 
 export { ConfigManagerService };
 export default instance;

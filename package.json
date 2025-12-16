@@ -9,6 +9,7 @@
     "build:all": "node scripts/launchAll.cjs",
     "dev": "node scripts/launchAll.cjs",
     "start": "node scripts/launchAll.cjs",
+    "config": "node scripts/launchConfigPanel.cjs",
     "test": "vitest",
     "linecount": "node scripts/countLines.mjs"
   },
@@ -41,7 +42,8 @@
     "ts-node": "^10.9.2",
     "tsyringe": "^4.10.0",
     "typescript": "^5.9.3",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "acorn": "^8.15.0",

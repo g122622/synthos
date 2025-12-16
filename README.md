@@ -96,10 +96,10 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 
 > ⚠️ **推荐硬件配置**  
 >
-> - 由于需运行 Ollama 服务，加上 MongoDB、Node 进程和 SQLite 实例，**建议内存 ≥16GB，推荐 32GB 或 64GB**。
-> - 中高端 CPU
-> - 支持 CUDA 的 GPU
-> - 够用的硬盘空间（Ollama 模型约需 2-10GB，取决于使用的模型）。
+> - 由于需运行 Ollama 服务（选配），加上 MongoDB、Node 进程和 SQLite 实例，**建议内存 ≥16GB**。
+> - 中端 CPU
+> - 【选配】支持 CUDA 的 GPU（如果 llm 和嵌入模型都使用云端服务，则无需本地 GPU）
+> - 10G以上剩余硬盘空间。
 
 ![硬件要求](./docs/assets/hardware.png)
 

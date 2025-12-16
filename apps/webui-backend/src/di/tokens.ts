@@ -30,6 +30,7 @@ export const TOKENS = {
     MiscService: Symbol.for("MiscService"),
     TopicStatusService: Symbol.for("TopicStatusService"),
     SearchService: Symbol.for("SearchService"),
+    ConfigService: Symbol.for("ConfigService"),
 
     // Controllers
     AIDigestController: Symbol.for("AIDigestController"),
@@ -38,6 +39,7 @@ export const TOKENS = {
     InterestScoreController: Symbol.for("InterestScoreController"),
     MiscController: Symbol.for("MiscController"),
     TopicStatusController: Symbol.for("TopicStatusController"),
-    SearchController: Symbol.for("SearchController")
+    SearchController: Symbol.for("SearchController"),
+    ConfigController: Symbol.for("ConfigController")
 } as const;
 
