@@ -11,9 +11,11 @@ import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { getCurrentFormattedTime, formatTimestamp } from "@root/common/util/TimeUtils";
+import { QueryRewriter } from "./QueryRewriter";
 
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
+    private queryRewriter: QueryRewriter;
 
     constructor(
         private vectorDB: VectorDBManager,
@@ -23,7 +25,10 @@ export class RagRPCImpl implements RAGRPCImplementation {
         private textGenerator: TextGenerator,
         private defaultModelName: string,
         private ragCtxBuilder: RAGCtxBuilder
-    ) {}
+    ) {
+        // 在构造函数中创建 QueryRewriter 实例
+        this.queryRewriter = new QueryRewriter(textGenerator, defaultModelName);
+    }
 
     /**
      * 语义搜索
@@ -66,9 +71,24 @@ export class RagRPCImpl implements RAGRPCImplementation {
     async ask(input: { question: string; topK: number }): Promise<AskOutput> {
         this.LOGGER.info(`收到问答请求: "${input.question}", topK=${input.topK}`);
 
-        // 1. 搜索相关话题
-        const searchResults = await this.search({ query: input.question, limit: input.topK });
-        if (searchResults.length === 0) {
+        // 1. 使用 Multi-Query 扩展原始问题
+        const expandedQueries = await this.queryRewriter.expandQuery(input.question);
+        this.LOGGER.info(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
+
+        // 2. 对每个扩展查询进行搜索
+        const allResults: SearchOutput = [];
+        for (const query of expandedQueries) {
+            this.LOGGER.debug(`执行查询: "${query}"`);
+            const results = await this.search({ query, limit: input.topK });
+            allResults.push(...results);
+        }
+        this.LOGGER.info(`Multi-Query 搜索完成，共获取 ${allResults.length} 条原始结果`);
+
+        // 3. 文档去重（基于 topicId）
+        const deduplicatedResults = this.deduplicateResults(allResults);
+        this.LOGGER.info(`文档去重完成，去重后剩余 ${deduplicatedResults.length} 条结果`);
+
+        if (deduplicatedResults.length === 0) {
             this.LOGGER.warning("未找到相关话题");
             return {
                 answer: "抱歉，没有找到与您问题相关的话题内容。",
@@ -76,33 +96,69 @@ export class RagRPCImpl implements RAGRPCImplementation {
             };
         }
 
-        // 2. 构建 RAG prompt
+        // 4. 按相关性排序，取 topK 条（因为 multi-query+去重后的结果数量大概率也是超过 topK 的）
+        const topResults = deduplicatedResults
+            .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+            .slice(0, input.topK);
+
+        // 5. 构建 RAG prompt
         const prompt = await this.ragCtxBuilder.buildCtx(
             input.question,
-            searchResults,
+            topResults,
             getCurrentFormattedTime(),
             this.agcDB,
             this.imDB
         );
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
-        // 3. 调用 LLM 生成回答
-        const answer = await this.textGenerator.generateTextWithCandidates(
+        // 6. 调用 LLM 生成回答
+        const answer = await this.textGenerator.generateTextWithModelCandidates(
             [this.defaultModelName],
             prompt
         );
         this.LOGGER.success(`LLM 回答生成完成，长度: ${answer.length}`);
 
-        // 4. 构建引用列表
-        const references = searchResults.map(r => ({
+        // 7. 构建引用列表
+        const references = topResults.map(r => ({
             topicId: r.topicId,
             topic: r.topic,
-            relevance: Math.max(0, 1 - (r.distance ?? 0)) // 距离转相关性，确保非负
+            relevance: Math.max(0, 1 - (r.distance ?? 1)) // 距离转相关性，确保非负
         }));
 
         return {
             answer,
             references
         };
+    }
+
+    /**
+     * 文档去重
+     * 基于 topicId 去重。去重逻辑：在topicId相同的情况下，保留距离最小（相关性最高）的结果
+     */
+    private deduplicateResults(results: SearchOutput): SearchOutput {
+        const topicMap = new Map<string, SearchOutput[number]>();
+
+        for (const result of results) {
+            const topicId = result.topicId;
+            // 跳过无效的 topicId（理论上不会发生，但满足 TS 严格模式）
+            if (!topicId) {
+                continue;
+            }
+
+            const existing = topicMap.get(topicId);
+            if (!existing) {
+                // 新的 topicId，直接加入
+                topicMap.set(topicId, result);
+            } else {
+                // 已存在，保留距离更小的（相关性更高）
+                const currentDistance = result.distance ?? Infinity;
+                const existingDistance = existing.distance ?? Infinity;
+                if (currentDistance < existingDistance) {
+                    topicMap.set(topicId, result);
+                }
+            }
+        }
+
+        return Array.from(topicMap.values());
     }
 }

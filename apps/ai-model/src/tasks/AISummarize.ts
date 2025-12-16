@@ -101,7 +101,7 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                         LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
                         // 2. 调用大模型生成摘要
-                        const resultStr = await textGenerator.generateTextWithCandidates(
+                        const resultStr = await textGenerator.generateTextWithModelCandidates(
                             config.groupConfigs[groupId].aiModels,
                             ctx
                         );

@@ -84,10 +84,10 @@ describe("RAGCtxBuilder", () => {
             return Promise.resolve(null);
         });
 
-        // 由于 getRagPrompt 被模拟，我们需要直接调用内部方法来验证格式
+        // 由于 getRagAnswerPrompt 被模拟，我们需要直接调用内部方法来验证格式
         // 这里我们使用 spyOn 来部分模拟，保留原始实现
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagPromptSpy = vi.spyOn(RagPromptStore, "getRagPrompt").mockImplementation(
+        const getRagAnswerPromptSpy = vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation(
             (question, topics, currentDate) => {
                 // 验证 topics 格式
                 expect(topics).toContain("【话题1:机器学习基础】");
@@ -168,7 +168,7 @@ describe("RAGCtxBuilder", () => {
 
         // 使用 spyOn 验证传递给 RagPromptStore 的参数
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagPromptSpy = vi.spyOn(RagPromptStore, "getRagPrompt").mockImplementation(
+        const getRagAnswerPromptSpy = vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation(
             (question, topics, currentDate) => {
                 // 验证 topics 格式包含第一个话题的日期信息
                 expect(topics).toContain("【话题1:机器学习基础】");

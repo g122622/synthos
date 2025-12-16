@@ -70,7 +70,7 @@ export class TextGenerator extends Disposable {
         }
     }
 
-    public async generateTextWithCandidates(modelNames: string[], input: string): Promise<string> {
+    public async generateTextWithModelCandidates(modelNames: string[], input: string): Promise<string> {
         const config = await getConfigManagerService().getCurrentConfig();
         // 从第一个开始尝试，如果失败了就会尝试下一个
         const modelCandidates = [

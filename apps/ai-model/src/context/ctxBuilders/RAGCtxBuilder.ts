@@ -54,6 +54,6 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             })
             .join("\n\n");
         
-        return RagPromptStore.getRagPrompt(question, formattedTopics, currentDate);
+        return RagPromptStore.getRagAnswerPrompt(question, formattedTopics, currentDate);
     }
 }
