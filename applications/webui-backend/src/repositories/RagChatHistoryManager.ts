@@ -89,7 +89,7 @@ export class RagChatHistoryManager extends Disposable {
                     title TEXT NOT NULL,
                     question TEXT NOT NULL,
                     answer TEXT NOT NULL,
-                    references TEXT NOT NULL,
+                    refs TEXT NOT NULL,
                     topK INTEGER NOT NULL,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
@@ -129,7 +129,7 @@ export class RagChatHistoryManager extends Disposable {
         };
 
         await this.db!.run(
-            `INSERT INTO rag_sessions (id, title, question, answer, references, topK, createdAt, updatedAt)
+            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, createdAt, updatedAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [session.id, session.title, session.question, session.answer, session.references, session.topK, session.createdAt, session.updatedAt]
         );

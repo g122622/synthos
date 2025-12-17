@@ -26,18 +26,29 @@ import { sleep } from "@root/common/util/promisify/sleep";
 
     let config = await configManagerService.getCurrentConfig();
 
+    // 在启动前清理所有残留任务，避免上次运行残留的任务导致非预期执行
+    await cleanupStaleJobs([
+        TaskHandlerTypes.RunPipeline,
+        TaskHandlerTypes.ProvideData,
+        TaskHandlerTypes.Preprocess,
+        TaskHandlerTypes.AISummarize,
+        TaskHandlerTypes.GenerateEmbedding,
+        TaskHandlerTypes.InterestScore
+    ]);
+
     // 定义 RunPipeline 任务
     await agendaInstance
         .create(TaskHandlerTypes.RunPipeline)
         .unique({ name: TaskHandlerTypes.RunPipeline }, { insertOnly: true })
         .save();
-
     agendaInstance.define<TaskParameters<TaskHandlerTypes.RunPipeline>>(
         TaskHandlerTypes.RunPipeline,
         async job => {
             LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
             config = await configManagerService.getCurrentConfig(); // 刷新配置
-            const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours);
+            const startTimeStamp = getHoursAgoTimestamp(
+                config.orchestrator.dataSeekTimeWindowInHours
+            );
             const endTimeStamp = Date.now();
 
             const groupIds = Object.keys(config.groupConfigs);
@@ -149,25 +160,12 @@ import { sleep } from "@root/common/util/promisify/sleep";
         }
     );
 
-    // 在启动前清理所有残留任务，避免上次运行残留的任务导致非预期执行
-    await cleanupStaleJobs([
-        TaskHandlerTypes.RunPipeline,
-        TaskHandlerTypes.ProvideData,
-        TaskHandlerTypes.Preprocess,
-        TaskHandlerTypes.AISummarize,
-        TaskHandlerTypes.GenerateEmbedding,
-        TaskHandlerTypes.InterestScore
-    ]);
-
     await sleep(30 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
 
     // 读取配置，设置定时执行 Pipeline
     const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
     LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
-    await agendaInstance.every(
-        pipelineIntervalMinutes + " minutes",
-        TaskHandlerTypes.RunPipeline
-    ); // skipImmediate默认为false，表示立即执行第一次
+    await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline); // skipImmediate默认为false，表示立即执行第一次
 
     LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
     await agendaInstance.start();

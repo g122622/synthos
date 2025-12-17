@@ -20,7 +20,7 @@ class PromisifiedSQLite extends Disposable {
             this.db = new this.sqlite3.Database(DBFilePath, err => {
                 if (err) {
                     this.LOGGER.error("Failed to open database: " + err.message);
-                    this.LOGGER.debug("Database path: " + DBFilePath);
+                    this.LOGGER.warning("Database path: " + DBFilePath);
                     reject(err);
                 } else {
                     this.LOGGER.success("Opened database successfully, path: " + DBFilePath);
