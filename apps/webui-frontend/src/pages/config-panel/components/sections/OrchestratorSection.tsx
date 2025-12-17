@@ -21,28 +21,24 @@ const OrchestratorSection: React.FC<SectionProps> = ({ config, errors, onFieldCh
     return (
         <div className="space-y-6">
             <div className="grid gap-4">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">Pipeline 执行间隔（分钟）</label>
-                    <NumberInput
-                        description="Pipeline 执行间隔（分钟）"
-                        error={getFieldError(errors, "orchestrator.pipelineIntervalInMinutes")}
-                        min={1}
-                        path="orchestrator.pipelineIntervalInMinutes"
-                        value={(getNestedValue(config, "orchestrator.pipelineIntervalInMinutes") as number) || 0}
-                        onChange={onFieldChange}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">数据时间窗口（小时）</label>
-                    <NumberInput
-                        description="数据时间窗口（小时）"
-                        error={getFieldError(errors, "orchestrator.dataSeekTimeWindowInHours")}
-                        min={1}
-                        path="orchestrator.dataSeekTimeWindowInHours"
-                        value={(getNestedValue(config, "orchestrator.dataSeekTimeWindowInHours") as number) || 0}
-                        onChange={onFieldChange}
-                    />
-                </div>
+                <NumberInput
+                    description="Pipeline 执行间隔（分钟）"
+                    error={getFieldError(errors, "orchestrator.pipelineIntervalInMinutes")}
+                    label="Pipeline 执行间隔（分钟）"
+                    min={1}
+                    path="orchestrator.pipelineIntervalInMinutes"
+                    value={(getNestedValue(config, "orchestrator.pipelineIntervalInMinutes") as number) || 0}
+                    onChange={onFieldChange}
+                />
+                <NumberInput
+                    description="数据时间窗口（小时）"
+                    error={getFieldError(errors, "orchestrator.dataSeekTimeWindowInHours")}
+                    label="数据时间窗口（小时）"
+                    min={1}
+                    path="orchestrator.dataSeekTimeWindowInHours"
+                    value={(getNestedValue(config, "orchestrator.dataSeekTimeWindowInHours") as number) || 0}
+                    onChange={onFieldChange}
+                />
             </div>
         </div>
     );

@@ -21,27 +21,23 @@ const CommonDatabaseSection: React.FC<SectionProps> = ({ config, errors, onField
     return (
         <div className="space-y-6">
             <div className="grid gap-4">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">数据库基础路径</label>
-                    <StringInput
-                        description="数据库基础路径"
-                        error={getFieldError(errors, "commonDatabase.dbBasePath")}
-                        path="commonDatabase.dbBasePath"
-                        value={(getNestedValue(config, "commonDatabase.dbBasePath") as string) || ""}
-                        onChange={onFieldChange}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">最大数据库持续时间（天）</label>
-                    <NumberInput
-                        description="最大数据库持续时间（天）"
-                        error={getFieldError(errors, "commonDatabase.maxDBDuration")}
-                        min={1}
-                        path="commonDatabase.maxDBDuration"
-                        value={(getNestedValue(config, "commonDatabase.maxDBDuration") as number) || 0}
-                        onChange={onFieldChange}
-                    />
-                </div>
+                <StringInput
+                    description="数据库基础路径"
+                    error={getFieldError(errors, "commonDatabase.dbBasePath")}
+                    label="数据库基础路径"
+                    path="commonDatabase.dbBasePath"
+                    value={(getNestedValue(config, "commonDatabase.dbBasePath") as string) || ""}
+                    onChange={onFieldChange}
+                />
+                <NumberInput
+                    description="最大数据库持续时间（天）"
+                    error={getFieldError(errors, "commonDatabase.maxDBDuration")}
+                    label="最大数据库持续时间（天）"
+                    min={1}
+                    path="commonDatabase.maxDBDuration"
+                    value={(getNestedValue(config, "commonDatabase.maxDBDuration") as number) || 0}
+                    onChange={onFieldChange}
+                />
             </div>
         </div>
     );

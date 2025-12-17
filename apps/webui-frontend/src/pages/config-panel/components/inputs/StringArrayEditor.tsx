@@ -9,7 +9,7 @@ import { Input } from "@heroui/input";
 import { Chip } from "@heroui/chip";
 import { Plus } from "lucide-react";
 
-const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ path, value, description, onChange }) => {
+const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ label, path, value, description, onChange }) => {
     const [newItem, setNewItem] = useState("");
     const items = Array.isArray(value) ? value : [];
 
@@ -28,20 +28,23 @@ const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ path, value, desc
     };
 
     return (
-        <div className="space-y-2">
-            {description && <p className="text-sm text-default-500">{description}</p>}
-            <div className="flex flex-wrap gap-2">
-                {items.map((item, index) => (
-                    <Chip key={index} variant="flat" onClose={() => removeItem(index)}>
-                        {item}
-                    </Chip>
-                ))}
-            </div>
-            <div className="flex gap-2">
-                <Input placeholder="添加新项" size="sm" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === "Enter" && addItem()} />
-                <Button isIconOnly isDisabled={!newItem.trim()} size="sm" onPress={addItem}>
-                    <Plus className="w-4 h-4" />
-                </Button>
+        <div className="flex items-start">
+            <label className="text-sm font-medium w-40 shrink-0 pt-2">{label}</label>
+            <div className="flex-1 space-y-2">
+                {description && <p className="text-sm text-default-500">{description}</p>}
+                <div className="flex flex-wrap gap-2">
+                    {items.map((item, index) => (
+                        <Chip key={index} variant="flat" onClose={() => removeItem(index)}>
+                            {item}
+                        </Chip>
+                    ))}
+                </div>
+                <div className="flex gap-2">
+                    <Input placeholder="添加新项" size="sm" value={newItem} onChange={e => setNewItem(e.target.value)} onKeyDown={e => e.key === "Enter" && addItem()} />
+                    <Button isIconOnly isDisabled={!newItem.trim()} size="sm" onPress={addItem}>
+                        <Plus className="w-4 h-4" />
+                    </Button>
+                </div>
             </div>
         </div>
     );

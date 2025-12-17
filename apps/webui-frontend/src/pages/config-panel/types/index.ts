@@ -20,6 +20,7 @@ export type FieldChangeHandler = (path: string, value: unknown) => void;
 
 /** 字符串输入组件 Props */
 export interface StringInputProps {
+    label: string;
     path: string;
     value: string;
     description?: string;
@@ -29,6 +30,7 @@ export interface StringInputProps {
 
 /** 数字输入组件 Props */
 export interface NumberInputProps {
+    label: string;
     path: string;
     value: number;
     description?: string;
@@ -40,6 +42,7 @@ export interface NumberInputProps {
 
 /** 布尔开关组件 Props */
 export interface BooleanSwitchProps {
+    label: string;
     path: string;
     value: boolean;
     description?: string;
@@ -48,6 +51,7 @@ export interface BooleanSwitchProps {
 
 /** 枚举选择组件 Props */
 export interface EnumSelectProps {
+    label: string;
     path: string;
     value: string;
     options: string[];
@@ -58,6 +62,7 @@ export interface EnumSelectProps {
 
 /** 字符串数组编辑组件 Props */
 export interface StringArrayEditorProps {
+    label: string;
     path: string;
     value: string[];
     description?: string;

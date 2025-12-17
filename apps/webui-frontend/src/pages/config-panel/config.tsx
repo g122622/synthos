@@ -225,7 +225,7 @@ export default function ConfigPage() {
             if (!SectionComponent) return null;
 
             return (
-                <Card key={section.key} className="p-3" id={`section-${section.key}`}>
+                <Card key={section.key} className="p-4" id={`section-${section.key}`}>
                     <CardHeader>
                         <h3 className="text-lg font-bold">
                             <span className="mr-2">{section.icon}</span>

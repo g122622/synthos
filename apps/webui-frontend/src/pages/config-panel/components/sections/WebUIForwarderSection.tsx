@@ -21,35 +21,29 @@ const WebUIForwarderSection: React.FC<SectionProps> = ({ config, errors, onField
     return (
         <div className="space-y-6">
             <div className="grid gap-4">
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">启用内网穿透</label>
-                    <BooleanSwitch
-                        description="是否启用内网穿透"
-                        path="webUI_Forwarder.enabled"
-                        value={(getNestedValue(config, "webUI_Forwarder.enabled") as boolean) || false}
-                        onChange={onFieldChange}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">前端 ngrok Token</label>
-                    <StringInput
-                        description="前端 ngrok Token（可选）"
-                        error={getFieldError(errors, "webUI_Forwarder.authTokenForFE")}
-                        path="webUI_Forwarder.authTokenForFE"
-                        value={(getNestedValue(config, "webUI_Forwarder.authTokenForFE") as string) || ""}
-                        onChange={onFieldChange}
-                    />
-                </div>
-                <div className="space-y-1">
-                    <label className="text-sm font-medium">后端 ngrok Token</label>
-                    <StringInput
-                        description="后端 ngrok Token（可选）"
-                        error={getFieldError(errors, "webUI_Forwarder.authTokenForBE")}
-                        path="webUI_Forwarder.authTokenForBE"
-                        value={(getNestedValue(config, "webUI_Forwarder.authTokenForBE") as string) || ""}
-                        onChange={onFieldChange}
-                    />
-                </div>
+                <BooleanSwitch
+                    description="是否启用内网穿透"
+                    label="启用内网穿透"
+                    path="webUI_Forwarder.enabled"
+                    value={(getNestedValue(config, "webUI_Forwarder.enabled") as boolean) || false}
+                    onChange={onFieldChange}
+                />
+                <StringInput
+                    description="前端 ngrok Token（可选）"
+                    error={getFieldError(errors, "webUI_Forwarder.authTokenForFE")}
+                    label="前端 ngrok Token"
+                    path="webUI_Forwarder.authTokenForFE"
+                    value={(getNestedValue(config, "webUI_Forwarder.authTokenForFE") as string) || ""}
+                    onChange={onFieldChange}
+                />
+                <StringInput
+                    description="后端 ngrok Token（可选）"
+                    error={getFieldError(errors, "webUI_Forwarder.authTokenForBE")}
+                    label="后端 ngrok Token"
+                    path="webUI_Forwarder.authTokenForBE"
+                    value={(getNestedValue(config, "webUI_Forwarder.authTokenForBE") as string) || ""}
+                    onChange={onFieldChange}
+                />
             </div>
         </div>
     );
