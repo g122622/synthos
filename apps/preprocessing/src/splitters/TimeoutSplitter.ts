@@ -9,9 +9,10 @@ import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse
 
 @mustInitBeforeUse
 export class TimeoutSplitter extends Disposable implements ISplitter {
-    public async init() {}
+    public async init() { }
 
-    public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
+    public async assignSessionId(imdbManager: IMDBManager, groupId: string, startTimeStamp: number,
+        endTimeStamp: number) {
         const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .TimeoutSplitter;
 
@@ -20,8 +21,8 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
 
         const msgs = await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
-            getMinutesAgoTimestamp(minutesAgo),
-            Date.now()
+            startTimeStamp,
+            endTimeStamp
         );
 
         for (let i = 0; i < msgs.length; i++) {

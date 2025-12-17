@@ -51,21 +51,21 @@ import { registerConfigManagerService, getConfigManagerService } from "@root/com
             for (const groupId of attrs.groupIds) {
                 LOGGER.debug(`开始获取群 ${groupId} 的消息`);
                 // 计算开始时间
-                const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
-                let startTime = latestMessage?.timestamp
-                    ? latestMessage.timestamp - 60 * 1000
-                    : getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
-                if (!latestMessage?.timestamp) {
-                    LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
-                }
-                if (Date.now() - startTime > attrs.startTimeInHoursFromNow * 60 * 60 * 1000) {
-                    LOGGER.warning(`群 ${groupId} 的最新消息时间超过${attrs.startTimeInHoursFromNow}小时，使用该范围。最新消息时间：${latestMessage?.timestamp}`);
-                    startTime = getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
-                }
+                // const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
+                // let startTime = latestMessage?.timestamp
+                //     ? latestMessage.timestamp - 60 * 1000
+                //     : getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
+                // if (!latestMessage?.timestamp) {
+                //     LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
+                // }
+                // if (Date.now() - startTime > attrs.startTimeInHoursFromNow * 60 * 60 * 1000) {
+                //     LOGGER.warning(`群 ${groupId} 的最新消息时间超过${attrs.startTimeInHoursFromNow}小时，使用该范围。最新消息时间：${latestMessage?.timestamp}`);
+                //     startTime = getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
+                // }
 
                 const results = await activeProvider.getMsgByTimeRange(
-                    startTime, // 从最新消息往前1分钟的数据
-                    Date.now(),
+                    attrs.startTimeStamp, // 从最新消息往前1分钟的数据
+                    attrs.endTimeStamp,
                     groupId
                 );
                 LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);

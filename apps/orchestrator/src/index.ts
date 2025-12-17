@@ -36,8 +36,9 @@ import { sleep } from "@root/common/util/promisify/sleep";
         TaskHandlerTypes.RunPipeline,
         async job => {
             LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
-            const attrs = job.attrs.data;
             config = await configManagerService.getCurrentConfig(); // 刷新配置
+            const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours);
+            const endTimeStamp = Date.now();
 
             const groupIds = Object.keys(config.groupConfigs);
             LOGGER.info(`Pipeline 配置 - 处理群组: ${groupIds.join(", ")}`);
@@ -53,7 +54,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
                 {
                     IMType: IMTypes.QQ, // TODO: 支持多种 IM 类型
                     groupIds,
-                    startTimeInHoursFromNow: config.orchestrator.dataSeekTimeWindowInHours
+                    startTimeStamp,
+                    endTimeStamp
                 },
                 POLL_INTERVAL,
                 TASK_TIMEOUT
@@ -71,7 +73,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
                 TaskHandlerTypes.Preprocess,
                 {
                     groupIds,
-                    startTimeInMinutesFromNow: config.orchestrator.dataSeekTimeWindowInHours * 60 // 使用配置的时间窗口
+                    startTimeStamp,
+                    endTimeStamp
                 },
                 POLL_INTERVAL,
                 TASK_TIMEOUT
@@ -89,8 +92,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
                 TaskHandlerTypes.AISummarize,
                 {
                     groupIds,
-                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
-                    endTimeStamp: Date.now()
+                    startTimeStamp,
+                    endTimeStamp
                 },
                 POLL_INTERVAL,
                 TASK_TIMEOUT
@@ -107,8 +110,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
             const generateEmbeddingSuccess = await scheduleAndWaitForJob(
                 TaskHandlerTypes.GenerateEmbedding,
                 {
-                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
-                    endTimeStamp: Date.now()
+                    startTimeStamp,
+                    endTimeStamp
                 },
                 POLL_INTERVAL,
                 TASK_TIMEOUT
@@ -125,8 +128,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
             // const interestScoreSuccess = await scheduleAndWaitForJob(
             //     TaskHandlerTypes.InterestScore,
             //     {
-            //         startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
-            //         endTimeStamp: Date.now()
+            //         startTimeStamp,
+            //         endTimeStamp
             //     },
             //     POLL_INTERVAL,
             //     TASK_TIMEOUT
@@ -159,7 +162,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
     await sleep(30 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
 
     // 读取配置，设置定时执行 Pipeline
-    const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes ?? 60; // 默认每小时执行一次
+    const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
     LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
     await agendaInstance.every(
         pipelineIntervalMinutes + " minutes",

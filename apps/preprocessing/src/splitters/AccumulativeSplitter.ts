@@ -22,7 +22,8 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
 
-    public async assignSessionId(imdbManager: IMDBManager, groupId: string, minutesAgo: number) {
+    public async assignSessionId(imdbManager: IMDBManager, groupId: string, startTimeStamp: number,
+        endTimeStamp: number) {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
@@ -43,8 +44,8 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
 
         const msgs = await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
-            getMinutesAgoTimestamp(minutesAgo),
-            Date.now()
+            startTimeStamp,
+            endTimeStamp
         );
 
         for (let index = 0; index < msgs.length; index++) {

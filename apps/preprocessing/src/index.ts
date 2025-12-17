@@ -61,7 +61,8 @@ import { ISplitter } from "./splitters/contracts/ISplitter";
                         await splitter.assignSessionId(
                             imdbManager,
                             groupId,
-                            attrs.startTimeInMinutesFromNow
+                            attrs.startTimeStamp,
+                            attrs.endTimeStamp
                         )
                     ).map<Promise<ProcessedChatMessage>>(async result => {
                         return {
