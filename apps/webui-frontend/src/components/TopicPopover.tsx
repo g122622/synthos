@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 
+import TopicCard from "./TopicCard";
+
 import { AIDigestResult } from "@/types/app";
 import { getAIDigestResultByTopicId } from "@/api/basicApi";
-import TopicCard from "./TopicCard";
 
 interface TopicPopoverProps {
     topicId: string;
@@ -16,15 +17,7 @@ interface TopicPopoverProps {
     onMarkAsRead?: (topicId: string) => void;
 }
 
-const TopicPopover: React.FC<TopicPopoverProps> = ({
-    children,
-    favoriteTopics = {},
-    interestScore,
-    onMarkAsRead,
-    onToggleFavorite,
-    readTopics = {},
-    topicId
-}) => {
+const TopicPopover: React.FC<TopicPopoverProps> = ({ children, favoriteTopics = {}, interestScore, onMarkAsRead, onToggleFavorite, readTopics = {}, topicId }) => {
     const [topicDetail, setTopicDetail] = useState<AIDigestResult | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
@@ -32,10 +25,11 @@ const TopicPopover: React.FC<TopicPopoverProps> = ({
 
     const loadTopicDetail = async () => {
         if (hasLoaded || isLoading) return;
-        
+
         setIsLoading(true);
         try {
             const response = await getAIDigestResultByTopicId(topicId);
+
             if (response.success) {
                 setTopicDetail(response.data);
                 setHasLoaded(true);
@@ -55,15 +49,8 @@ const TopicPopover: React.FC<TopicPopoverProps> = ({
     };
 
     return (
-        <Popover
-            isOpen={isOpen}
-            onOpenChange={handleOpenChange}
-            placement="bottom"
-            shouldBlockScroll={false}
-        >
-            <PopoverTrigger>
-                {children}
-            </PopoverTrigger>
+        <Popover isOpen={isOpen} placement="bottom" shouldBlockScroll={false} onOpenChange={handleOpenChange}>
+            <PopoverTrigger>{children}</PopoverTrigger>
             <PopoverContent className="w-[500px] max-h-[80vh] overflow-y-auto">
                 <div className="py-2">
                     {isLoading ? (
@@ -72,17 +59,15 @@ const TopicPopover: React.FC<TopicPopoverProps> = ({
                         </div>
                     ) : topicDetail ? (
                         <TopicCard
-                            topic={topicDetail}
                             favoriteTopics={favoriteTopics}
                             interestScore={interestScore}
+                            readTopics={readTopics}
+                            topic={topicDetail}
                             onMarkAsRead={onMarkAsRead}
                             onToggleFavorite={onToggleFavorite}
-                            readTopics={readTopics}
                         />
                     ) : (
-                        <div className="text-center py-8 text-default-500">
-                            无法加载话题详情
-                        </div>
+                        <div className="text-center py-8 text-default-500">无法加载话题详情</div>
                     )}
                 </div>
             </PopoverContent>

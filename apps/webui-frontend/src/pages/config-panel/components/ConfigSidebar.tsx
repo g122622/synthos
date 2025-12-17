@@ -10,7 +10,7 @@ import { ScrollShadow } from "@heroui/scroll-shadow";
 const ConfigSidebar: React.FC<ConfigSidebarProps> = ({ sections, activeSection, onSectionClick }) => {
     return (
         <Card className="w-64 h-fit sticky top-20">
-            <CardBody className="p-2">
+            <CardBody className="p-4">
                 <ScrollShadow className="max-h-[70vh]">
                     <nav className="space-y-1">
                         {sections.map(section => (

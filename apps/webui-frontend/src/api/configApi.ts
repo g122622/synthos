@@ -89,10 +89,7 @@ export const saveOverrideConfig = async (config: Record<string, unknown>): Promi
 /**
  * 验证配置
  */
-export const validateConfig = async (
-    config: Record<string, unknown>,
-    partial: boolean
-): Promise<ApiResponse<ConfigValidationResult>> => {
+export const validateConfig = async (config: Record<string, unknown>, partial: boolean): Promise<ApiResponse<ConfigValidationResult>> => {
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

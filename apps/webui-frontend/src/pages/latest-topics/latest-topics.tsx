@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { useState, useEffect, useMemo } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
