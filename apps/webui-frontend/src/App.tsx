@@ -6,7 +6,7 @@ import IndexPage from "@/pages/index";
 import ChatMessagesPage from "@/pages/chat-messages";
 import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
-import RagPage from "@/pages/rag";
+import RagPage from "@/pages/rag/rag";
 import ConfigPage from "@/pages/config-panel/config";
 
 function App() {

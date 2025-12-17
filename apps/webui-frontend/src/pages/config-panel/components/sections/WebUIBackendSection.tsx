@@ -39,6 +39,14 @@ const WebUIBackendSection: React.FC<SectionProps> = ({ config, errors, onFieldCh
                     value={(getNestedValue(config, "webUI_Backend.kvStoreBasePath") as string) || ""}
                     onChange={onFieldChange}
                 />
+                <StringInput
+                    description="数据库基础路径"
+                    error={getFieldError(errors, "webUI_Backend.dbBasePath")}
+                    label="数据库基础路径"
+                    path="webUI_Backend.dbBasePath"
+                    value={(getNestedValue(config, "webUI_Backend.dbBasePath") as string) || ""}
+                    onChange={onFieldChange}
+                />
             </div>
         </div>
     );

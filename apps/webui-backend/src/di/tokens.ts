@@ -18,6 +18,7 @@ export const TOKENS = {
     // Status Managers
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),
     TopicReadStatusManager: Symbol.for("TopicReadStatusManager"),
+    RagChatHistoryManager: Symbol.for("RagChatHistoryManager"),
 
     // RPC Clients
     RAGClient: Symbol.for("RAGClient"),
@@ -31,6 +32,7 @@ export const TOKENS = {
     TopicStatusService: Symbol.for("TopicStatusService"),
     SearchService: Symbol.for("SearchService"),
     ConfigService: Symbol.for("ConfigService"),
+    RagChatHistoryService: Symbol.for("RagChatHistoryService"),
 
     // Controllers
     AIDigestController: Symbol.for("AIDigestController"),
@@ -40,6 +42,7 @@ export const TOKENS = {
     MiscController: Symbol.for("MiscController"),
     TopicStatusController: Symbol.for("TopicStatusController"),
     SearchController: Symbol.for("SearchController"),
-    ConfigController: Symbol.for("ConfigController")
+    ConfigController: Symbol.for("ConfigController"),
+    RagChatHistoryController: Symbol.for("RagChatHistoryController")
 } as const;
 

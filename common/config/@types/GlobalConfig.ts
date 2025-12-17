@@ -82,6 +82,7 @@ export const GlobalConfigSchema = z.object({
     webUI_Backend: z.object({
         port: z.number().int().positive().describe("后端服务端口"),
         kvStoreBasePath: z.string().describe("KV 存储基础路径"),
+        dbBasePath: z.string().describe("数据库基础路径"),
     }).describe("WebUI 后端配置"),
 
     orchestrator: z.object({

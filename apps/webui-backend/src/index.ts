@@ -15,6 +15,7 @@ import Logger from "@root/common/util/Logger";
 import {
     registerDBManagers,
     registerStatusManagers,
+    registerRagChatHistoryManager,
     registerRAGClient,
     registerServices,
     registerControllers,
@@ -27,6 +28,7 @@ import type ConfigManagerServiceType from "@root/common/config/ConfigManagerServ
 // 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "./repositories/TopicReadStatusManager";
+import { RagChatHistoryManager } from "./repositories/RagChatHistoryManager";
 
 // 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
@@ -87,7 +89,7 @@ export class WebUILocalServer {
         return container.resolve<typeof ConfigManagerServiceType>(TOKENS.ConfigManagerService);
     }
 
-    private async initializeStatusManagers(): Promise<{
+private async initializeStatusManagers(): Promise<{
         favoriteStatusManager: TopicFavoriteStatusManager;
         readStatusManager: TopicReadStatusManager;
     }> {
@@ -99,6 +101,15 @@ export class WebUILocalServer {
             path.join(config.webUI_Backend.kvStoreBasePath, "read_topics")
         );
         return { favoriteStatusManager, readStatusManager };
+    }
+
+    private async initializeRagChatHistoryManager(): Promise<RagChatHistoryManager> {
+        const config = await this.getConfigManagerService().getCurrentConfig();
+        const ragChatHistoryManager = RagChatHistoryManager.getInstance(
+            config.webUI_Backend.dbBasePath
+        );
+        await ragChatHistoryManager.init();
+        return ragChatHistoryManager;
     }
 
     private async registerDependencies(): Promise<void> {
@@ -115,6 +126,10 @@ export class WebUILocalServer {
         // 2. 注册 Status Managers
         const { favoriteStatusManager, readStatusManager } = await this.initializeStatusManagers();
         registerStatusManagers(favoriteStatusManager, readStatusManager);
+
+        // 2.5. 注册 RAG 聊天历史管理器
+        const ragChatHistoryManager = await this.initializeRagChatHistoryManager();
+        registerRagChatHistoryManager(ragChatHistoryManager);
 
         // 3. 注册 RAG RPC 客户端
         const config = await this.getConfigManagerService().getCurrentConfig();

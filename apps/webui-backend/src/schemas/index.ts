@@ -67,3 +67,34 @@ export const GetQQAvatarSchema = z.object({
 });
 export type GetQQAvatarParams = z.infer<typeof GetQQAvatarSchema>;
 
+// ==================== RAG Chat History ====================
+
+export const CreateRagSessionSchema = z.object({
+    question: z.string({ message: "缺少question参数" }),
+    answer: z.string({ message: "缺少answer参数" }),
+    references: z.array(z.object({
+        topicId: z.string(),
+        topic: z.string(),
+        relevance: z.number()
+    }), { message: "缺少references参数" }),
+    topK: z.number({ message: "缺少topK参数" })
+});
+export type CreateRagSessionParams = z.infer<typeof CreateRagSessionSchema>;
+
+export const GetRagSessionListSchema = z.object({
+    limit: z.number({ message: "缺少limit参数" }).int().positive().max(100),
+    offset: z.number({ message: "缺少offset参数" }).int().min(0)
+});
+export type GetRagSessionListParams = z.infer<typeof GetRagSessionListSchema>;
+
+export const RagSessionIdSchema = z.object({
+    sessionId: z.string({ message: "缺少sessionId参数" })
+});
+export type RagSessionIdParams = z.infer<typeof RagSessionIdSchema>;
+
+export const UpdateRagSessionTitleSchema = z.object({
+    sessionId: z.string({ message: "缺少sessionId参数" }),
+    title: z.string({ message: "缺少title参数" })
+});
+export type UpdateRagSessionTitleParams = z.infer<typeof UpdateRagSessionTitleSchema>;
+

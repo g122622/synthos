@@ -14,6 +14,7 @@ import { InterestScoreController } from "../controllers/InterestScoreController"
 import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
+import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -24,6 +25,7 @@ export const setupApiRoutes = (app: Express): void => {
     const miscController = container.resolve<MiscController>(TOKENS.MiscController);
     const topicStatusController = container.resolve<TopicStatusController>(TOKENS.TopicStatusController);
     const searchController = container.resolve<SearchController>(TOKENS.SearchController);
+    const ragChatHistoryController = container.resolve<RagChatHistoryController>(TOKENS.RagChatHistoryController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -130,5 +132,42 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/ask",
         asyncHandler((req, res) => searchController.ask(req, res))
+    );
+
+    // ==================== RAG 聊天历史 ====================
+    // 创建新会话
+    app.post(
+        "/api/rag/session/create",
+        asyncHandler((req, res) => ragChatHistoryController.createSession(req, res))
+    );
+
+    // 获取会话列表
+    app.post(
+        "/api/rag/session/list",
+        asyncHandler((req, res) => ragChatHistoryController.getSessionList(req, res))
+    );
+
+    // 获取会话详情
+    app.post(
+        "/api/rag/session/detail",
+        asyncHandler((req, res) => ragChatHistoryController.getSessionDetail(req, res))
+    );
+
+    // 删除会话
+    app.post(
+        "/api/rag/session/delete",
+        asyncHandler((req, res) => ragChatHistoryController.deleteSession(req, res))
+    );
+
+    // 更新会话标题
+    app.post(
+        "/api/rag/session/update-title",
+        asyncHandler((req, res) => ragChatHistoryController.updateSessionTitle(req, res))
+    );
+
+    // 清空所有会话
+    app.post(
+        "/api/rag/session/clear-all",
+        asyncHandler((req, res) => ragChatHistoryController.clearAllSessions(req, res))
     );
 };

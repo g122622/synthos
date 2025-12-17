@@ -14,6 +14,7 @@ import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBMan
 // Status Managers
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
+import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
 
 // Services
 import { AIDigestService } from "../services/AIDigestService";
@@ -24,6 +25,7 @@ import { MiscService } from "../services/MiscService";
 import { TopicStatusService } from "../services/TopicStatusService";
 import { SearchService } from "../services/SearchService";
 import { ConfigService } from "../services/ConfigService";
+import { RagChatHistoryService } from "../services/RagChatHistoryService";
 
 // RPC Clients
 import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
@@ -37,6 +39,7 @@ import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
 import { ConfigController } from "../controllers/ConfigController";
+import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
 
 /**
  * 注册所有 DBManager 实例
@@ -63,6 +66,15 @@ export function registerStatusManagers(
 }
 
 /**
+ * 注册 RAG 聊天历史管理器
+ */
+export function registerRagChatHistoryManager(
+    ragChatHistoryManager: RagChatHistoryManager
+): void {
+    container.registerInstance(TOKENS.RagChatHistoryManager, ragChatHistoryManager);
+}
+
+/**
  * 注册 RAG RPC 客户端
  * @param rpcBaseUrl RAG RPC 服务地址
  */
@@ -83,6 +95,7 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.TopicStatusService, TopicStatusService);
     container.registerSingleton(TOKENS.SearchService, SearchService);
     container.registerSingleton(TOKENS.ConfigService, ConfigService);
+    container.registerSingleton(TOKENS.RagChatHistoryService, RagChatHistoryService);
 }
 
 /**
@@ -97,6 +110,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.TopicStatusController, TopicStatusController);
     container.registerSingleton(TOKENS.SearchController, SearchController);
     container.registerSingleton(TOKENS.ConfigController, ConfigController);
+    container.registerSingleton(TOKENS.RagChatHistoryController, RagChatHistoryController);
 }
 
 /**

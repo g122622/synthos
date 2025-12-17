@@ -55,7 +55,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - ✅ 已完成 用户输入rag问题后，先让llm生成查询计划（Multi-Query），然后再查向量数据库，并对结果去重
 > - ✅ 构建rag问答上下文时，插入当前日期和每个话题的日期，以提高模型回答的准确性
 > - [TODO] RAG前端问答页面支持 1. 解析话题，并在鼠标hover后自动展示话题详情浮层 2. 渲染markdown 3. 支持全文复制
-> - [TODO] RAG支持记忆历史会话
+> - [WIP] RAG支持记忆历史会话
 > - [TODO] init() 防重入
 > - [TODO] 选一个更好的示例用于 getSummarizePrompt
 > - ✅ 已完成 兴趣度指数：用户给出自己的兴趣偏好（关键词标签组），系统根据用户的兴趣偏好为每个话题打分，排序后推荐给用户。（用户也可以标记不喜欢的话题，此时话题得分为负数）
