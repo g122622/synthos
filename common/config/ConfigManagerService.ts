@@ -49,22 +49,32 @@ class ConfigManagerService {
         const configPath = await this.configPath;
         ASSERT(configPath, "未找到配置文件");
 
-        // 读取主配置文件
+        // 1. 读取主配置
         const configContent = await readFile(configPath, "utf8");
-        const config = JSON.parse(configContent) as GlobalConfig;
+        const baseConfig = JSON.parse(configContent); // 类型为 unknown
 
-        // 检查是否存在 override 配置文件
+        // 2. 读取 override 配置（如果存在）
         const overridePath = join(dirname(configPath), "synthos_config_override.json");
-        const overrideExists = await access(overridePath).then(() => true).catch(() => false);
-
-        if (overrideExists) {
+        let overrideConfig = {};
+        try {
+            await access(overridePath);
             const overrideContent = await readFile(overridePath, "utf8");
-            const overrideConfig = JSON.parse(overrideContent) as PartialGlobalConfig;
-            // 深度合并配置，override 中非 undefined 的值优先
-            return this.deepMerge(config, overrideConfig);
+            overrideConfig = JSON.parse(overrideContent);
+        } catch {
+            // override 不存在或读取失败，忽略
         }
 
-        return config;
+        // 3. 合并主配置和 override 配置
+        const mergedConfig = this.deepMerge(baseConfig, overrideConfig);
+
+        // 4. 用 Zod 全量 Schema 验证合并后的配置文件是否完整且类型正确
+        const parsed = GlobalConfigSchema.safeParse(mergedConfig);
+        if (!parsed.success) {
+            const errors = parsed.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
+            throw new Error(`配置文件schema完整性校验失败:\n${errors}`);
+        }
+
+        return parsed.data as GlobalConfig;
     }
 
     /**

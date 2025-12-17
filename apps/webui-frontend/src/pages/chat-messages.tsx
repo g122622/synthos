@@ -137,8 +137,8 @@ export default function ChatMessagesPage() {
                             <div className="flex-1 w-full">
                                 <DateRangePicker
                                     className="max-w-xs"
-                                    value={dateRange}
                                     label="筛选时间范围"
+                                    value={dateRange}
                                     onChange={range => {
                                         if (range) {
                                             setDateRange({

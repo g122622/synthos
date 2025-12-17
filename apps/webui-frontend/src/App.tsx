@@ -7,6 +7,7 @@ import ChatMessagesPage from "@/pages/chat-messages";
 import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
 import RagPage from "@/pages/rag";
+import ConfigPage from "@/pages/config";
 
 function App() {
     return (
@@ -17,6 +18,7 @@ function App() {
             <Route element={<GroupsPage />} path="/groups" />
             <Route element={<LatestTopicsPage />} path="/latest-topics" />
             <Route element={<RagPage />} path="/rag" />
+            <Route element={<ConfigPage />} path="/config" />
         </Routes>
     );
 }

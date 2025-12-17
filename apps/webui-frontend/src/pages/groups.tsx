@@ -15,7 +15,7 @@ export default function GroupsPage() {
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
     const [recentMessageCounts, setRecentMessageCounts] = useState<Record<string, number>>({});
     const [totalRecentMessageCount, setTotalRecentMessageCount] = useState<number>(0);
-    const [totalHourlyCounts, setTotalHourlyCounts] = useState<number[]>(new Array(24).fill(0));
+    const [setTotalHourlyCounts] = useState<number[]>(new Array(24).fill(0));
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const totalChartRef = useRef<HTMLDivElement | null>(null);
     const totalChartInstance = useRef<echarts.EChartsType | null>(null);

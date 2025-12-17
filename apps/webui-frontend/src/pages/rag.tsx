@@ -362,7 +362,7 @@ export default function RagPage() {
 
                                 {!askLoading && askResponse && renderAskResult()}
 
-                                {!askLoading && question && !askResponse && <div className="text-center py-8 text-default-500">点击 "获取 AI 回答" 按钮开始问答</div>}
+                                {!askLoading && question && !askResponse && <div className="text-center py-8 text-default-500">点击 &quot;获取 AI 回答&quot; 按钮开始问答</div>}
                             </div>
                         </Tab>
                     </Tabs>

@@ -113,27 +113,38 @@ export const GlobalConfigSchema = z.object({
  */
 export const PartialGlobalConfigSchema = GlobalConfigSchema.deepPartial();
 
-// ==================== TypeScript 类型（从 Zod Schema 推导）====================
+// ==================== TypeScript 类型（从 Zod Schema 自动推导）====================
+
+/**
+ * 从 Zod Schema 生成严格类型（移除所有可选标记）
+ */
+type DeepRequired<T> = {
+  [K in keyof T]-?: T[K] extends object | undefined
+    ? T[K] extends (...args: any[]) => any
+      ? T[K]
+      : DeepRequired<NonNullable<T[K]>>
+    : T[K];
+};
 
 /**
  * AI 模型配置类型
  */
-export type ModelConfig = z.infer<typeof ModelConfigSchema>;
+export type ModelConfig = DeepRequired<z.infer<typeof ModelConfigSchema>>;
 
 /**
  * 群组配置类型
  */
-export type GroupConfig = z.infer<typeof GroupConfigSchema>;
+export type GroupConfig = DeepRequired<z.infer<typeof GroupConfigSchema>>;
 
 /**
  * 用户兴趣配置类型
  */
-export type UserInterest = z.infer<typeof UserInterestSchema>;
+export type UserInterest = DeepRequired<z.infer<typeof UserInterestSchema>>;
 
 /**
  * 全局配置类型
  */
-export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;
+export type GlobalConfig = DeepRequired<z.infer<typeof GlobalConfigSchema>>;
 
 /**
  * 部分配置类型（用于 override 配置）

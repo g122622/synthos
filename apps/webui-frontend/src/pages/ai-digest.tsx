@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Card, CardBody, CardHeader } from "@heroui/card";
@@ -22,7 +22,7 @@ export default function AIDigestPage() {
 
     // 按会话ID获取摘要结果
     const sessionDigestList = useAsyncList<AIDigestResult>({
-        async load({ signal }) {
+        async load({}) {
             if (!sessionId) {
                 return {
                     items: []

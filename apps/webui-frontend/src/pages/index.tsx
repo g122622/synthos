@@ -1,8 +1,8 @@
 import { Link } from "@heroui/link";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardFooter, CardHeader } from "@heroui/card";
-import { title, subtitle } from "@/components/primitives";
 
+import { title, subtitle } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 
 export default function IndexPage() {
@@ -12,9 +12,7 @@ export default function IndexPage() {
                 <div className="inline-block max-w-lg text-center justify-center">
                     <h1 className={title()}>Synthos&nbsp;</h1>
                     <h1 className={title({ color: "blue" })}>AI聊天摘要系统</h1>
-                    <div className={subtitle({ class: "mt-4" })}>
-                        基于AI的QQ聊天记录全链路总结功能，智能分析聊天内容并生成结构化摘要报告
-                    </div>
+                    <div className={subtitle({ class: "mt-4" })}>基于AI的QQ聊天记录全链路总结功能，智能分析聊天内容并生成结构化摘要报告</div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8 w-full max-w-6xl">
@@ -88,9 +86,7 @@ export default function IndexPage() {
                         </div>
                         <div className="bg-default-100 p-4 rounded-lg">
                             <h3 className="font-semibold text-lg mb-2">结构化摘要</h3>
-                            <p className="text-default-600">
-                                将非结构化的聊天内容转换为结构化的摘要报告，便于理解和存档
-                            </p>
+                            <p className="text-default-600">将非结构化的聊天内容转换为结构化的摘要报告，便于理解和存档</p>
                         </div>
                         <div className="bg-default-100 p-4 rounded-lg">
                             <h3 className="font-semibold text-lg mb-2">导出功能</h3>

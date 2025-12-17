@@ -27,6 +27,10 @@ export const siteConfig = {
         {
             label: "⚙️群组管理",
             href: "/groups"
+        },
+        {
+            label: "🛠️配置面板",
+            href: "/config"
         }
     ],
     navMenuItems: [
@@ -53,6 +57,10 @@ export const siteConfig = {
         {
             label: "⚙️群组管理",
             href: "/groups"
+        },
+        {
+            label: "🛠️配置面板",
+            href: "/config"
         }
     ],
     links: {

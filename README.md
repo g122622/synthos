@@ -170,12 +170,16 @@ pnpm i # 这不仅会安装根目录下的依赖，还会自动安装所有子�
 
 # 2. 启动所有服务
 npm run dev
+
+# 或者，仅启动配置面板（轻量级模式）
+npm run config
 ```
 
 服务启动后，可通过以下方式验证：
 
 - WebUI 后端：`http://localhost:3002`
 - 健康检查接口：`GET /health`
+- 配置面板：`http://localhost:5173/config`（仅启动配置面板时）
 
 ---
 

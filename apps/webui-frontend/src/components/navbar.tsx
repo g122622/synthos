@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Button } from "@heroui/button";
 import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
@@ -18,7 +19,26 @@ import { siteConfig } from "@/config/site";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { TwitterIcon, GithubIcon, DiscordIcon, HeartFilledIcon, SearchIcon } from "@/components/icons";
 
+// 判断是否为配置面板模式
+const isConfigPanelMode = import.meta.env.VITE_CONFIG_PANEL_MODE === "true";
+
 export const Navbar = () => {
+    // 配置面板模式下只显示配置页面导航
+    const navItems = useMemo(() => {
+        if (isConfigPanelMode) {
+            return siteConfig.navItems.filter(item => item.href === "/config");
+        }
+
+        return siteConfig.navItems;
+    }, []);
+
+    const navMenuItems = useMemo(() => {
+        if (isConfigPanelMode) {
+            return siteConfig.navMenuItems.filter(item => item.href === "/config");
+        }
+
+        return siteConfig.navMenuItems;
+    }, []);
     const searchInput = (
         <Input
             aria-label="Search"
@@ -48,7 +68,7 @@ export const Navbar = () => {
                     </Link>
                 </NavbarBrand>
                 <div className="hidden lg:flex gap-4 justify-start ml-2">
-                    {siteConfig.navItems.map(item => (
+                    {navItems.map(item => (
                         <NavbarItem key={item.href}>
                             <Link
                                 className={clsx(
@@ -104,17 +124,17 @@ export const Navbar = () => {
             <NavbarMenu>
                 {searchInput}
                 <div className="mx-4 mt-2 flex flex-col gap-2">
-                    {siteConfig.navMenuItems.map((item, index) => (
+                    {navMenuItems.map((item, index) => (
                         <NavbarMenuItem key={`${item}-${index}`}>
                             <Link
                                 color={
                                     index === 2
                                         ? "primary"
-                                        : index === siteConfig.navMenuItems.length - 1
+                                        : index === navMenuItems.length - 1
                                           ? "danger"
                                           : "foreground"
                                 }
-                                href="#"
+                                href={item.href}
                                 size="lg"
                             >
                                 {item.label}

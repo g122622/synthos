@@ -11,7 +11,7 @@ import { ConfigService } from "../services/ConfigService";
 export class ConfigController {
     constructor(
         @inject(TOKENS.ConfigService) private configService: ConfigService
-    ) {}
+    ) { }
 
     /**
      * GET /api/config/schema
@@ -92,12 +92,14 @@ export class ConfigController {
             : this.configService.validateConfig(config);
 
         if (validationResult.success) {
-            res.json({ success: true, valid: true });
+            res.json({ success: true, data: { valid: true } });
         } else {
             res.json({
                 success: true,
-                valid: false,
-                errors: validationResult.errors
+                data: {
+                    valid: false,
+                    errors: validationResult.errors
+                }
             });
         }
     }
