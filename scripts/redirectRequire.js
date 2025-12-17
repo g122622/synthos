@@ -21,12 +21,12 @@ function traverseDirectory(basePath, callback) {
     });
 }
 
-// 扫描 ../apps/下的所有文件夹
-const appsDir = path.join(__dirname, '../apps/');
-const apps = fs.readdirSync(appsDir);
+// 扫描 ../applications/下的所有文件夹
+const appsDir = path.join(__dirname, '../applications/');
+const applications = fs.readdirSync(appsDir);
 
 // 遍历每个文件夹
-apps.forEach(app => {
+applications.forEach(app => {
     if (['.DS_Store', 'thumbs.db'].includes(app)) return;
     const appDir = `${appsDir}${app}/`;
     Logger.debug(`[Redirect] 开始处理：${appDir}`);

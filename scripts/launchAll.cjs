@@ -34,9 +34,9 @@ const buildInterval = 3000;
 function buildProject(projectName) {
     return new Promise((resolve, reject) => {
         console.log(`\n🚀 开始构建并运行项目: ${projectName}`);
-        console.log(`📁 项目路径: ${path.join(rootDir, 'apps', projectName)}`);
+        console.log(`📁 项目路径: ${path.join(rootDir, 'applications', projectName)}`);
 
-        const projectPath = path.join(rootDir, 'apps', projectName);
+        const projectPath = path.join(rootDir, 'applications', projectName);
         const buildProcess = spawn('npm', ['run', 'dev'], {
             cwd: projectPath,
             stdio: ['ignore', 'inherit', 'inherit'], // [stdin, stdout, stderr] - inherit stdout and stderr

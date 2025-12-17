@@ -122,15 +122,15 @@ async function countLines(filePath) {
 }
 
 /**
- * 按目录/包分组：apps/<name>，否则取顶级目录；根目录文件归入 root
+ * 按目录/包分组：applications/<name>，否则取顶级目录；根目录文件归入 root
  */
 function getPackageKey(relPath) {
     const parts = relPath.split('/');
     if (parts.length === 1) {
         return 'root';
     }
-    if (parts[0] === 'apps' && parts[1]) {
-        return `apps/${parts[1]}`;
+    if (parts[0] === 'applications' && parts[1]) {
+        return `applications/${parts[1]}`;
     }
     if (parts[0]) {
         return parts[0];

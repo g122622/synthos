@@ -19,7 +19,7 @@ function startBackend() {
     return new Promise((resolve, reject) => {
         console.log('\n🔧 启动配置面板后端服务（轻量级模式）...');
         
-        const projectPath = path.join(rootDir, 'apps', 'webui-backend');
+        const projectPath = path.join(rootDir, 'applications', 'webui-backend');
         
         const backendProcess = spawn('npm', ['run', 'dev:config-panel'], {
             cwd: projectPath,
@@ -54,7 +54,7 @@ function startFrontend() {
     return new Promise((resolve, reject) => {
         console.log('\n🎨 启动配置面板前端服务...');
         
-        const projectPath = path.join(rootDir, 'apps', 'webui-frontend');
+        const projectPath = path.join(rootDir, 'applications', 'webui-frontend');
         
         const frontendProcess = spawn('npm', ['run', 'dev'], {
             cwd: projectPath,

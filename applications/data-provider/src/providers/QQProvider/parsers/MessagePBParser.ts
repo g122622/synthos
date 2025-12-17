@@ -29,7 +29,7 @@ export class MessagePBParser extends Disposable {
         // 1. 加载 .proto 文件
         const pathCandidates = [
             "./src/providers/QQProvider/parsers/messageSegment.proto",
-            "./apps/data-provider/src/providers/QQProvider/parsers/messageSegment.proto"
+            "./applications/data-provider/src/providers/QQProvider/parsers/messageSegment.proto"
         ];
         let protoContent: string | undefined = undefined;
         for (const path of pathCandidates) {

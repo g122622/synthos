@@ -54,7 +54,7 @@ pnpm i
 2. 进入子项目目录
 
 ```bash
-cd apps/data-provider
+cd applications/data-provider
 ```
 
 3. 逐个安装子项目依赖，务必安装完

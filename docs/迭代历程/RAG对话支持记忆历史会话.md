@@ -1,6 +1,6 @@
 【背景】
 
-apps/webui-frontend/src/pages/rag/rag.tsx是rag页面，负责展示并渲染rag回答结果、rag召回的文档片段等。
+applications/webui-frontend/src/pages/rag/rag.tsx是rag页面，负责展示并渲染rag回答结果、rag召回的文档片段等。
 
 现在希望它能记忆用户的历史提问（就像chat-gpt那样）
 

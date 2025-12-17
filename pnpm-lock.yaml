@@ -103,7 +103,7 @@ importers:
         specifier: ^4.0.3
         version: 4.0.3(@types/debug@4.1.12)(@types/node@24.7.0)(jiti@2.6.1)(lightningcss@1.30.1)(yaml@2.8.1)
 
-  apps/ai-model:
+  applications/ai-model:
     dependencies:
       '@journeyapps/sqlcipher':
         specifier: ^5.3.1
@@ -134,7 +134,7 @@ importers:
         specifier: ^7.6.11
         version: 7.6.13
 
-  apps/data-provider:
+  applications/data-provider:
     dependencies:
       '@journeyapps/sqlcipher':
         specifier: ^5.3.1
@@ -146,13 +146,13 @@ importers:
         specifier: ^7.5.4
         version: 7.5.4
 
-  apps/db-cli: {}
+  applications/db-cli: {}
 
-  apps/orchestrator: {}
+  applications/orchestrator: {}
 
-  apps/preprocessing: {}
+  applications/preprocessing: {}
 
-  apps/webui-backend:
+  applications/webui-backend:
     dependencies:
       cors:
         specifier: ^2.8.5
@@ -171,13 +171,13 @@ importers:
         specifier: ^5.0.3
         version: 5.0.3
 
-  apps/webui-forwarder:
+  applications/webui-forwarder:
     dependencies:
       ngrok:
         specifier: ^5.0.0-beta.2
         version: 5.0.0-beta.2
 
-  apps/webui-frontend:
+  applications/webui-frontend:
     dependencies:
       '@heroui/accordion':
         specifier: ^2.0.0

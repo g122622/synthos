@@ -5,7 +5,7 @@
 4. 代码编写完成后在子项目根目录下执行 `npx tsc --noEmit 2>&1` 检查是否有语法错误；如果更改的文件涉及对应的测试文件，请运行测试文件
 5. 项目使用pnpm + monorepo管理依赖，严禁使用npm！若想新增依赖，你需要先修改子项目的package.json，然后再退回到整个monorepo大仓的根目录执行pnpm install。不要在子项目目录中执行pnpm install
 6. 请在结束后清理掉你在调试过程中加的注释和日志输出（如果有的话）
-7. 若要新增后端接口，务必使用apps/webui-backend/src/schemas来进行参数校验
+7. 若要新增后端接口，务必使用 applications/webui-backend/src/schemas 来进行参数校验
 
 【代码规范】
 1. 函数参数列表尽量不加默认参数

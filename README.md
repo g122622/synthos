@@ -186,8 +186,8 @@ npm run config
 
 ## API 与前端开发
 
-- **API 文档**：详见 [`apps/webui-backend/docs/API文档.md`](d:\FR_Projects\synthos\apps\webui-backend\docs\API文档.md)
-- **前端开发指引**：详见 [`apps/webui-backend/docs/前端开发指引文档.md`](d:\FR_Projects\synthos\apps\webui-backend\docs/前端开发指引文档.md)
+- **API 文档**：详见 [`applications/webui-backend/docs/API文档.md`](d:\FR_Projects\synthos\applications\webui-backend\docs\API文档.md)
+- **前端开发指引**：详见 [`applications/webui-backend/docs/前端开发指引文档.md`](d:\FR_Projects\synthos\applications\webui-backend\docs/前端开发指引文档.md)
 
 核心接口包括：
 
