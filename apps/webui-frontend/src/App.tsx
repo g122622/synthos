@@ -7,7 +7,7 @@ import ChatMessagesPage from "@/pages/chat-messages";
 import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
 import RagPage from "@/pages/rag";
-import ConfigPage from "@/pages/config";
+import ConfigPage from "@/pages/config-panel/config";
 
 function App() {
     return (
