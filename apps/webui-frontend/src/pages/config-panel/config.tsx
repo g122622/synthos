@@ -9,7 +9,7 @@ import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Chip } from "@heroui/chip";
-import { Save, RotateCcw, AlertCircle, CheckCircle } from "lucide-react";
+import { Save, RotateCcw, AlertCircle } from "lucide-react";
 
 import { CONFIG_SECTIONS } from "./constants";
 import { setNestedValue } from "./utils";
@@ -29,6 +29,7 @@ import {
 import { getCurrentConfig, saveOverrideConfig, validateConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
+import { Notification } from "@/util/Notification";
 
 // ==================== Section 渲染器映射 ====================
 
@@ -58,7 +59,7 @@ export default function ConfigPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [errors, setErrors] = useState<ValidationError[]>([]);
-    const [saveStatus, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
+    const [, setSaveStatus] = useState<"idle" | "success" | "error">("idle");
     const [activeSection, setActiveSection] = useState<string>("dataProviders");
     const [isScrolling, setIsScrolling] = useState(false);
 
@@ -164,7 +165,7 @@ export default function ConfigPage() {
     // 保存配置
     const handleSave = async () => {
         if (errors.length > 0) {
-            alert("配置存在错误，请先修复后再保存");
+            Notification.error({ title: "保存失败", description: "配置存在错误，请先修复后再保存" });
 
             return;
         }
@@ -175,10 +176,11 @@ export default function ConfigPage() {
 
             if (response.success) {
                 setSaveStatus("success");
+                Notification.success({ title: "保存成功", description: "配置已成功保存" });
                 setTimeout(() => setSaveStatus("idle"), 3000);
             } else {
                 setSaveStatus("error");
-                alert(`保存失败: ${response.message}`);
+                Notification.error({ title: "保存失败", description: response.message });
             }
         } catch (error) {
             setSaveStatus("error");
@@ -264,11 +266,6 @@ export default function ConfigPage() {
                     <Button startContent={<RotateCcw className="w-4 h-4" />} variant="flat" onPress={handleReset}>
                         重置
                     </Button>
-                    {saveStatus === "success" && (
-                        <Chip color="success" startContent={<CheckCircle className="w-4 h-4" />}>
-                            保存成功
-                        </Chip>
-                    )}
                     {errors.length > 0 && (
                         <Chip color="danger" startContent={<AlertCircle className="w-4 h-4" />}>
                             {errors.length} 个错误
