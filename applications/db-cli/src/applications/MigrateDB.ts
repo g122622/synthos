@@ -35,6 +35,8 @@ export class MigrateDB extends Disposable implements IApplication {
         await newDB.run("PRAGMA journal_mode = WAL;");
         await newDB.run("PRAGMA synchronous = NORMAL;");
         await newDB.run("PRAGMA temp_store = MEMORY;");
+        await newDB.run("PRAGMA cache_size = -100000;"); // 约 100MB
+        await newDB.run("PRAGMA threads = 16;"); // 多线程
 
         // 创建表结构
         this.LOGGER.info("创建表结构...");
@@ -79,6 +81,7 @@ export class MigrateDB extends Disposable implements IApplication {
         // 建立索引
         this.LOGGER.info("创建索引...");
         await newDB.run(`CREATE INDEX idx_chat_messages_sessionId ON chat_messages (sessionId);`);
+        await newDB.run(`CREATE INDEX idx_chat_messages_groupId ON chat_messages (groupId);`);
         await newDB.run(`CREATE INDEX idx_ai_digest_results_sessionId ON ai_digest_results (sessionId);`);
         this.LOGGER.info("创建索引成功");
 

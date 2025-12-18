@@ -280,7 +280,16 @@ export class IMDBManager extends Disposable {
 
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
-        return this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
+        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`, [], false);
+        this.LOGGER.info(`去重前消息数量: ${res.length}`)
+        // 按照id进行去重
+        const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
+        (await res).forEach(item => {
+            uniqueResMap.set(item.msgId, item);
+        });
+        const dedupedArr = Array.from(uniqueResMap.values());
+        this.LOGGER.info(`去重后消息数量: ${dedupedArr.length}`)
+        return dedupedArr;
     }
 
     public execQuerySQL(sql: string, params: any[] = []): Promise<any[]> {

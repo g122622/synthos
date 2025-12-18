@@ -167,7 +167,7 @@ class MultiFileSQLite extends Disposable {
         return undefined;
     }
 
-    public async all<T>(sql: string, params: any[] = []): Promise<T[]> {
+    public async all<T>(sql: string, params: any[] = [], shouldDeepUnique: boolean = true): Promise<T[]> {
         const dbFiles = await this.getAllDBPaths();
         let allRows: T[] = [];
         for (const dbInfo of dbFiles) {
@@ -181,7 +181,9 @@ class MultiFileSQLite extends Disposable {
             }
         }
         // 对所有row进行深度比较，去重
-        allRows = deepUnique(allRows);
+        if (shouldDeepUnique) {
+            allRows = deepUnique(allRows);
+        }
         return allRows;
     }
 
