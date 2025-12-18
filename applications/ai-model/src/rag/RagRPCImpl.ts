@@ -112,7 +112,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
-        const answer = await this.textGenerator.generateTextWithModelCandidates(
+        const { content: answer } = await this.textGenerator.generateTextWithModelCandidates(
             [this.defaultModelName],
             prompt
         );

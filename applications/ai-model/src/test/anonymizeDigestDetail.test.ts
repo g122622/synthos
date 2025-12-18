@@ -9,7 +9,9 @@ describe("anonymizeDigestDetail", () => {
         sessionId: "test-session-456",
         topic: "测试主题",
         contributors: '["张三", "李四", "王五"]',
-        detail: "张三说：今天天气真好。李四回复：是的，适合出去游玩。王五补充：记得带好防晒用品。"
+        detail: "张三说：今天天气真好。李四回复：是的，适合出去游玩。王五补充：记得带好防晒用品。",
+        modelName: "gpt-3.5-turbo",
+        updateTime: Date.now()
     };
 
     describe("基本功能测试", () => {

@@ -55,7 +55,7 @@ export class QueryRewriter {
         const prompt = RagPromptStore.getMultiQueryPrompt(originalQuestion);
 
         // 2. 调用 LLM 生成扩展查询
-        const response = await this.textGenerator.generateTextWithModelCandidates(
+        const { content: response } = await this.textGenerator.generateTextWithModelCandidates(
             [this.modelName],
             prompt
         );

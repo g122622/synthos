@@ -1,45 +1,33 @@
-import "reflect-metadata";
-import { getConfigManagerService } from "../di/container";
 import Logger from "../util/Logger";
-import { MultiFileSQLite } from "./MultiFileSQLite";
 import { AIDigestResult } from "../contracts/ai-model";
 import { Disposable } from "../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+import { CommonDBService } from "./CommonDBService";
+import { createAGCTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
 export class AGCDBManager extends Disposable {
     private LOGGER = Logger.withTag("AGCDBManager");
-    private db: MultiFileSQLite;
+    private db: CommonDBService;
 
     public async init() {
-        const configService = getConfigManagerService();
-        this.db = new MultiFileSQLite({
-            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
-            // 一个sessionId会对应多个topicId
-            initialSQL: `
-                CREATE TABLE IF NOT EXISTS ai_digest_results (
-                    topicId TEXT NOT NULL PRIMARY KEY,
-                    sessionId TEXT,
-                    topic TEXT,
-                    contributors TEXT,
-                    detail TEXT
-                );`
-        });
+        this.db = new CommonDBService(createAGCTableSQL);
         this._registerDisposable(this.db);
     }
 
     public async storeAIDigestResult(result: AIDigestResult) {
         // to fix
         await this.db.run(
-            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?,?)
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
                 sessionId = excluded.sessionId,
                 topic = excluded.topic,
                 contributors = excluded.contributors,
-                detail = excluded.detail
+                detail = excluded.detail,
+                modelName = excluded.modelName,
+                updateTime = excluded.updateTime
             `,
-            [result.topicId, result.sessionId, result.topic, result.contributors, result.detail]
+            [result.topicId, result.sessionId, result.topic, result.contributors, result.detail, result.modelName, result.updateTime]
         );
     }
 

@@ -1,26 +1,16 @@
-import "reflect-metadata";
-import { getConfigManagerService } from "../di/container";
 import Logger from "../util/Logger";
-import { MultiFileSQLite } from "./MultiFileSQLite";
+import { CommonDBService } from "./CommonDBService";
 import { Disposable } from "../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+import { createInterestScoreTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
 export class InterestScoreDBManager extends Disposable {
     private LOGGER = Logger.withTag("InterestScoreDBManager");
-    private db: MultiFileSQLite;
+    private db: CommonDBService;
 
     public async init() {
-        const configService = getConfigManagerService();
-        this.db = new MultiFileSQLite({
-            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
-            initialSQL: `
-                CREATE TABLE IF NOT EXISTS interset_score_results (
-                    topicId TEXT NOT NULL PRIMARY KEY,
-                    scoreV1 REAL
-                );`
-        });
+        this.db = new CommonDBService(createInterestScoreTableSQL);
         this._registerDisposable(this.db);
         this.LOGGER.info("初始化完成！");
     }

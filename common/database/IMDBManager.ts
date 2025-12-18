@@ -1,69 +1,22 @@
-import "reflect-metadata";
-import { getConfigManagerService } from "../di/container";
 import {
     ProcessedChatMessage,
     RawChatMessage,
     ProcessedChatMessageWithRawMessage
 } from "../contracts/data-provider/index";
 import Logger from "../util/Logger";
-import { MultiFileSQLite } from "./MultiFileSQLite";
+import { CommonDBService } from "./CommonDBService";
 import { Disposable } from "../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+import { createIMDBTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
 export class IMDBManager extends Disposable {
     private LOGGER = Logger.withTag("IMDBManager");
-    private db: MultiFileSQLite;
+    private db: CommonDBService;
 
     public async init() {
-        const configService = getConfigManagerService();
-        this.db = new MultiFileSQLite({
-            dbBasePath: (await configService.getCurrentConfig()).commonDatabase.dbBasePath,
-            maxDBDuration: (await configService.getCurrentConfig()).commonDatabase.maxDBDuration,
-            initialSQL: `
-                CREATE TABLE IF NOT EXISTS chat_messages (
-                    msgId TEXT NOT NULL PRIMARY KEY,
-                    messageContent TEXT,
-                    groupId TEXT,
-                    timestamp INTEGER,
-                    senderId TEXT,
-                    senderGroupNickname TEXT,
-                    senderNickname TEXT,
-                    quotedMsgId TEXT,
-                    quotedMsgContent TEXT,
-                    sessionId TEXT,
-                    preProcessedContent TEXT
-                );`
-        });
+        this.db = new CommonDBService(createIMDBTableSQL);
         this._registerDisposable(this.db);
-
-        // =============== 执行数据库迁移 ===============
-        // this.LOGGER.info("执行数据库迁移...");
-        // await this.db.migrateDatabases([
-        //     // 兼容旧版本 SQLite 的备选方案
-        //     `CREATE TABLE IF NOT EXISTS chat_messages_new (
-        //         msgId TEXT NOT NULL PRIMARY KEY,
-        //         messageContent TEXT,
-        //         groupId TEXT,
-        //         timestamp INTEGER,
-        //         senderId TEXT,
-        //         senderGroupNickname TEXT,
-        //         senderNickname TEXT,
-        //         quotedMsgId TEXT,
-        //         quotedMsgContent TEXT,
-        //         sessionId TEXT,
-        //         preProcessedContent TEXT
-        //     );
-        //     INSERT INTO chat_messages_new SELECT
-        //         msgId, messageContent, groupId, timestamp, senderId,
-        //         senderGroupNickname, senderNickname, quotedMsgId,
-        //         NULL AS quotedMsgContent,  -- 初始化新字段为NULL
-        //         sessionId, preProcessedContent
-        //     FROM chat_messages;
-        //     DROP TABLE chat_messages;
-        //     ALTER TABLE chat_messages_new RENAME TO chat_messages;`
-        // ]);
-        // ============================================
     }
 
     public async storeRawChatMessage(msg: RawChatMessage) {
@@ -97,9 +50,6 @@ export class IMDBManager extends Disposable {
     public async storeRawChatMessages(messages: RawChatMessage[]) {
         if (messages.length === 0) return;
 
-        // 获取当前活跃数据库连接（确保整个操作在同一个连接）
-        const activeDB = await this.db.getActiveDB(); // 需要将 getActiveDB 改为 public 或 protected
-
         // 计算每批大小（每条消息9个参数，SQLite 默认最大999参数）
         const MAX_SQLITE_PARAMS = 999;
         const paramsPerRecord = 9;
@@ -123,7 +73,7 @@ export class IMDBManager extends Disposable {
     `.trim();
 
         // 开始事务
-        await activeDB.run("BEGIN IMMEDIATE TRANSACTION");
+        await this.db.run("BEGIN IMMEDIATE TRANSACTION");
 
         try {
             for (let i = 0; i < messages.length; i += batchSize) {
@@ -135,9 +85,9 @@ export class IMDBManager extends Disposable {
                     currentBatchSize === batchSize
                         ? baseSql
                         : baseSql.replace(
-                              Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", "),
-                              Array(currentBatchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
-                          );
+                            Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", "),
+                            Array(currentBatchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
+                        );
 
                 // 收集参数
                 const params: any[] = [];
@@ -156,14 +106,14 @@ export class IMDBManager extends Disposable {
                 });
 
                 // 执行批量插入
-                await activeDB.run(sql, params);
+                await this.db.run(sql, params);
             }
 
             // 提交事务
-            await activeDB.run("COMMIT");
+            await this.db.run("COMMIT");
         } catch (err) {
             // 出错时回滚
-            await activeDB.run("ROLLBACK");
+            await this.db.run("ROLLBACK");
             this.LOGGER.error(`Failed to store messages batch: ${err.message}`);
             throw new Error(`Failed to store messages batch: ${err.message}`);
         }
@@ -280,7 +230,7 @@ export class IMDBManager extends Disposable {
 
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
-        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`, [], false);
+        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
         this.LOGGER.info(`去重前消息数量: ${res.length}`)
         // 按照id进行去重
         const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
@@ -307,20 +257,17 @@ export class IMDBManager extends Disposable {
     public async storeProcessedChatMessages(messages: ProcessedChatMessage[]) {
         if (messages.length === 0) return;
 
-        // 获取当前活跃数据库连接（连接复用）
-        const activeDB = await this.db.getActiveDB();
-
-        await activeDB.run("BEGIN IMMEDIATE TRANSACTION");
+        await this.db.run("BEGIN IMMEDIATE TRANSACTION");
         try {
             for (const msg of messages) {
-                await activeDB.run(
+                await this.db.run(
                     `UPDATE chat_messages SET sessionId = ?, preProcessedContent = ? WHERE msgId = ?`,
                     [msg.sessionId, msg.preProcessedContent, msg.msgId]
                 );
             }
-            await activeDB.run("COMMIT");
+            await this.db.run("COMMIT");
         } catch (err) {
-            await activeDB.run("ROLLBACK");
+            await this.db.run("ROLLBACK");
             throw err;
         }
     }

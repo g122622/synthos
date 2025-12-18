@@ -101,7 +101,7 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                         LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
                         // 2. 调用大模型生成摘要
-                        const resultStr = await textGenerator.generateTextWithModelCandidates(
+                        const { content: resultStr, selectedModelName } = await textGenerator.generateTextWithModelCandidates(
                             config.groupConfigs[groupId].aiModels,
                             ctx
                         );
@@ -125,6 +125,8 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                             Object.assign(result, { sessionId }); // 添加 sessionId
                             result.contributors = JSON.stringify(result.contributors); // 转换为字符串
                             Object.assign(result, { topicId: getRandomHash(16) });
+                            Object.assign(result, { modelName: selectedModelName });
+                            Object.assign(result, { updateTime: Date.now() });
                         }
 
                         // 5. 存储摘要结果
