@@ -141,6 +141,9 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                 }
             }
 
+            textGenerator.dispose();
+            ctxBuilder.dispose();
+
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
         },
         {
