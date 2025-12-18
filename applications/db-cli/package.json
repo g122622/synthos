@@ -11,5 +11,8 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
-  "dependencies": {}
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.1",
+    "inquirer": "^13.1.0"
+  }
 }

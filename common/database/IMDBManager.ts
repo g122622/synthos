@@ -278,6 +278,11 @@ export class IMDBManager extends Disposable {
         return result;
     }
 
+    // 获取所有消息，用于数据库迁移、导出、备份等操作
+    public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
+        return this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
+    }
+
     public execQuerySQL(sql: string, params: any[] = []): Promise<any[]> {
         return this.db.all(sql, params);
     }

@@ -59,4 +59,11 @@ export class InterestScoreDBManager extends Disposable {
         );
         return result === 1;
     }
+
+    // 获取所有数据，用于数据库迁移、导出、备份等操作
+    public async selectAll(): Promise<{ topicId: string; scoreV1: number | null }[]> {
+        return this.db.all<{ topicId: string; scoreV1: number | null }>(
+            `SELECT * FROM interset_score_results`
+        );
+    }
 }

@@ -79,4 +79,9 @@ export class AGCDBManager extends Disposable {
         );
         return result === 1;
     }
+
+    // 获取数据消息，用于数据库迁移、导出、备份等操作
+    public async selectAll(): Promise<AIDigestResult[]> {
+        return this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results`);
+    }
 }
