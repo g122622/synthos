@@ -13,12 +13,13 @@ export class AGCDBManager extends Disposable {
     public async init() {
         this.db = new CommonDBService(createAGCTableSQL);
         this._registerDisposable(this.db);
+        await this.db.init();
     }
 
     public async storeAIDigestResult(result: AIDigestResult) {
         // to fix
         await this.db.run(
-            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail) VALUES (?,?,?,?,?,?,?)
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime) VALUES (?,?,?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
                 sessionId = excluded.sessionId,
                 topic = excluded.topic,
@@ -65,7 +66,7 @@ export class AGCDBManager extends Disposable {
             `SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`,
             [sessionId]
         );
-        return result === 1;
+        return result[Object.keys(result)[0]] === 1;
     }
 
     // 获取数据消息，用于数据库迁移、导出、备份等操作

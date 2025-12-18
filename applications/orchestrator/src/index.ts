@@ -165,7 +165,8 @@ import { sleep } from "@root/common/util/promisify/sleep";
     // 读取配置，设置定时执行 Pipeline
     const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
     LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
-    await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline); // skipImmediate默认为false，表示立即执行第一次
+    await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
+    await agendaInstance.now(TaskHandlerTypes.RunPipeline);
 
     LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
     await agendaInstance.start();

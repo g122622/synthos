@@ -17,6 +17,7 @@ export class IMDBManager extends Disposable {
     public async init() {
         this.db = new CommonDBService(createIMDBTableSQL);
         this._registerDisposable(this.db);
+        await this.db.init();
     }
 
     public async storeRawChatMessage(msg: RawChatMessage) {

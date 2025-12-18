@@ -12,6 +12,7 @@ export class InterestScoreDBManager extends Disposable {
     public async init() {
         this.db = new CommonDBService(createInterestScoreTableSQL);
         this._registerDisposable(this.db);
+        await this.db.init();
         this.LOGGER.info("初始化完成！");
     }
 

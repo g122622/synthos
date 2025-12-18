@@ -1,5 +1,5 @@
 export const createIMDBTableSQL = `
-                CREATE TABLE chat_messages (
+                CREATE TABLE IF NOT EXISTS chat_messages (
                     msgId TEXT NOT NULL PRIMARY KEY,
                     messageContent TEXT,
                     groupId TEXT,

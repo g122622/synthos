@@ -72,8 +72,8 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
                     ) {
                         // 只有既未初始化，又不在初始化过程中，才报错
                         throw new Error(
-                            `Class "${constructor.name}" must be initialized with await .init() before use. ` +
-                                `Attempted to access property "${String(prop)}".`
+                            `类 "${constructor.name}" 必须在使用前调用 await .init() 进行初始化。 ` +
+                                `尝试访问属性 "${String(prop)}"。`
                         );
                     }
 
