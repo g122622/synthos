@@ -10,7 +10,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { getCurrentFormattedTime, formatTimestamp } from "@root/common/util/TimeUtils";
+import { getCurrentFormattedTime } from "@root/common/util/TimeUtils";
 import { QueryRewriter } from "./QueryRewriter";
 
 export class RagRPCImpl implements RAGRPCImplementation {
@@ -38,7 +38,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 1. 将查询转换为向量
         const queryEmbedding = await this.embeddingService.embed(
-            `为这个句子生成向量表示：${input.query}`
+            `Instruct: Given a web search query about computer science, AI research, technology and university, retrieve relevant and longer passages that answer the query.\nQuery: ${input.query}`
         );
         this.LOGGER.debug(`查询向量生成完成，维度: ${queryEmbedding.length}`);
 

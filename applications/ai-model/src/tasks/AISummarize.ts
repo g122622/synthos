@@ -38,7 +38,7 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
             await ctxBuilder.init();
 
             for (const groupId of attrs.groupIds) {
-                /* 获取指定时间范围内的消息 */
+                /* 1. 获取指定时间范围内的消息 */
                 const msgs = (
                     await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
                         groupId,
@@ -57,11 +57,11 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                 LOGGER.info(`群 ${groupId} 成功获取到 ${msgs.length} 条有效消息`);
                 await job.touch(); // 保证任务存活
 
-                /* 按照 sessionId 分组 */
+                /* 2. 按照 sessionId 分组 */
                 const sessions: Record<string, ProcessedChatMessageWithRawMessage[]> = {};
                 for (const msg of msgs) {
                     const { sessionId } = msg;
-                    // 如果 sessionId 已经被汇总过，跳过
+                    // 如果 sessionId 已经被生成过摘要，跳过
                     if (!(await agcDBManager.isSessionIdSummarized(sessionId))) {
                         if (!sessions[sessionId]) {
                             sessions[sessionId] = [];
@@ -79,19 +79,25 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                 LOGGER.debug(`删掉了最后一个sessionId为 ${newestSessionId} 的session`);
                 LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个需要处理的session`);
 
-                /* 遍历每个session */
+                // 3. 删掉消息量不够的session
+                for (const sessionId in sessions) {
+                    if (sessions[sessionId].length <= 10) {
+                        LOGGER.warning(
+                            `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
+                        );
+                        delete sessions[sessionId];
+                    }
+                }
+
+                /* 4. 遍历每个session */
+                let counter = 0;
                 for (const sessionId in sessions) {
                     await job.touch(); // 保证任务存活
                     try {
+                        counter++;
                         LOGGER.info(
-                            `开始处理session ${sessionId}，该session内共由 ${sessions[sessionId].length} 条消息`
+                            `[${counter} / ${Object.keys(sessions).length}] 开始处理session ${sessionId} ，该session内共 ${sessions[sessionId].length} 条消息`
                         );
-                        if (sessions[sessionId].length <= 3) {
-                            LOGGER.warning(
-                                `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
-                            );
-                            continue;
-                        }
 
                         // 1. 构建上下文
                         const ctx = await ctxBuilder.buildCtx(
@@ -101,10 +107,11 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                         LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
                         // 2. 调用大模型生成摘要
-                        const { content: resultStr, selectedModelName } = await textGenerator.generateTextWithModelCandidates(
-                            config.groupConfigs[groupId].aiModels,
-                            ctx
-                        );
+                        const { content: resultStr, selectedModelName } =
+                            await textGenerator.generateTextWithModelCandidates(
+                                config.groupConfigs[groupId].aiModels,
+                                ctx
+                            );
 
                         // 3. 解析llm回传的json结果
                         let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];

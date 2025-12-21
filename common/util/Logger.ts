@@ -165,7 +165,6 @@ class Logger {
     public error(message: string) {
         if (["debug", "info", "success", "warning", "error"].includes(this.logLevel)) {
             this.red(message);
-            console.trace();
         }
     }
 

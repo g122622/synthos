@@ -34,7 +34,7 @@ export default function RagPage() {
     const [question, setQuestion] = useState("");
     const [askResponse, setAskResponse] = useState<AskResponse | null>(null);
     const [askLoading, setAskLoading] = useState(false);
-    const [topK, setTopK] = useState(5);
+    const [topK, setTopK] = useState(100);
 
     // 当前 Tab
     const [activeTab, setActiveTab] = useState("search");
@@ -412,12 +412,12 @@ export default function RagPage() {
                                                     <Input
                                                         className="w-full sm:w-32"
                                                         label="参考话题数"
-                                                        max={50}
+                                                        max={100}
                                                         min={1}
                                                         size="lg"
                                                         type="number"
                                                         value={topK.toString()}
-                                                        onChange={e => setTopK(parseInt(e.target.value) || 5)}
+                                                        onChange={e => setTopK(parseInt(e.target.value) || 100)}
                                                     />
                                                     <Button
                                                         className="w-full sm:w-auto"

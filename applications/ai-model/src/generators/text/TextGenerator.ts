@@ -53,7 +53,13 @@ export class TextGenerator extends Disposable {
         this.activeModel = this.models.get(modelName)!;
     }
 
-    public async generateText(modelName: string, input: string): Promise<string> {
+    /**
+     * 生成文本
+     * @param modelName 模型名称
+     * @param input 用户输入
+     * @returns 生成的文本
+     */
+    private async doGenerateText(modelName: string, input: string): Promise<string> {
         try {
             await this.useModel(modelName);
             if (!this.activeModel) {
@@ -70,7 +76,47 @@ export class TextGenerator extends Disposable {
         }
     }
 
-    public async generateTextWithModelCandidates(modelNames: string[], input: string): Promise<{
+    /**
+     * 生成文本。内部使用langchain的流式特性，但是对外的行为和doGenerateText一致。
+     * @param modelName 模型名称
+     * @param input 用户输入
+     * @returns 生成的文本流
+     */
+    private async doGenerateTextStream(modelName: string, input: string): Promise<string> {
+        try {
+            await this.useModel(modelName);
+            if (!this.activeModel) {
+                throw ErrorReasons.UNINITIALIZED_ERROR;
+            }
+
+            let fullContent = "";
+            const stream = await this.activeModel.stream([{ role: "user", content: input }]);
+
+            for await (const chunk of stream) {
+                // chunk 是 AIMessageChunk，其 content 是字符串片段
+                if (typeof chunk.content === "string") {
+                    fullContent += chunk.content;
+                }
+            }
+
+            return fullContent;
+        } catch (error) {
+            this.LOGGER.error(`Error generating text (stream) with model ${modelName}: ${error}`);
+            console.error(error);
+            throw error;
+        }
+    }
+
+    /**
+     * 无状态的、带重试机制的、带候选机制的文本生成方法
+     * @param modelNames 模型候选列表，允许为空。如果为空，则只使用置顶的的模型候选列表
+     * @param input 输入文本
+     * @returns
+     */
+    public async generateTextWithModelCandidates(
+        modelNames: string[],
+        input: string
+    ): Promise<{
         selectedModelName: string;
         content: string;
     }> {
@@ -84,7 +130,7 @@ export class TextGenerator extends Disposable {
         let selectedModelName = "";
         for (const modelName of modelCandidates) {
             try {
-                resultStr = await this.generateText(modelName, input);
+                resultStr = await this.doGenerateTextStream(modelName, input);
                 if (resultStr) {
                     selectedModelName = modelName;
                     break; // 如果成功，跳出循环
