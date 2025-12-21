@@ -12,6 +12,7 @@ import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { getCurrentFormattedTime } from "@root/common/util/TimeUtils";
 import { QueryRewriter } from "./QueryRewriter";
+import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
@@ -33,12 +34,12 @@ export class RagRPCImpl implements RAGRPCImplementation {
     /**
      * 语义搜索
      */
-    async search(input: { query: string; limit: number }): Promise<SearchOutput> {
+    public async search(input: { query: string; limit: number }): Promise<SearchOutput> {
         this.LOGGER.info(`收到搜索请求: "${input.query}", limit=${input.limit}`);
 
         // 1. 将查询转换为向量
         const queryEmbedding = await this.embeddingService.embed(
-            `Instruct: Given a web search query about computer science, AI research, technology and university, retrieve relevant and longer passages that answer the query.\nQuery: ${input.query}`
+            EmbeddingPromptStore.getEmbeddingPromptForRAG(input.query)
         );
         this.LOGGER.debug(`查询向量生成完成，维度: ${queryEmbedding.length}`);
 
@@ -68,7 +69,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
     /**
      * RAG 问答
      */
-    async ask(input: { question: string; topK: number }): Promise<AskOutput> {
+    public async ask(input: { question: string; topK: number }): Promise<AskOutput> {
         this.LOGGER.info(`收到问答请求: "${input.question}", topK=${input.topK}`);
 
         // 1. 使用 Multi-Query 扩展原始问题
