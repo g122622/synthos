@@ -332,67 +332,69 @@ export default function GroupsPage() {
                                     <TableColumn>最近24小时消息量走势</TableColumn>
                                 </TableHeader>
                                 <TableBody emptyContent={"未找到群组信息"}>
-                                    {/* 总计行 */}
-                                    <TableRow key="total">
-                                        <TableCell>
-                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                <span className="font-bold">总计</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="font-semibold">所有群组</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>-</TableCell>
-                                        <TableCell>
-                                            <span className="font-semibold">{totalRecentMessageCount}</span>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
-                                        </TableCell>
-                                    </TableRow>
-                                    {Object.entries(groups).map(([groupId, groupDetail]) => (
-                                        <TableRow key={groupId}>
+                                    <>
+                                        {/* 总计行 */}
+                                        <TableRow key="total">
                                             <TableCell>
-                                                <img
-                                                    alt="群头像"
-                                                    className="w-10 h-10 rounded-full"
-                                                    src={`http://p.qlogo.cn/gh/${groupId}/${groupId}/0`}
-                                                    onError={e => {
-                                                        const target = e.target as HTMLImageElement;
-
-                                                        target.onerror = null;
-                                                        target.src =
-                                                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-                                                    }}
-                                                />
+                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                    <span className="font-bold">总计</span>
+                                                </div>
                                             </TableCell>
-                                            <TableCell className="font-semibold">{groupId}</TableCell>
+                                            <TableCell className="font-semibold">所有群组</TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell>-</TableCell>
+                                            <TableCell>-</TableCell>
                                             <TableCell>
-                                                <Chip color={groupDetail.IM === "QQ" ? "primary" : "secondary"} variant="flat">
-                                                    {groupDetail.IM}
-                                                </Chip>
-                                            </TableCell>
-                                            <TableCell>{groupDetail.groupIntroduction}</TableCell>
-                                            <TableCell>
-                                                <Chip color={getSplitStrategyColor(groupDetail.splitStrategy)} variant="flat">
-                                                    {getSplitStrategyLabel(groupDetail.splitStrategy)}
-                                                </Chip>
-                                            </TableCell>
-                                            <TableCell>{getAIModelLabel(groupDetail.aiModel)}</TableCell>
-                                            <TableCell>
-                                                {recentMessageCounts[groupId] !== undefined ? <span className="font-semibold">{recentMessageCounts[groupId]}</span> : <Spinner size="sm" />}
+                                                <span className="font-semibold">{totalRecentMessageCount}</span>
                                             </TableCell>
                                             <TableCell>
-                                                <div
-                                                    ref={el => {
-                                                        chartRefs.current[groupId] = el;
-                                                    }}
-                                                    style={{ width: "300px", height: "100px" }}
-                                                />
+                                                <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
                                             </TableCell>
                                         </TableRow>
-                                    ))}
+                                        {Object.entries(groups).map(([groupId, groupDetail]) => (
+                                            <TableRow key={groupId}>
+                                                <TableCell>
+                                                    <img
+                                                        alt="群头像"
+                                                        className="w-10 h-10 rounded-full"
+                                                        src={`http://p.qlogo.cn/gh/${groupId}/${groupId}/0`}
+                                                        onError={e => {
+                                                            const target = e.target as HTMLImageElement;
+
+                                                            target.onerror = null;
+                                                            target.src =
+                                                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                                <TableCell className="font-semibold">{groupId}</TableCell>
+                                                <TableCell>
+                                                    <Chip color={groupDetail.IM === "QQ" ? "primary" : "secondary"} variant="flat">
+                                                        {groupDetail.IM}
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>{groupDetail.groupIntroduction}</TableCell>
+                                                <TableCell>
+                                                    <Chip color={getSplitStrategyColor(groupDetail.splitStrategy)} variant="flat">
+                                                        {getSplitStrategyLabel(groupDetail.splitStrategy)}
+                                                    </Chip>
+                                                </TableCell>
+                                                <TableCell>{getAIModelLabel(groupDetail.aiModel)}</TableCell>
+                                                <TableCell>
+                                                    {recentMessageCounts[groupId] !== undefined ? <span className="font-semibold">{recentMessageCounts[groupId]}</span> : <Spinner size="sm" />}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div
+                                                        ref={el => {
+                                                            chartRefs.current[groupId] = el;
+                                                        }}
+                                                        style={{ width: "300px", height: "100px" }}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </>
                                 </TableBody>
                             </Table>
                         )}

@@ -85,6 +85,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <StringInput
                                                 description="API 密钥"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.apiKey`)}
+                                                label=""
                                                 path={`${itemPath}.apiKey`}
                                                 value={(itemData.apiKey as string) || ""}
                                                 onChange={onFieldChange}
@@ -95,6 +96,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <StringInput
                                                 description="API 基础 URL"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.baseURL`)}
+                                                label=""
                                                 path={`${itemPath}.baseURL`}
                                                 value={(itemData.baseURL as string) || ""}
                                                 onChange={onFieldChange}
@@ -105,6 +107,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <NumberInput
                                                 description="温度参数，控制输出的随机性"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.temperature`)}
+                                                label=""
                                                 max={2}
                                                 min={0}
                                                 path={`${itemPath}.temperature`}
@@ -117,6 +120,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <NumberInput
                                                 description="最大 Token 数量"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.maxTokens`)}
+                                                label=""
                                                 min={1}
                                                 path={`${itemPath}.maxTokens`}
                                                 value={(itemData.maxTokens as number) || 0}
@@ -131,6 +135,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <EnumSelect
                                                 description="IM 平台类型"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.IM`)}
+                                                label=""
                                                 options={["QQ", "WeChat"]}
                                                 path={`${itemPath}.IM`}
                                                 value={(itemData.IM as string) || "QQ"}
@@ -142,6 +147,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <EnumSelect
                                                 description="消息分割策略"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.splitStrategy`)}
+                                                label=""
                                                 options={["realtime", "accumulative"]}
                                                 path={`${itemPath}.splitStrategy`}
                                                 value={(itemData.splitStrategy as string) || "realtime"}
@@ -153,6 +159,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <StringInput
                                                 description="群简介，用于拼接在 context 里面"
                                                 error={getFieldErrorFromList(errors, `${itemPath}.groupIntroduction`)}
+                                                label=""
                                                 path={`${itemPath}.groupIntroduction`}
                                                 value={(itemData.groupIntroduction as string) || ""}
                                                 onChange={onFieldChange}
@@ -162,6 +169,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({ path, value, itemSchema, on
                                             <label className="text-sm font-medium">AI 模型列表</label>
                                             <StringArrayEditor
                                                 description="要使用的 AI 模型名列表，按优先级排序"
+                                                label=""
                                                 path={`${itemPath}.aiModels`}
                                                 value={(itemData.aiModels as string[]) || []}
                                                 onChange={onFieldChange}
