@@ -41,15 +41,7 @@ interface TopicCardProps {
     onMarkAsRead?: (topicId: string) => void;
 }
 
-const TopicCard: React.FC<TopicCardProps> = ({
-    topic,
-    index,
-    interestScore,
-    favoriteTopics = {},
-    readTopics = {},
-    onToggleFavorite,
-    onMarkAsRead
-}) => {
+const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favoriteTopics = {}, readTopics = {}, onToggleFavorite, onMarkAsRead }) => {
     // 解析参与者
     const contributorsArray = parseContributors(topic.contributors);
 
@@ -172,13 +164,16 @@ const TopicCard: React.FC<TopicCardProps> = ({
                                 <MoreVertical size={16} />
                             </HeroUIButton>
                         </DropdownTrigger>
-                        <DropdownMenu aria-label="更多选项" items={[
-                            { key: "participants", label: "参与者" },
-                            { key: "topicId", label: "话题ID" },
-                            { key: "sessionId", label: "会话ID" },
-                            ...(hasTimeAndGroup ? [{ key: "groupId", label: "群ID" }] : [])
-                        ]}>
-                            {(item) => {
+                        <DropdownMenu
+                            aria-label="更多选项"
+                            items={[
+                                { key: "participants", label: "参与者" },
+                                { key: "topicId", label: "话题ID" },
+                                { key: "sessionId", label: "会话ID" },
+                                ...(hasTimeAndGroup ? [{ key: "groupId", label: "群ID" }] : [])
+                            ]}
+                        >
+                            {item => {
                                 if (item.key === "participants") {
                                     return (
                                         <DropdownItem key="participants" textValue="参与者">
@@ -234,6 +229,7 @@ const TopicCard: React.FC<TopicCardProps> = ({
                                         </DropdownItem>
                                     );
                                 }
+
                                 return null as unknown as React.ReactElement;
                             }}
                         </DropdownMenu>
