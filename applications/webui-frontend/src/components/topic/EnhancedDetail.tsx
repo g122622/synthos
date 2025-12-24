@@ -1,30 +1,16 @@
 import { Chip } from "@heroui/chip";
 import { Link } from "@heroui/react";
 
-// 生成基于名称的颜色
-const generateColorFromName = (name: string, isBackground: boolean = true): string => {
-    const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#FFD700", "#F8B500", "#6C5CE7"];
+import { generateColorFromName } from "./utils";
+import AnchorIcon from "./AnchorIcon";
 
-    let hash = 0;
+interface EnhancedDetailProps {
+    detail: string;
+    contributors: string[];
+}
 
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    const index = Math.abs(hash) % colors.length;
-
-    return isBackground ? colors[index] + "20" : colors[index];
-};
-
-const AnchorIcon: React.FC = () => (
-    <svg aria-hidden="true" fill="none" focusable="false" height="1em" role="presentation" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" width="1em">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
-);
-
-// 创建一个组件来渲染带有高亮和链接的详情文本
-const EnhancedDetail: React.FC<{ detail: string; contributors: string[] }> = ({ detail, contributors }) => {
+// 渲染带有高亮和链接的详情文本
+const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors }) => {
     if (!detail) return <div className="text-default-700 mb-3">摘要正文为空，无法加载数据 😭😭😭</div>;
 
     // 创建正则表达式来匹配所有参与者名称

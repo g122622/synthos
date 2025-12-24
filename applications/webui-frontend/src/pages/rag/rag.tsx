@@ -16,11 +16,10 @@ import { Search, MessageSquare, Sparkles, BookOpen, Users } from "lucide-react";
 import ChatHistorySidebar from "./components/ChatHistorySidebar";
 
 import DefaultLayout from "@/layouts/default";
-import { title, subtitle } from "@/components/primitives";
 import { search, ask, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
 import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
 import { createSession, getSessionDetail } from "@/api/ragChatHistoryApi";
-import TopicPopover from "@/components/TopicPopover";
+import TopicPopover from "@/components/topic/TopicPopover";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 export default function RagPage() {

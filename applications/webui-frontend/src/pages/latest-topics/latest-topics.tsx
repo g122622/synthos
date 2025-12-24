@@ -3,18 +3,16 @@ import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
 import { Spinner } from "@heroui/spinner";
-import { Chip } from "@heroui/chip";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { DateRangePicker, Tooltip, Input, Checkbox } from "@heroui/react";
-import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@heroui/dropdown";
-import { Button as HeroUIButton } from "@heroui/button";
-import { MoreVertical, Check, Copy, Search, Star } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import { today, getLocalTimeZone } from "@internationalized/date";
-import { Slider } from "@heroui/slider"; // 引入Slider组件
+import { Slider } from "@heroui/slider";
 
-import { generateColorFromName, parseContributors, generateColorFromInterestScore } from "./utils/utils";
 import TopicItem from "./types/TopicItem";
-import EnhancedDetail from "./components/EnhancedDetail";
+
+import TopicCard from "@/components/topic/TopicCard";
+import { parseContributors } from "@/components/topic/utils";
 
 import { getGroupDetails, getSessionIdsByGroupIdsAndTimeRange, getSessionTimeDurations, getAIDigestResultsBySessionIds } from "@/api/basicApi";
 import { getInterestScoreResults } from "@/api/interestScoreApi";
@@ -384,174 +382,18 @@ export default function LatestTopicsPage() {
                             <div className="flex flex-col gap-4">
                                 <ScrollShadow className="max-h-[calc(100vh-220px)]">
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-0 md:p-5">
-                                        {currentPageTopics.map((topic, index) => {
-                                            // 解析参与者
-                                            const contributorsArray = parseContributors(topic.contributors);
-
-                                            return (
-                                                <Card key={`${topic.topicId}-${index}`} className="border border-default-200">
-                                                    <CardHeader className="flex flex-col gap-2 relative">
-                                                        {/* item顺序号 */}
-                                                        <Chip className="absolute top-3.5 left-4" size="sm" variant="flat">
-                                                            #{(page - 1) * topicsPerPage + index + 1}
-                                                        </Chip>
-                                                        {/* 兴趣指数 */}
-                                                        {interestScores[topic.topicId] !== undefined && (
-                                                            <Chip
-                                                                className="absolute top-3.5 right-4"
-                                                                color={interestScores[topic.topicId] > 0 ? "success" : interestScores[topic.topicId] < 0 ? "danger" : "default"}
-                                                                size="sm"
-                                                                style={{
-                                                                    backgroundColor: generateColorFromInterestScore(interestScores[topic.topicId], false),
-                                                                    color: "white"
-                                                                }}
-                                                                variant="flat"
-                                                            >
-                                                                {interestScores[topic.topicId].toFixed(2)}
-                                                            </Chip>
-                                                        )}
-                                                        <div className="flex justify-between items-start">
-                                                            {/* 正文部分 */}
-                                                            <h3 className="text-lg font-bold max-w-60 word-break break-all">{topic.topic}</h3>
-                                                            <Tooltip color="default" content="复制话题内容" placement="top">
-                                                                <HeroUIButton
-                                                                    isIconOnly
-                                                                    size="sm"
-                                                                    variant="light"
-                                                                    onPress={() => {
-                                                                        // 复制话题内容到剪贴板
-                                                                        const contentToCopy = `话题: ${topic.topic}\n\n参与者: ${contributorsArray.join(", ")}\n\n详情: ${topic.detail}\n\n时间: ${new Date(topic.timeStart).toLocaleString()} - ${new Date(topic.timeEnd).toLocaleString()}\n群ID: ${topic.groupId}\n话题ID: ${topic.topicId}\n会话ID: ${topic.sessionId}`;
-
-                                                                        navigator.clipboard
-                                                                            .writeText(contentToCopy)
-                                                                            .then(() => {
-                                                                                Notification.success({
-                                                                                    title: "复制成功",
-                                                                                    description: "话题内容已复制到剪贴板"
-                                                                                });
-                                                                            })
-                                                                            .catch(err => {
-                                                                                console.error("复制失败:", err);
-                                                                                Notification.error({
-                                                                                    title: "复制失败",
-                                                                                    description: "无法复制话题内容"
-                                                                                });
-                                                                            });
-                                                                    }}
-                                                                >
-                                                                    <Copy size={16} />
-                                                                </HeroUIButton>
-                                                            </Tooltip>
-                                                        </div>
-                                                        <div className="text-default-500 text-sm">
-                                                            <Chip className="mr-1" size="sm" variant="flat">
-                                                                🕗
-                                                                {new Date(topic.timeStart).toLocaleDateString("zh-CN", {
-                                                                    month: "short",
-                                                                    day: "numeric",
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit"
-                                                                })}
-                                                            </Chip>
-                                                            ➡️
-                                                            <Chip className="ml-1" size="sm" variant="flat">
-                                                                🕗
-                                                                {new Date(topic.timeEnd).toLocaleDateString("zh-CN", {
-                                                                    month: "short",
-                                                                    day: "numeric",
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit"
-                                                                })}
-                                                            </Chip>
-                                                        </div>
-                                                    </CardHeader>
-                                                    <CardBody className="relative pb-9">
-                                                        <EnhancedDetail contributors={contributorsArray} detail={topic.detail} />
-                                                        {/* 在左下角添加群ID的Chip和群头像 */}
-                                                        <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                                                            <img
-                                                                alt="群头像"
-                                                                className="w-6 h-6 rounded-full"
-                                                                src={`http://p.qlogo.cn/gh/${topic.groupId}/${topic.groupId}/0`}
-                                                                onError={e => {
-                                                                    const target = e.target as HTMLImageElement;
-
-                                                                    target.onerror = null;
-                                                                    target.src =
-                                                                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
-                                                                }}
-                                                            />
-                                                            <Chip size="sm" variant="flat">
-                                                                群ID: {topic.groupId}
-                                                            </Chip>
-                                                        </div>
-                                                        {/* 右下角的更多选项、收藏按钮和已读按钮 */}
-                                                        <div className="absolute bottom-3 right-3 flex gap-1">
-                                                            <Dropdown>
-                                                                <DropdownTrigger>
-                                                                    <HeroUIButton isIconOnly size="sm" variant="light">
-                                                                        <MoreVertical size={16} />
-                                                                    </HeroUIButton>
-                                                                </DropdownTrigger>
-                                                                <DropdownMenu aria-label="更多选项">
-                                                                    <DropdownItem key="participants" textValue="参与者">
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <p className="font-medium">参与者</p>
-                                                                            <div className="flex flex-wrap gap-1">
-                                                                                {contributorsArray.map((contributor, idx) => (
-                                                                                    <Chip
-                                                                                        key={idx}
-                                                                                        size="sm"
-                                                                                        style={{
-                                                                                            backgroundColor: generateColorFromName(contributor),
-                                                                                            color: generateColorFromName(contributor, false),
-                                                                                            fontWeight: "bold"
-                                                                                        }}
-                                                                                        variant="flat"
-                                                                                    >
-                                                                                        {contributor}
-                                                                                    </Chip>
-                                                                                ))}
-                                                                            </div>
-                                                                        </div>
-                                                                    </DropdownItem>
-                                                                    <DropdownItem key="topicId" textValue="话题ID">
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <p className="font-medium">话题ID</p>
-                                                                            <p className="text-sm">{topic.topicId}</p>
-                                                                        </div>
-                                                                    </DropdownItem>
-                                                                    <DropdownItem key="sessionId" textValue="会话ID">
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <p className="font-medium">会话ID</p>
-                                                                            <p className="text-sm">{topic.sessionId}</p>
-                                                                        </div>
-                                                                    </DropdownItem>
-                                                                    <DropdownItem key="groupId" textValue="群ID">
-                                                                        <div className="flex flex-col gap-1">
-                                                                            <p className="font-medium">群ID</p>
-                                                                            <p className="text-sm">{topic.groupId}</p>
-                                                                        </div>
-                                                                    </DropdownItem>
-                                                                </DropdownMenu>
-                                                            </Dropdown>
-                                                            <Tooltip color="warning" content={favoriteTopics[topic.topicId] ? "取消收藏" : "添加收藏"} placement="top">
-                                                                <HeroUIButton isIconOnly color="warning" size="sm" variant="flat" onPress={() => toggleFavorite(topic.topicId)}>
-                                                                    <Star fill={favoriteTopics[topic.topicId] ? "currentColor" : "none"} size={16} />
-                                                                </HeroUIButton>
-                                                            </Tooltip>
-                                                            {!readTopics[topic.topicId] && (
-                                                                <Tooltip color="primary" content="标记为已读" placement="top">
-                                                                    <HeroUIButton isIconOnly color="primary" size="sm" variant="flat" onPress={() => markAsRead(topic.topicId)}>
-                                                                        <Check size={16} />
-                                                                    </HeroUIButton>
-                                                                </Tooltip>
-                                                            )}
-                                                        </div>
-                                                    </CardBody>
-                                                </Card>
-                                            );
-                                        })}
+                                        {currentPageTopics.map((topic, index) => (
+                                            <TopicCard
+                                                key={`${topic.topicId}-${index}`}
+                                                favoriteTopics={favoriteTopics}
+                                                index={(page - 1) * topicsPerPage + index + 1}
+                                                interestScore={interestScores[topic.topicId]}
+                                                readTopics={readTopics}
+                                                topic={topic}
+                                                onMarkAsRead={markAsRead}
+                                                onToggleFavorite={toggleFavorite}
+                                            />
+                                        ))}
                                     </div>
                                 </ScrollShadow>
 
