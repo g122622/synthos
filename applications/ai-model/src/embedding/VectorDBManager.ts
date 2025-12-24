@@ -29,21 +29,11 @@ export class VectorDBManager extends Disposable {
         this.dimension = dimension;
     }
 
-    async init(): Promise<void> {
+    public async init(): Promise<void> {
         // 确保目录存在
         await mkdir(dirname(this.dbPath), { recursive: true });
-
         // 打开数据库
         this.db = new Database(this.dbPath);
-        this.LOGGER.info(`数据库已打开: ${this.dbPath}`);
-
-        // 加载 sqlite-vec 扩展
-        sqliteVec.load(this.db);
-        this.LOGGER.info("sqlite-vec 扩展加载成功");
-
-        // 创建表结构
-        this.createTables();
-
         // 注册释放函数
         this._registerDisposableFunction(() => {
             if (this.db) {
@@ -51,6 +41,16 @@ export class VectorDBManager extends Disposable {
                 this.LOGGER.info("数据库连接已关闭");
             }
         });
+        // 加载 sqlite-vec 扩展
+        sqliteVec.load(this.db);
+        // 优化数据库性能
+        this.optimizeDatabasePerformance();
+        // 创建表结构
+        this.createTables();
+        // 预热索引
+        await this.warmupIndex();
+
+        this.LOGGER.success("数据库初始化完成");
     }
 
     private createTables(): void {
@@ -74,6 +74,36 @@ export class VectorDBManager extends Disposable {
         this.LOGGER.info("表结构创建/验证完成");
     }
 
+    private optimizeDatabasePerformance(): void {
+        // 启用内存映射，大幅提升性能
+        this.db!.pragma("mmap_size = 1024000000"); // 1GB
+
+        // 启用WAL模式，提高并发性能
+        this.db!.pragma("journal_mode = WAL");
+
+        // 缓存大小
+        this.db!.pragma("cache_size = -200000"); // 200MB
+
+        // 同步模式优化
+        this.db!.pragma("synchronous = NORMAL");
+
+        this.LOGGER.success("数据库性能优化配置已应用");
+    }
+
+    async warmupIndex(): Promise<void> {
+        if (this.getCount() === 0) return;
+
+        // 创建一个随机查询向量进行预热
+        const dummyVector = new Float32Array(this.dimension);
+        for (let i = 0; i < this.dimension; i++) {
+            dummyVector[i] = Math.random();
+        }
+
+        // 执行一个简单的搜索来预热索引
+        this.searchSimilar(dummyVector, [], 1);
+        this.LOGGER.info("向量索引预热完成");
+    }
+
     // ========== 写入操作 ==========
 
     /**
@@ -81,7 +111,7 @@ export class VectorDBManager extends Disposable {
      * @param topicId 话题ID（主键）
      * @param embedding 向量数据
      */
-    storeEmbedding(topicId: string, embedding: Float32Array): void {
+    public storeEmbedding(topicId: string, embedding: Float32Array): void {
         if (embedding.length !== this.dimension) {
             throw new Error(`向量维度不匹配：期望 ${this.dimension}，实际 ${embedding.length}`);
         }
@@ -109,7 +139,7 @@ export class VectorDBManager extends Disposable {
      * 批量存储嵌入向量
      * @param items 包含 topicId 和 embedding 的数组
      */
-    storeEmbeddings(items: Array<{ topicId: string; embedding: Float32Array }>): void {
+    public storeEmbeddings(items: Array<{ topicId: string; embedding: Float32Array }>): void {
         if (items.length === 0) {
             return;
         }
@@ -146,7 +176,7 @@ export class VectorDBManager extends Disposable {
      * @param topicId 话题ID
      * @returns boolean
      */
-    hasEmbedding(topicId: string): boolean {
+    public hasEmbedding(topicId: string): boolean {
         const stmt = this.db!.prepare(`
             SELECT 1 FROM topic_vector_mapping WHERE topic_id = ?
         `);
@@ -159,7 +189,7 @@ export class VectorDBManager extends Disposable {
      * @param topicIds 待检查的 topicId 数组
      * @returns 不存在嵌入的 topicId 数组
      */
-    filterWithoutEmbedding(topicIds: string[]): string[] {
+    public filterWithoutEmbedding(topicIds: string[]): string[] {
         if (topicIds.length === 0) {
             return [];
         }
@@ -180,7 +210,7 @@ export class VectorDBManager extends Disposable {
      * 获取向量数据库中的记录总数
      * @returns number
      */
-    getCount(): number {
+    public getCount(): number {
         const stmt = this.db!.prepare(`
             SELECT COUNT(*) as count FROM topic_vector_mapping
         `);
@@ -188,16 +218,14 @@ export class VectorDBManager extends Disposable {
         return result.count;
     }
 
-    // ========== 为未来检索预留的接口 ==========
-
     /**
-     * 相似度搜索（为未来实现预留）
+     * 相似度搜索
      * @param queryEmbedding 查询向量
      * @param topicIdCandidates 候选 topicId 集合（用于预过滤，传空数组则搜索全部）
      * @param limit 返回数量
      * @returns 按相似度排序的 { topicId, distance }[] 数组
      */
-    searchSimilar(
+    public searchSimilar_Old(
         queryEmbedding: Float32Array,
         topicIdCandidates: string[],
         limit: number
@@ -237,6 +265,78 @@ export class VectorDBManager extends Disposable {
                 LIMIT ?
             `;
             params = [queryEmbedding, limit];
+        }
+
+        const stmt = this.db!.prepare(sql);
+        const results = stmt.all(...params) as Array<{ topic_id: string; distance: number }>;
+
+        return results.map(row => ({
+            topicId: row.topic_id,
+            distance: row.distance
+        }));
+    }
+
+    /**
+     * 基于KNN算法的高性能相似度搜索
+     * @param queryEmbedding 查询向量
+     * @param topicIdCandidates 候选 topicId 集合（用于预过滤，传空数组则搜索全部）
+     * @param limit 返回数量
+     * @returns 按相似度排序的 { topicId, distance }[] 数组
+     */
+    public searchSimilar(
+        queryEmbedding: Float32Array,
+        topicIdCandidates: string[],
+        limit: number
+    ): Array<{ topicId: string; distance: number }> {
+        if (queryEmbedding.length !== this.dimension) {
+            throw new Error(
+                `查询向量维度不匹配：期望 ${this.dimension}，实际 ${queryEmbedding.length}`
+            );
+        }
+
+        let sql: string;
+        let params: any[];
+
+        if (topicIdCandidates.length > 0) {
+            // 先获取候选集的 rowid
+            const placeholders = topicIdCandidates.map(() => "?").join(",");
+            const mappingStmt = this.db!.prepare(`
+            SELECT vector_rowid FROM topic_vector_mapping WHERE topic_id IN (${placeholders})
+        `);
+            const candidateRows = mappingStmt.all(...topicIdCandidates) as Array<{
+                vector_rowid: number;
+            }>;
+            const candidateRowIds = candidateRows.map(row => row.vector_rowid);
+
+            if (candidateRowIds.length === 0) return [];
+
+            const rowIdPlaceholders = candidateRowIds.map(() => "?").join(",");
+            // 使用 MATCH 语法进行 KNN 优化搜索
+            sql = `
+            SELECT 
+                m.topic_id,
+                v.distance
+            FROM vec_topics v
+            JOIN topic_vector_mapping m ON v.rowid = m.vector_rowid
+            WHERE v.rowid IN (${rowIdPlaceholders})
+            AND v.embedding MATCH ? AND k = ?
+            ORDER BY v.distance ASC
+            LIMIT ?
+        `;
+            params = [...candidateRowIds, queryEmbedding, limit, limit];
+        } else {
+            // 无候选集，使用 KNN 优化搜索
+            sql = `
+            SELECT 
+                m.topic_id,
+                v.distance
+            FROM vec_topics v
+            JOIN topic_vector_mapping m ON v.rowid = m.vector_rowid
+            WHERE v.embedding MATCH ? AND k = ? 
+            ORDER BY v.distance ASC
+            LIMIT ?
+        `;
+            params = [queryEmbedding, limit, limit];
         }
 
         const stmt = this.db!.prepare(sql);

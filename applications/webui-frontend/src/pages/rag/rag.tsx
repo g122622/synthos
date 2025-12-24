@@ -302,12 +302,12 @@ export default function RagPage() {
                 {/* 主内容区 */}
                 <div className="flex-1 overflow-y-auto">
                     <section className="flex flex-col items-center justify-start gap-4 py-8 md:py-10 px-4">
-                        {/* 标题区域 */}
+                        {/* 标题区域
                         <div className="inline-block max-w-2xl text-center justify-center">
                             <h1 className={title()}>RAG&nbsp;</h1>
                             <h1 className={title({ color: "violet" })}>智能问答</h1>
                             <div className={subtitle({ class: "mt-4" })}>基于群聊记录的语义搜索和 AI 问答系统，帮你快速找到相关话题或获取智能回答</div>
-                        </div>
+                        </div> */}
 
                         {/* Tab 切换 */}
                         <div className="w-full max-w-4xl mt-6">
