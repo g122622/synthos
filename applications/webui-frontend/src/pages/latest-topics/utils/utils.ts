@@ -11,22 +11,37 @@ const parseContributors = (contributorsStr: string): string[] => {
     }
 };
 
-// 创建一个函数为每个参与者生成专属颜色
-const generateColorFromName = (name: string, shouldContainAlpha: boolean = true): string => {
+// // 创建一个函数为每个参与者生成专属颜色
+// const generateColorFromName = (name: string, shouldContainAlpha: boolean = true): string => {
+//     let hash = 0;
+
+//     for (let i = 0; i < name.length; i++) {
+//         hash = name.charCodeAt(i) + ((hash << 5) - hash);
+//     }
+
+//     // 将哈希值转换为HSL颜色值，增加透明度(0.7)
+//     const hue = Math.abs(hash % 360);
+
+//     if (!shouldContainAlpha) {
+//         return `hsl(${hue}, 56%, 56%)`;
+//     }
+
+//     return `hsla(${hue}, 70%, 40%, 0.1)`;
+// };
+
+// 生成基于名称的颜色
+const generateColorFromName = (name: string, isBackground: boolean = true): string => {
+    const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#FFD700", "#F8B500", "#6C5CE7"];
+
     let hash = 0;
 
     for (let i = 0; i < name.length; i++) {
         hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
 
-    // 将哈希值转换为HSL颜色值，增加透明度(0.7)
-    const hue = Math.abs(hash % 360);
+    const index = Math.abs(hash) % colors.length;
 
-    if (!shouldContainAlpha) {
-        return `hsl(${hue}, 70%, 40%)`;
-    }
-
-    return `hsla(${hue}, 70%, 40%, 0.1)`;
+    return isBackground ? colors[index] + "20" : colors[index];
 };
 
 const generateColorFromInterestScore = (interestScore: number, shouldContainAlpha: boolean = true): string => {
