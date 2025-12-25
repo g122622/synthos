@@ -240,6 +240,7 @@ export async function setupGenerateReportTask(
                 const retryCount = config.report.generation.llmRetryCount;
                 const modelCandidates = config.report.generation.aiModels;
 
+                LOGGER.info(`开始调用 LLM 生成日报综述...`);
                 for (let attempt = 0; attempt <= retryCount; attempt++) {
                     try {
                         const result = await textGenerator.generateTextWithModelCandidates(
