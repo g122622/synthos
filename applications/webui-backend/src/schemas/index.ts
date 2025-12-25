@@ -98,3 +98,35 @@ export const UpdateRagSessionTitleSchema = z.object({
 });
 export type UpdateRagSessionTitleParams = z.infer<typeof UpdateRagSessionTitleSchema>;
 
+// ==================== Report ====================
+
+export const GetReportByIdSchema = z.object({
+    reportId: z.string({ message: "缺少reportId参数" })
+});
+export type GetReportByIdParams = z.infer<typeof GetReportByIdSchema>;
+
+export const GetReportsPaginatedSchema = z.object({
+    page: z.number({ message: "缺少page参数" }).int().positive(),
+    pageSize: z.number({ message: "缺少pageSize参数" }).int().positive().max(50),
+    type: z.enum(["half-daily", "weekly", "monthly"]).optional()
+});
+export type GetReportsPaginatedParams = z.infer<typeof GetReportsPaginatedSchema>;
+
+export const GetReportsByDateSchema = z.object({
+    date: z.union([z.string(), z.number()], { message: "缺少date参数" })
+});
+export type GetReportsByDateParams = z.infer<typeof GetReportsByDateSchema>;
+
+export const GetReportsByTimeRangeSchema = z.object({
+    timeStart: z.number({ message: "缺少timeStart参数" }),
+    timeEnd: z.number({ message: "缺少timeEnd参数" }),
+    type: z.enum(["half-daily", "weekly", "monthly"]).optional()
+});
+export type GetReportsByTimeRangeParams = z.infer<typeof GetReportsByTimeRangeSchema>;
+
+export const GetRecentReportsSchema = z.object({
+    type: z.enum(["half-daily", "weekly", "monthly"], { message: "缺少type参数" }),
+    limit: z.number({ message: "缺少limit参数" }).int().positive().max(50)
+});
+export type GetRecentReportsParams = z.infer<typeof GetRecentReportsSchema>;
+

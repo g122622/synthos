@@ -1,4 +1,5 @@
 import { IMTypes } from "../../contracts/data-provider";
+import { ReportType } from "../../contracts/report";
 
 export enum TaskHandlerTypes {
     ProvideData = "ProvideData",
@@ -7,7 +8,9 @@ export enum TaskHandlerTypes {
     InterestScore = "InterestScore",
     GenerateEmbedding = "GenerateEmbedding",
     // Pipeline 调度任务
-    RunPipeline = "RunPipeline"
+    RunPipeline = "RunPipeline",
+    // 日报相关任务
+    GenerateReport = "GenerateReport"
 }
 
 export interface TaskParamsMap {
@@ -40,6 +43,12 @@ export interface TaskParamsMap {
     };
     // Pipeline 任务参数
     [TaskHandlerTypes.RunPipeline]: {
+    };
+    // 日报生成任务参数
+    [TaskHandlerTypes.GenerateReport]: {
+        reportType: ReportType;
+        timeStart: number;
+        timeEnd: number;
     };
 }
 

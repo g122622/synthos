@@ -10,6 +10,7 @@ import { registerConfigManagerService } from "@root/common/di/container";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { ReportDBManager } from "@root/common/database/ReportDBManager";
 
 // Status Managers
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
@@ -26,6 +27,8 @@ import { TopicStatusService } from "../services/TopicStatusService";
 import { SearchService } from "../services/SearchService";
 import { ConfigService } from "../services/ConfigService";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
+import { ReportService } from "../services/ReportService";
+import { EmailService } from "../services/EmailService";
 
 // RPC Clients
 import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
@@ -40,6 +43,7 @@ import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
 import { ConfigController } from "../controllers/ConfigController";
 import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
+import { ReportController } from "../controllers/ReportController";
 
 /**
  * 注册所有 DBManager 实例
@@ -47,11 +51,13 @@ import { RagChatHistoryController } from "../controllers/RagChatHistoryControlle
 export function registerDBManagers(
     agcDBManager: AGCDBManager,
     imDBManager: IMDBManager,
-    interestScoreDBManager: InterestScoreDBManager
+    interestScoreDBManager: InterestScoreDBManager,
+    reportDBManager: ReportDBManager
 ): void {
     container.registerInstance(TOKENS.AGCDBManager, agcDBManager);
     container.registerInstance(TOKENS.IMDBManager, imDBManager);
     container.registerInstance(TOKENS.InterestScoreDBManager, interestScoreDBManager);
+    container.registerInstance(TOKENS.ReportDBManager, reportDBManager);
 }
 
 /**
@@ -96,6 +102,8 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.SearchService, SearchService);
     container.registerSingleton(TOKENS.ConfigService, ConfigService);
     container.registerSingleton(TOKENS.RagChatHistoryService, RagChatHistoryService);
+    container.registerSingleton(TOKENS.ReportService, ReportService);
+    container.registerSingleton(TOKENS.EmailService, EmailService);
 }
 
 /**
@@ -111,6 +119,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.SearchController, SearchController);
     container.registerSingleton(TOKENS.ConfigController, ConfigController);
     container.registerSingleton(TOKENS.RagChatHistoryController, RagChatHistoryController);
+    container.registerSingleton(TOKENS.ReportController, ReportController);
 }
 
 /**

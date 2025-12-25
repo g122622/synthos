@@ -15,6 +15,7 @@ import { MiscController } from "../controllers/MiscController";
 import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
 import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
+import { ReportController } from "../controllers/ReportController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -26,6 +27,7 @@ export const setupApiRoutes = (app: Express): void => {
     const topicStatusController = container.resolve<TopicStatusController>(TOKENS.TopicStatusController);
     const searchController = container.resolve<SearchController>(TOKENS.SearchController);
     const ragChatHistoryController = container.resolve<RagChatHistoryController>(TOKENS.RagChatHistoryController);
+    const reportController = container.resolve<ReportController>(TOKENS.ReportController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -169,5 +171,36 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/rag/session/clear-all",
         asyncHandler((req, res) => ragChatHistoryController.clearAllSessions(req, res))
+    );
+
+    // ==================== 日报 ====================
+    // 获取单个日报详情
+    app.get(
+        "/api/report/:reportId",
+        asyncHandler((req, res) => reportController.getReportById(req, res))
+    );
+
+    // 获取日报列表（分页）
+    app.post(
+        "/api/reports",
+        asyncHandler((req, res) => reportController.getReportsPaginated(req, res))
+    );
+
+    // 获取指定日期的半日报
+    app.post(
+        "/api/reports/by-date",
+        asyncHandler((req, res) => reportController.getReportsByDate(req, res))
+    );
+
+    // 获取指定时间范围内的日报
+    app.post(
+        "/api/reports/by-time-range",
+        asyncHandler((req, res) => reportController.getReportsByTimeRange(req, res))
+    );
+
+    // 获取最近的日报
+    app.post(
+        "/api/reports/recent",
+        asyncHandler((req, res) => reportController.getRecentReports(req, res))
     );
 };

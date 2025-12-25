@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import Logger from "@root/common/util/Logger";
 import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
 import { agendaInstance } from "@root/common/scheduler/agenda";
@@ -9,6 +10,7 @@ import { VectorDBManager } from "./embedding/VectorDBManager";
 import { setupAISummarizeTask } from "./tasks/AISummarize";
 import { setupInterestScoreTask } from "./tasks/InterestScore";
 import { setupGenerateEmbeddingTask } from "./tasks/GenerateEmbedding";
+import { setupGenerateReportTask } from "./tasks/GenerateReport";
 import { setupRPC } from "./rpc/setupRPC";
 
 (async () => {
@@ -26,6 +28,8 @@ import { setupRPC } from "./rpc/setupRPC";
     await agcDBManager.init();
     const interestScoreDBManager = new InterestScoreDBManager();
     await interestScoreDBManager.init();
+    const reportDBManager = new ReportDBManager();
+    await reportDBManager.init();
     // 初始化向量数据库管理器
     const vectorDBManager = new VectorDBManager(
         config.ai.embedding.vectorDBPath,
@@ -39,6 +43,7 @@ import { setupRPC } from "./rpc/setupRPC";
     await setupAISummarizeTask(imdbManager, agcDBManager);
     await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
     await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
+    await setupGenerateReportTask(agcDBManager, reportDBManager, interestScoreDBManager);
 
     LOGGER.success("Ready to start agenda scheduler");
     await agendaInstance.start(); // 👈 启动调度器

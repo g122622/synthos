@@ -33,3 +33,23 @@ export const createInterestScoreTableSQL = `
                     scoreV4 REAL,
                     scoreV5 REAL
                 );`
+
+export const createReportTableSQL = `
+                CREATE TABLE IF NOT EXISTS reports (
+                    reportId TEXT NOT NULL PRIMARY KEY,
+                    type TEXT NOT NULL,
+                    timeStart INTEGER NOT NULL,
+                    timeEnd INTEGER NOT NULL,
+                    isEmpty INTEGER NOT NULL DEFAULT 0,
+                    summary TEXT,
+                    summaryGeneratedAt INTEGER,
+                    summaryStatus TEXT NOT NULL DEFAULT 'pending',
+                    model TEXT,
+                    statisticsJson TEXT,
+                    topicIdsJson TEXT,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
+                CREATE INDEX IF NOT EXISTS idx_reports_timeStart ON reports(timeStart);
+                CREATE INDEX IF NOT EXISTS idx_reports_timeEnd ON reports(timeEnd);`

@@ -31,6 +31,38 @@ export const UserInterestSchema = z.object({
 });
 
 /**
+ * 日报配置 Schema
+ */
+export const ReportConfigSchema = z.object({
+    enabled: z.boolean().describe("是否启用日报功能"),
+    schedule: z.object({
+        halfDailyTimes: z.array(z.string()).describe("半日报触发时间，格式为 HH:mm，如 ['12:00', '18:00']"),
+        weeklyTime: z.string().describe("周报触发时间，格式为 'HH:mm'，默认周一触发"),
+        weeklyDayOfWeek: z.number().int().min(0).max(6).describe("周报触发的星期几，0-6 表示周日到周六"),
+        monthlyTime: z.string().describe("月报触发时间，格式为 'HH:mm'，默认每月1号触发"),
+        monthlyDayOfMonth: z.number().int().min(1).max(28).describe("月报触发的日期，1-28"),
+    }).describe("定时触发配置"),
+    generation: z.object({
+        topNTopics: z.number().positive().int().describe("喂给 LLM 的话题数量上限"),
+        llmRetryCount: z.number().int().min(0).describe("LLM 调用失败重试次数"),
+        aiModels: z.array(z.string()).describe("用于生成日报综述的 AI 模型列表，按优先级排序"),
+    }).describe("日报生成配置"),
+    email: z.object({
+        enabled: z.boolean().describe("是否启用邮件推送"),
+        smtp: z.object({
+            host: z.string().describe("SMTP 服务器地址"),
+            port: z.number().int().positive().describe("SMTP 服务器端口"),
+            secure: z.boolean().describe("是否使用 SSL/TLS"),
+            user: z.string().describe("SMTP 用户名"),
+            pass: z.string().describe("SMTP 密码"),
+        }).describe("SMTP 配置"),
+        from: z.string().describe("发件人地址"),
+        recipients: z.array(z.string()).describe("收件人邮箱列表"),
+        retryCount: z.number().int().min(0).describe("邮件发送失败重试次数"),
+    }).describe("邮件推送配置"),
+}).describe("日报配置");
+
+/**
  * 全局配置 Schema
  */
 export const GlobalConfigSchema = z.object({
@@ -107,6 +139,8 @@ export const GlobalConfigSchema = z.object({
     }).describe("日志配置"),
 
     groupConfigs: z.record(z.string(), GroupConfigSchema).describe("群配置映射"),
+
+    report: ReportConfigSchema.describe("日报配置"),
 });
 
 /**

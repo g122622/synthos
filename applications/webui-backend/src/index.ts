@@ -9,6 +9,7 @@ import * as path from "path";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
@@ -50,6 +51,7 @@ export class WebUILocalServer {
     private agcDBManager: AGCDBManager | null = null;
     private imDBManager: IMDBManager | null = null;
     private interestScoreDBManager: InterestScoreDBManager | null = null;
+    private reportDBManager: ReportDBManager | null = null;
 
     constructor() {
         this.app = express();
@@ -72,14 +74,15 @@ export class WebUILocalServer {
     }
 
     public async closeDatabases(): Promise<void> {
-        await closeDatabases(this.agcDBManager, this.imDBManager, this.interestScoreDBManager);
+        await closeDatabases(this.agcDBManager, this.imDBManager, this.interestScoreDBManager, this.reportDBManager);
     }
 
     private async initializeDatabases(): Promise<void> {
-        const { agcDBManager, imDBManager, interestScoreDBManager } = await initializeDatabases();
+        const { agcDBManager, imDBManager, interestScoreDBManager, reportDBManager } = await initializeDatabases();
         this.agcDBManager = agcDBManager;
         this.imDBManager = imDBManager;
         this.interestScoreDBManager = interestScoreDBManager;
+        this.reportDBManager = reportDBManager;
     }
 
     /**
@@ -120,7 +123,8 @@ private async initializeStatusManagers(): Promise<{
         registerDBManagers(
             this.agcDBManager!,
             this.imDBManager!,
-            this.interestScoreDBManager!
+            this.interestScoreDBManager!,
+            this.reportDBManager!
         );
 
         // 2. 注册 Status Managers

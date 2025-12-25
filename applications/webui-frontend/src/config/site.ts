@@ -21,6 +21,10 @@ export const siteConfig = {
             href: "/latest-topics"
         },
         {
+            label: "📰日报中心",
+            href: "/reports"
+        },
+        {
             label: "🔍智能问答",
             href: "/rag"
         },
@@ -49,6 +53,10 @@ export const siteConfig = {
         {
             label: "🔥最新话题",
             href: "/latest-topics"
+        },
+        {
+            label: "📰日报中心",
+            href: "/reports"
         },
         {
             label: "🔍智能问答",

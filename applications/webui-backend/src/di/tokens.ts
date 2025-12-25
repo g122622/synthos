@@ -14,6 +14,7 @@ export const TOKENS = {
     AGCDBManager: Symbol.for("AGCDBManager"),
     IMDBManager: Symbol.for("IMDBManager"),
     InterestScoreDBManager: Symbol.for("InterestScoreDBManager"),
+    ReportDBManager: Symbol.for("ReportDBManager"),
 
     // Status Managers
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),
@@ -33,6 +34,8 @@ export const TOKENS = {
     SearchService: Symbol.for("SearchService"),
     ConfigService: Symbol.for("ConfigService"),
     RagChatHistoryService: Symbol.for("RagChatHistoryService"),
+    ReportService: Symbol.for("ReportService"),
+    EmailService: Symbol.for("EmailService"),
 
     // Controllers
     AIDigestController: Symbol.for("AIDigestController"),
@@ -43,6 +46,7 @@ export const TOKENS = {
     TopicStatusController: Symbol.for("TopicStatusController"),
     SearchController: Symbol.for("SearchController"),
     ConfigController: Symbol.for("ConfigController"),
-    RagChatHistoryController: Symbol.for("RagChatHistoryController")
+    RagChatHistoryController: Symbol.for("RagChatHistoryController"),
+    ReportController: Symbol.for("ReportController")
 } as const;
 
