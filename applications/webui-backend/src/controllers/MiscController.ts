@@ -9,9 +9,7 @@ import { GetQQAvatarSchema } from "../schemas/index";
 
 @injectable()
 export class MiscController {
-    constructor(
-        @inject(TOKENS.MiscService) private miscService: MiscService
-    ) {}
+    constructor(@inject(TOKENS.MiscService) private miscService: MiscService) {}
 
     /**
      * GET /health
@@ -30,4 +28,3 @@ export class MiscController {
         res.json({ success: true, data: { avatarBase64 } });
     }
 }
-

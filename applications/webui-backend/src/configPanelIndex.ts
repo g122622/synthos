@@ -84,7 +84,9 @@ if (isConfigPanelMode) {
     });
 } else {
     // 正常模式：不启动服务
-    LOGGER.info("未读取到 CONFIG_PANEL_MODE 环境变量，不启动配置面板服务。请尝试在大仓根目录执行 npm run config。");
+    LOGGER.info(
+        "未读取到 CONFIG_PANEL_MODE 环境变量，不启动配置面板服务。请尝试在大仓根目录执行 npm run config。"
+    );
 }
 
 export { isConfigPanelMode };

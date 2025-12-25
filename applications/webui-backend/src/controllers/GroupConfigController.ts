@@ -20,4 +20,3 @@ export class GroupConfigController {
         res.json({ success: true, data: groupConfigs });
     }
 }
-

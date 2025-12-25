@@ -9,7 +9,8 @@ import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
 @injectable()
 export class TopicStatusService {
     constructor(
-        @inject(TOKENS.TopicFavoriteStatusManager) private favoriteStatusManager: TopicFavoriteStatusManager,
+        @inject(TOKENS.TopicFavoriteStatusManager)
+        private favoriteStatusManager: TopicFavoriteStatusManager,
         @inject(TOKENS.TopicReadStatusManager) private readStatusManager: TopicReadStatusManager
     ) {}
 
@@ -67,4 +68,3 @@ export class TopicStatusService {
         return readStatus;
     }
 }
-

@@ -71,4 +71,3 @@ export class TopicStatusController {
         res.json({ success: true, data: { readStatus } });
     }
 }
-

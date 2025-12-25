@@ -51,7 +51,9 @@ export class SearchService {
             this.LOGGER.success(`问答完成，回答长度: ${result.answer.length}`);
             return result;
         } catch (error) {
-            this.LOGGER.error(`问答失败: ${error}, ${error instanceof Error ? JSON.stringify(error) : ''}`);
+            this.LOGGER.error(
+                `问答失败: ${error}, ${error instanceof Error ? JSON.stringify(error) : ""}`
+            );
             throw error;
         }
     }

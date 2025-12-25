@@ -7,9 +7,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 
 @injectable()
 export class ChatMessageService {
-    constructor(
-        @inject(TOKENS.IMDBManager) private imDBManager: IMDBManager
-    ) {}
+    constructor(@inject(TOKENS.IMDBManager) private imDBManager: IMDBManager) {}
 
     /**
      * 根据群组 ID 和时间范围获取聊天消息
@@ -62,4 +60,3 @@ export class ChatMessageService {
         return results;
     }
 }
-

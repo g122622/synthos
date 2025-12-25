@@ -139,21 +139,21 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
             await job.touch();
 
             // ==================== 步骤 5: InterestScore ====================
-            // LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
-            // const interestScoreSuccess = await scheduleAndWaitForJob(
-            //     TaskHandlerTypes.InterestScore,
-            //     {
-            //         startTimeStamp,
-            //         endTimeStamp
-            //     },
-            //     POLL_INTERVAL,
-            //     TASK_TIMEOUT
-            // );
-            // if (!interestScoreSuccess) {
-            //     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-            //     job.fail("InterestScore task failed");
-            //     return;
-            // }
+            LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
+            const interestScoreSuccess = await scheduleAndWaitForJob(
+                TaskHandlerTypes.InterestScore,
+                {
+                    startTimeStamp,
+                    endTimeStamp
+                },
+                POLL_INTERVAL,
+                TASK_TIMEOUT
+            );
+            if (!interestScoreSuccess) {
+                LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
+                job.fail("InterestScore task failed");
+                return;
+            }
 
             LOGGER.success(`🎉 Pipeline 任务全部完成！`);
         },
@@ -170,7 +170,7 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
     const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
     LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
     await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
-    // await agendaInstance.now(TaskHandlerTypes.RunPipeline);
+    await agendaInstance.now(TaskHandlerTypes.RunPipeline);
 
     LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
     await agendaInstance.start();

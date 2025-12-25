@@ -60,7 +60,9 @@ export class ConfigService {
     /**
      * 验证部分配置
      */
-    validatePartialConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
+    validatePartialConfig(
+        config: unknown
+    ): { success: true } | { success: false; errors: string[] } {
         return this.configManagerService.validatePartialConfig(config);
     }
 }

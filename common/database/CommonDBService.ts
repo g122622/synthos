@@ -14,7 +14,7 @@ export class CommonDBService extends Disposable {
     private LOGGER = Logger.withTag("CommonDBService");
     private initialSQL = ""; // 初始SQL语句，用于创建表等。建立每个数据库连接时会自动执行一次
     private configManagerService = getConfigManagerService();
-    private db = new PromisifiedSQLite(sqlite3)
+    private db = new PromisifiedSQLite(sqlite3);
 
     constructor(initialSQL?: string) {
         super();
@@ -26,12 +26,20 @@ export class CommonDBService extends Disposable {
     async init(): Promise<void> {
         // 确保 dbBasePath 存在
         try {
-            await fs.mkdir((await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath, { recursive: true });
+            await fs.mkdir(
+                (await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
+                { recursive: true }
+            );
         } catch (err) {
             this.LOGGER.error(`Failed to create dbBasePath: ${err.message}`);
             throw err;
         }
-        await this.db.open(path.join((await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath, "common_database.db"));
+        await this.db.open(
+            path.join(
+                (await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
+                "common_database.db"
+            )
+        );
         if (this.initialSQL) {
             await this.db.exec(this.initialSQL);
         }

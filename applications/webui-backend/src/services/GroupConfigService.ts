@@ -20,4 +20,3 @@ export class GroupConfigService {
         return config.groupConfigs;
     }
 }
-

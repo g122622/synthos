@@ -1,5 +1,11 @@
 import Logger from "../util/Logger";
-import { Report, ReportDBRecord, ReportType, dbRecordToReport, reportToDBRecord } from "../contracts/report/index";
+import {
+    Report,
+    ReportDBRecord,
+    ReportType,
+    dbRecordToReport,
+    reportToDBRecord
+} from "../contracts/report/index";
 import { Disposable } from "../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
 import { CommonDBService } from "./CommonDBService";
@@ -122,7 +128,11 @@ export class ReportDBManager extends Disposable {
     /**
      * 检查指定时间范围和类型的日报是否已存在
      */
-    public async isReportExists(type: ReportType, timeStart: number, timeEnd: number): Promise<boolean> {
+    public async isReportExists(
+        type: ReportType,
+        timeStart: number,
+        timeEnd: number
+    ): Promise<boolean> {
         const result = await this.db.get<{ count: number }>(
             `SELECT COUNT(*) as count FROM reports WHERE type = ? AND timeStart = ? AND timeEnd = ?`,
             [type, timeStart, timeEnd]
@@ -136,7 +146,7 @@ export class ReportDBManager extends Disposable {
     public async updateReportSummary(
         reportId: string,
         summary: string,
-        summaryStatus: 'success' | 'failed',
+        summaryStatus: "success" | "failed",
         model: string
     ): Promise<void> {
         await this.db.run(
@@ -156,7 +166,9 @@ export class ReportDBManager extends Disposable {
      * 获取所有日报（用于数据库迁移、导出、备份等操作）
      */
     public async selectAll(): Promise<Report[]> {
-        const records = await this.db.all<ReportDBRecord>(`SELECT * FROM reports ORDER BY createdAt DESC`);
+        const records = await this.db.all<ReportDBRecord>(
+            `SELECT * FROM reports ORDER BY createdAt DESC`
+        );
         return records.map(dbRecordToReport);
     }
 
@@ -169,7 +181,7 @@ export class ReportDBManager extends Disposable {
         type?: ReportType
     ): Promise<{ reports: Report[]; total: number }> {
         const offset = (page - 1) * pageSize;
-        
+
         let countSql = `SELECT COUNT(*) as count FROM reports`;
         let selectSql = `SELECT * FROM reports`;
         const params: any[] = [];

@@ -12,4 +12,3 @@ export const COMMON_TOKENS = {
     IMDBManager: Symbol.for("IMDBManager"),
     InterestScoreDBManager: Symbol.for("InterestScoreDBManager")
 } as const;
-

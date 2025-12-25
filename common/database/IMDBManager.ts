@@ -86,9 +86,9 @@ export class IMDBManager extends Disposable {
                     currentBatchSize === batchSize
                         ? baseSql
                         : baseSql.replace(
-                            Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", "),
-                            Array(currentBatchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
-                        );
+                              Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", "),
+                              Array(currentBatchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")
+                          );
 
                 // 收集参数
                 const params: any[] = [];
@@ -231,15 +231,17 @@ export class IMDBManager extends Disposable {
 
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
-        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
-        this.LOGGER.info(`去重前消息数量: ${res.length}`)
+        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(
+            `SELECT * FROM chat_messages`
+        );
+        this.LOGGER.info(`去重前消息数量: ${res.length}`);
         // 按照id进行去重
         const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
         (await res).forEach(item => {
             uniqueResMap.set(item.msgId, item);
         });
         const dedupedArr = Array.from(uniqueResMap.values());
-        this.LOGGER.info(`去重后消息数量: ${dedupedArr.length}`)
+        this.LOGGER.info(`去重后消息数量: ${dedupedArr.length}`);
         return dedupedArr;
     }
 

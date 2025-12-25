@@ -74,9 +74,7 @@ export function registerStatusManagers(
 /**
  * 注册 RAG 聊天历史管理器
  */
-export function registerRagChatHistoryManager(
-    ragChatHistoryManager: RagChatHistoryManager
-): void {
+export function registerRagChatHistoryManager(ragChatHistoryManager: RagChatHistoryManager): void {
     container.registerInstance(TOKENS.RagChatHistoryManager, ragChatHistoryManager);
 }
 
@@ -139,4 +137,3 @@ export function getContainer() {
 }
 
 export { container, registerConfigManagerService };
-

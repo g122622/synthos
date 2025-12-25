@@ -230,7 +230,10 @@ describe("ConfigManagerService", () => {
             const config = await service.getCurrentConfig();
 
             // 数组应被完整替换
-            expect(config.ai.interestScore.UserInterestsPositiveKeywords).toEqual(["new", "keywords"]);
+            expect(config.ai.interestScore.UserInterestsPositiveKeywords).toEqual([
+                "new",
+                "keywords"
+            ]);
             // 其他数组保持原值
             expect(config.ai.interestScore.UserInterestsNegativeKeywords).toEqual(["spam"]);
         });
@@ -303,7 +306,9 @@ describe("ConfigManagerService", () => {
             const config = await service.getCurrentConfig();
 
             // 新属性应被添加
-            expect((config.dataProviders.QQ as Record<string, unknown>).newProperty).toBe("new-value");
+            expect((config.dataProviders.QQ as Record<string, unknown>).newProperty).toBe(
+                "new-value"
+            );
             // 原有属性保持
             expect(config.dataProviders.QQ.VFSExtPath).toBe("/path/to/vfs");
         });

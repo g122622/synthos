@@ -131,7 +131,16 @@ export class RagChatHistoryManager extends Disposable {
         await this.db!.run(
             `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, createdAt, updatedAt)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [session.id, session.title, session.question, session.answer, session.references, session.topK, session.createdAt, session.updatedAt]
+            [
+                session.id,
+                session.title,
+                session.question,
+                session.answer,
+                session.references,
+                session.topK,
+                session.createdAt,
+                session.updatedAt
+            ]
         );
 
         this.LOGGER.info(`创建新会话: ${session.id}`);
@@ -144,10 +153,9 @@ export class RagChatHistoryManager extends Disposable {
     async getSessionById(id: string): Promise<RagChatSession | null> {
         this.ensureInitialized();
 
-        const result = await this.db!.get(
-            `SELECT * FROM rag_sessions WHERE id = ?`,
-            [id]
-        ) as RagChatSession | undefined;
+        const result = (await this.db!.get(`SELECT * FROM rag_sessions WHERE id = ?`, [id])) as
+            | RagChatSession
+            | undefined;
 
         return result || null;
     }
@@ -158,10 +166,10 @@ export class RagChatHistoryManager extends Disposable {
     async getSessionList(limit: number, offset: number): Promise<SessionListItem[]> {
         this.ensureInitialized();
 
-        const results = await this.db!.all(
+        const results = (await this.db!.all(
             `SELECT id, title, createdAt, updatedAt FROM rag_sessions ORDER BY updatedAt DESC LIMIT ? OFFSET ?`,
             [limit, offset]
-        ) as SessionListItem[];
+        )) as SessionListItem[];
 
         return results;
     }
@@ -172,9 +180,9 @@ export class RagChatHistoryManager extends Disposable {
     async getSessionCount(): Promise<number> {
         this.ensureInitialized();
 
-        const result = await this.db!.get(
-            `SELECT COUNT(*) as count FROM rag_sessions`
-        ) as { count: number } | undefined;
+        const result = (await this.db!.get(`SELECT COUNT(*) as count FROM rag_sessions`)) as
+            | { count: number }
+            | undefined;
 
         return result?.count || 0;
     }
@@ -185,10 +193,7 @@ export class RagChatHistoryManager extends Disposable {
     async deleteSession(id: string): Promise<boolean> {
         this.ensureInitialized();
 
-        await this.db!.run(
-            `DELETE FROM rag_sessions WHERE id = ?`,
-            [id]
-        );
+        await this.db!.run(`DELETE FROM rag_sessions WHERE id = ?`, [id]);
 
         this.LOGGER.info(`删除会话: ${id}`);
         return true;
@@ -201,10 +206,11 @@ export class RagChatHistoryManager extends Disposable {
         this.ensureInitialized();
 
         const now = Date.now();
-        await this.db!.run(
-            `UPDATE rag_sessions SET title = ?, updatedAt = ? WHERE id = ?`,
-            [title, now, id]
-        );
+        await this.db!.run(`UPDATE rag_sessions SET title = ?, updatedAt = ? WHERE id = ?`, [
+            title,
+            now,
+            id
+        ]);
 
         this.LOGGER.info(`更新会话标题: ${id}`);
         return true;

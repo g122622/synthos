@@ -8,9 +8,7 @@ import { NotFoundError } from "../errors/AppError";
 
 @injectable()
 export class AIDigestService {
-    constructor(
-        @inject(TOKENS.AGCDBManager) private agcDBManager: AGCDBManager
-    ) {}
+    constructor(@inject(TOKENS.AGCDBManager) private agcDBManager: AGCDBManager) {}
 
     /**
      * 根据 topicId 获取 AI 摘要结果
@@ -44,4 +42,3 @@ export class AIDigestService {
         return await this.agcDBManager.isSessionIdSummarized(sessionId);
     }
 }
-

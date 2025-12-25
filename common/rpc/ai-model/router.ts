@@ -2,12 +2,7 @@
  * RAG RPC Router
  * 定义 tRPC router 工厂函数，供 ai-model 实现、webui-backend 调用
  */
-import {
-    initTRPC,
-    type AnyRootConfig,
-    type DefaultErrorShape,
-    type Router
-} from "@trpc/server";
+import { initTRPC, type AnyRootConfig, type DefaultErrorShape, type Router } from "@trpc/server";
 import {
     SearchInputSchema,
     SearchOutput,
@@ -18,11 +13,14 @@ import {
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
-const t = initTRPC.context<any>().meta<any>().create({
-    errorFormatter({ shape }): DefaultErrorShape {
-        return shape;
-    }
-});
+const t = initTRPC
+    .context<any>()
+    .meta<any>()
+    .create({
+        errorFormatter({ shape }): DefaultErrorShape {
+            return shape;
+        }
+    });
 
 /**
  * RAG RPC 实现接口
@@ -80,25 +78,27 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
             return impl.ask(validatedInput);
         }),
 
-        triggerReportGenerate: t.procedure.input(TriggerReportGenerateInputSchema).mutation(async ({ input }) => {
-            return impl.triggerReportGenerate({
-                type: input.type,
-                timeStart: input.timeStart,
-                timeEnd: input.timeEnd
-            });
-        })
+        triggerReportGenerate: t.procedure
+            .input(TriggerReportGenerateInputSchema)
+            .mutation(async ({ input }) => {
+                return impl.triggerReportGenerate({
+                    type: input.type,
+                    timeStart: input.timeStart,
+                    timeEnd: input.timeEnd
+                });
+            })
     });
 
     // 将 _config 放宽到 AnyRootConfig，便于跨包消费（如 webui-backend 客户端）
-    type RouterRecord = typeof router._def["record"];
+    type RouterRecord = (typeof router._def)["record"];
     type RAGRouterDef = {
         _config: AnyRootConfig;
         router: true;
-        procedures: typeof router._def["procedures"];
+        procedures: (typeof router._def)["procedures"];
         record: RouterRecord;
-        queries: typeof router._def["queries"];
-        mutations: typeof router._def["mutations"];
-        subscriptions: typeof router._def["subscriptions"];
+        queries: (typeof router._def)["queries"];
+        mutations: (typeof router._def)["mutations"];
+        subscriptions: (typeof router._def)["subscriptions"];
     };
 
     const typedRouter = router as unknown as Router<RAGRouterDef> & RouterRecord;

@@ -17,7 +17,9 @@ export const GetSessionIdsByGroupIdsAndTimeRangeSchema = z.object({
     timeStart: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeStart" }),
     timeEnd: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeEnd" })
 });
-export type GetSessionIdsByGroupIdsAndTimeRangeParams = z.infer<typeof GetSessionIdsByGroupIdsAndTimeRangeSchema>;
+export type GetSessionIdsByGroupIdsAndTimeRangeParams = z.infer<
+    typeof GetSessionIdsByGroupIdsAndTimeRangeSchema
+>;
 
 export const GetSessionTimeDurationsSchema = z.object({
     sessionIds: z.array(z.string(), { message: "缺少sessionIds参数" })
@@ -34,7 +36,9 @@ export type GetAIDigestResultByTopicIdParams = z.infer<typeof GetAIDigestResultB
 export const GetAIDigestResultsBySessionIdsSchema = z.object({
     sessionIds: z.array(z.string(), { message: "缺少sessionIds参数" })
 });
-export type GetAIDigestResultsBySessionIdsParams = z.infer<typeof GetAIDigestResultsBySessionIdsSchema>;
+export type GetAIDigestResultsBySessionIdsParams = z.infer<
+    typeof GetAIDigestResultsBySessionIdsSchema
+>;
 
 export const CheckSessionSummarizedSchema = z.object({
     sessionId: z.string({ message: "缺少sessionId参数" })
@@ -72,11 +76,14 @@ export type GetQQAvatarParams = z.infer<typeof GetQQAvatarSchema>;
 export const CreateRagSessionSchema = z.object({
     question: z.string({ message: "缺少question参数" }),
     answer: z.string({ message: "缺少answer参数" }),
-    references: z.array(z.object({
-        topicId: z.string(),
-        topic: z.string(),
-        relevance: z.number()
-    }), { message: "缺少references参数" }),
+    references: z.array(
+        z.object({
+            topicId: z.string(),
+            topic: z.string(),
+            relevance: z.number()
+        }),
+        { message: "缺少references参数" }
+    ),
     topK: z.number({ message: "缺少topK参数" })
 });
 export type CreateRagSessionParams = z.infer<typeof CreateRagSessionSchema>;
@@ -136,4 +143,3 @@ export const TriggerReportGenerateSchema = z.object({
     timeEnd: z.number().optional()
 });
 export type TriggerReportGenerateParams = z.infer<typeof TriggerReportGenerateSchema>;
-

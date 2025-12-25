@@ -20,11 +20,11 @@ function formatPeriodDescription(type: ReportType, timeStart: number, timeEnd: n
 
     const formatDate = (d: Date) => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 
-    if (type === 'half-daily') {
+    if (type === "half-daily") {
         const hour = startDate.getHours();
-        const period = hour < 12 ? '上午' : '下午';
+        const period = hour < 12 ? "上午" : "下午";
         return `${formatDate(startDate)} ${period}`;
-    } else if (type === 'weekly') {
+    } else if (type === "weekly") {
         return `${formatDate(startDate)} - ${formatDate(endDate)} 周报`;
     } else {
         return `${formatDate(startDate)} - ${formatDate(endDate)} 月报`;
@@ -35,13 +35,20 @@ function formatPeriodDescription(type: ReportType, timeStart: number, timeEnd: n
  * 计算统计数据
  */
 function calculateStatistics(
-    topics: { topicId: string; sessionId: string; topic: string; detail: string; updateTime: number; groupId?: string }[],
+    topics: {
+        topicId: string;
+        sessionId: string;
+        topic: string;
+        detail: string;
+        updateTime: number;
+        groupId?: string;
+    }[],
     sessionGroupMap: Map<string, string>
 ): ReportStatistics {
     // 计算最活跃群组
     const groupTopicCount = new Map<string, number>();
     for (const topic of topics) {
-        const groupId = topic.groupId || sessionGroupMap.get(topic.sessionId) || 'unknown';
+        const groupId = topic.groupId || sessionGroupMap.get(topic.sessionId) || "unknown";
         groupTopicCount.set(groupId, (groupTopicCount.get(groupId) || 0) + 1);
     }
 
@@ -104,7 +111,9 @@ export async function setupGenerateReportTask(
 
             // 检查是否已存在该时间段的日报
             if (await reportDBManager.isReportExists(reportType, timeStart, timeEnd)) {
-                LOGGER.info(`${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`);
+                LOGGER.info(
+                    `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
+                );
                 return;
             }
 
@@ -147,8 +156,8 @@ export async function setupGenerateReportTask(
                         isEmpty: true,
                         summary: ReportPromptStore.getEmptyReportText(periodDescription),
                         summaryGeneratedAt: Date.now(),
-                        summaryStatus: 'success',
-                        model: '',
+                        summaryStatus: "success",
+                        model: "",
                         statistics: { topicCount: 0, mostActiveGroups: [], mostActiveHour: 0 },
                         topicIds: [],
                         createdAt: Date.now(),
@@ -208,10 +217,10 @@ export async function setupGenerateReportTask(
                         timeStart,
                         timeEnd,
                         isEmpty: false,
-                        summary: '',
+                        summary: "",
                         summaryGeneratedAt: 0,
-                        summaryStatus: 'pending',
-                        model: '',
+                        summaryStatus: "pending",
+                        model: "",
                         statistics,
                         topicIds: sortedResults.map(r => r.topicId),
                         createdAt: Date.now(),
@@ -233,9 +242,9 @@ export async function setupGenerateReportTask(
                     statistics
                 );
 
-                let summary = '';
-                let selectedModelName = '';
-                let summaryStatus: 'success' | 'failed' = 'failed';
+                let summary = "";
+                let selectedModelName = "";
+                let summaryStatus: "success" | "failed" = "failed";
 
                 const retryCount = config.report.generation.llmRetryCount;
                 const modelCandidates = config.report.generation.aiModels;
@@ -249,7 +258,7 @@ export async function setupGenerateReportTask(
                         );
                         summary = result.content;
                         selectedModelName = result.selectedModelName;
-                        summaryStatus = 'success';
+                        summaryStatus = "success";
                         LOGGER.success(`日报综述生成成功，使用模型: ${selectedModelName}`);
                         break;
                     } catch (error) {
@@ -280,8 +289,9 @@ export async function setupGenerateReportTask(
                 };
 
                 await reportDBManager.storeReport(report);
-                LOGGER.success(`📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`);
-
+                LOGGER.success(
+                    `📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`
+                );
             } catch (error) {
                 LOGGER.error(`日报生成失败: ${error}`);
                 throw error;

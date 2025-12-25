@@ -6,7 +6,7 @@ import { AIDigestResult } from "@root/common/contracts/ai-model";
  * 从而消除具体昵称对嵌入语义的干扰，同时保留发言结构。可确保嵌入向量聚焦于**语义内容本身**，而非用户身份信息。
  * 该函数基于 `contributors` 中的昵称顺序进行一一映射替换，并使用**安全的字符串转义**（防止正则注入）。
  * 将 AIDigestResult 的 detail 字段中的具体昵称替换为"用户1"、"用户2"等泛化标识
- * 
+ *
  * @param digest - 原始摘要结果
  * @returns 替换后的副本（不修改原对象）
  */
@@ -19,8 +19,8 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
         const parsed = JSON.parse(contributorsStr);
         if (Array.isArray(parsed)) {
             // 过滤出非空字符串的有效昵称
-            contributors = parsed.filter((item): item is string => 
-                typeof item === "string" && item.trim() !== ""
+            contributors = parsed.filter(
+                (item): item is string => typeof item === "string" && item.trim() !== ""
             );
         }
     } catch (e) {
@@ -41,10 +41,10 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
 
     // 使用逐字替换方式处理复杂昵称，避免正则表达式转义问题
     let anonymizedDetail = detail;
-    
+
     // 按长度降序排序，确保长昵称优先匹配（避免部分匹配）
     const sortedNicknames = [...contributors].sort((a, b) => b.length - a.length);
-    
+
     for (const nickname of sortedNicknames) {
         // 使用全局字符串替换，避免正则表达式问题
         const placeholder = nicknameToPlaceholder[nickname];

@@ -42,8 +42,7 @@ export interface TaskParamsMap {
         endTimeStamp: number;
     };
     // Pipeline 任务参数
-    [TaskHandlerTypes.RunPipeline]: {
-    };
+    [TaskHandlerTypes.RunPipeline]: {};
     // 日报生成任务参数
     [TaskHandlerTypes.GenerateReport]: {
         reportType: ReportType;
