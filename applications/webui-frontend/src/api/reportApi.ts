@@ -1,6 +1,14 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { mockConfig } from "@/config/mock";
+import {
+    mockGetReportById,
+    mockGetReportsPaginated,
+    mockGetReportsByDate,
+    mockGetReportsByTimeRange,
+    mockGetRecentReports
+} from "@/mock/reportMock";
 
 // 日报类型
 export type ReportType = "half-daily" | "weekly" | "monthly";
@@ -41,6 +49,11 @@ export interface ReportsPaginatedResponse {
  * 获取单个日报详情
  */
 export const getReportById = async (reportId: string): Promise<ApiResponse<Report>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockGetReportById(reportId);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/report/${reportId}`);
 
     return response.json();
@@ -50,6 +63,11 @@ export const getReportById = async (reportId: string): Promise<ApiResponse<Repor
  * 获取日报列表（分页）
  */
 export const getReportsPaginated = async (page: number, pageSize: number, type?: ReportType): Promise<ApiResponse<ReportsPaginatedResponse>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockGetReportsPaginated(page, pageSize, type);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/reports`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -63,6 +81,11 @@ export const getReportsPaginated = async (page: number, pageSize: number, type?:
  * 获取指定日期的半日报
  */
 export const getReportsByDate = async (date: string | number): Promise<ApiResponse<Report[]>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockGetReportsByDate(date);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/reports/by-date`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -76,6 +99,11 @@ export const getReportsByDate = async (date: string | number): Promise<ApiRespon
  * 获取指定时间范围内的日报
  */
 export const getReportsByTimeRange = async (timeStart: number, timeEnd: number, type?: ReportType): Promise<ApiResponse<Report[]>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockGetReportsByTimeRange(timeStart, timeEnd, type);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/reports/by-time-range`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,6 +117,11 @@ export const getReportsByTimeRange = async (timeStart: number, timeEnd: number, 
  * 获取最近的日报
  */
 export const getRecentReports = async (type: ReportType, limit: number): Promise<ApiResponse<Report[]>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockGetRecentReports(type, limit);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/reports/recent`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
