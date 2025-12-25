@@ -2,6 +2,7 @@ import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Chip,
 import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface ReportDetailModalProps {
     report: Report | null;
@@ -111,9 +112,9 @@ export default function ReportDetailModal({ report, isOpen, onClose }: ReportDet
                                 <p className="text-default-500">本时段暂无热门话题讨论</p>
                             </div>
                         ) : report.summaryStatus === "success" && report.summary ? (
-                            <Card>
+                            <Card className="p-2">
                                 <CardBody>
-                                    <p className="text-default-700 leading-relaxed whitespace-pre-wrap">{report.summary}</p>
+                                    <MarkdownRenderer content={report.summary} showCopyButton={false} />
                                 </CardBody>
                             </Card>
                         ) : report.summaryStatus === "pending" ? (
