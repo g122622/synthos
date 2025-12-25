@@ -170,7 +170,7 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
     const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
     LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
     await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
-    await agendaInstance.now(TaskHandlerTypes.RunPipeline);
+    // await agendaInstance.now(TaskHandlerTypes.RunPipeline);
 
     LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
     await agendaInstance.start();

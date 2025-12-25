@@ -26,7 +26,7 @@ export class ReportPromptStore {
             ? statistics.mostActiveGroups.join('、')
             : '暂无';
 
-        return `你是一个群聊信息汇总助手，请根据以下话题信息生成一份简洁的${reportTypeName}综述。
+        return `你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。
 
                 ## 时间段
                 ${periodDescription}
@@ -40,11 +40,11 @@ export class ReportPromptStore {
                 ${topicsList}
 
                 ## 要求
-                请生成一段不超过 500 字的综述文本，要求：
+                请生成一段精美的、完备的、略带趣味性的综述文本，要求：
                 1. 概括本时段的主要讨论内容和热点话题
                 2. 突出最有价值、最有信息量的讨论点
                 3. 语言简洁流畅，易于阅读
-                4. 不要使用 Markdown 格式，直接输出纯文本
+                4. 使用 Markdown 格式
                 5. 不要重复罗列所有话题，而是提炼出核心要点
                 6. 如果话题较少或没有特别值得关注的内容，可以简短概括
 

@@ -80,7 +80,7 @@ export class ReportService {
         type: ReportType,
         timeStart?: number,
         timeEnd?: number
-    ): Promise<{ success: boolean; message: string; reportId?: string }> {
+    ): Promise<{ success?: boolean; message?: string; reportId?: string }> {
         return this.ragClient.triggerReportGenerate.mutate({
             type,
             timeStart,
