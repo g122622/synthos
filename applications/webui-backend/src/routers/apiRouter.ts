@@ -203,4 +203,10 @@ export const setupApiRoutes = (app: Express): void => {
         "/api/reports/recent",
         asyncHandler((req, res) => reportController.getRecentReports(req, res))
     );
+
+    // 手动触发生成日报
+    app.post(
+        "/api/reports/generate",
+        asyncHandler((req, res) => reportController.triggerGenerate(req, res))
+    );
 };

@@ -4,14 +4,14 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
 import { Spinner } from "@heroui/spinner";
 import { ScrollShadow } from "@heroui/scroll-shadow";
-import { Tabs, Tab, Chip, Calendar } from "@heroui/react";
-import { FileText, RefreshCw } from "lucide-react";
+import { Tabs, Tab, Chip, Calendar, Select, SelectItem } from "@heroui/react";
+import { FileText, RefreshCw, Plus } from "lucide-react";
 import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 
 import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
 
-import { Report, ReportType, getReportsPaginated, getReportsByDate } from "@/api/reportApi";
+import { Report, ReportType, getReportsPaginated, getReportsByDate, triggerReportGenerate } from "@/api/reportApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
@@ -36,6 +36,10 @@ export default function ReportsPage() {
 
     // 视图模式: list(列表) | calendar(日历)
     const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
+    // 手动生成日报相关
+    const [generateType, setGenerateType] = useState<ReportType>("half-daily");
+    const [generating, setGenerating] = useState<boolean>(false);
 
     // 加载日报列表
     const fetchReports = useCallback(async () => {
@@ -128,6 +132,41 @@ export default function ReportsPage() {
         setSelectedDate(today(getLocalTimeZone()));
     };
 
+    // 手动生成日报
+    const handleGenerateReport = async () => {
+        setGenerating(true);
+        try {
+            const response = await triggerReportGenerate(generateType);
+
+            if (response.success && response.data.success) {
+                Notification.success({
+                    title: "生成任务已提交",
+                    description: response.data.message
+                });
+            } else {
+                Notification.error({
+                    title: "生成失败",
+                    description: response.data?.message || "触发日报生成失败"
+                });
+            }
+        } catch (error) {
+            console.error("触发日报生成失败:", error);
+            Notification.error({
+                title: "生成失败",
+                description: "触发日报生成失败"
+            });
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    // 日报类型选项
+    const reportTypeOptions = [
+        { key: "half-daily", label: "半日报（过去12小时）" },
+        { key: "weekly", label: "周报（过去7天）" },
+        { key: "monthly", label: "月报（过去30天）" }
+    ];
+
     return (
         <DefaultLayout>
             <section className="flex flex-col gap-4 py-0 md:py-10">
@@ -188,6 +227,30 @@ export default function ReportsPage() {
                             >
                                 刷新
                             </Button>
+
+                            {/* 手动生成日报 */}
+                            <div className="flex flex-row items-center gap-2">
+                                <Select
+                                    aria-label="选择日报类型"
+                                    className="w-44"
+                                    selectedKeys={[generateType]}
+                                    size="sm"
+                                    onSelectionChange={keys => {
+                                        const selected = Array.from(keys)[0] as ReportType;
+
+                                        if (selected) {
+                                            setGenerateType(selected);
+                                        }
+                                    }}
+                                >
+                                    {reportTypeOptions.map(option => (
+                                        <SelectItem key={option.key}>{option.label}</SelectItem>
+                                    ))}
+                                </Select>
+                                <Button color="success" isLoading={generating} size="sm" startContent={<Plus size={16} />} onPress={handleGenerateReport}>
+                                    生成
+                                </Button>
+                            </div>
                         </div>
                     </CardHeader>
 

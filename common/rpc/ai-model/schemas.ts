@@ -39,6 +39,21 @@ export const AskOutputSchema = z.object({
     references: z.array(ReferenceItemSchema)
 });
 
+// ========== 触发日报生成接口 ==========
+
+export const TriggerReportGenerateInputSchema = z.object({
+    type: z.enum(["half-daily", "weekly", "monthly"]),
+    // 可选：自定义时间范围（毫秒时间戳），如果不传则使用默认值
+    timeStart: z.number().optional(),
+    timeEnd: z.number().optional()
+});
+
+export const TriggerReportGenerateOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    reportId: z.string().optional() // 生成成功时返回日报 ID
+});
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -48,3 +63,6 @@ export type SearchOutput = z.infer<typeof SearchOutputSchema>;
 export type AskInput = z.infer<typeof AskInputSchema>;
 export type ReferenceItem = z.infer<typeof ReferenceItemSchema>;
 export type AskOutput = z.infer<typeof AskOutputSchema>;
+
+export type TriggerReportGenerateInput = z.infer<typeof TriggerReportGenerateInputSchema>;
+export type TriggerReportGenerateOutput = z.infer<typeof TriggerReportGenerateOutputSchema>;

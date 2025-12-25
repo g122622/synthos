@@ -130,3 +130,10 @@ export const GetRecentReportsSchema = z.object({
 });
 export type GetRecentReportsParams = z.infer<typeof GetRecentReportsSchema>;
 
+export const TriggerReportGenerateSchema = z.object({
+    type: z.enum(["half-daily", "weekly", "monthly"], { message: "缺少type参数" }),
+    timeStart: z.number().optional(),
+    timeEnd: z.number().optional()
+});
+export type TriggerReportGenerateParams = z.infer<typeof TriggerReportGenerateSchema>;
+

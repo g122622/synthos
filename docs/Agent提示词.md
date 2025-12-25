@@ -7,6 +7,7 @@
 6. 项目使用pnpm + monorepo管理依赖，严禁使用npm！若想新增依赖，你需要先修改子项目的package.json，然后再退回到整个monorepo大仓的根目录执行pnpm install。不要在子项目目录中执行pnpm install
 7. 请在结束后清理掉你在调试过程中加的注释和日志输出（如果有的话）
 8. 若要新增后端接口，务必使用 applications/webui-backend/src/schemas 来进行参数校验
+9. 对于涉及`index`的引入，import的时候不允许省略`index` 例如：`import { xxx } from "../contracts/report/index";` 而不是 `import { xxx } from "../contracts/report";`，此外也不能写成 `import { xxx } from "../contracts/report/index.ts";`
 
 【代码规范】
 1. 函数参数列表尽量不加默认参数

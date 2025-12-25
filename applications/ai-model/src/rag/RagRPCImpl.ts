@@ -2,7 +2,7 @@
  * RAG RPC 实现
  * 提供语义搜索和 RAG 问答能力
  */
-import { RAGRPCImplementation, SearchOutput, AskOutput } from "@root/common/rpc/ai-model";
+import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput } from "@root/common/rpc/ai-model/index";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
@@ -13,6 +13,9 @@ import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { getCurrentFormattedTime } from "@root/common/util/TimeUtils";
 import { QueryRewriter } from "./QueryRewriter";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
+import { agendaInstance } from "@root/common/scheduler/agenda";
+import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
+import { ReportType } from "@root/common/contracts/report";
 
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
@@ -130,6 +133,72 @@ export class RagRPCImpl implements RAGRPCImplementation {
             answer,
             references
         };
+    }
+
+    /**
+     * 触发生成日报
+     * 通过 Agenda 调度一个即时任务来生成日报
+     */
+    public async triggerReportGenerate(input: {
+        type: "half-daily" | "weekly" | "monthly";
+        timeStart?: number;
+        timeEnd?: number;
+    }): Promise<TriggerReportGenerateOutput> {
+        this.LOGGER.info(`收到手动触发日报生成请求: type=${input.type}`);
+
+        try {
+            // 计算时间范围
+            const now = Date.now();
+            let timeStart: number;
+            let timeEnd: number;
+
+            if (input.timeStart !== undefined && input.timeEnd !== undefined) {
+                // 使用用户指定的时间范围
+                timeStart = input.timeStart;
+                timeEnd = input.timeEnd;
+            } else {
+                // 使用默认时间范围
+                timeEnd = now;
+                switch (input.type) {
+                    case 'half-daily':
+                        timeStart = now - 12 * 60 * 60 * 1000; // 过去 12 小时
+                        break;
+                    case 'weekly':
+                        timeStart = now - 7 * 24 * 60 * 60 * 1000; // 过去 7 天
+                        break;
+                    case 'monthly':
+                        timeStart = now - 30 * 24 * 60 * 60 * 1000; // 过去 30 天
+                        break;
+                }
+            }
+
+            this.LOGGER.info(`日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`);
+
+            // 调度即时任务
+            const taskData: TaskParameters<TaskHandlerTypes.GenerateReport> = {
+                reportType: input.type as ReportType,
+                timeStart,
+                timeEnd
+            };
+
+            await agendaInstance.now<TaskParameters<TaskHandlerTypes.GenerateReport>>(
+                TaskHandlerTypes.GenerateReport,
+                taskData
+            );
+
+            this.LOGGER.success(`日报生成任务已调度: ${input.type}`);
+
+            return {
+                success: true,
+                message: `${input.type} 日报生成任务已提交，请稍后刷新查看结果`
+            };
+        } catch (error) {
+            this.LOGGER.error(`触发日报生成失败: ${error}`);
+            return {
+                success: false,
+                message: `触发失败: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
     }
 
     /**

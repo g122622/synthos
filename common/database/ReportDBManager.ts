@@ -1,5 +1,5 @@
 import Logger from "../util/Logger";
-import { Report, ReportDBRecord, ReportType, dbRecordToReport, reportToDBRecord } from "../contracts/report";
+import { Report, ReportDBRecord, ReportType, dbRecordToReport, reportToDBRecord } from "../contracts/report/index";
 import { Disposable } from "../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
 import { CommonDBService } from "./CommonDBService";

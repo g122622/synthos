@@ -10,7 +10,8 @@ import {
     GetReportsPaginatedSchema,
     GetReportsByDateSchema,
     GetReportsByTimeRangeSchema,
-    GetRecentReportsSchema
+    GetRecentReportsSchema,
+    TriggerReportGenerateSchema
 } from "../schemas/index";
 
 @injectable()
@@ -76,5 +77,19 @@ export class ReportController {
         const params = GetRecentReportsSchema.parse(req.body);
         const reports = await this.reportService.getRecentReports(params.type, params.limit);
         res.json({ success: true, data: reports });
+    }
+
+    /**
+     * POST /api/reports/generate
+     * 手动触发生成日报
+     */
+    public async triggerGenerate(req: Request, res: Response): Promise<void> {
+        const params = TriggerReportGenerateSchema.parse(req.body);
+        const result = await this.reportService.triggerGenerate(
+            params.type,
+            params.timeStart,
+            params.timeEnd
+        );
+        res.json({ success: true, data: result });
     }
 }

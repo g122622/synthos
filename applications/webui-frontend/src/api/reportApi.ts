@@ -2,13 +2,7 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-import {
-    mockGetReportById,
-    mockGetReportsPaginated,
-    mockGetReportsByDate,
-    mockGetReportsByTimeRange,
-    mockGetRecentReports
-} from "@/mock/reportMock";
+import { mockGetReportById, mockGetReportsPaginated, mockGetReportsByDate, mockGetReportsByTimeRange, mockGetRecentReports, mockTriggerReportGenerate } from "@/mock/reportMock";
 
 // 日报类型
 export type ReportType = "half-daily" | "weekly" | "monthly";
@@ -126,6 +120,34 @@ export const getRecentReports = async (type: ReportType, limit: number): Promise
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, limit })
+    });
+
+    return response.json();
+};
+
+// 触发生成日报的响应
+export interface TriggerReportGenerateResponse {
+    success: boolean;
+    message: string;
+    reportId?: string;
+}
+
+/**
+ * 手动触发生成日报
+ * @param type 日报类型
+ * @param timeStart 可选的开始时间（毫秒时间戳）
+ * @param timeEnd 可选的结束时间（毫秒时间戳）
+ */
+export const triggerReportGenerate = async (type: ReportType, timeStart?: number, timeEnd?: number): Promise<ApiResponse<TriggerReportGenerateResponse>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.report) {
+        return mockTriggerReportGenerate(type, timeStart, timeEnd);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/reports/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, timeStart, timeEnd })
     });
 
     return response.json();

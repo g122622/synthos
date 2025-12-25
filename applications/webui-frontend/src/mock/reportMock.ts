@@ -3,7 +3,7 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
-import { Report, ReportType, ReportsPaginatedResponse } from "@/api/reportApi";
+import { Report, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/api/reportApi";
 
 // 当前时间戳
 const now = Date.now();
@@ -439,6 +439,52 @@ export const mockGetRecentReports = async (type: ReportType, limit: number): Pro
     return {
         success: true,
         data: reports,
+        message: ""
+    };
+};
+
+/**
+ * 模拟触发生成日报
+ */
+export const mockTriggerReportGenerate = async (type: ReportType, timeStart?: number, timeEnd?: number): Promise<ApiResponse<TriggerReportGenerateResponse>> => {
+    await delay(500 + Math.random() * 500);
+
+    // 模拟时间范围
+    const now = Date.now();
+    const actualTimeEnd = timeEnd ?? now;
+    let actualTimeStart: number;
+
+    if (timeStart !== undefined) {
+        actualTimeStart = timeStart;
+    } else {
+        switch (type) {
+            case "half-daily":
+                actualTimeStart = now - 12 * 60 * 60 * 1000;
+                break;
+            case "weekly":
+                actualTimeStart = now - 7 * 24 * 60 * 60 * 1000;
+                break;
+            case "monthly":
+                actualTimeStart = now - 30 * 24 * 60 * 60 * 1000;
+                break;
+        }
+    }
+
+    // 获取类型显示名称
+    const typeNames: Record<ReportType, string> = {
+        "half-daily": "半日报",
+        weekly: "周报",
+        monthly: "月报"
+    };
+
+    console.log(`[Mock] 触发生成 ${typeNames[type]}: ${new Date(actualTimeStart).toLocaleString()} - ${new Date(actualTimeEnd).toLocaleString()}`);
+
+    return {
+        success: true,
+        data: {
+            success: true,
+            message: `${typeNames[type]} 生成任务已提交，请稍后刷新查看结果`
+        },
         message: ""
     };
 };

@@ -6,11 +6,13 @@ import { TOKENS } from "../di/tokens";
 import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import { Report, ReportType } from "@root/common/contracts/report";
 import { NotFoundError } from "../errors/AppError";
+import { RAGClient } from "../rpc/aiModelClient";
 
 @injectable()
 export class ReportService {
     constructor(
-        @inject(TOKENS.ReportDBManager) private reportDBManager: ReportDBManager
+        @inject(TOKENS.ReportDBManager) private reportDBManager: ReportDBManager,
+        @inject(TOKENS.RAGClient) private ragClient: RAGClient
     ) {}
 
     /**
@@ -66,5 +68,23 @@ export class ReportService {
      */
     public async getRecentReports(type: ReportType, limit: number): Promise<Report[]> {
         return this.reportDBManager.getRecentReportsByType(type, limit);
+    }
+
+    /**
+     * 手动触发生成日报
+     * @param type 日报类型
+     * @param timeStart 可选的开始时间
+     * @param timeEnd 可选的结束时间
+     */
+    public async triggerGenerate(
+        type: ReportType,
+        timeStart?: number,
+        timeEnd?: number
+    ): Promise<{ success: boolean; message: string; reportId?: string }> {
+        return this.ragClient.triggerReportGenerate.mutate({
+            type,
+            timeStart,
+            timeEnd
+        });
     }
 }

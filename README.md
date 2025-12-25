@@ -186,6 +186,8 @@ npm run config
 - 健康检查接口：`GET /health`
 - 配置面板：`http://localhost:5173/config`（仅启动配置面板时）
 
+测试环境启用mock： `VITE_MOCK_ENABLED=true pnpm dev`
+
 ---
 
 ## API 与前端开发

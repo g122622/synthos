@@ -12,7 +12,9 @@ import {
     SearchInputSchema,
     SearchOutput,
     AskInputSchema,
-    AskOutput
+    AskOutput,
+    TriggerReportGenerateInputSchema,
+    TriggerReportGenerateOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -40,6 +42,17 @@ export interface RAGRPCImplementation {
      * @returns AI 回答及引用来源
      */
     ask(input: { question: string; topK: number }): Promise<AskOutput>;
+
+    /**
+     * 触发生成日报
+     * @param input 日报类型和可选的时间范围
+     * @returns 生成结果
+     */
+    triggerReportGenerate(input: {
+        type: "half-daily" | "weekly" | "monthly";
+        timeStart?: number;
+        timeEnd?: number;
+    }): Promise<TriggerReportGenerateOutput>;
 }
 
 /**
@@ -65,6 +78,14 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 topK: input.topK ?? 5
             };
             return impl.ask(validatedInput);
+        }),
+
+        triggerReportGenerate: t.procedure.input(TriggerReportGenerateInputSchema).mutation(async ({ input }) => {
+            return impl.triggerReportGenerate({
+                type: input.type,
+                timeStart: input.timeStart,
+                timeEnd: input.timeEnd
+            });
         })
     });
 
