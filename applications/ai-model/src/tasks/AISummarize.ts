@@ -3,7 +3,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import Logger from "@root/common/util/Logger";
 import { getConfigManagerService } from "@root/common/di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
-import { TextGenerator } from "../generators/text/TextGenerator";
+import { PooledTextGenerator, PooledTask, PooledTaskResult } from "../generators/text/PooledTextGenerator";
 import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
 import { IMDBManager } from "@root/common/database/IMDBManager";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
@@ -32,10 +32,19 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                 return;
             }
 
-            const textGenerator = new TextGenerator();
-            await textGenerator.init();
+            const pooledTextGenerator = new PooledTextGenerator(5); // 并行度=5
+            await pooledTextGenerator.init();
             const ctxBuilder = new IMSummaryCtxBuilder();
             await ctxBuilder.init();
+
+            // 任务上下文类型定义
+            interface TaskContext {
+                groupId: string;
+                sessionId: string;
+            }
+
+            // 收集所有需要处理的任务
+            const allTasks: PooledTask<TaskContext>[] = [];
 
             for (const groupId of attrs.groupIds) {
                 /* 1. 获取指定时间范围内的消息 */
@@ -89,66 +98,84 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                     }
                 }
 
-                /* 4. 遍历每个session */
-                let counter = 0;
+                /* 4. 构建任务列表 */
                 for (const sessionId in sessions) {
+                    LOGGER.info(
+                        `准备处理session ${sessionId} ，该session内共 ${sessions[sessionId].length} 条消息`
+                    );
+
+                    // 构建上下文
+                    const ctx = await ctxBuilder.buildCtx(
+                        sessions[sessionId],
+                        config.groupConfigs[groupId].groupIntroduction
+                    );
+                    LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
+
+                    allTasks.push({
+                        input: ctx,
+                        modelNames: config.groupConfigs[groupId].aiModels,
+                        context: { groupId, sessionId }
+                    });
+                }
+            }
+
+            LOGGER.info(`共收集到 ${allTasks.length} 个任务，开始并行处理（并行度=5）`);
+
+            // 并行处理所有任务，每个任务完成时回调
+            let completedCount = 0;
+            await pooledTextGenerator.submitTasks<TaskContext>(
+                allTasks,
+                async (result: PooledTaskResult<TaskContext>) => {
                     await job.touch(); // 保证任务存活
+                    completedCount++;
+                    const { sessionId, groupId } = result.context;
+
+                    if (!result.isSuccess) {
+                        LOGGER.error(
+                            `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要失败，错误信息为：${result.error}, 跳过该session`
+                        );
+                        return;
+                    }
+
                     try {
-                        counter++;
-                        LOGGER.info(
-                            `[${counter} / ${Object.keys(sessions).length}] 开始处理session ${sessionId} ，该session内共 ${sessions[sessionId].length} 条消息`
-                        );
+                        const resultStr = result.content!;
+                        const selectedModelName = result.selectedModelName!;
 
-                        // 1. 构建上下文
-                        const ctx = await ctxBuilder.buildCtx(
-                            sessions[sessionId],
-                            config.groupConfigs[groupId].groupIntroduction
-                        );
-                        LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
-
-                        // 2. 调用大模型生成摘要
-                        const { content: resultStr, selectedModelName } =
-                            await textGenerator.generateTextWithModelCandidates(
-                                config.groupConfigs[groupId].aiModels,
-                                ctx
-                            );
-
-                        // 3. 解析llm回传的json结果
+                        // 解析llm回传的json结果
                         let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
                         results = JSON.parse(resultStr);
                         LOGGER.success(
-                            `session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
+                            `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
                         );
                         if (resultStr.length < 30) {
                             LOGGER.warning(
                                 `session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`
                             );
                             console.log(resultStr);
-                            continue;
+                            return;
                         }
 
-                        // 4. 遍历ai生成的结果数组，添加sessionId、topicId，并解析contributors
-                        for (const result of results) {
-                            Object.assign(result, { sessionId }); // 添加 sessionId
-                            result.contributors = JSON.stringify(result.contributors); // 转换为字符串
-                            Object.assign(result, { topicId: getRandomHash(16) });
-                            Object.assign(result, { modelName: selectedModelName });
-                            Object.assign(result, { updateTime: Date.now() });
+                        // 遍历ai生成的结果数组，添加sessionId、topicId，并解析contributors
+                        for (const resultItem of results) {
+                            Object.assign(resultItem, { sessionId }); // 添加 sessionId
+                            resultItem.contributors = JSON.stringify(resultItem.contributors); // 转换为字符串
+                            Object.assign(resultItem, { topicId: getRandomHash(16) });
+                            Object.assign(resultItem, { modelName: selectedModelName });
+                            Object.assign(resultItem, { updateTime: Date.now() });
                         }
 
-                        // 5. 存储摘要结果
+                        // 存储摘要结果
                         await agcDBManager.storeAIDigestResults(results as AIDigestResult[]);
                         LOGGER.success(`session ${sessionId} 存储摘要成功！`);
                     } catch (error) {
                         LOGGER.error(
-                            `session ${sessionId} 生成摘要失败，错误信息为：${error}, 跳过该session`
+                            `session ${sessionId} 处理结果失败，错误信息为：${error}, 跳过该session`
                         );
-                        continue; // 跳过当前会话
                     }
                 }
-            }
+            );
 
-            textGenerator.dispose();
+            pooledTextGenerator.dispose();
             ctxBuilder.dispose();
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);

@@ -4,6 +4,30 @@ import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
 /**
+ * 池化任务定义
+ */
+export interface PooledTask<TContext> {
+    /** 输入文本 */
+    input: string;
+    /** 候选模型列表（每个任务可以不同） */
+    modelNames: string[];
+    /** 调用方自定义的上下文（用于回调时识别任务） */
+    context: TContext;
+}
+
+/**
+ * 池化任务结果
+ */
+export interface PooledTaskResult<TContext> {
+    isSuccess: boolean;
+    selectedModelName?: string;
+    content?: string;
+    error?: unknown;
+    /** 原样返回调用方提供的上下文 */
+    context: TContext;
+}
+
+/**
  * 支持控制并发数的文本生成器池
  */
 @mustInitBeforeUse
@@ -91,11 +115,75 @@ export class PooledTextGenerator extends Disposable {
             return; // 没有空闲槽位
         }
 
-        const queued = this.taskQueue.shift()!;
+        const queued = this.taskQueue.shift();
+        if (!queued) {
+            return; // 队列为空
+        }
+
         this.acquireSlot().then(() => {
             // 注意：acquireSlot 已分配槽位，executeTask 会负责 release
             this.executeTask(queued.task).then(queued.resolve);
         });
+    }
+
+    /**
+     * 提交任务并在每个任务完成时回调
+     * @param tasks 任务列表，每个任务可以携带自定义上下文和独立的模型候选列表
+     * @param onTaskComplete 每个任务完成时的回调函数
+     */
+    public async submitTasks<TContext>(
+        tasks: PooledTask<TContext>[],
+        onTaskComplete: (result: PooledTaskResult<TContext>) => void | Promise<void>
+    ): Promise<void> {
+        const taskPromises: Promise<void>[] = [];
+
+        for (const taskDef of tasks) {
+            taskPromises.push(
+                new Promise<void>(resolve => {
+                    const task = async () => {
+                        let result: PooledTaskResult<TContext>;
+                        try {
+                            const generatedResult =
+                                await this.textGenerator!.generateTextWithModelCandidates(
+                                    taskDef.modelNames,
+                                    taskDef.input
+                                );
+
+                            result = {
+                                isSuccess: true,
+                                selectedModelName: generatedResult.selectedModelName,
+                                content: generatedResult.content,
+                                context: taskDef.context
+                            };
+                        } catch (error) {
+                            this.LOGGER.warning(
+                                `任务失败: ${error instanceof Error ? error.message : String(error)}`
+                            );
+                            result = {
+                                isSuccess: false,
+                                error,
+                                context: taskDef.context
+                            };
+                        }
+
+                        // 立即回调
+                        try {
+                            await onTaskComplete(result);
+                        } catch (callbackError) {
+                            this.LOGGER.error(
+                                `回调函数执行失败: ${callbackError instanceof Error ? callbackError.message : String(callbackError)}`
+                            );
+                        }
+                    };
+
+                    this.taskQueue.push({ task, resolve });
+                    // 仅在加入任务后尝试调度一次（安全且必要）
+                    this.processQueue();
+                })
+            );
+        }
+
+        await Promise.all(taskPromises);
     }
 
     /**
