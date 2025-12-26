@@ -8,7 +8,8 @@ import { ChatMessageService } from "../services/ChatMessageService";
 import {
     GetChatMessagesByGroupIdSchema,
     GetSessionIdsByGroupIdsAndTimeRangeSchema,
-    GetSessionTimeDurationsSchema
+    GetSessionTimeDurationsSchema,
+    GetMessageHourlyStatsSchema
 } from "../schemas/index";
 
 @injectable()
@@ -20,7 +21,7 @@ export class ChatMessageController {
     /**
      * GET /api/chat-messages-by-group-id
      */
-    async getChatMessagesByGroupId(req: Request, res: Response): Promise<void> {
+    public async getChatMessagesByGroupId(req: Request, res: Response): Promise<void> {
         const params = GetChatMessagesByGroupIdSchema.parse(req.query);
         const messages = await this.chatMessageService.getChatMessagesByGroupIdAndTimeRange(
             params.groupId,
@@ -33,7 +34,7 @@ export class ChatMessageController {
     /**
      * POST /api/session-ids-by-group-ids-and-time-range
      */
-    async getSessionIdsByGroupIdsAndTimeRange(req: Request, res: Response): Promise<void> {
+    public async getSessionIdsByGroupIdsAndTimeRange(req: Request, res: Response): Promise<void> {
         const params = GetSessionIdsByGroupIdsAndTimeRangeSchema.parse(req.body);
         const timeStart =
             typeof params.timeStart === "string"
@@ -53,9 +54,19 @@ export class ChatMessageController {
     /**
      * POST /api/session-time-durations
      */
-    async getSessionTimeDurations(req: Request, res: Response): Promise<void> {
+    public async getSessionTimeDurations(req: Request, res: Response): Promise<void> {
         const params = GetSessionTimeDurationsSchema.parse(req.body);
         const results = await this.chatMessageService.getSessionTimeDurations(params.sessionIds);
+        res.json({ success: true, data: results });
+    }
+
+    /**
+     * POST /api/message-hourly-stats
+     * 获取多个群组的每小时消息统计（包括当前24小时和前一天24小时）
+     */
+    public async getMessageHourlyStats(req: Request, res: Response): Promise<void> {
+        const params = GetMessageHourlyStatsSchema.parse(req.body);
+        const results = await this.chatMessageService.getMessageHourlyStats(params.groupIds);
         res.json({ success: true, data: results });
     }
 }

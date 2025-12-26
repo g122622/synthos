@@ -67,6 +67,12 @@ export const setupApiRoutes = (app: Express): void => {
         asyncHandler((req, res) => chatMessageController.getSessionTimeDurations(req, res))
     );
 
+    // 获取多个群组的每小时消息统计（包括当前24小时和前一天24小时）
+    app.post(
+        "/api/message-hourly-stats",
+        asyncHandler((req, res) => chatMessageController.getMessageHourlyStats(req, res))
+    );
+
     // ==================== AI 摘要 ====================
     // 获取AI摘要结果
     app.get(

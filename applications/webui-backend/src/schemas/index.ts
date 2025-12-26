@@ -26,6 +26,11 @@ export const GetSessionTimeDurationsSchema = z.object({
 });
 export type GetSessionTimeDurationsParams = z.infer<typeof GetSessionTimeDurationsSchema>;
 
+export const GetMessageHourlyStatsSchema = z.object({
+    groupIds: z.array(z.string(), { message: "缺少必要的参数: groupIds" })
+});
+export type GetMessageHourlyStatsParams = z.infer<typeof GetMessageHourlyStatsSchema>;
+
 // ==================== AI Digest ====================
 
 export const GetAIDigestResultByTopicIdSchema = z.object({

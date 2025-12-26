@@ -167,3 +167,124 @@ export const mockGetChatMessagesByGroupId = async (groupId: string, timeStart: n
         message: ""
     };
 };
+
+/**
+ * 生成整点对齐的时间戳数组
+ * @param periodStart 周期开始时间戳
+ * @returns 24个整点时间戳数组
+ */
+const generateAlignedTimestamps = (periodStart: number): number[] => {
+    const timestamps: number[] = [];
+
+    for (let i = 0; i < 24; i++) {
+        timestamps.push(periodStart + i * 60 * 60 * 1000);
+    }
+
+    return timestamps;
+};
+
+/**
+ * 根据群号生成伪随机的每小时消息数量
+ * @param groupId 群号
+ * @param hourIndex 小时索引
+ * @param isCurrentPeriod 是否是当前周期（用于区分当前和前一天）
+ * @returns 该小时的消息数量
+ */
+const generateHourlyCount = (groupId: string, hourIndex: number, isCurrentPeriod: boolean): number => {
+    // 使用群号作为随机种子
+    const seed = parseInt(groupId) % 100;
+    const periodFactor = isCurrentPeriod ? 1 : 0.8; // 前一天的消息量稍少
+
+    // 模拟工作时间（8-22点）消息更多的分布
+    const hour = hourIndex;
+    let baseCount: number;
+
+    if (hour >= 8 && hour <= 22) {
+        // 工作时间消息量更大
+        baseCount = Math.floor((seed / 100) * 15) + Math.floor(Math.random() * 10) + 3;
+    } else {
+        // 非工作时间消息量较少
+        baseCount = Math.floor((seed / 100) * 5) + Math.floor(Math.random() * 3);
+    }
+
+    return Math.floor(baseCount * periodFactor);
+};
+
+/**
+ * 模拟获取多个群组的每小时消息统计（包括当前24小时和前一天24小时）
+ */
+export const mockGetMessageHourlyStats = async (
+    groupIds: string[]
+): Promise<
+    ApiResponse<{
+        data: Record<string, { current: number[]; previous: number[] }>;
+        timestamps: { current: number[]; previous: number[] };
+        totalCounts: { current: number; previous: number };
+    }>
+> => {
+    await delay(300 + Math.random() * 200);
+
+    // 计算时间范围（整点对齐）
+    const now = new Date();
+    const currentHourStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), 0, 0, 0).getTime();
+
+    // 当前24小时：从23小时前的整点到当前小时整点
+    const currentPeriodStart = currentHourStart - 23 * 60 * 60 * 1000;
+    // 前一天24小时
+    const previousPeriodStart = currentPeriodStart - 24 * 60 * 60 * 1000;
+
+    // 生成时间戳数组
+    const currentTimestamps = generateAlignedTimestamps(currentPeriodStart);
+    const previousTimestamps = generateAlignedTimestamps(previousPeriodStart);
+
+    // 构建结果数据
+    const data: Record<string, { current: number[]; previous: number[] }> = {};
+    let currentTotal = 0;
+    let previousTotal = 0;
+
+    for (const groupId of groupIds) {
+        // 检查群号是否存在
+        if (!mockGroupDetails[groupId]) {
+            data[groupId] = {
+                current: new Array(24).fill(0),
+                previous: new Array(24).fill(0)
+            };
+            continue;
+        }
+
+        const currentHourly: number[] = [];
+        const previousHourly: number[] = [];
+
+        for (let i = 0; i < 24; i++) {
+            const currentCount = generateHourlyCount(groupId, i, true);
+            const previousCount = generateHourlyCount(groupId, i, false);
+
+            currentHourly.push(currentCount);
+            previousHourly.push(previousCount);
+
+            currentTotal += currentCount;
+            previousTotal += previousCount;
+        }
+
+        data[groupId] = {
+            current: currentHourly,
+            previous: previousHourly
+        };
+    }
+
+    return {
+        success: true,
+        data: {
+            data,
+            timestamps: {
+                current: currentTimestamps,
+                previous: previousTimestamps
+            },
+            totalCounts: {
+                current: currentTotal,
+                previous: previousTotal
+            }
+        },
+        message: ""
+    };
+};

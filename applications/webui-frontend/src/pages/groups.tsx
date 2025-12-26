@@ -6,7 +6,7 @@ import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
 import * as echarts from "echarts";
 
-import { getGroupDetails, getChatMessagesByGroupId } from "@/api/basicApi";
+import { getGroupDetails, getMessageHourlyStats } from "@/api/basicApi";
 import { GroupDetailsRecord, GroupDetail } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
@@ -18,11 +18,18 @@ interface GroupListItem {
     messageCount: number;
 }
 
+// 每小时统计数据类型
+interface HourlyStatsData {
+    data: Record<string, { current: number[]; previous: number[] }>;
+    timestamps: { current: number[]; previous: number[] };
+    totalCounts: { current: number; previous: number };
+}
+
 export default function GroupsPage() {
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
     const [recentMessageCounts, setRecentMessageCounts] = useState<Record<string, number>>({});
     const [totalRecentMessageCount, setTotalRecentMessageCount] = useState<number>(0);
-    const [, setTotalHourlyCounts] = useState<number[]>(new Array(24).fill(0));
+    const [, setHourlyStats] = useState<HourlyStatsData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "messageCount",
@@ -33,8 +40,15 @@ export default function GroupsPage() {
     const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const chartInstances = useRef<Record<string, echarts.EChartsType | null>>({});
 
-    // 渲染消息量走势图表
-    const renderMessageTrendChart = (groupId: string, hourlyData: number[]) => {
+    // 获取小时格式化时间
+    const formatHour = (timestamp: number) => {
+        const date = new Date(timestamp);
+
+        return `${date.getHours()}:00`;
+    };
+
+    // 渲染消息量走势图表（包含当前24小时和前一天24小时）
+    const renderMessageTrendChart = (groupId: string, currentHourlyData: number[], previousHourlyData: number[], timestamps: number[]) => {
         const chartRef = chartRefs.current[groupId];
 
         if (chartRef) {
@@ -49,12 +63,15 @@ export default function GroupsPage() {
             chartInstances.current[groupId] = chartInstance;
 
             // 生成X轴标签
-            const xLabels = generateHourlyTimestamps().slice(0, 24).map(formatHour);
+            const xLabels = timestamps.map(formatHour);
 
             // 图表配置
             const option = {
                 tooltip: {
                     trigger: "axis"
+                },
+                legend: {
+                    show: false
                 },
                 xAxis: {
                     type: "category",
@@ -69,7 +86,23 @@ export default function GroupsPage() {
                 },
                 series: [
                     {
-                        data: hourlyData,
+                        name: "前一天",
+                        data: previousHourlyData,
+                        type: "line",
+                        smooth: true,
+                        lineStyle: {
+                            color: "#9CA3AF"
+                        },
+                        itemStyle: {
+                            color: "#9CA3AF"
+                        },
+                        areaStyle: {
+                            color: "rgba(156, 163, 175, 0.2)"
+                        }
+                    },
+                    {
+                        name: "当前24小时",
+                        data: currentHourlyData,
                         type: "line",
                         smooth: true,
                         areaStyle: {}
@@ -88,8 +121,8 @@ export default function GroupsPage() {
         }
     };
 
-    // 渲染总计消息量走势图表
-    const renderTotalMessageTrendChart = (hourlyData: number[]) => {
+    // 渲染总计消息量走势图表（包含当前24小时和前一天24小时）
+    const renderTotalMessageTrendChart = (currentHourlyData: number[], previousHourlyData: number[], timestamps: number[]) => {
         const chartRef = totalChartRef.current;
 
         if (chartRef) {
@@ -104,12 +137,15 @@ export default function GroupsPage() {
             totalChartInstance.current = chartInstance;
 
             // 生成X轴标签
-            const xLabels = generateHourlyTimestamps().slice(0, 24).map(formatHour);
+            const xLabels = timestamps.map(formatHour);
 
             // 图表配置
             const option = {
                 tooltip: {
                     trigger: "axis"
+                },
+                legend: {
+                    show: false
                 },
                 xAxis: {
                     type: "category",
@@ -124,7 +160,23 @@ export default function GroupsPage() {
                 },
                 series: [
                     {
-                        data: hourlyData,
+                        name: "前一天",
+                        data: previousHourlyData,
+                        type: "line",
+                        smooth: true,
+                        lineStyle: {
+                            color: "#9CA3AF"
+                        },
+                        itemStyle: {
+                            color: "#9CA3AF"
+                        },
+                        areaStyle: {
+                            color: "rgba(156, 163, 175, 0.2)"
+                        }
+                    },
+                    {
+                        name: "当前24小时",
+                        data: currentHourlyData,
                         type: "line",
                         smooth: true,
                         areaStyle: {}
@@ -143,34 +195,6 @@ export default function GroupsPage() {
         }
     };
 
-    // 获取最近24小时的时间戳
-    const getRecent24HoursTimestamps = () => {
-        const now = new Date().getTime();
-        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
-
-        return { startTime: twentyFourHoursAgo, endTime: now };
-    };
-
-    // 生成最近24小时的小时时间点
-    const generateHourlyTimestamps = () => {
-        const now = new Date().getTime();
-        const twentyFourHoursAgo = now - 24 * 60 * 60 * 1000;
-        const timestamps = [];
-
-        for (let i = 0; i <= 24; i++) {
-            timestamps.push(twentyFourHoursAgo + i * 60 * 60 * 1000);
-        }
-
-        return timestamps;
-    };
-
-    // 获取小时格式化时间
-    const formatHour = (timestamp: number) => {
-        const date = new Date(timestamp);
-
-        return `${date.getHours()}:00`;
-    };
-
     // 获取群组信息
     useEffect(() => {
         const fetchGroups = async () => {
@@ -180,8 +204,8 @@ export default function GroupsPage() {
 
                 if (response.success) {
                     setGroups(response.data);
-                    // 获取每个群组的最近24小时消息量
-                    await fetchRecentMessageCounts(response.data);
+                    // 获取所有群组的每小时消息统计
+                    await fetchMessageHourlyStats(Object.keys(response.data));
                 } else {
                     console.error("获取群组信息失败:", response.message);
                 }
@@ -192,81 +216,68 @@ export default function GroupsPage() {
             }
         };
 
-        const fetchRecentMessageCounts = async (groupsData: GroupDetailsRecord) => {
-            const { startTime, endTime } = getRecent24HoursTimestamps();
-            const counts: Record<string, number> = {};
-            const hourlyCounts: Record<string, number[]> = {};
+        const fetchMessageHourlyStats = async (groupIds: string[]) => {
+            try {
+                const response = await getMessageHourlyStats(groupIds);
 
-            // 并行获取所有群组的最近24小时消息量
-            const promises = Object.keys(groupsData).map(async groupId => {
-                try {
-                    const response = await getChatMessagesByGroupId(groupId, startTime, endTime);
+                if (response.success) {
+                    const statsData = response.data;
 
-                    if (response.success) {
-                        counts[groupId] = response.data.length;
+                    setHourlyStats(statsData);
 
-                        // 计算每小时消息量
-                        const hourlyData = new Array(24).fill(0);
-                        const hourlyTimestamps = generateHourlyTimestamps();
+                    // 计算每个群组的当前24小时总消息量
+                    const counts: Record<string, number> = {};
 
-                        response.data.forEach(msg => {
-                            const msgTime = msg.timestamp;
+                    for (const groupId of groupIds) {
+                        const groupData = statsData.data[groupId];
 
-                            for (let i = 0; i < 24; i++) {
-                                if (msgTime >= hourlyTimestamps[i] && msgTime < hourlyTimestamps[i + 1]) {
-                                    hourlyData[i]++;
-                                    break;
-                                }
+                        if (groupData) {
+                            counts[groupId] = groupData.current.reduce((sum, count) => sum + count, 0);
+                        } else {
+                            counts[groupId] = 0;
+                        }
+                    }
+                    setRecentMessageCounts(counts);
+                    setTotalRecentMessageCount(statsData.totalCounts.current);
+
+                    // 计算总计的每小时数据
+                    const totalCurrentHourly = new Array(24).fill(0);
+                    const totalPreviousHourly = new Array(24).fill(0);
+
+                    for (const groupId of groupIds) {
+                        const groupData = statsData.data[groupId];
+
+                        if (groupData) {
+                            groupData.current.forEach((count, index) => {
+                                totalCurrentHourly[index] += count;
+                            });
+                            groupData.previous.forEach((count, index) => {
+                                totalPreviousHourly[index] += count;
+                            });
+                        }
+                    }
+
+                    // 在数据加载完成后渲染图表
+                    setTimeout(() => {
+                        // 渲染总计图表
+                        renderTotalMessageTrendChart(totalCurrentHourly, totalPreviousHourly, statsData.timestamps.current);
+
+                        // 渲染各群组图表
+                        for (const groupId of groupIds) {
+                            const chartRef = chartRefs.current[groupId];
+                            const groupData = statsData.data[groupId];
+
+                            if (chartRef && groupData) {
+                                renderMessageTrendChart(groupId, groupData.current, groupData.previous, statsData.timestamps.current);
                             }
-                        });
-
-                        hourlyCounts[groupId] = hourlyData;
-                    } else {
-                        counts[groupId] = 0;
-                        hourlyCounts[groupId] = new Array(24).fill(0);
-                    }
-                } catch (error) {
-                    console.error(`获取群组 ${groupId} 的最近24小时消息量失败:`, error);
-                    counts[groupId] = 0;
-                    hourlyCounts[groupId] = new Array(24).fill(0);
+                        }
+                    }, 100);
+                } else {
+                    console.error("获取消息统计失败:", response.message);
                 }
-            });
-
-            await Promise.all(promises);
-            setRecentMessageCounts(counts);
-
-            // 计算总计数据
-            const totalCount = Object.values(counts).reduce((sum, count) => sum + count, 0);
-
-            setTotalRecentMessageCount(totalCount);
-
-            // 计算总小时数据
-            const totalHourlyData = new Array(24).fill(0);
-
-            Object.values(hourlyCounts).forEach(groupHourlyData => {
-                groupHourlyData.forEach((count, index) => {
-                    totalHourlyData[index] += count;
-                });
-            });
-            setTotalHourlyCounts(totalHourlyData);
-
-            // 保存每小时消息量用于图表渲染
-            (window as any).hourlyCounts = hourlyCounts;
-
-            // 在数据加载完成后渲染图表
-            setTimeout(() => {
-                // 渲染总计图表
-                renderTotalMessageTrendChart(totalHourlyData);
-
-                // 渲染各群组图表
-                Object.keys(hourlyCounts).forEach(groupId => {
-                    const chartRef = chartRefs.current[groupId];
-
-                    if (chartRef) {
-                        renderMessageTrendChart(groupId, hourlyCounts[groupId]);
-                    }
-                });
-            }, 100);
+            } catch (error) {
+                console.error("获取消息统计失败:", error);
+            }
         };
 
         fetchGroups();

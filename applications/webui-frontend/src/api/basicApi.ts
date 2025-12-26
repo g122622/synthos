@@ -2,7 +2,7 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-import { mockGetGroupDetails, mockGetChatMessagesByGroupId } from "@/mock/groupsMock";
+import { mockGetGroupDetails, mockGetChatMessagesByGroupId, mockGetMessageHourlyStats } from "@/mock/groupsMock";
 
 // 健康检查接口
 export const healthCheck = async (): Promise<ApiResponse<{ message: string; timestamp: string }>> => {
@@ -63,6 +63,28 @@ export const getChatMessagesByGroupId = async (groupId: string, timeStart: numbe
     });
 
     const response = await fetchWrapper(`${API_BASE_URL}/api/chat-messages-by-group-id?${params}`);
+
+    return response.json();
+};
+
+// 消息每小时统计响应类型
+interface MessageHourlyStatsResponse {
+    data: Record<string, { current: number[]; previous: number[] }>;
+    timestamps: { current: number[]; previous: number[] };
+    totalCounts: { current: number; previous: number };
+}
+
+export const getMessageHourlyStats = async (groupIds: string[]): Promise<ApiResponse<MessageHourlyStatsResponse>> => {
+    // 使用 mock 数据
+    if (mockConfig.groups) {
+        return mockGetMessageHourlyStats(groupIds);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/message-hourly-stats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupIds })
+    });
 
     return response.json();
 };

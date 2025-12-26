@@ -249,6 +249,51 @@ export class IMDBManager extends Disposable {
         return this.db.all(sql, params);
     }
 
+    /**
+     * 获取多个群组在指定时间范围内的每小时消息统计
+     * @param groupIds 群组ID数组
+     * @param timeStart 起始时间戳（整点对齐）
+     * @param timeEnd 结束时间戳
+     * @returns 每小时消息数量统计 { groupId: string; hourTimestamp: number; count: number }[]
+     */
+    public async getMessageHourlyStatsByGroupIds(
+        groupIds: string[],
+        timeStart: number,
+        timeEnd: number
+    ): Promise<{ groupId: string; hourTimestamp: number; count: number }[]> {
+        if (groupIds.length === 0) {
+            return [];
+        }
+
+        // 构建 IN 子句占位符
+        const placeholders = groupIds.map(() => "?").join(", ");
+
+        // 使用 SQL 进行小时级别聚合统计
+        // hourTimestamp 为每小时的起始时间戳（整点对齐）
+        const sql = `
+            SELECT 
+                groupId,
+                (timestamp / 3600000) * 3600000 AS hourTimestamp,
+                COUNT(*) AS count
+            FROM chat_messages 
+            WHERE groupId IN (${placeholders}) 
+                AND timestamp >= ? 
+                AND timestamp < ?
+            GROUP BY groupId, hourTimestamp
+            ORDER BY groupId, hourTimestamp
+        `;
+
+        const params = [...groupIds, timeStart, timeEnd];
+
+        const results = await this.db.all<{
+            groupId: string;
+            hourTimestamp: number;
+            count: number;
+        }>(sql, params);
+
+        return results;
+    }
+
     public async storeProcessedChatMessage(message: ProcessedChatMessage) {
         // 执行这个函数的时候，数据库内已经通过storeRawChatMessage函数存储了原始消息，这里只需要更新原记录中的sessionId和preProcessedContent字段即可
         await this.db.run(
