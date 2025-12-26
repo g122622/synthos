@@ -59,15 +59,22 @@ export async function setupInterestScoreTask(
                     ...(await agcDBManager.getAIDigestResultsBySessionId(sessionId))
                 );
             }
-            LOGGER.info(`共获取到 ${digestResults.length} 条待打分的摘要结果`);
+            LOGGER.info(`共获取到 ${digestResults.length} 可能需要打分的摘要结果`);
+
+            // 过滤掉已经计算过兴趣度的结果
+            const filteredDigestResults = digestResults.filter(
+                digestResult =>
+                    !interestScoreDBManager.isInterestScoreResultExist(digestResult.topicId)
+            );
+            LOGGER.info(`还剩 ${filteredDigestResults.length} 条需要打分的摘要结果`);
+            if (filteredDigestResults.length === 0) {
+                LOGGER.info("没有需要打分的摘要结果，跳过当前任务");
+                return;
+            }
 
             const rater = new SemanticRater(embeddingService);
-            for (const digestResult of digestResults) {
+            for (const digestResult of filteredDigestResults) {
                 await job.touch(); // 保证任务存活
-                if (await interestScoreDBManager.isInterestScoreResultExist(digestResult.topicId)) {
-                    LOGGER.debug(`话题 ${digestResult.topicId} 已经计算过兴趣度，跳过`);
-                    continue;
-                }
                 // 转换参数格式
                 const argArr = [];
                 argArr.push(
