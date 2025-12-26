@@ -8,7 +8,8 @@ import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBMan
 @injectable()
 export class InterestScoreService {
     constructor(
-        @inject(TOKENS.InterestScoreDBManager) private interestScoreDBManager: InterestScoreDBManager
+        @inject(TOKENS.InterestScoreDBManager)
+        private interestScoreDBManager: InterestScoreDBManager
     ) {}
 
     /**
@@ -25,4 +26,3 @@ export class InterestScoreService {
         return results;
     }
 }
-

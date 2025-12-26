@@ -48,7 +48,7 @@ export class InterestScoreDBManager extends Disposable {
             `SELECT EXISTS(SELECT 1 FROM interset_score_results WHERE topicId = ? AND scoreV${version} IS NOT NULL)`,
             [topicId]
         );
-        return result === 1;
+        return result[Object.keys(result)[0]] === 1;
     }
 
     // 获取所有数据，用于数据库迁移、导出、备份等操作

@@ -17,11 +17,11 @@ describe("RAGCtxBuilder", () => {
     beforeEach(async () => {
         ragCtxBuilder = new RAGCtxBuilder();
         await ragCtxBuilder.init();
-        
+
         mockAgcDB = {
             getAIDigestResultByTopicId: vi.fn()
         } as any;
-        
+
         mockImDB = {
             getSessionTimeDuration: vi.fn()
         } as any;
@@ -48,9 +48,9 @@ describe("RAGCtxBuilder", () => {
         ];
 
         // 模拟数据库返回
-        vi.mocked(mockAgcDB.getAIDigestResultByTopicId).mockImplementation((topicId) => {
+        vi.mocked(mockAgcDB.getAIDigestResultByTopicId).mockImplementation(topicId => {
             if (topicId === "topic1") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     sessionId: "session1",
                     topic: "机器学习基础",
                     detail: "机器学习是人工智能的一个分支",
@@ -58,7 +58,7 @@ describe("RAGCtxBuilder", () => {
                 } as any);
             }
             if (topicId === "topic2") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     sessionId: "session2",
                     topic: "深度学习应用",
                     detail: "深度学习在图像识别中的应用",
@@ -68,15 +68,15 @@ describe("RAGCtxBuilder", () => {
             return Promise.resolve(null);
         });
 
-        vi.mocked(mockImDB.getSessionTimeDuration).mockImplementation((sessionId) => {
+        vi.mocked(mockImDB.getSessionTimeDuration).mockImplementation(sessionId => {
             if (sessionId === "session1") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     timeStart: new Date(2024, 0, 10, 8, 0, 0).getTime(),
                     timeEnd: new Date(2024, 0, 10, 9, 30, 0).getTime()
                 });
             }
             if (sessionId === "session2") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     timeStart: new Date(2024, 0, 12, 14, 15, 20).getTime(),
                     timeEnd: new Date(2024, 0, 12, 15, 45, 30).getTime()
                 });
@@ -87,22 +87,22 @@ describe("RAGCtxBuilder", () => {
         // 由于 getRagAnswerPrompt 被模拟，我们需要直接调用内部方法来验证格式
         // 这里我们使用 spyOn 来部分模拟，保留原始实现
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagAnswerPromptSpy = vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation(
-            (question, topics, currentDate) => {
+        const getRagAnswerPromptSpy = vi
+            .spyOn(RagPromptStore, "getRagAnswerPrompt")
+            .mockImplementation((question, topics, currentDate) => {
                 // 验证 topics 格式
                 expect(topics).toContain("【话题1:机器学习基础】");
                 expect(topics).toContain("【参与者:用户1, 用户2】");
                 expect(topics).toContain("【起止时间:2024-01-10-08:00:00至2024-01-10-09:30:00】");
                 expect(topics).toContain("机器学习是人工智能的一个分支");
-                
+
                 expect(topics).toContain("【话题2:深度学习应用】");
                 expect(topics).toContain("【参与者:用户3, 用户4】");
                 expect(topics).toContain("【起止时间:2024-01-12-14:15:20至2024-01-12-15:45:30】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
-                
+
                 return "mocked prompt";
-            }
-        );
+            });
 
         const prompt = await ragCtxBuilder.buildCtx(
             question,
@@ -114,7 +114,7 @@ describe("RAGCtxBuilder", () => {
 
         // 验证返回值
         expect(prompt).toBe("mocked prompt");
-        
+
         // 验证数据库调用
         expect(mockAgcDB.getAIDigestResultByTopicId).toHaveBeenCalledTimes(2);
         expect(mockImDB.getSessionTimeDuration).toHaveBeenCalledTimes(2);
@@ -142,11 +142,11 @@ describe("RAGCtxBuilder", () => {
 
         // 重置模拟函数
         vi.clearAllMocks();
-        
+
         // 模拟数据库返回 - 第二个话题没有会话信息
-        vi.mocked(mockAgcDB.getAIDigestResultByTopicId).mockImplementation((topicId) => {
+        vi.mocked(mockAgcDB.getAIDigestResultByTopicId).mockImplementation(topicId => {
             if (topicId === "topic1") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     sessionId: "session1",
                     topic: "机器学习基础",
                     detail: "机器学习是人工智能的一个分支",
@@ -156,9 +156,9 @@ describe("RAGCtxBuilder", () => {
             return Promise.resolve(null);
         });
 
-        vi.mocked(mockImDB.getSessionTimeDuration).mockImplementation((sessionId) => {
+        vi.mocked(mockImDB.getSessionTimeDuration).mockImplementation(sessionId => {
             if (sessionId === "session1") {
-                return Promise.resolve({ 
+                return Promise.resolve({
                     timeStart: new Date(2024, 0, 10, 8, 0, 0).getTime(),
                     timeEnd: new Date(2024, 0, 10, 9, 30, 0).getTime()
                 });
@@ -168,22 +168,22 @@ describe("RAGCtxBuilder", () => {
 
         // 使用 spyOn 验证传递给 RagPromptStore 的参数
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagAnswerPromptSpy = vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation(
-            (question, topics, currentDate) => {
+        const getRagAnswerPromptSpy = vi
+            .spyOn(RagPromptStore, "getRagAnswerPrompt")
+            .mockImplementation((question, topics, currentDate) => {
                 // 验证 topics 格式包含第一个话题的日期信息
                 expect(topics).toContain("【话题1:机器学习基础】");
                 expect(topics).toContain("【参与者:用户1, 用户2】");
                 expect(topics).toContain("【起止时间:2024-01-10-08:00:00至2024-01-10-09:30:00】");
                 expect(topics).toContain("机器学习是人工智能的一个分支");
-                
+
                 // 验证 topics 格式包含第二个话题但不包含日期信息
                 expect(topics).toContain("【话题2:深度学习应用】");
                 expect(topics).toContain("【参与者:用户3, 用户4】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
-                
+
                 return "mocked prompt";
-            }
-        );
+            });
 
         const prompt = await ragCtxBuilder.buildCtx(
             question,

@@ -31,9 +31,7 @@ describe("Disposable", () => {
         public value: string = "test";
         public disposeCount = 0;
 
-        public registerDisposable<T extends IDisposable | null | undefined>(
-            disposable: T
-        ): T {
+        public registerDisposable<T extends IDisposable | null | undefined>(disposable: T): T {
             return this._registerDisposable(disposable);
         }
 
@@ -250,4 +248,3 @@ describe("Disposable", () => {
         });
     });
 });
-

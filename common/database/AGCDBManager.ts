@@ -28,7 +28,15 @@ export class AGCDBManager extends Disposable {
                 modelName = excluded.modelName,
                 updateTime = excluded.updateTime
             `,
-            [result.topicId, result.sessionId, result.topic, result.contributors, result.detail, result.modelName, result.updateTime]
+            [
+                result.topicId,
+                result.sessionId,
+                result.topic,
+                result.contributors,
+                result.detail,
+                result.modelName,
+                result.updateTime
+            ]
         );
     }
 

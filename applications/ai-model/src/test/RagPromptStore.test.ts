@@ -5,9 +5,9 @@ describe("RagPromptStore", () => {
     it("应该能够生成不带日期的 prompt", () => {
         const question = "什么是机器学习？";
         const topics = "话题1内容";
-        
+
         const prompt = RagPromptStore.getRagAnswerPrompt(question, topics);
-        
+
         expect(prompt).toContain("你是一个智能助手");
         expect(prompt).toContain(question);
         expect(prompt).toContain(topics);
@@ -18,9 +18,9 @@ describe("RagPromptStore", () => {
         const question = "什么是机器学习？";
         const topics = "话题1内容";
         const currentDate = "2024-01-15-10:30:45";
-        
+
         const prompt = RagPromptStore.getRagAnswerPrompt(question, topics, currentDate);
-        
+
         expect(prompt).toContain("你是一个智能助手");
         expect(prompt).toContain(question);
         expect(prompt).toContain(topics);

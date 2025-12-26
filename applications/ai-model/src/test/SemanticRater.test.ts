@@ -67,7 +67,11 @@ describe("SemanticRater", () => {
 
     beforeEach(() => {
         embedCallCount = 0; // 重置计数器
-        mockEmbeddingService = new OllamaEmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
+        mockEmbeddingService = new OllamaEmbeddingService(
+            TEST_BASE_URL,
+            TEST_MODEL,
+            TEST_DIMENSION
+        );
         rater = new SemanticRater(mockEmbeddingService);
     });
 

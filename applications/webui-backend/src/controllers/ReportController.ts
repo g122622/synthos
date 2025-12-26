@@ -16,9 +16,7 @@ import {
 
 @injectable()
 export class ReportController {
-    constructor(
-        @inject(TOKENS.ReportService) private reportService: ReportService
-    ) {}
+    constructor(@inject(TOKENS.ReportService) private reportService: ReportService) {}
 
     /**
      * GET /api/report/:reportId

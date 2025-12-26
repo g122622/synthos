@@ -14,7 +14,8 @@ export class EmailService {
     private transporter: nodemailer.Transporter | null = null;
 
     constructor(
-        @inject(TOKENS.ConfigManagerService) private configManagerService: typeof ConfigManagerServiceType
+        @inject(TOKENS.ConfigManagerService)
+        private configManagerService: typeof ConfigManagerServiceType
     ) {}
 
     /**
@@ -107,12 +108,12 @@ export class EmailService {
      */
     private buildEmailSubject(report: Report): string {
         const startDate = new Date(report.timeStart);
-        const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+        const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
 
-        if (report.type === 'half-daily') {
-            const period = startDate.getHours() < 12 ? '上午' : '下午';
+        if (report.type === "half-daily") {
+            const period = startDate.getHours() < 12 ? "上午" : "下午";
             return `[Synthos 半日报] ${dateStr} ${period}`;
-        } else if (report.type === 'weekly') {
+        } else if (report.type === "weekly") {
             return `[Synthos 周报] ${dateStr}`;
         } else {
             return `[Synthos 月报] ${dateStr}`;
@@ -127,18 +128,19 @@ export class EmailService {
         const endDate = new Date(report.timeEnd);
 
         const formatDateTime = (d: Date) =>
-            `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 
         const reportTypeNameMap: Record<ReportType, string> = {
-            'half-daily': '半日报',
-            'weekly': '周报',
-            'monthly': '月报'
+            "half-daily": "半日报",
+            weekly: "周报",
+            monthly: "月报"
         };
         const reportTypeName = reportTypeNameMap[report.type];
 
-        const activeGroupsStr = report.statistics.mostActiveGroups.length > 0
-            ? report.statistics.mostActiveGroups.join('、')
-            : '暂无';
+        const activeGroupsStr =
+            report.statistics.mostActiveGroups.length > 0
+                ? report.statistics.mostActiveGroups.join("、")
+                : "暂无";
 
         return `
 <!DOCTYPE html>
@@ -184,20 +186,24 @@ export class EmailService {
                 <div class="value">${report.statistics.mostActiveHour}:00</div>
             </div>
         </div>
-        ${report.isEmpty ? `
+        ${
+            report.isEmpty
+                ? `
         <div class="empty-notice">
             📭 本时段暂无热门话题讨论
         </div>
-        ` : `
+        `
+                : `
         <div class="summary">
             <h2>📝 综述</h2>
             <div class="summary-text">${this.escapeHtml(report.summary)}</div>
         </div>
-        `}
+        `
+        }
     </div>
     <div class="footer">
         <p>此邮件由 Synthos 系统自动发送，请勿直接回复</p>
-        <p>生成时间：${new Date().toLocaleString('zh-CN')}</p>
+        <p>生成时间：${new Date().toLocaleString("zh-CN")}</p>
     </div>
 </body>
 </html>
@@ -209,11 +215,11 @@ export class EmailService {
      */
     private escapeHtml(text: string): string {
         return text
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;')
-            .replace(/\n/g, '<br>');
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;")
+            .replace(/\n/g, "<br>");
     }
 }

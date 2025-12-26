@@ -167,7 +167,11 @@ class MultiFileSQLite extends Disposable {
         return undefined;
     }
 
-    public async all<T>(sql: string, params: any[] = [], shouldDeepUnique: boolean = true): Promise<T[]> {
+    public async all<T>(
+        sql: string,
+        params: any[] = [],
+        shouldDeepUnique: boolean = true
+    ): Promise<T[]> {
         const dbFiles = await this.getAllDBPaths();
         let allRows: T[] = [];
         for (const dbInfo of dbFiles) {

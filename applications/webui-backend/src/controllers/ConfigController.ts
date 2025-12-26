@@ -9,9 +9,7 @@ import { ConfigService } from "../services/ConfigService";
 
 @injectable()
 export class ConfigController {
-    constructor(
-        @inject(TOKENS.ConfigService) private configService: ConfigService
-    ) { }
+    constructor(@inject(TOKENS.ConfigService) private configService: ConfigService) {}
 
     /**
      * GET /api/config/schema

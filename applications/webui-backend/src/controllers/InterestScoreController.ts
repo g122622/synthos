@@ -22,4 +22,3 @@ export class InterestScoreController {
         res.json({ success: true, data: results });
     }
 }
-
