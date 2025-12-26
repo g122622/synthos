@@ -12,10 +12,10 @@ export const siteConfig = {
             label: "💬聊天记录",
             href: "/chat-messages"
         },
-        {
-            label: "🤖摘要结果",
-            href: "/ai-digest"
-        },
+        // {
+        //     label: "🤖摘要结果",
+        //     href: "/ai-digest"
+        // },
         {
             label: "🔥最新话题",
             href: "/latest-topics"
@@ -46,10 +46,10 @@ export const siteConfig = {
             label: "💬聊天记录",
             href: "/chat-messages"
         },
-        {
-            label: "🤖摘要结果",
-            href: "/ai-digest"
-        },
+        // {
+        //     label: "🤖摘要结果",
+        //     href: "/ai-digest"
+        // },
         {
             label: "🔥最新话题",
             href: "/latest-topics"
