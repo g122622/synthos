@@ -12,5 +12,7 @@ export const mockConfig = {
     // RAG 模块 mock 开关
     rag: import.meta.env.VITE_MOCK_RAG === "true" || MOCK_ENABLED,
     // Report 模块 mock 开关
-    report: import.meta.env.VITE_MOCK_REPORT === "true" || MOCK_ENABLED
+    report: import.meta.env.VITE_MOCK_REPORT === "true" || MOCK_ENABLED,
+    // Groups 模块 mock 开关
+    groups: import.meta.env.VITE_MOCK_GROUPS === "true" || MOCK_ENABLED
 };

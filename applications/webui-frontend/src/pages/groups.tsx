@@ -1,15 +1,22 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
-import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow } from "@heroui/table";
+import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor } from "@heroui/table";
 import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
 import * as echarts from "echarts";
 
 import { getGroupDetails, getChatMessagesByGroupId } from "@/api/basicApi";
-import { GroupDetailsRecord } from "@/types/app";
+import { GroupDetailsRecord, GroupDetail } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
+
+// 群组列表项类型，包含群号和消息计数
+interface GroupListItem {
+    groupId: string;
+    groupDetail: GroupDetail;
+    messageCount: number;
+}
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
@@ -17,6 +24,10 @@ export default function GroupsPage() {
     const [totalRecentMessageCount, setTotalRecentMessageCount] = useState<number>(0);
     const [, setTotalHourlyCounts] = useState<number[]>(new Array(24).fill(0));
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+        column: "messageCount",
+        direction: "descending"
+    });
     const totalChartRef = useRef<HTMLDivElement | null>(null);
     const totalChartInstance = useRef<echarts.EChartsType | null>(null);
     const chartRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -297,6 +308,70 @@ export default function GroupsPage() {
         }
     };
 
+    // 构建并排序群组列表
+    const sortedGroupList = useMemo(() => {
+        const items: GroupListItem[] = Object.entries(groups).map(([groupId, groupDetail]) => ({
+            groupId,
+            groupDetail,
+            messageCount: recentMessageCounts[groupId] ?? 0
+        }));
+
+        // 根据排序描述符进行排序
+        if (sortDescriptor.column) {
+            items.sort((a, b) => {
+                let first: string | number;
+                let second: string | number;
+
+                switch (sortDescriptor.column) {
+                    case "groupId":
+                        first = a.groupId;
+                        second = b.groupId;
+                        break;
+                    case "platform":
+                        first = a.groupDetail.IM;
+                        second = b.groupDetail.IM;
+                        break;
+                    case "splitStrategy":
+                        first = a.groupDetail.splitStrategy;
+                        second = b.groupDetail.splitStrategy;
+                        break;
+                    case "aiModel":
+                        first = a.groupDetail.aiModel;
+                        second = b.groupDetail.aiModel;
+                        break;
+                    case "messageCount":
+                        first = a.messageCount;
+                        second = b.messageCount;
+                        break;
+                    default:
+                        return 0;
+                }
+
+                // 比较逻辑：支持数字和字符串
+                let cmp: number;
+
+                if (typeof first === "number" && typeof second === "number") {
+                    cmp = first < second ? -1 : first > second ? 1 : 0;
+                } else {
+                    cmp = String(first).localeCompare(String(second));
+                }
+
+                if (sortDescriptor.direction === "descending") {
+                    cmp *= -1;
+                }
+
+                return cmp;
+            });
+        }
+
+        return items;
+    }, [groups, recentMessageCounts, sortDescriptor]);
+
+    // 处理排序变更
+    const handleSortChange = (descriptor: SortDescriptor) => {
+        setSortDescriptor(descriptor);
+    };
+
     return (
         <DefaultLayout>
             <section className="flex flex-col gap-4 py-8 md:py-10">
@@ -320,20 +395,30 @@ export default function GroupsPage() {
                                 <Spinner size="lg" />
                             </div>
                         ) : (
-                            <Table aria-label="群组列表">
+                            <Table aria-label="群组列表" sortDescriptor={sortDescriptor} onSortChange={handleSortChange}>
                                 <TableHeader>
-                                    <TableColumn>群头像</TableColumn>
-                                    <TableColumn>群号</TableColumn>
-                                    <TableColumn>平台</TableColumn>
-                                    <TableColumn>群介绍</TableColumn>
-                                    <TableColumn>分组策略</TableColumn>
-                                    <TableColumn>AI模型</TableColumn>
-                                    <TableColumn>最近24小时消息量</TableColumn>
-                                    <TableColumn>最近24小时消息量走势</TableColumn>
+                                    <TableColumn key="avatar">群头像</TableColumn>
+                                    <TableColumn key="groupId" allowsSorting>
+                                        群号
+                                    </TableColumn>
+                                    <TableColumn key="platform" allowsSorting>
+                                        平台
+                                    </TableColumn>
+                                    <TableColumn key="groupIntroduction">群介绍</TableColumn>
+                                    <TableColumn key="splitStrategy" allowsSorting>
+                                        分组策略
+                                    </TableColumn>
+                                    <TableColumn key="aiModel" allowsSorting>
+                                        AI模型
+                                    </TableColumn>
+                                    <TableColumn key="messageCount" allowsSorting>
+                                        最近24小时消息量
+                                    </TableColumn>
+                                    <TableColumn key="messageTrend">最近24小时消息量走势</TableColumn>
                                 </TableHeader>
                                 <TableBody emptyContent={"未找到群组信息"}>
                                     <>
-                                        {/* 总计行 */}
+                                        {/* 总计行 - 始终固定在顶部，不参与排序 */}
                                         <TableRow key="total">
                                             <TableCell>
                                                 <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -352,7 +437,8 @@ export default function GroupsPage() {
                                                 <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
                                             </TableCell>
                                         </TableRow>
-                                        {Object.entries(groups).map(([groupId, groupDetail]) => (
+                                        {/* 群组数据行 - 根据排序描述符排序 */}
+                                        {sortedGroupList.map(({ groupId, groupDetail }) => (
                                             <TableRow key={groupId}>
                                                 <TableCell>
                                                     <img

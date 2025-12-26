@@ -1,6 +1,8 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { mockConfig } from "@/config/mock";
+import { mockGetGroupDetails, mockGetChatMessagesByGroupId } from "@/mock/groupsMock";
 
 // 健康检查接口
 export const healthCheck = async (): Promise<ApiResponse<{ message: string; timestamp: string }>> => {
@@ -22,6 +24,11 @@ interface GroupDetailsResponse {
 }
 
 export const getGroupDetails = async (): Promise<ApiResponse<GroupDetailsResponse>> => {
+    // 使用 mock 数据
+    if (mockConfig.groups) {
+        return mockGetGroupDetails();
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/group-details`);
 
     return response.json();
@@ -44,6 +51,11 @@ interface ChatMessage {
 interface ChatMessagesResponse extends Array<ChatMessage> {}
 
 export const getChatMessagesByGroupId = async (groupId: string, timeStart: number, timeEnd: number): Promise<ApiResponse<ChatMessagesResponse>> => {
+    // 使用 mock 数据
+    if (mockConfig.groups) {
+        return mockGetChatMessagesByGroupId(groupId, timeStart, timeEnd);
+    }
+
     const params = new URLSearchParams({
         groupId,
         timeStart: timeStart.toString(),
