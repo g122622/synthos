@@ -62,10 +62,15 @@ export async function setupInterestScoreTask(
             LOGGER.info(`共获取到 ${digestResults.length} 可能需要打分的摘要结果`);
 
             // 过滤掉已经计算过兴趣度的结果
-            const filteredDigestResults = digestResults.filter(
-                digestResult =>
-                    !interestScoreDBManager.isInterestScoreResultExist(digestResult.topicId)
-            );
+            const filteredDigestResults = [];
+            for (const digestResult of digestResults) {
+                const exists = await interestScoreDBManager.isInterestScoreResultExist(
+                    digestResult.topicId
+                );
+                if (!exists) {
+                    filteredDigestResults.push(digestResult);
+                }
+            }
             LOGGER.info(`还剩 ${filteredDigestResults.length} 条需要打分的摘要结果`);
             if (filteredDigestResults.length === 0) {
                 LOGGER.info("没有需要打分的摘要结果，跳过当前任务");
