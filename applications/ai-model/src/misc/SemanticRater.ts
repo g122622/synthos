@@ -1,8 +1,7 @@
 import Logger from "@root/common/util/Logger";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { UserInterest } from "@root/common/config/@types/GlobalConfig";
-
-const QUERY_PREFIX = "为这个句子生成表示：";
+import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
 
 export class SemanticRater {
@@ -19,8 +18,14 @@ export class SemanticRater {
         this.LOGGER.info("SemanticRater 初始化完成");
     }
 
-    private async getEmbedding(text: string, isQuery: boolean): Promise<Float32Array> {
-        let inputText = isQuery ? `${QUERY_PREFIX}${text}` : text;
+    /**
+     * 获取文本的 embedding
+     * @param text 文本
+     * @param isKeywordQuery 是否关键词查询
+     * @returns embedding
+     */
+    private async getEmbedding(text: string, isKeywordQuery: boolean): Promise<Float32Array> {
+        let inputText = isKeywordQuery ? EmbeddingPromptStore.getEmbeddingPromptForInterestScore(text) : text;
 
         if (inputText.length > MAX_INPUT_LENGTH) {
             this.LOGGER.warning(`输入文本过长 (长度为 ${inputText.length})，截断至 ${MAX_INPUT_LENGTH} 字符`);
