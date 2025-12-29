@@ -84,7 +84,7 @@ export class SeekQQNumber extends Disposable implements IApplication {
 
             if (qqNumbers.length > 0) {
                 matchCount++;
-                console.log(`原文: ${content} | QQ号: [${qqNumbers.join(", ")}]`);
+                this.LOGGER.info(`原文: ${content} | QQ号: [${qqNumbers.join(", ")}]`);
             }
         }
 
