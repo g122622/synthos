@@ -25,15 +25,7 @@ export class IMDBManager extends Disposable {
             `INSERT INTO chat_messages (
                 msgId, messageContent, groupId, timestamp, senderId, senderGroupNickname, senderNickname, quotedMsgId, quotedMsgContent
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(msgId) DO UPDATE SET
-                messageContent = excluded.messageContent,
-                groupId = excluded.groupId,
-                timestamp = excluded.timestamp,
-                senderId = excluded.senderId,
-                senderGroupNickname = excluded.senderGroupNickname,
-                senderNickname = excluded.senderNickname,
-                quotedMsgId = excluded.quotedMsgId,
-                quotedMsgContent = excluded.quotedMsgContent`,
+            ON CONFLICT(msgId) DO NOTHING`,
             [
                 msg.msgId,
                 msg.messageContent,
@@ -62,15 +54,7 @@ export class IMDBManager extends Disposable {
             msgId, messageContent, groupId, timestamp, senderId, 
             senderGroupNickname, senderNickname, quotedMsgId, quotedMsgContent
         ) VALUES ${Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")}
-        ON CONFLICT(msgId) DO UPDATE SET
-            messageContent = excluded.messageContent,
-            groupId = excluded.groupId,
-            timestamp = excluded.timestamp,
-            senderId = excluded.senderId,
-            senderGroupNickname = excluded.senderGroupNickname,
-            senderNickname = excluded.senderNickname,
-            quotedMsgId = excluded.quotedMsgId,
-            quotedMsgContent = excluded.quotedMsgContent
+        ON CONFLICT(msgId) DO NOTHING
     `.trim();
 
         // 开始事务
