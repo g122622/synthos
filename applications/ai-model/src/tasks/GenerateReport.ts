@@ -184,6 +184,7 @@ export async function setupGenerateReportTask(
                 // 从配置中获取所有群组
                 const groupIds = Object.keys(config.groupConfigs);
                 for (const result of sortedResults) {
+                    // TODO 修正这部分逻辑
                     // 暂时将 sessionId 的前缀作为 groupId（简化实现）
                     // 实际项目中可能需要从 IMDBManager 查询
                     for (const groupId of groupIds) {
