@@ -4,6 +4,8 @@ import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor } from "@heroui/table";
 import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
+import { Tooltip } from "@heroui/react";
+import { TrendingDown, TrendingUp } from "lucide-react";
 import * as echarts from "echarts";
 
 import { getGroupDetails, getMessageHourlyStats } from "@/api/basicApi";
@@ -16,6 +18,7 @@ interface GroupListItem {
     groupId: string;
     groupDetail: GroupDetail;
     messageCount: number;
+    previousMessageCount: number;
 }
 
 // 每小时统计数据类型
@@ -28,7 +31,9 @@ interface HourlyStatsData {
 export default function GroupsPage() {
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
     const [recentMessageCounts, setRecentMessageCounts] = useState<Record<string, number>>({});
+    const [previousMessageCounts, setPreviousMessageCounts] = useState<Record<string, number>>({});
     const [totalRecentMessageCount, setTotalRecentMessageCount] = useState<number>(0);
+    const [totalPreviousMessageCount, setTotalPreviousMessageCount] = useState<number>(0);
     const [, setHourlyStats] = useState<HourlyStatsData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -45,6 +50,40 @@ export default function GroupsPage() {
         const date = new Date(timestamp);
 
         return `${date.getHours()}:00`;
+    };
+
+    // 渲染“较昨日”涨跌幅（上涨红色、下跌绿色）
+    const renderDayOverDayChange = (currentCount: number, previousCount: number) => {
+        const diff = currentCount - previousCount;
+        const isUp = diff > 0;
+        const isDown = diff < 0;
+
+        let percentText: string;
+        let tooltipText: string;
+
+        if (previousCount === 0) {
+            if (currentCount === 0) {
+                percentText = "0.0%";
+                tooltipText = "昨日消息量为 0，本次也为 0";
+            } else {
+                percentText = "+∞";
+                tooltipText = "昨日消息量为 0，无法计算百分比";
+            }
+        } else {
+            percentText = `${diff >= 0 ? "+" : ""}${((diff / previousCount) * 100).toFixed(1)}%`;
+            tooltipText = `较昨日${isUp ? "增加" : isDown ? "减少" : "持平"} ${Math.abs(diff)} 条`;
+        }
+
+        const chipColor = isUp ? "danger" : isDown ? "success" : "default";
+        const icon = isUp ? <TrendingUp size={14} /> : isDown ? <TrendingDown size={14} /> : null;
+
+        return (
+            <Tooltip color="primary" content={tooltipText} placement="top">
+                <Chip color={chipColor} size="sm" startContent={icon} variant="flat">
+                    较昨日 {percentText}
+                </Chip>
+            </Tooltip>
+        );
     };
 
     // 渲染消息量走势图表（包含当前24小时和前一天24小时）
@@ -225,20 +264,25 @@ export default function GroupsPage() {
 
                     setHourlyStats(statsData);
 
-                    // 计算每个群组的当前24小时总消息量
-                    const counts: Record<string, number> = {};
+                    // 计算每个群组的当前24小时/前一天24小时总消息量
+                    const currentCounts: Record<string, number> = {};
+                    const previousCounts: Record<string, number> = {};
 
                     for (const groupId of groupIds) {
                         const groupData = statsData.data[groupId];
 
                         if (groupData) {
-                            counts[groupId] = groupData.current.reduce((sum, count) => sum + count, 0);
+                            currentCounts[groupId] = groupData.current.reduce((sum, count) => sum + count, 0);
+                            previousCounts[groupId] = groupData.previous.reduce((sum, count) => sum + count, 0);
                         } else {
-                            counts[groupId] = 0;
+                            currentCounts[groupId] = 0;
+                            previousCounts[groupId] = 0;
                         }
                     }
-                    setRecentMessageCounts(counts);
+                    setRecentMessageCounts(currentCounts);
+                    setPreviousMessageCounts(previousCounts);
                     setTotalRecentMessageCount(statsData.totalCounts.current);
+                    setTotalPreviousMessageCount(statsData.totalCounts.previous);
 
                     // 计算总计的每小时数据
                     const totalCurrentHourly = new Array(24).fill(0);
@@ -324,7 +368,8 @@ export default function GroupsPage() {
         const items: GroupListItem[] = Object.entries(groups).map(([groupId, groupDetail]) => ({
             groupId,
             groupDetail,
-            messageCount: recentMessageCounts[groupId] ?? 0
+            messageCount: recentMessageCounts[groupId] ?? 0,
+            previousMessageCount: previousMessageCounts[groupId] ?? 0
         }));
 
         // 根据排序描述符进行排序
@@ -354,6 +399,10 @@ export default function GroupsPage() {
                         first = a.messageCount;
                         second = b.messageCount;
                         break;
+                    case "previousMessageCount":
+                        first = a.previousMessageCount;
+                        second = b.previousMessageCount;
+                        break;
                     default:
                         return 0;
                 }
@@ -376,7 +425,7 @@ export default function GroupsPage() {
         }
 
         return items;
-    }, [groups, recentMessageCounts, sortDescriptor]);
+    }, [groups, recentMessageCounts, previousMessageCounts, sortDescriptor]);
 
     // 处理排序变更
     const handleSortChange = (descriptor: SortDescriptor) => {
@@ -425,6 +474,9 @@ export default function GroupsPage() {
                                     <TableColumn key="messageCount" allowsSorting>
                                         最近24小时消息量
                                     </TableColumn>
+                                    <TableColumn key="previousMessageCount" allowsSorting>
+                                        前一天24小时消息量
+                                    </TableColumn>
                                     <TableColumn key="messageTrend">最近24小时消息量走势</TableColumn>
                                 </TableHeader>
                                 <TableBody emptyContent={"未找到群组信息"}>
@@ -442,14 +494,20 @@ export default function GroupsPage() {
                                             <TableCell>-</TableCell>
                                             <TableCell>-</TableCell>
                                             <TableCell>
-                                                <span className="font-semibold">{totalRecentMessageCount}</span>
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="font-semibold">{totalRecentMessageCount}</span>
+                                                    {renderDayOverDayChange(totalRecentMessageCount, totalPreviousMessageCount)}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <span className="font-semibold">{totalPreviousMessageCount}</span>
                                             </TableCell>
                                             <TableCell>
                                                 <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
                                             </TableCell>
                                         </TableRow>
                                         {/* 群组数据行 - 根据排序描述符排序 */}
-                                        {sortedGroupList.map(({ groupId, groupDetail }) => (
+                                        {sortedGroupList.map(({ groupId, groupDetail, messageCount, previousMessageCount }) => (
                                             <TableRow key={groupId}>
                                                 <TableCell>
                                                     <img
@@ -479,7 +537,13 @@ export default function GroupsPage() {
                                                 </TableCell>
                                                 <TableCell>{getAIModelLabel(groupDetail.aiModel)}</TableCell>
                                                 <TableCell>
-                                                    {recentMessageCounts[groupId] !== undefined ? <span className="font-semibold">{recentMessageCounts[groupId]}</span> : <Spinner size="sm" />}
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="font-semibold">{messageCount}</span>
+                                                        {renderDayOverDayChange(messageCount, previousMessageCount)}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <span className="font-semibold">{previousMessageCount}</span>
                                                 </TableCell>
                                                 <TableCell>
                                                     <div

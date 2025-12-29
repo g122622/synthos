@@ -66,8 +66,9 @@ export default function ChatMessagesPage() {
             }
 
             // 获取DatePicker的值
-            const startTime = startDate.toDate(getLocalTimeZone()).getTime();
-            const endTime = endDate.toDate(getLocalTimeZone()).getTime();
+            // startDate/endDate 是 ZonedDateTime，toDate() 不需要额外传入时区
+            const startTime = startDate.toDate().getTime();
+            const endTime = endDate.toDate().getTime();
 
             setIsLoading(true);
             try {
