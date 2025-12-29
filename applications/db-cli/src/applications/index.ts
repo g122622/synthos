@@ -4,10 +4,12 @@ import { IApplicationClass } from "@/contracts/IApplication";
 import { ExecSQL } from "./ExecSQL";
 import { PrintCurrentConfig } from "./PrintCurrentConfig";
 import { MigrateDB } from "./MigrateDB";
+import { SeekQQNumber } from "./SeekQQNumber";
 
 // 全部导出
 export const applications: IApplicationClass[] = [
     ExecSQL,
     PrintCurrentConfig,
     MigrateDB,
+    SeekQQNumber,
 ];
