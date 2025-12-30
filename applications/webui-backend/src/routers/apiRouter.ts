@@ -227,4 +227,20 @@ export const setupApiRoutes = (app: Express): void => {
         "/api/reports/generate",
         asyncHandler((req, res) => reportController.triggerGenerate(req, res))
     );
+
+    // 日报已读状态管理
+    app.post(
+        "/api/report/read/mark",
+        asyncHandler((req, res) => reportController.markAsRead(req, res))
+    );
+
+    app.post(
+        "/api/report/read/unmark",
+        asyncHandler((req, res) => reportController.markAsUnread(req, res))
+    );
+
+    app.post(
+        "/api/report/read/status",
+        asyncHandler((req, res) => reportController.checkReadStatus(req, res))
+    );
 };

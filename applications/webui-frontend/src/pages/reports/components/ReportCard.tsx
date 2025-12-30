@@ -1,14 +1,17 @@
-import { Card, CardBody, Chip } from "@heroui/react";
-import { FileText, Clock, Users, TrendingUp, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Card, CardBody, Chip, Tooltip } from "@heroui/react";
+import { Button as HeroUIButton } from "@heroui/button";
+import { FileText, Clock, Users, TrendingUp, AlertCircle, CheckCircle2, Check } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
 
 interface ReportCardProps {
     report: Report;
     onClick: () => void;
+    readReports?: Record<string, boolean>;
+    onMarkAsRead?: (reportId: string) => void;
 }
 
-export default function ReportCard({ report, onClick }: ReportCardProps) {
+export default function ReportCard({ report, onClick, readReports = {}, onMarkAsRead }: ReportCardProps) {
     // 格式化时间段
     const formatPeriod = (timeStart: number, timeEnd: number): string => {
         const start = new Date(timeStart);
@@ -49,6 +52,15 @@ export default function ReportCard({ report, onClick }: ReportCardProps) {
 
     const typeConfig = getTypeConfig(report.type);
     const statusConfig = getStatusConfig(report.summaryStatus);
+    const isRead = readReports[report.reportId] === true;
+
+    // 处理已读按钮点击，阻止事件冒泡
+    const handleMarkAsReadClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onMarkAsRead) {
+            onMarkAsRead(report.reportId);
+        }
+    };
 
     return (
         <Card isPressable className="w-full hover:bg-default-100 transition-colors" shadow="sm" onPress={onClick}>
@@ -82,7 +94,7 @@ export default function ReportCard({ report, onClick }: ReportCardProps) {
                         </div>
                     </div>
 
-                    {/* 右侧：状态 */}
+                    {/* 右侧：状态和已读按钮 */}
                     <div className="flex items-center gap-2">
                         {report.isEmpty ? (
                             <Chip color="default" size="sm" variant="flat">
@@ -92,6 +104,15 @@ export default function ReportCard({ report, onClick }: ReportCardProps) {
                             <Chip color={statusConfig.color} size="sm" startContent={statusConfig.icon} variant="flat">
                                 {statusConfig.label}
                             </Chip>
+                        )}
+
+                        {/* 已读按钮：只在未读时显示 */}
+                        {onMarkAsRead && !isRead && (
+                            <Tooltip color="primary" content="标记为已读" placement="top">
+                                <HeroUIButton isIconOnly color="primary" size="sm" variant="flat" onClick={handleMarkAsReadClick}>
+                                    <Check size={16} />
+                                </HeroUIButton>
+                            </Tooltip>
                         )}
                     </div>
                 </div>

@@ -4,15 +4,17 @@
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
 import { ReportDBManager } from "@root/common/database/ReportDBManager";
-import { Report, ReportType } from "@root/common/contracts/report";
+import { Report, ReportType } from "@root/common/contracts/report/index";
 import { NotFoundError } from "../errors/AppError";
 import { RAGClient } from "../rpc/aiModelClient";
+import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager";
 
 @injectable()
 export class ReportService {
     constructor(
         @inject(TOKENS.ReportDBManager) private reportDBManager: ReportDBManager,
-        @inject(TOKENS.RAGClient) private ragClient: RAGClient
+        @inject(TOKENS.RAGClient) private ragClient: RAGClient,
+        @inject(TOKENS.ReportReadStatusManager) private readStatusManager: ReportReadStatusManager
     ) {}
 
     /**
@@ -86,5 +88,32 @@ export class ReportService {
             timeStart,
             timeEnd
         });
+    }
+
+    // ==================== 已读相关 ====================
+
+    /**
+     * 标记日报为已读
+     */
+    public async markAsRead(reportId: string): Promise<void> {
+        await this.readStatusManager.markAsRead(reportId);
+    }
+
+    /**
+     * 标记日报为未读
+     */
+    public async markAsUnread(reportId: string): Promise<void> {
+        await this.readStatusManager.markAsUnread(reportId);
+    }
+
+    /**
+     * 批量检查日报已读状态
+     */
+    public async checkReadStatus(reportIds: string[]): Promise<Record<string, boolean>> {
+        const readStatus: Record<string, boolean> = {};
+        for (const reportId of reportIds) {
+            readStatus[reportId] = await this.readStatusManager.isReportRead(reportId);
+        }
+        return readStatus;
     }
 }

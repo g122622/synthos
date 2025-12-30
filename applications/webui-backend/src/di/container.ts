@@ -16,6 +16,7 @@ import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
 import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
+import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager";
 
 // Services
 import { AIDigestService } from "../services/AIDigestService";
@@ -65,10 +66,12 @@ export function registerDBManagers(
  */
 export function registerStatusManagers(
     favoriteStatusManager: TopicFavoriteStatusManager,
-    readStatusManager: TopicReadStatusManager
+    readStatusManager: TopicReadStatusManager,
+    reportReadStatusManager: ReportReadStatusManager
 ): void {
     container.registerInstance(TOKENS.TopicFavoriteStatusManager, favoriteStatusManager);
     container.registerInstance(TOKENS.TopicReadStatusManager, readStatusManager);
+    container.registerInstance(TOKENS.ReportReadStatusManager, reportReadStatusManager);
 }
 
 /**

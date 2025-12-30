@@ -488,3 +488,57 @@ export const mockTriggerReportGenerate = async (type: ReportType, timeStart?: nu
         message: ""
     };
 };
+
+// ==================== 日报已读状态模拟 ====================
+
+// 模拟的已读状态存储
+const mockReadReports: Record<string, boolean> = {};
+
+/**
+ * 模拟标记日报为已读
+ */
+export const mockMarkReportAsRead = async (reportId: string): Promise<ApiResponse<{ message: string }>> => {
+    await delay(200 + Math.random() * 100);
+
+    mockReadReports[reportId] = true;
+
+    return {
+        success: true,
+        data: { message: "日报已标记为已读" },
+        message: ""
+    };
+};
+
+/**
+ * 模拟清除日报的已读状态
+ */
+export const mockUnmarkReportAsRead = async (reportId: string): Promise<ApiResponse<{ message: string }>> => {
+    await delay(200 + Math.random() * 100);
+
+    delete mockReadReports[reportId];
+
+    return {
+        success: true,
+        data: { message: "日报已读状态已清除" },
+        message: ""
+    };
+};
+
+/**
+ * 模拟批量检查日报已读状态
+ */
+export const mockGetReportsReadStatus = async (reportIds: string[]): Promise<ApiResponse<{ readStatus: Record<string, boolean> }>> => {
+    await delay(200 + Math.random() * 100);
+
+    const readStatus: Record<string, boolean> = {};
+
+    for (const reportId of reportIds) {
+        readStatus[reportId] = mockReadReports[reportId] === true;
+    }
+
+    return {
+        success: true,
+        data: { readStatus },
+        message: ""
+    };
+};

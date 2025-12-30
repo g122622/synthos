@@ -2,7 +2,17 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-import { mockGetReportById, mockGetReportsPaginated, mockGetReportsByDate, mockGetReportsByTimeRange, mockGetRecentReports, mockTriggerReportGenerate } from "@/mock/reportMock";
+import {
+    mockGetReportById,
+    mockGetReportsPaginated,
+    mockGetReportsByDate,
+    mockGetReportsByTimeRange,
+    mockGetRecentReports,
+    mockTriggerReportGenerate,
+    mockMarkReportAsRead,
+    mockUnmarkReportAsRead,
+    mockGetReportsReadStatus
+} from "@/mock/reportMock";
 
 // 日报类型
 export type ReportType = "half-daily" | "weekly" | "monthly";
@@ -148,6 +158,59 @@ export const triggerReportGenerate = async (type: ReportType, timeStart?: number
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ type, timeStart, timeEnd })
+    });
+
+    return response.json();
+};
+
+// ==================== 日报已读状态 ====================
+
+/**
+ * 标记日报为已读
+ */
+export const markReportAsRead = async (reportId: string): Promise<ApiResponse<{ message: string }>> => {
+    if (mockConfig.report) {
+        return mockMarkReportAsRead(reportId);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/report/read/mark`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId })
+    });
+
+    return response.json();
+};
+
+/**
+ * 清除日报的已读状态
+ */
+export const unmarkReportAsRead = async (reportId: string): Promise<ApiResponse<{ message: string }>> => {
+    if (mockConfig.report) {
+        return mockUnmarkReportAsRead(reportId);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/report/read/unmark`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId })
+    });
+
+    return response.json();
+};
+
+/**
+ * 批量检查日报已读状态
+ */
+export const getReportsReadStatus = async (reportIds: string[]): Promise<ApiResponse<{ readStatus: Record<string, boolean> }>> => {
+    if (mockConfig.report) {
+        return mockGetReportsReadStatus(reportIds);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/report/read/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportIds })
     });
 
     return response.json();

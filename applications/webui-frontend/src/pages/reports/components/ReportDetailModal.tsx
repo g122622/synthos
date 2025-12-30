@@ -1,5 +1,5 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Chip, Divider, Card, CardBody, Link } from "@heroui/react";
-import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink } from "lucide-react";
+import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink, Check } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -8,9 +8,11 @@ interface ReportDetailModalProps {
     report: Report | null;
     isOpen: boolean;
     onClose: () => void;
+    readReports?: Record<string, boolean>;
+    onMarkAsRead?: (reportId: string) => Promise<void>;
 }
 
-export default function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModalProps) {
+export default function ReportDetailModal({ report, isOpen, onClose, readReports = {}, onMarkAsRead }: ReportDetailModalProps) {
     if (!report) return null;
 
     // 格式化时间
@@ -165,6 +167,19 @@ export default function ReportDetailModal({ report, isOpen, onClose }: ReportDet
                 </ModalBody>
 
                 <ModalFooter>
+                    {onMarkAsRead && !readReports[report.reportId] && (
+                        <Button
+                            color="primary"
+                            startContent={<Check size={16} />}
+                            variant="flat"
+                            onPress={async () => {
+                                await onMarkAsRead(report.reportId);
+                                onClose();
+                            }}
+                        >
+                            标记已读
+                        </Button>
+                    )}
                     <Button color="primary" variant="light" onPress={onClose}>
                         关闭
                     </Button>

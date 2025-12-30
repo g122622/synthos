@@ -20,6 +20,7 @@ export const TOKENS = {
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),
     TopicReadStatusManager: Symbol.for("TopicReadStatusManager"),
     RagChatHistoryManager: Symbol.for("RagChatHistoryManager"),
+    ReportReadStatusManager: Symbol.for("ReportReadStatusManager"),
 
     // RPC Clients
     RAGClient: Symbol.for("RAGClient"),

@@ -11,7 +11,7 @@ import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
 
-import { Report, ReportType, getReportsPaginated, getReportsByDate, triggerReportGenerate } from "@/api/reportApi";
+import { Report, ReportType, getReportsPaginated, getReportsByDate, triggerReportGenerate, markReportAsRead, getReportsReadStatus } from "@/api/reportApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
@@ -40,6 +40,9 @@ export default function ReportsPage() {
     // 手动生成日报相关
     const [generateType, setGenerateType] = useState<ReportType>("half-daily");
     const [generating, setGenerating] = useState<boolean>(false);
+
+    // 已读状态
+    const [readReports, setReadReports] = useState<Record<string, boolean>>({});
 
     // 加载日报列表
     const fetchReports = useCallback(async () => {
@@ -107,6 +110,49 @@ export default function ReportsPage() {
         setPage(1);
     }, [selectedType]);
 
+    // 初始化已读状态（列表视图）
+    useEffect(() => {
+        const initReadStatus = async () => {
+            if (reports.length === 0) return;
+
+            try {
+                const reportIds = reports.map(report => report.reportId);
+                const response = await getReportsReadStatus(reportIds);
+
+                if (response.success) {
+                    setReadReports(response.data.readStatus);
+                }
+            } catch (error) {
+                console.error("初始化日报已读状态失败:", error);
+            }
+        };
+
+        initReadStatus();
+    }, [reports]);
+
+    // 初始化已读状态（日历视图）
+    useEffect(() => {
+        const initDateReadStatus = async () => {
+            if (dateReports.length === 0) return;
+
+            try {
+                const reportIds = dateReports.map(report => report.reportId);
+                const response = await getReportsReadStatus(reportIds);
+
+                if (response.success) {
+                    setReadReports(prev => ({
+                        ...prev,
+                        ...response.data.readStatus
+                    }));
+                }
+            } catch (error) {
+                console.error("初始化日报已读状态失败:", error);
+            }
+        };
+
+        initDateReadStatus();
+    }, [dateReports]);
+
     // 打开详情弹窗
     const openReportDetail = (report: Report) => {
         setSelectedReport(report);
@@ -130,6 +176,36 @@ export default function ReportsPage() {
     // 快捷跳转到今天
     const goToToday = () => {
         setSelectedDate(today(getLocalTimeZone()));
+    };
+
+    // 标记日报为已读
+    const handleMarkAsRead = async (reportId: string) => {
+        try {
+            // 乐观更新本地状态
+            setReadReports(prev => ({
+                ...prev,
+                [reportId]: true
+            }));
+
+            // 调用 API 持久化
+            await markReportAsRead(reportId);
+
+            Notification.success({
+                title: "标记成功",
+                description: "日报已标记为已读"
+            });
+        } catch (error) {
+            console.error("标记日报已读失败:", error);
+            // 回滚本地状态
+            setReadReports(prev => ({
+                ...prev,
+                [reportId]: false
+            }));
+            Notification.error({
+                title: "标记失败",
+                description: "无法标记日报为已读"
+            });
+        }
     };
 
     // 手动生成日报
@@ -266,7 +342,7 @@ export default function ReportsPage() {
                                     <ScrollShadow className="max-h-[calc(100vh-320px)]">
                                         <div className="flex flex-col gap-3 p-2">
                                             {reports.map(report => (
-                                                <ReportCard key={report.reportId} report={report} onClick={() => openReportDetail(report)} />
+                                                <ReportCard key={report.reportId} readReports={readReports} report={report} onClick={() => openReportDetail(report)} onMarkAsRead={handleMarkAsRead} />
                                             ))}
                                         </div>
                                     </ScrollShadow>
@@ -310,7 +386,7 @@ export default function ReportsPage() {
                                     ) : dateReports.length > 0 ? (
                                         <div className="flex flex-col gap-3">
                                             {dateReports.map(report => (
-                                                <ReportCard key={report.reportId} report={report} onClick={() => openReportDetail(report)} />
+                                                <ReportCard key={report.reportId} readReports={readReports} report={report} onClick={() => openReportDetail(report)} onMarkAsRead={handleMarkAsRead} />
                                             ))}
                                         </div>
                                     ) : (
@@ -326,7 +402,7 @@ export default function ReportsPage() {
             </section>
 
             {/* 日报详情弹窗 */}
-            <ReportDetailModal isOpen={isModalOpen} report={selectedReport} onClose={closeReportDetail} />
+            <ReportDetailModal isOpen={isModalOpen} readReports={readReports} report={selectedReport} onClose={closeReportDetail} onMarkAsRead={handleMarkAsRead} />
         </DefaultLayout>
     );
 }

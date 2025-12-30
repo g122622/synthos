@@ -30,6 +30,7 @@ import type ConfigManagerServiceType from "@root/common/config/ConfigManagerServ
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "./repositories/TopicReadStatusManager";
 import { RagChatHistoryManager } from "./repositories/RagChatHistoryManager";
+import { ReportReadStatusManager } from "./repositories/ReportReadStatusManager";
 
 // 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
@@ -95,6 +96,7 @@ export class WebUILocalServer {
 private async initializeStatusManagers(): Promise<{
         favoriteStatusManager: TopicFavoriteStatusManager;
         readStatusManager: TopicReadStatusManager;
+        reportReadStatusManager: ReportReadStatusManager;
     }> {
         const config = await this.getConfigManagerService().getCurrentConfig();
         const favoriteStatusManager = TopicFavoriteStatusManager.getInstance(
@@ -103,7 +105,10 @@ private async initializeStatusManagers(): Promise<{
         const readStatusManager = TopicReadStatusManager.getInstance(
             path.join(config.webUI_Backend.kvStoreBasePath, "read_topics")
         );
-        return { favoriteStatusManager, readStatusManager };
+        const reportReadStatusManager = ReportReadStatusManager.getInstance(
+            path.join(config.webUI_Backend.kvStoreBasePath, "read_reports")
+        );
+        return { favoriteStatusManager, readStatusManager, reportReadStatusManager };
     }
 
     private async initializeRagChatHistoryManager(): Promise<RagChatHistoryManager> {
@@ -128,8 +133,8 @@ private async initializeStatusManagers(): Promise<{
         );
 
         // 2. 注册 Status Managers
-        const { favoriteStatusManager, readStatusManager } = await this.initializeStatusManagers();
-        registerStatusManagers(favoriteStatusManager, readStatusManager);
+        const { favoriteStatusManager, readStatusManager, reportReadStatusManager } = await this.initializeStatusManagers();
+        registerStatusManagers(favoriteStatusManager, readStatusManager, reportReadStatusManager);
 
         // 2.5. 注册 RAG 聊天历史管理器
         const ragChatHistoryManager = await this.initializeRagChatHistoryManager();

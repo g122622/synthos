@@ -148,3 +148,14 @@ export const TriggerReportGenerateSchema = z.object({
     timeEnd: z.number().optional()
 });
 export type TriggerReportGenerateParams = z.infer<typeof TriggerReportGenerateSchema>;
+
+// 日报已读状态
+export const ReportIdSchema = z.object({
+    reportId: z.string({ message: "缺少reportId参数或参数类型不正确" })
+});
+export type ReportIdParams = z.infer<typeof ReportIdSchema>;
+
+export const ReportIdsSchema = z.object({
+    reportIds: z.array(z.string(), { message: "缺少reportIds参数或参数类型不正确" })
+});
+export type ReportIdsParams = z.infer<typeof ReportIdsSchema>;

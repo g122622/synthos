@@ -11,7 +11,9 @@ import {
     GetReportsByDateSchema,
     GetReportsByTimeRangeSchema,
     GetRecentReportsSchema,
-    TriggerReportGenerateSchema
+    TriggerReportGenerateSchema,
+    ReportIdSchema,
+    ReportIdsSchema
 } from "../schemas/index";
 
 @injectable()
@@ -89,5 +91,37 @@ export class ReportController {
             params.timeEnd
         );
         res.json({ success: true, data: result });
+    }
+
+    // ==================== 已读相关 ====================
+
+    /**
+     * POST /api/report/read/mark
+     * 标记日报为已读
+     */
+    public async markAsRead(req: Request, res: Response): Promise<void> {
+        const params = ReportIdSchema.parse(req.body);
+        await this.reportService.markAsRead(params.reportId);
+        res.json({ success: true, message: "日报已标记为已读" });
+    }
+
+    /**
+     * POST /api/report/read/unmark
+     * 清除日报的已读状态
+     */
+    public async markAsUnread(req: Request, res: Response): Promise<void> {
+        const params = ReportIdSchema.parse(req.body);
+        await this.reportService.markAsUnread(params.reportId);
+        res.json({ success: true, message: "日报已读状态已清除" });
+    }
+
+    /**
+     * POST /api/report/read/status
+     * 批量检查日报已读状态
+     */
+    public async checkReadStatus(req: Request, res: Response): Promise<void> {
+        const params = ReportIdsSchema.parse(req.body);
+        const readStatus = await this.reportService.checkReadStatus(params.reportIds);
+        res.json({ success: true, data: { readStatus } });
     }
 }
