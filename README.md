@@ -61,7 +61,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - ✅ 构建rag问答上下文时，插入当前日期和每个话题的日期，以提高模型回答的准确性
 > - [TODO] RAG前端问答页面支持 1. 解析话题，并在鼠标hover后自动展示话题详情浮层 2. 渲染markdown 3. 支持全文复制
 > - [WIP] RAG支持记忆历史会话
-> - [TODO] init() 防重入
+> - ✅ 已完成 init() 防重入
 > - [TODO] 支持按照群友发言数量排名（可按照群、时间段等筛选）、分析根据每个群友的发言内容生成群友画像
 > - [TODO] 预处理支持对图片进行ocr和vllm识别
 > - [TODO] 生成摘要、回答等场景的上下文补充背景知识

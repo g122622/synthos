@@ -99,13 +99,13 @@ describe("mustInitBeforeUse 装饰器", () => {
         it("访问普通属性应抛出错误", () => {
             expect(() => {
                 const _ = service.value;
-            }).toThrow(/must be initialized with await .init\(\) before use/);
+            }).toThrow(/必须在使用前调用.*init\(\)/);
         });
 
         it("调用普通方法应抛出错误", () => {
             expect(() => {
                 service.getValue();
-            }).toThrow(/must be initialized with await .init\(\) before use/);
+            }).toThrow(/必须在使用前调用.*init\(\)/);
         });
 
         it("错误信息应包含类名和属性名", () => {
@@ -228,7 +228,7 @@ describe("mustInitBeforeUse 装饰器", () => {
             // service2 未初始化，应抛错
             expect(() => {
                 service2.getValue();
-            }).toThrow(/must be initialized/);
+            }).toThrow(/必须在使用前调用/);
 
             await service1.dispose();
             await service2.dispose();
@@ -269,7 +269,7 @@ describe("mustInitBeforeUse 装饰器", () => {
             // 未初始化时应抛错
             expect(() => {
                 derived.getBaseValue();
-            }).toThrow(/must be initialized/);
+            }).toThrow(/必须在使用前调用/);
 
             await derived.init();
 
@@ -281,13 +281,14 @@ describe("mustInitBeforeUse 装饰器", () => {
     });
 
     describe("边界情况", () => {
-        it("多次调用 init 应安全", async () => {
+        it("多次调用 init 应安全且只执行一次", async () => {
             await service.init();
-            service.setValue("first");
+            service.setValue("modified");
 
+            // 再次调用 init 不会重新执行初始化逻辑
             await service.init();
-            // init 会重置 value
-            expect(service.getValue()).toBe("initialized");
+            // value 应保持为 "modified"，而不是被重置为 "initialized"
+            expect(service.getValue()).toBe("modified");
         });
 
         it("dispose 后再次初始化的行为", async () => {
@@ -297,6 +298,143 @@ describe("mustInitBeforeUse 装饰器", () => {
             // dispose 后，isDisposed 为 true，访问属性不会抛初始化错误
             // 但属性可能已被清除
             expect(service.isDisposed).toBe(true);
+        });
+    });
+
+    describe("init 幂等性", () => {
+        // 用于测试初始化计数的类
+        @mustInitBeforeUse
+        class InitCounterService extends Disposable {
+            public initCount: number = 0;
+
+            public async init(): Promise<void> {
+                this.initCount++;
+                // 模拟异步操作
+                await new Promise((resolve) => setTimeout(resolve, 10));
+            }
+
+            public getInitCount(): number {
+                return this.initCount;
+            }
+        }
+
+        it("已初始化完成后再次调用 init 应直接返回，不重复执行", async () => {
+            const counter = new InitCounterService();
+            
+            await counter.init();
+            expect(counter.getInitCount()).toBe(1);
+
+            // 再次调用 init
+            await counter.init();
+            expect(counter.getInitCount()).toBe(1); // 仍然是 1，没有重复执行
+
+            // 多次调用
+            await counter.init();
+            await counter.init();
+            expect(counter.getInitCount()).toBe(1);
+
+            await counter.dispose();
+        });
+
+        it("并发调用 init 应共享同一个 Promise，只执行一次初始化", async () => {
+            const counter = new InitCounterService();
+
+            // 并发调用多次 init
+            const promises = [
+                counter.init(),
+                counter.init(),
+                counter.init()
+            ];
+
+            await Promise.all(promises);
+
+            // 只应执行一次初始化
+            expect(counter.getInitCount()).toBe(1);
+
+            await counter.dispose();
+        });
+
+        it("并发调用 init 后所有调用者都能正常使用实例", async () => {
+            const counter = new InitCounterService();
+
+            // 并发调用
+            const [result1, result2, result3] = await Promise.all([
+                counter.init().then(() => counter.getInitCount()),
+                counter.init().then(() => counter.getInitCount()),
+                counter.init().then(() => counter.getInitCount())
+            ]);
+
+            // 所有调用者都应能获取到正确的值
+            expect(result1).toBe(1);
+            expect(result2).toBe(1);
+            expect(result3).toBe(1);
+
+            await counter.dispose();
+        });
+
+        it("初始化失败后应允许重试", async () => {
+            // 使用外部变量追踪状态，因为初始化失败后实例属性不可访问
+            let initAttempts = 0;
+            let shouldFail = true;
+
+            @mustInitBeforeUse
+            class RetryableInitService extends Disposable {
+                public async init(): Promise<void> {
+                    initAttempts++;
+                    if (shouldFail) {
+                        throw new Error("初始化失败");
+                    }
+                }
+
+                public getValue(): string {
+                    return "success";
+                }
+            }
+
+            const retryService = new RetryableInitService();
+
+            // 第一次调用应失败
+            await expect(retryService.init()).rejects.toThrow("初始化失败");
+            expect(initAttempts).toBe(1);
+
+            // 设置为不再失败
+            shouldFail = false;
+
+            // 重试应成功
+            await expect(retryService.init()).resolves.not.toThrow();
+            expect(initAttempts).toBe(2);
+
+            // 成功后再次调用不应重复执行
+            await retryService.init();
+            expect(initAttempts).toBe(2);
+
+            // 验证初始化成功后可正常使用
+            expect(retryService.getValue()).toBe("success");
+
+            await retryService.dispose();
+        });
+
+        it("正在初始化时再次调用应等待当前初始化完成", async () => {
+            const counter = new InitCounterService();
+            const callOrder: string[] = [];
+
+            // 开始初始化
+            const promise1 = counter.init().then(() => {
+                callOrder.push("first");
+            });
+
+            // 在初始化过程中再次调用
+            const promise2 = counter.init().then(() => {
+                callOrder.push("second");
+            });
+
+            await Promise.all([promise1, promise2]);
+
+            // 两个调用都应在初始化完成后执行 then
+            expect(callOrder).toHaveLength(2);
+            expect(counter.getInitCount()).toBe(1);
+
+            await counter.dispose();
         });
     });
 });
