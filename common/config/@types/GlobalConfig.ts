@@ -44,6 +44,7 @@ export const ReportConfigSchema = z.object({
     }).describe("定时触发配置"),
     generation: z.object({
         topNTopics: z.number().positive().int().describe("喂给 LLM 的话题数量上限"),
+        interestScoreThreshold: z.number().min(-1).max(1).default(0).describe("兴趣分数阈值。如果话题的兴趣度评分小于这个值，在生成周报的时候该话题会被丢弃；若大于等于这个值或者不存在兴趣度评分，则会被保留"),
         llmRetryCount: z.number().int().min(0).describe("LLM 调用失败重试次数"),
         aiModels: z.array(z.string()).describe("用于生成日报综述的 AI 模型列表，按优先级排序"),
     }).describe("日报生成配置"),

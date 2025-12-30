@@ -138,10 +138,11 @@ export async function setupGenerateReportTask(
                     }
                 }
 
-                // 过滤掉兴趣度为负数的话题
+                // 过滤掉兴趣度低于阈值的话题（若不存在兴趣度评分，则保留）
+                const interestScoreThreshold = config.report.generation.interestScoreThreshold;
                 const filteredResults = digestResults.filter(result => {
                     const score = interestScores.get(result.topicId);
-                    return score === undefined || score >= 0;
+                    return score === undefined || score >= interestScoreThreshold;
                 });
 
                 // 3. 检查是否有话题
