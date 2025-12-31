@@ -1,11 +1,18 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { mockConfig } from "@/config/mock";
+import { mockMarkTopicAsFavorite, mockRemoveTopicFromFavorites, mockGetTopicsFavoriteStatus, mockMarkTopicAsRead, mockUnmarkTopicAsRead, mockGetTopicsReadStatus } from "@/mock/latestTopicsMock";
 
 // 话题收藏状态管理接口
 
 // 标记话题为收藏
 export const markTopicAsFavorite = async (topicId: string) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockMarkTopicAsFavorite(topicId);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/favorite/mark`, {
         method: "POST",
         headers: {
@@ -19,6 +26,11 @@ export const markTopicAsFavorite = async (topicId: string) => {
 
 // 从收藏中移除话题
 export const removeTopicFromFavorites = async (topicId: string) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockRemoveTopicFromFavorites(topicId);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/favorite/remove`, {
         method: "POST",
         headers: {
@@ -32,6 +44,11 @@ export const removeTopicFromFavorites = async (topicId: string) => {
 
 // 检查多个话题是否被收藏
 export const getTopicsFavoriteStatus = async (topicIds: string[]) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetTopicsFavoriteStatus(topicIds);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/favorite/status`, {
         method: "POST",
         headers: {
@@ -47,6 +64,11 @@ export const getTopicsFavoriteStatus = async (topicIds: string[]) => {
 
 // 标记话题为已读
 export const markTopicAsRead = async (topicId: string) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockMarkTopicAsRead(topicId);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/read/mark`, {
         method: "POST",
         headers: {
@@ -60,6 +82,11 @@ export const markTopicAsRead = async (topicId: string) => {
 
 // 清除话题的已读状态
 export const unmarkTopicAsRead = async (topicId: string) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockUnmarkTopicAsRead(topicId);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/read/unmark`, {
         method: "POST",
         headers: {
@@ -73,6 +100,11 @@ export const unmarkTopicAsRead = async (topicId: string) => {
 
 // 检查多个话题是否已读
 export const getTopicsReadStatus = async (topicIds: string[]) => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetTopicsReadStatus(topicIds);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/topic/read/status`, {
         method: "POST",
         headers: {

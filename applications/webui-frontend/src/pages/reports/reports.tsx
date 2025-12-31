@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
@@ -11,12 +12,14 @@ import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
 
-import { Report, ReportType, getReportsPaginated, getReportsByDate, triggerReportGenerate, markReportAsRead, getReportsReadStatus } from "@/api/reportApi";
+import { Report, ReportType, getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus } from "@/api/reportApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 
 export default function ReportsPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
+
     // 状态管理
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
@@ -43,6 +46,118 @@ export default function ReportsPage() {
 
     // 已读状态
     const [readReports, setReadReports] = useState<Record<string, boolean>>({});
+
+    // 标记是否已从URL初始化
+    const [isInitializedFromUrl, setIsInitializedFromUrl] = useState<boolean>(false);
+
+    // 从URL参数初始化状态
+    useEffect(() => {
+        const initFromUrl = async () => {
+            const urlViewMode = searchParams.get("viewMode");
+            const urlSelectedType = searchParams.get("type");
+            const urlPage = searchParams.get("page");
+            const urlSelectedDate = searchParams.get("date");
+            const urlReportId = searchParams.get("reportId");
+
+            // 处理视图模式
+            if (urlViewMode === "list" || urlViewMode === "calendar") {
+                setViewMode(urlViewMode);
+            }
+
+            // 处理报告类型
+            if (urlSelectedType === "all" || urlSelectedType === "half-daily" || urlSelectedType === "weekly" || urlSelectedType === "monthly") {
+                setSelectedType(urlSelectedType);
+            }
+
+            // 处理页码
+            if (urlPage) {
+                const pageNum = parseInt(urlPage, 10);
+
+                if (!isNaN(pageNum) && pageNum >= 1) {
+                    setPage(pageNum);
+                }
+            }
+
+            // 处理选中日期（日历视图）
+            if (urlSelectedDate) {
+                try {
+                    const dateParts = urlSelectedDate.split("-").map(Number);
+
+                    if (dateParts.length === 3) {
+                        setSelectedDate(new CalendarDate(dateParts[0], dateParts[1], dateParts[2]));
+                    }
+                } catch {
+                    // 日期解析失败，使用默认值
+                }
+            }
+
+            // 处理 reportId，如果存在则加载对应报告并打开弹窗
+            if (urlReportId) {
+                try {
+                    const response = await getReportById(urlReportId);
+
+                    if (response.success) {
+                        setSelectedReport(response.data);
+                        setIsModalOpen(true);
+                    } else {
+                        Notification.error({
+                            title: "报告不存在",
+                            description: `URL中指定的报告ID "${urlReportId}" 不存在`
+                        });
+                    }
+                } catch (error) {
+                    console.error("获取报告详情失败:", error);
+                    Notification.error({
+                        title: "加载失败",
+                        description: `无法加载报告 "${urlReportId}"`
+                    });
+                }
+            }
+
+            setIsInitializedFromUrl(true);
+        };
+
+        initFromUrl();
+    }, []);
+
+    // 同步筛选参数到URL
+    useEffect(() => {
+        // 只有在初始化完成后才同步URL
+        if (!isInitializedFromUrl) {
+            return;
+        }
+
+        const newParams = new URLSearchParams();
+
+        // 视图模式（默认list，只有calendar时才写入）
+        if (viewMode !== "list") {
+            newParams.set("viewMode", viewMode);
+        }
+
+        // 报告类型（默认all，只有非all时才写入）
+        if (selectedType !== "all") {
+            newParams.set("type", selectedType);
+        }
+
+        // 页码（只有非第一页才写入，且只在列表视图时有意义）
+        if (viewMode === "list" && page > 1) {
+            newParams.set("page", String(page));
+        }
+
+        // 选中日期（日历视图，只有非今天才写入）
+        const todayDate = today(getLocalTimeZone());
+
+        if (viewMode === "calendar" && (selectedDate.year !== todayDate.year || selectedDate.month !== todayDate.month || selectedDate.day !== todayDate.day)) {
+            newParams.set("date", `${selectedDate.year}-${String(selectedDate.month).padStart(2, "0")}-${String(selectedDate.day).padStart(2, "0")}`);
+        }
+
+        // 当前打开的报告ID
+        if (selectedReport) {
+            newParams.set("reportId", selectedReport.reportId);
+        }
+
+        setSearchParams(newParams, { replace: true });
+    }, [viewMode, selectedType, page, selectedDate, selectedReport, isInitializedFromUrl, setSearchParams]);
 
     // 加载日报列表
     const fetchReports = useCallback(async () => {
@@ -91,19 +206,25 @@ export default function ReportsPage() {
         }
     }, []);
 
-    // 初始加载
+    // 初始加载（需等待URL初始化完成）
     useEffect(() => {
+        if (!isInitializedFromUrl) {
+            return;
+        }
         if (viewMode === "list") {
             fetchReports();
         }
-    }, [fetchReports, viewMode]);
+    }, [fetchReports, viewMode, isInitializedFromUrl]);
 
-    // 日期变化时加载日报
+    // 日期变化时加载日报（需等待URL初始化完成）
     useEffect(() => {
+        if (!isInitializedFromUrl) {
+            return;
+        }
         if (viewMode === "calendar") {
             fetchReportsByDate(selectedDate);
         }
-    }, [selectedDate, viewMode, fetchReportsByDate]);
+    }, [selectedDate, viewMode, fetchReportsByDate, isInitializedFromUrl]);
 
     // 切换类型时重置页码
     useEffect(() => {

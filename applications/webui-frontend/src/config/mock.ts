@@ -14,5 +14,7 @@ export const mockConfig = {
     // Report 模块 mock 开关
     report: import.meta.env.VITE_MOCK_REPORT === "true" || MOCK_ENABLED,
     // Groups 模块 mock 开关
-    groups: import.meta.env.VITE_MOCK_GROUPS === "true" || MOCK_ENABLED
+    groups: import.meta.env.VITE_MOCK_GROUPS === "true" || MOCK_ENABLED,
+    // Latest Topics 模块 mock 开关
+    latestTopics: import.meta.env.VITE_MOCK_LATEST_TOPICS === "true" || MOCK_ENABLED
 };

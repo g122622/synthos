@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
 import { Spinner } from "@heroui/spinner";
 import { ScrollShadow } from "@heroui/scroll-shadow";
-import { DateRangePicker, Tooltip, Input, Checkbox } from "@heroui/react";
+import { DateRangePicker, Tooltip, Input, Checkbox, Select, SelectItem } from "@heroui/react";
 import { Check, Search } from "lucide-react";
-import { today, getLocalTimeZone } from "@internationalized/date";
-import { Slider } from "@heroui/slider";
+import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 
 import TopicItem from "./types/TopicItem";
 
@@ -21,8 +21,10 @@ import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import ResponsivePopover from "@/components/ResponsivePopover";
 import throttle from "@/util/throttle";
+import { GroupDetailsRecord } from "@/types/app";
 
 export default function LatestTopicsPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [topics, setTopics] = useState<TopicItem[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [page, setPage] = useState<number>(1);
@@ -30,6 +32,10 @@ export default function LatestTopicsPage() {
     const [readTopics, setReadTopics] = useState<Record<string, boolean>>({});
     const [favoriteTopics, setFavoriteTopics] = useState<Record<string, boolean>>({}); // 收藏状态
     const [interestScores, setInterestScores] = useState<Record<string, number>>({}); // 兴趣得分状态
+
+    // 群组筛选状态
+    const [groups, setGroups] = useState<GroupDetailsRecord>({});
+    const [selectedGroupId, setSelectedGroupId] = useState<string>(""); // 空字符串表示"全部群组"
 
     // 筛选状态
     const [filterRead, setFilterRead] = useState<boolean>(true); // 过滤已读
@@ -42,6 +48,142 @@ export default function LatestTopicsPage() {
         start: today(getLocalTimeZone()).subtract({ days: 1 }),
         end: today(getLocalTimeZone()).add({ days: 1 })
     });
+
+    // 标记是否已从URL初始化
+    const [isInitializedFromUrl, setIsInitializedFromUrl] = useState<boolean>(false);
+
+    // 从URL参数初始化状态
+    useEffect(() => {
+        const fetchGroupsAndInitFromUrl = async () => {
+            try {
+                const response = await getGroupDetails();
+
+                if (response.success) {
+                    setGroups(response.data);
+                    const groupIds = Object.keys(response.data);
+
+                    // 从URL获取参数
+                    const urlGroupId = searchParams.get("groupId");
+                    const urlFilterRead = searchParams.get("filterRead");
+                    const urlFilterFavorite = searchParams.get("filterFavorite");
+                    const urlSortByInterest = searchParams.get("sortByInterest");
+                    const urlSearchText = searchParams.get("search");
+                    const urlPage = searchParams.get("page");
+                    const urlStartDate = searchParams.get("startDate");
+                    const urlEndDate = searchParams.get("endDate");
+
+                    // 处理群组ID
+                    if (urlGroupId) {
+                        if (groupIds.includes(urlGroupId)) {
+                            setSelectedGroupId(urlGroupId);
+                        } else {
+                            // URL中的groupId不存在于群组列表中，提示用户
+                            Notification.error({
+                                title: "群组不存在",
+                                description: `URL中指定的群组ID "${urlGroupId}" 不存在`
+                            });
+                        }
+                    }
+
+                    // 处理筛选开关
+                    if (urlFilterRead !== null) {
+                        setFilterRead(urlFilterRead === "true");
+                    }
+                    if (urlFilterFavorite !== null) {
+                        setFilterFavorite(urlFilterFavorite === "true");
+                    }
+                    if (urlSortByInterest !== null) {
+                        setSortByInterest(urlSortByInterest === "true");
+                    }
+
+                    // 处理搜索文本
+                    if (urlSearchText) {
+                        setSearchText(urlSearchText);
+                    }
+
+                    // 处理页码
+                    if (urlPage) {
+                        const pageNum = parseInt(urlPage, 10);
+
+                        if (!isNaN(pageNum) && pageNum >= 1) {
+                            setPage(pageNum);
+                        }
+                    }
+
+                    // 处理时间范围
+                    if (urlStartDate && urlEndDate) {
+                        try {
+                            const startParts = urlStartDate.split("-").map(Number);
+                            const endParts = urlEndDate.split("-").map(Number);
+
+                            if (startParts.length === 3 && endParts.length === 3) {
+                                setDateRange({
+                                    start: new CalendarDate(startParts[0], startParts[1], startParts[2]),
+                                    end: new CalendarDate(endParts[0], endParts[1], endParts[2])
+                                });
+                            }
+                        } catch {
+                            // 日期解析失败，使用默认值
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("获取群组信息失败:", error);
+            } finally {
+                setIsInitializedFromUrl(true);
+            }
+        };
+
+        fetchGroupsAndInitFromUrl();
+    }, []);
+
+    // 同步筛选参数到URL
+    useEffect(() => {
+        // 只有在初始化完成后才同步URL
+        if (!isInitializedFromUrl) {
+            return;
+        }
+
+        const newParams = new URLSearchParams();
+
+        if (selectedGroupId) {
+            newParams.set("groupId", selectedGroupId);
+        }
+        if (!filterRead) {
+            // 默认是true，所以只有为false时才写入URL
+            newParams.set("filterRead", "false");
+        }
+        if (filterFavorite) {
+            // 默认是false，所以只有为true时才写入URL
+            newParams.set("filterFavorite", "true");
+        }
+        if (sortByInterest) {
+            // 默认是false，所以只有为true时才写入URL
+            newParams.set("sortByInterest", "true");
+        }
+        if (searchText) {
+            newParams.set("search", searchText);
+        }
+        if (page > 1) {
+            // 只有非第一页才写入URL
+            newParams.set("page", String(page));
+        }
+
+        // 时间范围：格式化为 YYYY-MM-DD
+        const defaultStart = today(getLocalTimeZone()).subtract({ days: 1 });
+        const defaultEnd = today(getLocalTimeZone()).add({ days: 1 });
+
+        // 只有当时间范围不是默认值时才写入URL
+        const isStartDefault = dateRange.start.year === defaultStart.year && dateRange.start.month === defaultStart.month && dateRange.start.day === defaultStart.day;
+        const isEndDefault = dateRange.end.year === defaultEnd.year && dateRange.end.month === defaultEnd.month && dateRange.end.day === defaultEnd.day;
+
+        if (!isStartDefault || !isEndDefault) {
+            newParams.set("startDate", `${dateRange.start.year}-${String(dateRange.start.month).padStart(2, "0")}-${String(dateRange.start.day).padStart(2, "0")}`);
+            newParams.set("endDate", `${dateRange.end.year}-${String(dateRange.end.month).padStart(2, "0")}-${String(dateRange.end.day).padStart(2, "0")}`);
+        }
+
+        setSearchParams(newParams, { replace: true });
+    }, [selectedGroupId, filterRead, filterFavorite, sortByInterest, searchText, page, dateRange, isInitializedFromUrl, setSearchParams]);
 
     // 加载收藏状态
     useEffect(() => {
@@ -134,21 +276,29 @@ export default function LatestTopicsPage() {
 
     const fetchLatestTopics = throttle(fetchLatestTopicsRaw, 1000);
 
-    // 初始加载 + 日期变化时重新加载
+    // 初始加载 + 日期变化时重新加载（需等待URL初始化完成）
     useEffect(() => {
+        if (!isInitializedFromUrl) {
+            return;
+        }
         const start = dateRange.start.toDate(getLocalTimeZone());
         const end = dateRange.end.toDate(getLocalTimeZone());
 
         fetchLatestTopics(start, end);
-    }, [dateRange]);
+    }, [dateRange, isInitializedFromUrl]);
 
     // 当筛选条件改变时，重置页码
     useEffect(() => {
         setPage(1);
-    }, [filterRead, filterFavorite, searchText, dateRange]);
+    }, [filterRead, filterFavorite, searchText, selectedGroupId]);
 
     // 应用筛选器
     const filteredTopics = topics.filter(topic => {
+        // 群组筛选
+        if (selectedGroupId && topic.groupId !== selectedGroupId) {
+            return false;
+        }
+
         // 过滤已读
         if (filterRead && readTopics[topic.topicId]) {
             return false;
@@ -309,25 +459,69 @@ export default function LatestTopicsPage() {
                         {/* 顶栏右侧 */}
                         <ResponsivePopover buttonText="筛选...">
                             <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-3 lg:p-0">
+                                {/* 群组选择器 */}
+                                <Select
+                                    className="w-full lg:w-60"
+                                    isClearable={true}
+                                    label="群组"
+                                    placeholder="全部群组"
+                                    selectedKeys={selectedGroupId ? [selectedGroupId] : []}
+                                    size="sm"
+                                    onSelectionChange={keys => {
+                                        if (keys === "all" || (keys instanceof Set && keys.size === 0)) {
+                                            setSelectedGroupId("");
+                                        } else {
+                                            const selectedKey = Array.from(keys)[0] as string;
+
+                                            setSelectedGroupId(selectedKey || "");
+                                        }
+                                    }}
+                                >
+                                    {Object.keys(groups).map(groupId => (
+                                        <SelectItem
+                                            key={groupId}
+                                            startContent={
+                                                <img
+                                                    alt="群头像"
+                                                    className="w-6 h-6 rounded-full"
+                                                    src={`http://p.qlogo.cn/gh/${groupId}/${groupId}/0`}
+                                                    onError={e => {
+                                                        const target = e.target as HTMLImageElement;
+
+                                                        target.onerror = null;
+                                                        target.src =
+                                                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ccc'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E";
+                                                    }}
+                                                />
+                                            }
+                                        >
+                                            {groupId}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
+
                                 {/* 筛选控件 */}
                                 <div className="flex gap-3 items-center">
-                                    <div className="text-default-600 text-sm w-27">每页显示:</div>
-                                    <Slider
+                                    <div className="text-default-600 text-sm w-15">每页显示:</div>
+                                    <Select
                                         aria-label="每页显示话题数量"
-                                        className="max-w-[120px]"
-                                        color="primary"
-                                        defaultValue={6}
-                                        maxValue={12}
-                                        minValue={3}
-                                        showTooltip={true}
-                                        size="md"
-                                        step={3}
-                                        value={topicsPerPage}
-                                        onChange={value => {
-                                            setTopicsPerPage(Number(value));
+                                        className="w-15"
+                                        selectedKeys={[String(topicsPerPage)]}
+                                        size="sm"
+                                        onSelectionChange={keys => {
+                                            const selected = Array.from(keys)[0];
+
+                                            if (selected) {
+                                                setTopicsPerPage(Number(selected));
+                                            }
                                         }}
-                                    />
-                                    <span className="text-default-900 text-sm w-30">{topicsPerPage} 张卡片</span>
+                                    >
+                                        <SelectItem key="3">3</SelectItem>
+                                        <SelectItem key="6">6</SelectItem>
+                                        <SelectItem key="9">9</SelectItem>
+                                        <SelectItem key="12">12</SelectItem>
+                                    </Select>
+                                    <span className="text-default-900 text-sm w-12">张卡片</span>
                                 </div>
 
                                 <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
@@ -344,7 +538,7 @@ export default function LatestTopicsPage() {
 
                                 {/* 日期选择器 + 刷新按钮 */}
                                 <DateRangePicker
-                                    className="max-w-xs"
+                                    className="w-full lg:w-70"
                                     label="时间范围"
                                     value={dateRange}
                                     onChange={range => {

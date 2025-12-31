@@ -3,6 +3,7 @@ import API_BASE_URL from "./constants/baseUrl";
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetGroupDetails, mockGetChatMessagesByGroupId, mockGetMessageHourlyStats } from "@/mock/groupsMock";
+import { mockGetSessionIdsByGroupIdsAndTimeRange, mockGetSessionTimeDurations, mockGetAIDigestResultsBySessionIds } from "@/mock/latestTopicsMock";
 
 // 健康检查接口
 export const healthCheck = async (): Promise<ApiResponse<{ message: string; timestamp: string }>> => {
@@ -90,6 +91,11 @@ export const getMessageHourlyStats = async (groupIds: string[]): Promise<ApiResp
 };
 
 export const getSessionIdsByGroupIdsAndTimeRange = async (groupIds: string[], timeStart: number, timeEnd: number): Promise<ApiResponse<{ groupId: string; sessionIds: string[] }[]>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetSessionIdsByGroupIdsAndTimeRange(groupIds, timeStart, timeEnd);
+    }
+
     // 请求参数过大，使用post请求
     const response = await fetchWrapper(`${API_BASE_URL}/api/session-ids-by-group-ids-and-time-range`, {
         method: "POST",
@@ -105,6 +111,11 @@ export const getSessionIdsByGroupIdsAndTimeRange = async (groupIds: string[], ti
 };
 
 export const getSessionTimeDurations = async (sessionIds: string[]): Promise<ApiResponse<{ sessionId: string; timeStart: number; timeEnd: number }[]>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetSessionTimeDurations(sessionIds);
+    }
+
     // 请求参数过大，使用post请求
     const response = await fetchWrapper(`${API_BASE_URL}/api/session-time-durations`, {
         method: "POST",
@@ -136,6 +147,11 @@ export const getAIDigestResultByTopicId = async (topicId: string): Promise<ApiRe
 };
 
 export const getAIDigestResultsBySessionIds = async (sessionIds: string[]): Promise<ApiResponse<{ sessionId: string; result: AIDigestResultsResponse }[]>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetAIDigestResultsBySessionIds(sessionIds);
+    }
+
     // 请求参数过大，使用post请求
     const response = await fetchWrapper(`${API_BASE_URL}/api/ai-digest-results-by-session-ids`, {
         method: "POST",
