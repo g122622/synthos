@@ -502,10 +502,9 @@ export default function LatestTopicsPage() {
 
                                 {/* 筛选控件 */}
                                 <div className="flex gap-3 items-center">
-                                    <div className="text-default-600 text-sm w-15">每页显示:</div>
                                     <Select
-                                        aria-label="每页显示话题数量"
-                                        className="w-15"
+                                        label="每页话题数"
+                                        className="w-27"
                                         selectedKeys={[String(topicsPerPage)]}
                                         size="sm"
                                         onSelectionChange={keys => {
@@ -521,7 +520,6 @@ export default function LatestTopicsPage() {
                                         <SelectItem key="9">9</SelectItem>
                                         <SelectItem key="12">12</SelectItem>
                                     </Select>
-                                    <span className="text-default-900 text-sm w-12">张卡片</span>
                                 </div>
 
                                 <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
