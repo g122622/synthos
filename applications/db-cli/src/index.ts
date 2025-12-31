@@ -2,15 +2,17 @@ import Logger from "@root/common/util/Logger";
 import { applications } from "./applications/index";
 import { select } from "@inquirer/prompts";
 import { IApplicationClass } from "./contracts/IApplication";
+import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("⛏️ db-cli");
 const EXIT_OPTION = "__exit__";
 
+@bootstrap
 class ConsoleApplicationMain {
     /**
      * 构建 Inquirer 选择列表的选项
      */
-    private static buildChoices() {
+    private buildChoices() {
         const choices: Array<{ name: string; value: IApplicationClass | typeof EXIT_OPTION }> = 
             applications.map((appClass: IApplicationClass) => ({
                 name: `${appClass.appName} - ${appClass.description}`,
@@ -29,7 +31,7 @@ class ConsoleApplicationMain {
     /**
      * 显示应用选择菜单
      */
-    private static async showMenu(): Promise<IApplicationClass | typeof EXIT_OPTION> {
+    private async showMenu(): Promise<IApplicationClass | typeof EXIT_OPTION> {
         const selectedApp = await select({
             message: "请选择要运行的应用：",
             choices: this.buildChoices(),
@@ -40,7 +42,7 @@ class ConsoleApplicationMain {
     /**
      * 运行选中的应用
      */
-    private static async runApplication(appClass: IApplicationClass) {
+    private async runApplication(appClass: IApplicationClass) {
         LOGGER.info(`正在启动应用：${appClass.appName}`);
         const app = new appClass();
 
@@ -60,7 +62,7 @@ class ConsoleApplicationMain {
         }
     }
 
-    public static async run() {
+    public async main(): Promise<void> {
         LOGGER.info("欢迎使用 db-cli 数据库命令行工具");
 
         while (true) {
@@ -77,4 +79,5 @@ class ConsoleApplicationMain {
     }
 }
 
-ConsoleApplicationMain.run();
+// 启动应用
+bootstrapAll();

@@ -43,9 +43,11 @@ import { setupApiRoutes } from "./routers/apiRouter";
 // 生命周期
 import { setupGracefulShutdown } from "./lifecycle/gracefulShutdown";
 import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitialization";
+import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("WebUI-Backend");
 
+@bootstrap
 export class WebUILocalServer {
     private app: Express;
     private port: number = 3002;
@@ -152,7 +154,7 @@ private async initializeStatusManagers(): Promise<{
         registerControllers();
     }
 
-    public async start(): Promise<void> {
+    public async main(): Promise<void> {
         // 1. 初始化数据库
         await this.initializeDatabases();
 
@@ -176,9 +178,5 @@ private async initializeStatusManagers(): Promise<{
     }
 }
 
-// 启动入口
-const server = new WebUILocalServer();
-server.start().catch(error => {
-    LOGGER.error(`启动失败: ${error.message}`);
-    process.exit(1);
-});
+// 启动应用
+bootstrapAll();
