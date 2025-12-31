@@ -17,6 +17,7 @@ import { ChatMessage, GroupDetailsRecord } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
+import QQAvatar from "@/components/QQAvatar";
 
 export default function ChatMessagesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -408,11 +409,14 @@ export default function ChatMessagesPage() {
                                             {filteredAndSortedItems.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(message => (
                                                 <TableRow key={message.msgId}>
                                                     <TableCell>
-                                                        <div className="flex flex-col">
-                                                            <span className="font-semibold text-sm">{message.senderGroupNickname || message.senderNickname}</span>
-                                                            <span className="text-xs text-default-500">{message.senderId}</span>
-                                                            {/* 移动端显示时间 */}
-                                                            <span className="text-xs text-default-400 md:hidden">{formatTimestamp(message.timestamp)}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <QQAvatar qqId={message.senderId} type="user" />
+                                                            <div className="flex flex-col">
+                                                                <span className="font-semibold text-sm">{message.senderGroupNickname || message.senderNickname}</span>
+                                                                <span className="text-xs text-default-500">{message.senderId}</span>
+                                                                {/* 移动端显示时间 */}
+                                                                <span className="text-xs text-default-400 md:hidden">{formatTimestamp(message.timestamp)}</span>
+                                                            </div>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>

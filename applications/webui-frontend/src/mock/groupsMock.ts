@@ -103,7 +103,9 @@ const generateMockMessages = (groupId: string, timeStart: number, timeEnd: numbe
         }
 
         const senderIndex = Math.floor(Math.random() * senderNames.length);
-        const senderId = `sender_${senderIndex + 1}`;
+        // Generate 9-10 digit numeric ID, less than 2^32 (4294967296)
+        // Range: 100000000 (9 digits) to 4294967295 (max 10 digits < 2^32)
+        const senderId = `${100000000 + Math.floor(Math.random() * (4294967295 - 100000000))}`;
         const senderName = senderNames[senderIndex];
 
         messages.push({
