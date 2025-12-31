@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, SortDescriptor } from "@heroui/table";
 import { Pagination } from "@heroui/pagination";
 import { Select, SelectItem } from "@heroui/select";
-import { DatePicker, Chip, Input } from "@heroui/react";
+import { DatePicker, Chip, Input, Autocomplete, AutocompleteItem } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { useAsyncList } from "@react-stately/data";
@@ -15,10 +16,13 @@ import { getChatMessagesByGroupId, getGroupDetails } from "@/api/basicApi";
 import { ChatMessage, GroupDetailsRecord } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
+import { Notification } from "@/util/Notification";
 
 export default function ChatMessagesPage() {
+    const [searchParams, setSearchParams] = useSearchParams();
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
     const [selectedGroup, setSelectedGroup] = useState<string>("");
+    const [selectedSessionId, setSelectedSessionId] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [currentPage, setCurrentPage] = useState<number>(1);
     const pageSize = 10;
@@ -32,6 +36,8 @@ export default function ChatMessagesPage() {
         column: "timestamp",
         direction: "descending"
     });
+    // 标记是否已从URL初始化
+    const [isInitializedFromUrl, setIsInitializedFromUrl] = useState<boolean>(false);
 
     // 获取群组信息
     useEffect(() => {
@@ -41,20 +47,60 @@ export default function ChatMessagesPage() {
 
                 if (response.success) {
                     setGroups(response.data);
-                    // 默认选择第一个群组
                     const groupIds = Object.keys(response.data);
+                    const urlGroupId = searchParams.get("groupId");
+                    const urlSessionId = searchParams.get("sessionId");
 
-                    if (groupIds.length > 0) {
+                    // 如果URL中有groupId参数且该群组存在，则使用URL中的值
+                    if (urlGroupId && groupIds.includes(urlGroupId)) {
+                        setSelectedGroup(urlGroupId);
+                        // 如果URL中有sessionId参数，也设置它
+                        if (urlSessionId) {
+                            setSelectedSessionId(urlSessionId);
+                        }
+                    } else if (urlGroupId && !groupIds.includes(urlGroupId)) {
+                        // URL中的groupId不存在于群组列表中，提示用户
+                        Notification.error({
+                            title: "群组不存在",
+                            description: `URL中指定的群组ID "${urlGroupId}" 不存在，默认选择第一个可用的群组`
+                        });
+                        // 默认选择第一个群组
+                        if (groupIds.length > 0) {
+                            setSelectedGroup(groupIds[0]);
+                        }
+                    } else if (groupIds.length > 0) {
+                        // 否则默认选择第一个群组
                         setSelectedGroup(groupIds[0]);
                     }
+                    setIsInitializedFromUrl(true);
                 }
             } catch (error) {
                 console.error("获取群组信息失败:", error);
+                setIsInitializedFromUrl(true);
             }
         };
 
         fetchGroups();
     }, []);
+
+    // 同步筛选参数到URL
+    useEffect(() => {
+        // 只有在初始化完成后才同步URL
+        if (!isInitializedFromUrl) {
+            return;
+        }
+
+        const newParams = new URLSearchParams();
+
+        if (selectedGroup) {
+            newParams.set("groupId", selectedGroup);
+        }
+        if (selectedSessionId) {
+            newParams.set("sessionId", selectedSessionId);
+        }
+
+        setSearchParams(newParams, { replace: true });
+    }, [selectedGroup, selectedSessionId, isInitializedFromUrl, setSearchParams]);
 
     // 获取聊天记录
     const list = useAsyncList<ChatMessage>({
@@ -105,11 +151,29 @@ export default function ChatMessagesPage() {
         }
     }, [selectedGroup, startDate, endDate]);
 
-    // 根据搜索关键词过滤并排序消息
+    // 从已加载的消息中提取唯一的sessionId列表
+    const availableSessionIds = useMemo(() => {
+        const sessionIdSet = new Set<string>();
+
+        list.items.forEach(item => {
+            if (item.sessionId) {
+                sessionIdSet.add(item.sessionId);
+            }
+        });
+
+        return Array.from(sessionIdSet).sort();
+    }, [list.items]);
+
+    // 根据搜索关键词和sessionId过滤并排序消息
     const filteredAndSortedItems = useMemo(() => {
         let items = list.items;
 
-        // 先进行搜索过滤
+        // 先进行sessionId过滤
+        if (selectedSessionId.trim()) {
+            items = items.filter(message => message.sessionId === selectedSessionId);
+        }
+
+        // 再进行搜索过滤
         if (searchKeyword.trim()) {
             const keyword = searchKeyword.toLowerCase();
 
@@ -167,16 +231,23 @@ export default function ChatMessagesPage() {
         }
 
         return items;
-    }, [list.items, searchKeyword, sortDescriptor]);
+    }, [list.items, searchKeyword, selectedSessionId, sortDescriptor]);
 
-    // 搜索关键词变化时重置页码
+    // 搜索关键词或sessionId变化时重置页码
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchKeyword]);
+    }, [searchKeyword, selectedSessionId]);
 
     // 处理排序变更
     const handleSortChange = (descriptor: SortDescriptor) => {
         setSortDescriptor(descriptor);
+    };
+
+    // 处理群组选择变更
+    const handleGroupChange = (groupId: string) => {
+        setSelectedGroup(groupId);
+        // 切换群组时清空sessionId筛选
+        setSelectedSessionId("");
     };
 
     // 格式化时间戳
@@ -210,7 +281,7 @@ export default function ChatMessagesPage() {
                                     聊天记录
                                 </h2>
                                 <Chip color="primary" size="sm" variant="flat">
-                                    共 {filteredAndSortedItems.length} 条{searchKeyword && ` (筛选自 ${list.items.length} 条)`}
+                                    共 {filteredAndSortedItems.length} 条{(searchKeyword || selectedSessionId) && ` (筛选自 ${list.items.length} 条)`}
                                 </Chip>
                             </div>
 
@@ -233,7 +304,7 @@ export default function ChatMessagesPage() {
                                     if (keys !== "all") {
                                         const selectedKey = Array.from(keys)[0] as string;
 
-                                        setSelectedGroup(selectedKey);
+                                        handleGroupChange(selectedKey);
                                     }
                                 }}
                             >
@@ -243,6 +314,27 @@ export default function ChatMessagesPage() {
                                     </SelectItem>
                                 ))}
                             </Select>
+
+                            {/* 会话ID选择（带自动补全） */}
+                            <Autocomplete
+                                allowsCustomValue
+                                isClearable
+                                className="w-full md:w-56"
+                                inputValue={selectedSessionId}
+                                label="会话ID"
+                                placeholder="输入或选择会话ID"
+                                size="sm"
+                                onInputChange={setSelectedSessionId}
+                                onSelectionChange={key => {
+                                    if (key !== null) {
+                                        setSelectedSessionId(String(key));
+                                    }
+                                }}
+                            >
+                                {availableSessionIds.map(sessionId => (
+                                    <AutocompleteItem key={sessionId}>{sessionId}</AutocompleteItem>
+                                ))}
+                            </Autocomplete>
 
                             {/* 开始时间选择 */}
                             <DatePicker
@@ -345,8 +437,8 @@ export default function ChatMessagesPage() {
                         ) : (
                             <div className="text-center py-12">
                                 <MessageSquare className="mx-auto mb-4 text-default-400" size={48} />
-                                <p className="text-default-500">{searchKeyword ? "未找到匹配的聊天记录" : "未找到相关聊天记录"}</p>
-                                <p className="text-default-400 text-sm mt-2">{searchKeyword ? "尝试更换搜索关键词" : "请选择群组和时间范围后点击查询"}</p>
+                                <p className="text-default-500">{searchKeyword || selectedSessionId ? "未找到匹配的聊天记录" : "未找到相关聊天记录"}</p>
+                                <p className="text-default-400 text-sm mt-2">{searchKeyword || selectedSessionId ? "尝试更换搜索关键词或会话ID" : "请选择群组和时间范围后点击查询"}</p>
                             </div>
                         )}
                     </CardBody>
