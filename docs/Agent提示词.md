@@ -31,3 +31,4 @@ const interestScoreThreshold = config.report.generation.interestScoreThreshold; 
 2. 注释、日志输出都使用中文
 3. 不允许省略类成员的访问修饰符（如private、public）
 4. 由于正则表达式易出错且不易code-review，请避免使用正则
+5. 为类和类的方法编写jsdoc格式的注释

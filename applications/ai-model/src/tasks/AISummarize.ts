@@ -114,7 +114,8 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                     allTasks.push({
                         input: ctx,
                         modelNames: config.groupConfigs[groupId].aiModels,
-                        context: { groupId, sessionId }
+                        context: { groupId, sessionId },
+                        checkJsonFormat: true
                     });
                 }
             }

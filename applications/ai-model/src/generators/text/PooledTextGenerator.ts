@@ -11,6 +11,8 @@ export interface PooledTask<TContext> {
     input: string;
     /** 候选模型列表（每个任务可以不同） */
     modelNames: string[];
+    /** 是否强行检查JSON格式 */
+    checkJsonFormat?: boolean;
     /** 调用方自定义的上下文（用于回调时识别任务） */
     context: TContext;
 }
@@ -146,7 +148,8 @@ export class PooledTextGenerator extends Disposable {
                             const generatedResult =
                                 await this.textGenerator!.generateTextWithModelCandidates(
                                     taskDef.modelNames,
-                                    taskDef.input
+                                    taskDef.input,
+                                    taskDef.checkJsonFormat,
                                 );
 
                             result = {

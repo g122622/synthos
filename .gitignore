@@ -25,3 +25,5 @@ pnpm-debug.log*
 *.tsbuildinfo 
 
 synthos_config.json
+
+logs
