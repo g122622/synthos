@@ -14,8 +14,18 @@ import { Report, ReportType } from "../../contracts/report/index";
  */
 @injectable()
 class EmailService {
-    private LOGGER = Logger.withTag("EmailService");
+    private _logger: ReturnType<typeof Logger.withTag> | null = null;
     private transporter: nodemailer.Transporter | null = null;
+
+    /**
+     * 获取 Logger 实例（懒加载，避免循环依赖）
+     */
+    private get LOGGER(): ReturnType<typeof Logger.withTag> {
+        if (!this._logger) {
+            this._logger = Logger.withTag("EmailService");
+        }
+        return this._logger;
+    }
 
     /**
      * 初始化邮件传输器
