@@ -11,6 +11,7 @@ const DIR_IGNORE_SET = new Set([
     'node_modules',
     'dist',
     'assets',
+    'logs',
     '.idea',
     '.vscode',
     '.git'

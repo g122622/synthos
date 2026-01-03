@@ -66,6 +66,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - [TODO] 预处理支持对图片进行ocr和vllm识别
 > - [TODO] 生成摘要、回答等场景的上下文补充背景知识
 > - [TODO] 支持可视化任务编排
+> - [TODO] 支持监控各个模块的CPU和内存占用、支持监控存储空间占用。将这些数据持久化，并可通过前端看到趋势图，以及通过健康检测接口看到实时值。
 > - ✅ 已完成 兴趣度指数：用户给出自己的兴趣偏好（关键词标签组），系统根据用户的兴趣偏好为每个话题打分，排序后推荐给用户。（用户也可以标记不喜欢的话题，此时话题得分为负数）
 > - ✅ 已完成 向量嵌入与语义检索：基于 Ollama + bge-m3 生成话题向量嵌入，支持 RAG 语义搜索
 
@@ -81,7 +82,6 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 - **💉依赖注入框架**：TSyringe
 - **🕗任务调度与编排框架**：Agenda
 - **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
-- **🧐向量语义模型**：`bge-m3`（Ollama 部署，1024维），用于兴趣打分与 RAG 向量检索
 - **📦向量数据库**：基于 better-sqlite3 + sqlite-vec 的轻量级向量存储方案
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
 - **🧪测试框架**：Vitest  
