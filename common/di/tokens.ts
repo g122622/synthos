@@ -10,5 +10,8 @@ export const COMMON_TOKENS = {
     // 数据库管理器
     AGCDBManager: Symbol.for("AGCDBManager"),
     IMDBManager: Symbol.for("IMDBManager"),
-    InterestScoreDBManager: Symbol.for("InterestScoreDBManager")
+    InterestScoreDBManager: Symbol.for("InterestScoreDBManager"),
+
+    // 邮件服务
+    EmailService: Symbol.for("EmailService")
 } as const;

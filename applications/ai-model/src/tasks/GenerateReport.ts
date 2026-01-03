@@ -1,7 +1,7 @@
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getConfigManagerService } from "@root/common/di/container";
+import { getConfigManagerService, getEmailService } from "@root/common/di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
@@ -165,9 +165,17 @@ export async function setupGenerateReportTask(
                         updatedAt: Date.now()
                     };
 
-                    await reportDBManager.storeReport(emptyReport);
-                    LOGGER.success(`${periodDescription} 空日报生成完成`);
-                    return;
+                await reportDBManager.storeReport(emptyReport);
+                LOGGER.success(`${periodDescription} 空日报生成完成`);
+
+                // 发送空日报邮件
+                try {
+                    const emailService = getEmailService();
+                    await emailService.sendReportEmail(emptyReport);
+                } catch (emailError) {
+                    LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
+                }
+                return;
                 }
 
                 // 4. 按兴趣度排序，取 Top N
@@ -294,6 +302,16 @@ export async function setupGenerateReportTask(
                 LOGGER.success(
                     `📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`
                 );
+
+                // 发送日报邮件（仅当综述生成成功时）
+                if (summaryStatus === "success") {
+                    try {
+                        const emailService = getEmailService();
+                        await emailService.sendReportEmail(report);
+                    } catch (emailError) {
+                        LOGGER.error(`发送日报邮件失败: ${emailError}`);
+                    }
+                }
             } catch (error) {
                 LOGGER.error(`日报生成失败: ${error}`);
                 throw error;

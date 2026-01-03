@@ -4,7 +4,7 @@ import { IMDBManager } from "@root/common/database/IMDBManager";
 import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
 import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import Logger from "@root/common/util/Logger";
-import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
+import { registerConfigManagerService, getConfigManagerService, registerEmailService } from "@root/common/di/container";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { VectorDBManager } from "./embedding/VectorDBManager";
@@ -21,6 +21,7 @@ class AIModelApplication {
     public async main(): Promise<void> {
         // 初始化 DI 容器
         registerConfigManagerService();
+        registerEmailService();
         const configManagerService = getConfigManagerService();
         // 初始化配置
         const config = await configManagerService.getCurrentConfig();

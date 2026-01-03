@@ -4,7 +4,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { TOKENS } from "./tokens";
-import { registerConfigManagerService } from "@root/common/di/container";
+import { registerConfigManagerService, registerEmailService } from "@root/common/di/container";
 
 // DBManagers
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
@@ -29,7 +29,6 @@ import { SearchService } from "../services/SearchService";
 import { ConfigService } from "../services/ConfigService";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
 import { ReportService } from "../services/ReportService";
-import { EmailService } from "../services/EmailService";
 
 // RPC Clients
 import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
@@ -104,7 +103,8 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.ConfigService, ConfigService);
     container.registerSingleton(TOKENS.RagChatHistoryService, RagChatHistoryService);
     container.registerSingleton(TOKENS.ReportService, ReportService);
-    container.registerSingleton(TOKENS.EmailService, EmailService);
+    // EmailService 现在从 common 注册
+    registerEmailService();
 }
 
 /**

@@ -6,6 +6,7 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { COMMON_TOKENS } from "./tokens";
 import ConfigManagerService from "../config/ConfigManagerService";
+import EmailServiceInstance, { EmailService } from "../services/email/EmailService";
 
 /**
  * 初始化并注册 ConfigManagerService 到 DI 容器
@@ -26,6 +27,22 @@ export function getConfigManagerService(): typeof ConfigManagerService {
         // DI 容器未初始化，回退到默认单例
         return ConfigManagerService;
     }
+}
+
+/**
+ * 初始化并注册 EmailService 到 DI 容器
+ * 在需要发送邮件的应用启动时调用
+ */
+export function registerEmailService(): void {
+    container.registerInstance(COMMON_TOKENS.EmailService, EmailServiceInstance);
+}
+
+/**
+ * 从 DI 容器获取 EmailService 实例
+ * @returns EmailService 实例
+ */
+export function getEmailService(): EmailService {
+    return container.resolve<EmailService>(COMMON_TOKENS.EmailService);
 }
 
 /**
