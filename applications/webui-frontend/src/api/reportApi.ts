@@ -11,7 +11,8 @@ import {
     mockTriggerReportGenerate,
     mockMarkReportAsRead,
     mockUnmarkReportAsRead,
-    mockGetReportsReadStatus
+    mockGetReportsReadStatus,
+    mockSendReportEmail
 } from "@/mock/reportMock";
 
 // 日报类型
@@ -211,6 +212,34 @@ export const getReportsReadStatus = async (reportIds: string[]): Promise<ApiResp
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reportIds })
+    });
+
+    return response.json();
+};
+
+// ==================== 日报邮件发送 ====================
+
+/**
+ * 发送日报邮件响应
+ */
+export interface SendReportEmailResponse {
+    success: boolean;
+    message: string;
+}
+
+/**
+ * 发送日报邮件到配置的收件人邮箱
+ * @param reportId 日报 ID
+ */
+export const sendReportEmail = async (reportId: string): Promise<ApiResponse<SendReportEmailResponse>> => {
+    if (mockConfig.report) {
+        return mockSendReportEmail(reportId);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/report/send-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId })
     });
 
     return response.json();

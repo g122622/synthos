@@ -116,4 +116,18 @@ export class ReportService {
         }
         return readStatus;
     }
+
+    /**
+     * 发送日报邮件
+     * 通过 RPC 调用 ai-model 发送日报邮件
+     * @param reportId 日报 ID
+     * @returns 发送结果
+     */
+    public async sendReportEmail(reportId: string): Promise<{ success: boolean; message: string }> {
+        const result = await this.ragClient.sendReportEmail.mutate({ reportId });
+        return {
+            success: result.success ?? false,
+            message: result.message ?? ""
+        };
+    }
 }

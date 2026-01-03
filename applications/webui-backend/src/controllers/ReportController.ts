@@ -124,4 +124,14 @@ export class ReportController {
         const readStatus = await this.reportService.checkReadStatus(params.reportIds);
         res.json({ success: true, data: { readStatus } });
     }
+
+    /**
+     * POST /api/report/send-email
+     * 发送日报邮件到配置的收件人邮箱
+     */
+    public async sendReportEmail(req: Request, res: Response): Promise<void> {
+        const params = ReportIdSchema.parse(req.body);
+        const result = await this.reportService.sendReportEmail(params.reportId);
+        res.json({ success: result.success, data: result });
+    }
 }

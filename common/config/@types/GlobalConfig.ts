@@ -42,7 +42,7 @@ export const EmailConfigSchema = z.object({
         user: z.string().describe("SMTP 用户名"),
         pass: z.string().describe("SMTP 密码"),
     }).describe("SMTP 配置"),
-    from: z.string().describe("发件人地址"),
+    from: z.string().describe("发件人地址。对于QQ邮箱，必须等于smtp.user"),
     recipients: z.array(z.string()).describe("收件人邮箱列表"),
     retryCount: z.number().int().min(0).describe("邮件发送失败重试次数"),
 }).describe("邮件配置");

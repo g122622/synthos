@@ -44,6 +44,7 @@ import { setupApiRoutes } from "./routers/apiRouter";
 import { setupGracefulShutdown } from "./lifecycle/gracefulShutdown";
 import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitialization";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+import { setupConfigPanelRoutes } from "./routers/configPanelRouter";
 
 const LOGGER = Logger.withTag("WebUI-Backend");
 
@@ -68,6 +69,7 @@ export class WebUILocalServer {
 
     private setupRoutes(): void {
         setupApiRoutes(this.app);
+        setupConfigPanelRoutes(this.app);
         // 错误处理中间件必须放在最后
         this.app.use(errorHandler);
     }

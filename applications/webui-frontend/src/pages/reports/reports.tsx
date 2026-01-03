@@ -12,7 +12,8 @@ import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
 
-import { Report, ReportType, getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus } from "@/api/reportApi";
+import { Report, ReportType, getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus, sendReportEmail } from "@/api/reportApi";
+import { getCurrentConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
@@ -46,6 +47,10 @@ export default function ReportsPage() {
 
     // 已读状态
     const [readReports, setReadReports] = useState<Record<string, boolean>>({});
+
+    // 邮件功能相关状态
+    const [emailEnabled, setEmailEnabled] = useState<boolean>(false);
+    const [sendingEmailReportId, setSendingEmailReportId] = useState<string | null>(null);
 
     // 标记是否已从URL初始化
     const [isInitializedFromUrl, setIsInitializedFromUrl] = useState<boolean>(false);
@@ -231,6 +236,25 @@ export default function ReportsPage() {
         setPage(1);
     }, [selectedType]);
 
+    // 加载邮件配置状态
+    useEffect(() => {
+        const loadEmailConfig = async () => {
+            try {
+                const response = await getCurrentConfig();
+
+                if (response.success && response.data) {
+                    const config = response.data as { email?: { enabled?: boolean } };
+
+                    setEmailEnabled(config.email?.enabled === true);
+                }
+            } catch (error) {
+                console.error("获取邮件配置失败:", error);
+            }
+        };
+
+        loadEmailConfig();
+    }, []);
+
     // 初始化已读状态（列表视图）
     useEffect(() => {
         const initReadStatus = async () => {
@@ -329,6 +353,34 @@ export default function ReportsPage() {
         }
     };
 
+    // 发送日报邮件
+    const handleSendEmail = async (reportId: string) => {
+        setSendingEmailReportId(reportId);
+        try {
+            const response = await sendReportEmail(reportId);
+
+            if (response.success && response.data.success) {
+                Notification.success({
+                    title: "发送成功",
+                    description: response.data.message
+                });
+            } else {
+                Notification.error({
+                    title: "发送失败",
+                    description: response.data?.message || "发送日报邮件失败"
+                });
+            }
+        } catch (error) {
+            console.error("发送日报邮件失败:", error);
+            Notification.error({
+                title: "发送失败",
+                description: "发送日报邮件失败"
+            });
+        } finally {
+            setSendingEmailReportId(null);
+        }
+    };
+
     // 手动生成日报
     const handleGenerateReport = async () => {
         setGenerating(true);
@@ -377,7 +429,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* 主内容区 */}
-                <Card className="mt-0 md:mt-6">
+                <Card className="mt-0 md:mt-6 pt-2">
                     <CardHeader className="flex flex-row justify-between items-center pl-7 pr-7 gap-4 flex-wrap">
                         <div className="flex flex-row items-center gap-4">
                             <h2 className="text-xl font-bold">
@@ -463,7 +515,16 @@ export default function ReportsPage() {
                                     <ScrollShadow className="max-h-[calc(100vh-320px)]">
                                         <div className="flex flex-col gap-3 p-2">
                                             {reports.map(report => (
-                                                <ReportCard key={report.reportId} readReports={readReports} report={report} onClick={() => openReportDetail(report)} onMarkAsRead={handleMarkAsRead} />
+                                                <ReportCard
+                                                    key={report.reportId}
+                                                    emailEnabled={emailEnabled}
+                                                    readReports={readReports}
+                                                    report={report}
+                                                    sendingEmailReportId={sendingEmailReportId}
+                                                    onClick={() => openReportDetail(report)}
+                                                    onMarkAsRead={handleMarkAsRead}
+                                                    onSendEmail={handleSendEmail}
+                                                />
                                             ))}
                                         </div>
                                     </ScrollShadow>
@@ -507,7 +568,16 @@ export default function ReportsPage() {
                                     ) : dateReports.length > 0 ? (
                                         <div className="flex flex-col gap-3">
                                             {dateReports.map(report => (
-                                                <ReportCard key={report.reportId} readReports={readReports} report={report} onClick={() => openReportDetail(report)} onMarkAsRead={handleMarkAsRead} />
+                                                <ReportCard
+                                                    key={report.reportId}
+                                                    emailEnabled={emailEnabled}
+                                                    readReports={readReports}
+                                                    report={report}
+                                                    sendingEmailReportId={sendingEmailReportId}
+                                                    onClick={() => openReportDetail(report)}
+                                                    onMarkAsRead={handleMarkAsRead}
+                                                    onSendEmail={handleSendEmail}
+                                                />
                                             ))}
                                         </div>
                                     ) : (
@@ -523,7 +593,16 @@ export default function ReportsPage() {
             </section>
 
             {/* 日报详情弹窗 */}
-            <ReportDetailModal isOpen={isModalOpen} readReports={readReports} report={selectedReport} onClose={closeReportDetail} onMarkAsRead={handleMarkAsRead} />
+            <ReportDetailModal
+                emailEnabled={emailEnabled}
+                isOpen={isModalOpen}
+                isSendingEmail={sendingEmailReportId === selectedReport?.reportId}
+                readReports={readReports}
+                report={selectedReport}
+                onClose={closeReportDetail}
+                onMarkAsRead={handleMarkAsRead}
+                onSendEmail={handleSendEmail}
+            />
         </DefaultLayout>
     );
 }

@@ -6,13 +6,15 @@ import { RagRPCImpl } from "../rag/RagRPCImpl";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import { getConfigManagerService } from "@root/common/di/container";
 
 // ========== 启动 RPC Server ==========
 export const setupRPC = async (
     vectorDBManager: VectorDBManager,
     agcDBManager: AGCDBManager,
-    imDBManager: IMDBManager
+    imDBManager: IMDBManager,
+    reportDBManager: ReportDBManager
 ) => {
     const configManagerService = getConfigManagerService();
     const config = await configManagerService.getCurrentConfig();
@@ -36,6 +38,7 @@ export const setupRPC = async (
         embeddingService,
         agcDBManager,
         imDBManager,
+        reportDBManager,
         textGenerator,
         config.ai.defaultModelName,
         ragCtxBuilder

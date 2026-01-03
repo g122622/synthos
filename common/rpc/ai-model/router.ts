@@ -9,7 +9,9 @@ import {
     AskInputSchema,
     AskOutput,
     TriggerReportGenerateInputSchema,
-    TriggerReportGenerateOutput
+    TriggerReportGenerateOutput,
+    SendReportEmailInputSchema,
+    SendReportEmailOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -51,6 +53,13 @@ export interface RAGRPCImplementation {
         timeStart?: number;
         timeEnd?: number;
     }): Promise<TriggerReportGenerateOutput>;
+
+    /**
+     * 发送日报邮件
+     * @param input 日报 ID
+     * @returns 发送结果
+     */
+    sendReportEmail(input: { reportId: string }): Promise<SendReportEmailOutput>;
 }
 
 /**
@@ -85,6 +94,14 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                     type: input.type,
                     timeStart: input.timeStart,
                     timeEnd: input.timeEnd
+                });
+            }),
+
+        sendReportEmail: t.procedure
+            .input(SendReportEmailInputSchema)
+            .mutation(async ({ input }) => {
+                return impl.sendReportEmail({
+                    reportId: input.reportId
                 });
             })
     });

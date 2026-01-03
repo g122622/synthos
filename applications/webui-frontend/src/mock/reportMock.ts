@@ -542,3 +542,31 @@ export const mockGetReportsReadStatus = async (reportIds: string[]): Promise<Api
         message: ""
     };
 };
+
+// ==================== 日报邮件发送模拟 ====================
+
+/**
+ * 模拟发送日报邮件
+ */
+export const mockSendReportEmail = async (reportId: string): Promise<ApiResponse<{ success: boolean; message: string }>> => {
+    await delay(1000 + Math.random() * 1000);
+
+    // 检查日报是否存在
+    const report = mockReports.find(r => r.reportId === reportId);
+
+    if (!report) {
+        return {
+            success: false,
+            data: { success: false, message: "未找到对应的日报" },
+            message: ""
+        };
+    }
+
+    console.log(`[Mock] 发送日报邮件: ${reportId}`);
+
+    return {
+        success: true,
+        data: { success: true, message: "日报邮件发送成功" },
+        message: ""
+    };
+};

@@ -2,11 +2,12 @@
  * RAG RPC 实现
  * 提供语义搜索和 RAG 问答能力
  */
-import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput } from "@root/common/rpc/ai-model/index";
+import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput, SendReportEmailOutput } from "@root/common/rpc/ai-model/index";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
 import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ReportDBManager } from "@root/common/database/ReportDBManager";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
@@ -15,17 +16,34 @@ import { QueryRewriter } from "./QueryRewriter";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { ReportType } from "@root/common/contracts/report";
+import { ReportType } from "@root/common/contracts/report/index";
+import { getReportEmailService } from "../di/container";
 
+/**
+ * RAG RPC 实现类
+ * 提供语义搜索、RAG 问答、日报生成触发和日报邮件发送能力
+ */
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
     private queryRewriter: QueryRewriter;
 
-    constructor(
+    /**
+     * 构造函数
+     * @param vectorDB 向量数据库管理器
+     * @param embeddingService Ollama 嵌入服务
+     * @param agcDB AGC 数据库管理器
+     * @param imDB IM 数据库管理器
+     * @param reportDB 日报数据库管理器
+     * @param textGenerator 文本生成器
+     * @param defaultModelName 默认模型名称
+     * @param ragCtxBuilder RAG 上下文构建器
+     */
+    public constructor(
         private vectorDB: VectorDBManager,
         private embeddingService: OllamaEmbeddingService,
         private agcDB: AGCDBManager,
         private imDB: IMDBManager,
+        private reportDB: ReportDBManager,
         private textGenerator: TextGenerator,
         private defaultModelName: string,
         private ragCtxBuilder: RAGCtxBuilder
@@ -197,6 +215,52 @@ export class RagRPCImpl implements RAGRPCImplementation {
             return {
                 success: false,
                 message: `触发失败: ${error instanceof Error ? error.message : String(error)}`
+            };
+        }
+    }
+
+    /**
+     * 发送日报邮件
+     * 根据 reportId 获取日报，并发送邮件到配置的收件人
+     * @param input 包含 reportId 的输入
+     * @returns 发送结果
+     */
+    public async sendReportEmail(input: { reportId: string }): Promise<SendReportEmailOutput> {
+        this.LOGGER.info(`收到发送日报邮件请求: reportId=${input.reportId}`);
+
+        try {
+            // 1. 根据 reportId 获取日报
+            const report = await this.reportDB.getReportById(input.reportId);
+            if (!report) {
+                this.LOGGER.warning(`未找到日报: ${input.reportId}`);
+                return {
+                    success: false,
+                    message: "未找到对应的日报"
+                };
+            }
+
+            // 2. 调用 ReportEmailService 发送邮件（手动发送，绕过 config.report.sendEmail 开关）
+            const reportEmailService = getReportEmailService();
+            const success = await reportEmailService.sendReportEmailManually(report);
+
+            if (success) {
+                this.LOGGER.success(`日报邮件发送成功: ${input.reportId}`);
+                return {
+                    success: true,
+                    message: "日报邮件发送成功"
+                };
+            } else {
+                this.LOGGER.warning(`日报邮件发送失败: ${input.reportId}`);
+                return {
+                    success: false,
+                    message: "日报邮件发送失败，请检查邮件配置是否正确"
+                };
+            }
+        } catch (error) {
+            this.LOGGER.error(`发送日报邮件时发生错误: ${error}`);
+            return {
+                success: false,
+                message: `发送失败: ${error instanceof Error ? error.message : String(error)}`
             };
         }
     }

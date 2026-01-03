@@ -43,7 +43,7 @@ class AIModelApplication {
         );
         await vectorDBManager.init();
         // 初始化 RPC 服务
-        await setupRPC(vectorDBManager, agcDBManager, imdbManager);
+        await setupRPC(vectorDBManager, agcDBManager, imdbManager, reportDBManager);
 
         // 定义各大任务（由 orchestrator 统一调度，此处只注册任务处理器）
         await setupAISummarizeTask(imdbManager, agcDBManager);

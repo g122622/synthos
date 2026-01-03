@@ -243,4 +243,10 @@ export const setupApiRoutes = (app: Express): void => {
         "/api/report/read/status",
         asyncHandler((req, res) => reportController.checkReadStatus(req, res))
     );
+
+    // 发送日报邮件
+    app.post(
+        "/api/report/send-email",
+        asyncHandler((req, res) => reportController.sendReportEmail(req, res))
+    );
 };

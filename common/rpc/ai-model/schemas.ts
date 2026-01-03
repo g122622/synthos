@@ -54,6 +54,17 @@ export const TriggerReportGenerateOutputSchema = z.object({
     reportId: z.string().optional() // 生成成功时返回日报 ID
 });
 
+// ========== 发送日报邮件接口 ==========
+
+export const SendReportEmailInputSchema = z.object({
+    reportId: z.string().min(1, "reportId 不能为空")
+});
+
+export const SendReportEmailOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string()
+});
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -66,3 +77,6 @@ export type AskOutput = z.infer<typeof AskOutputSchema>;
 
 export type TriggerReportGenerateInput = z.infer<typeof TriggerReportGenerateInputSchema>;
 export type TriggerReportGenerateOutput = z.infer<typeof TriggerReportGenerateOutputSchema>;
+
+export type SendReportEmailInput = z.infer<typeof SendReportEmailInputSchema>;
+export type SendReportEmailOutput = z.infer<typeof SendReportEmailOutputSchema>;

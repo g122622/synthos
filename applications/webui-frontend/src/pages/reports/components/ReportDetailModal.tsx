@@ -1,18 +1,29 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Chip, Divider, Card, CardBody, Link } from "@heroui/react";
-import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink, Check } from "lucide-react";
+import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink, Check, Mail, X } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface ReportDetailModalProps {
+    /** 日报数据 */
     report: Report | null;
+    /** 弹窗是否打开 */
     isOpen: boolean;
+    /** 关闭弹窗回调 */
     onClose: () => void;
+    /** 已读状态映射表 */
     readReports?: Record<string, boolean>;
+    /** 标记为已读的回调 */
     onMarkAsRead?: (reportId: string) => Promise<void>;
+    /** 发送邮件的回调 */
+    onSendEmail?: (reportId: string) => Promise<void>;
+    /** 邮件功能是否启用 */
+    emailEnabled?: boolean;
+    /** 是否正在发送邮件 */
+    isSendingEmail?: boolean;
 }
 
-export default function ReportDetailModal({ report, isOpen, onClose, readReports = {}, onMarkAsRead }: ReportDetailModalProps) {
+export default function ReportDetailModal({ report, isOpen, onClose, readReports = {}, onMarkAsRead, onSendEmail, emailEnabled = false, isSendingEmail = false }: ReportDetailModalProps) {
     if (!report) return null;
 
     // 格式化时间
@@ -167,6 +178,19 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
                 </ModalBody>
 
                 <ModalFooter>
+                    {emailEnabled && onSendEmail && (
+                        <Button
+                            color="secondary"
+                            isLoading={isSendingEmail}
+                            startContent={<Mail size={16} />}
+                            variant="flat"
+                            onPress={async () => {
+                                await onSendEmail(report.reportId);
+                            }}
+                        >
+                            发送邮件
+                        </Button>
+                    )}
                     {onMarkAsRead && !readReports[report.reportId] && (
                         <Button
                             color="primary"
@@ -180,7 +204,7 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
                             标记已读
                         </Button>
                     )}
-                    <Button color="primary" variant="light" onPress={onClose}>
+                    <Button color="danger" startContent={<X size={16} />} variant="flat" onPress={onClose}>
                         关闭
                     </Button>
                 </ModalFooter>

@@ -1,17 +1,27 @@
 import { Card, CardBody, Chip, Tooltip } from "@heroui/react";
 import { Button as HeroUIButton } from "@heroui/button";
-import { FileText, Clock, Users, TrendingUp, AlertCircle, CheckCircle2, Check } from "lucide-react";
+import { FileText, Clock, Users, TrendingUp, AlertCircle, CheckCircle2, Check, Mail } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
 
 interface ReportCardProps {
+    /** 日报数据 */
     report: Report;
+    /** 点击卡片的回调 */
     onClick: () => void;
+    /** 已读状态映射表 */
     readReports?: Record<string, boolean>;
+    /** 标记为已读的回调 */
     onMarkAsRead?: (reportId: string) => void;
+    /** 发送邮件的回调 */
+    onSendEmail?: (reportId: string) => void;
+    /** 邮件功能是否启用 */
+    emailEnabled?: boolean;
+    /** 正在发送邮件的 reportId */
+    sendingEmailReportId?: string | null;
 }
 
-export default function ReportCard({ report, onClick, readReports = {}, onMarkAsRead }: ReportCardProps) {
+export default function ReportCard({ report, onClick, readReports = {}, onMarkAsRead, onSendEmail, emailEnabled = false, sendingEmailReportId }: ReportCardProps) {
     // 格式化时间段
     const formatPeriod = (timeStart: number, timeEnd: number): string => {
         const start = new Date(timeStart);
@@ -62,6 +72,17 @@ export default function ReportCard({ report, onClick, readReports = {}, onMarkAs
         }
     };
 
+    // 处理发送邮件按钮点击，阻止事件冒泡
+    const handleSendEmailClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onSendEmail) {
+            onSendEmail(report.reportId);
+        }
+    };
+
+    // 是否正在发送邮件
+    const isSendingEmail = sendingEmailReportId === report.reportId;
+
     return (
         <Card isPressable className="w-full hover:bg-default-100 transition-colors" shadow="sm" onPress={onClick}>
             <CardBody className="p-4">
@@ -94,7 +115,7 @@ export default function ReportCard({ report, onClick, readReports = {}, onMarkAs
                         </div>
                     </div>
 
-                    {/* 右侧：状态和已读按钮 */}
+                    {/* 右侧：状态、发送邮件按钮和已读按钮 */}
                     <div className="flex items-center gap-2">
                         {report.isEmpty ? (
                             <Chip color="default" size="sm" variant="flat">
@@ -104,6 +125,15 @@ export default function ReportCard({ report, onClick, readReports = {}, onMarkAs
                             <Chip color={statusConfig.color} size="sm" startContent={statusConfig.icon} variant="flat">
                                 {statusConfig.label}
                             </Chip>
+                        )}
+
+                        {/* 发送邮件按钮：仅在邮件功能启用时显示 */}
+                        {emailEnabled && onSendEmail && (
+                            <Tooltip color="secondary" content="发送邮件" placement="top">
+                                <HeroUIButton isIconOnly color="secondary" isLoading={isSendingEmail} size="sm" variant="flat" onClick={handleSendEmailClick}>
+                                    <Mail size={16} />
+                                </HeroUIButton>
+                            </Tooltip>
                         )}
 
                         {/* 已读按钮：只在未读时显示 */}

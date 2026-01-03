@@ -27,7 +27,8 @@ class ReportEmailService {
     }
 
     /**
-     * 发送日报邮件
+     * 发送日报邮件（自动发送场景）
+     * 会检查 config.report.sendEmail 开关
      * @param report 日报数据
      * @returns 是否发送成功
      */
@@ -41,6 +42,34 @@ class ReportEmailService {
             return false;
         }
 
+        return this.doSendReportEmail(report);
+    }
+
+    /**
+     * 手动发送日报邮件
+     * 绕过 config.report.sendEmail 开关，但仍检查 config.email.enabled
+     * @param report 日报数据
+     * @returns 是否发送成功
+     */
+    public async sendReportEmailManually(report: Report): Promise<boolean> {
+        const configManagerService = getConfigManagerService();
+        const config = await configManagerService.getCurrentConfig();
+
+        // 检查邮件功能是否启用
+        if (!config.email.enabled) {
+            this.LOGGER.info("邮件功能未启用，无法发送日报邮件");
+            return false;
+        }
+
+        return this.doSendReportEmail(report);
+    }
+
+    /**
+     * 执行日报邮件发送
+     * @param report 日报数据
+     * @returns 是否发送成功
+     */
+    private async doSendReportEmail(report: Report): Promise<boolean> {
         // 构建邮件标题
         const subject = this.buildEmailSubject(report);
 

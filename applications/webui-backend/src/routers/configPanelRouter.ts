@@ -50,12 +50,12 @@ export const setupConfigPanelRoutes = (app: Express): void => {
     );
 
     // 健康检查
-    app.get("/health", (_req, res) => {
-        res.json({
-            success: true,
-            message: "配置面板后端服务运行正常",
-            mode: "config-panel",
-            timestamp: new Date().toISOString()
-        });
-    });
+    // app.get("/health", (_req, res) => {
+    //     res.json({
+    //         success: true,
+    //         message: "配置面板后端服务运行正常",
+    //         mode: "config-panel",
+    //         timestamp: new Date().toISOString()
+    //     });
+    // });
 };
