@@ -1,7 +1,8 @@
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getConfigManagerService, getEmailService } from "@root/common/di/container";
+import { getConfigManagerService } from "@root/common/di/container";
+import { getReportEmailService } from "../di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import { AGCDBManager } from "@root/common/database/AGCDBManager";
@@ -170,8 +171,8 @@ export async function setupGenerateReportTask(
 
                 // 发送空日报邮件
                 try {
-                    const emailService = getEmailService();
-                    await emailService.sendReportEmail(emptyReport);
+                    const reportEmailService = getReportEmailService();
+                    await reportEmailService.sendReportEmail(emptyReport);
                 } catch (emailError) {
                     LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
                 }
@@ -306,8 +307,8 @@ export async function setupGenerateReportTask(
                 // 发送日报邮件（仅当综述生成成功时）
                 if (summaryStatus === "success") {
                     try {
-                        const emailService = getEmailService();
-                        await emailService.sendReportEmail(report);
+                        const reportEmailService = getReportEmailService();
+                        await reportEmailService.sendReportEmail(report);
                     } catch (emailError) {
                         LOGGER.error(`发送日报邮件失败: ${emailError}`);
                     }
