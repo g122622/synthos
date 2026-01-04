@@ -2,9 +2,9 @@ import "reflect-metadata";
 import { readFile, writeFile, access } from "fs/promises";
 import { injectable } from "tsyringe";
 import { dirname, join } from "path";
-import { GlobalConfig, GlobalConfigSchema, PartialGlobalConfig } from "./@types/GlobalConfig";
-import { findFileUpwards } from "../util/file/findFileUpwards";
-import { ASSERT } from "../util/ASSERT";
+import { GlobalConfig, GlobalConfigSchema, PartialGlobalConfig } from "./schemas/GlobalConfig";
+import { findFileUpwards } from "../../util/file/findFileUpwards";
+import { ASSERT } from "../../util/ASSERT";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { JsonSchema7Type } from "zod-to-json-schema";
 
@@ -39,7 +39,7 @@ class ConfigManagerService {
     public async getOverridePath(): Promise<string | null> {
         const configPath = await this.getConfigPath();
         if (!configPath) return null;
-        return join(dirname(configPath), "synthos_config_override.json");
+        return join(dirname(configPath), "synthos_config_override.json");                                    
     }
 
     /**

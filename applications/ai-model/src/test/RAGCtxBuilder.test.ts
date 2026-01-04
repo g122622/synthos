@@ -1,18 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { SearchOutput } from "@root/common/rpc/ai-model";
 
 // 模拟依赖
-vi.mock("@root/common/database/AGCDBManager");
-vi.mock("@root/common/database/IMDBManager");
+vi.mock("@root/common/database/AgcDbAccessService");
+vi.mock("@root/common/database/ImDbAccessService");
 vi.mock("../context/prompts/RagPromptStore");
 
 describe("RAGCtxBuilder", () => {
     let ragCtxBuilder: RAGCtxBuilder;
-    let mockAgcDB: AGCDBManager;
-    let mockImDB: IMDBManager;
+    let mockAgcDB: AgcDbAccessService;
+    let mockImDB: ImDbAccessService;
 
     beforeEach(async () => {
         ragCtxBuilder = new RAGCtxBuilder();

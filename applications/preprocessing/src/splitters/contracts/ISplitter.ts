@@ -1,4 +1,4 @@
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 
@@ -15,7 +15,7 @@ export interface ISplitter extends Disposable {
      * @param groupId 要分配会话ID的群ID。
      */
     assignSessionId(
-        imdbManager: IMDBManager,
+        imdbManager: ImDbAccessService,
         groupId: string,
         startTimeStamp: number,
         endTimeStamp: number

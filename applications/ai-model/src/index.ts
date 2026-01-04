@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
 import { registerConfigManagerService, getConfigManagerService, registerEmailService } from "@root/common/di/container";
 import { registerReportEmailService } from "./di/container";
@@ -28,14 +28,14 @@ class AIModelApplication {
         // 初始化配置
         const config = await configManagerService.getCurrentConfig();
         // 初始化数据库管理器
-        const imdbManager = new IMDBManager();
+        const imdbManager = new ImDbAccessService();
         await imdbManager.init();
-        const agcDBManager = new AGCDBManager();
-        await agcDBManager.init();
-        const interestScoreDBManager = new InterestScoreDBManager();
-        await interestScoreDBManager.init();
-        const reportDBManager = new ReportDBManager();
-        await reportDBManager.init();
+        const agcDbAccessService = new AgcDbAccessService();
+        await agcDbAccessService.init();
+        const interestScoreDbAccessService = new InterestScoreDbAccessService();
+        await interestScoreDbAccessService.init();
+        const reportDbAccessService = new ReportDbAccessService();
+        await reportDbAccessService.init();
         // 初始化向量数据库管理器
         const vectorDBManager = new VectorDBManager(
             config.ai.embedding.vectorDBPath,
@@ -43,13 +43,13 @@ class AIModelApplication {
         );
         await vectorDBManager.init();
         // 初始化 RPC 服务
-        await setupRPC(vectorDBManager, agcDBManager, imdbManager, reportDBManager);
+        await setupRPC(vectorDBManager, agcDbAccessService, imdbManager, reportDbAccessService);
 
         // 定义各大任务（由 orchestrator 统一调度，此处只注册任务处理器）
-        await setupAISummarizeTask(imdbManager, agcDBManager);
-        await setupInterestScoreTask(imdbManager, agcDBManager, interestScoreDBManager);
-        await setupGenerateEmbeddingTask(imdbManager, agcDBManager, vectorDBManager);
-        await setupGenerateReportTask(agcDBManager, reportDBManager, interestScoreDBManager);
+        await setupAISummarizeTask(imdbManager, agcDbAccessService);
+        await setupInterestScoreTask(imdbManager, agcDbAccessService, interestScoreDbAccessService);
+        await setupGenerateEmbeddingTask(imdbManager, agcDbAccessService, vectorDBManager);
+        await setupGenerateReportTask(agcDbAccessService, reportDbAccessService, interestScoreDbAccessService);
 
         LOGGER.success("Ready to start agenda scheduler");
         await agendaInstance.start(); // 启动调度器

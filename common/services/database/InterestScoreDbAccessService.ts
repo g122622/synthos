@@ -1,12 +1,12 @@
-import Logger from "../util/Logger";
-import { CommonDBService } from "./CommonDBService";
-import { Disposable } from "../util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+import Logger from "../../util/Logger";
+import { CommonDBService } from "./infra/CommonDBService";
+import { Disposable } from "../../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { createInterestScoreTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
-export class InterestScoreDBManager extends Disposable {
-    private LOGGER = Logger.withTag("InterestScoreDBManager");
+export class InterestScoreDbAccessService extends Disposable {
+    private LOGGER = Logger.withTag("InterestScoreDbAccessService");
     private db: CommonDBService;
 
     public async init() {

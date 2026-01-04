@@ -1,9 +1,9 @@
 import { readdir, mkdir } from "fs/promises";
 import { join, basename, extname } from "path";
-import { PromisifiedSQLite, PromisifiedStatement } from "../util/promisify/PromisifiedSQLite";
-import Logger from "../util/Logger";
-import { deepUnique } from "../util/core/deepUnique";
-import { Disposable } from "../util/lifecycle/Disposable";
+import { PromisifiedSQLite, PromisifiedStatement } from "../../../util/promisify/PromisifiedSQLite";
+import Logger from "../../../util/Logger";
+import { deepUnique } from "../../../util/core/deepUnique";
+import { Disposable } from "../../../util/lifecycle/Disposable";
 import sqlite3 from "sqlite3";
 sqlite3.verbose();
 

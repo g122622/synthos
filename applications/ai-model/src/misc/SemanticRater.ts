@@ -1,6 +1,6 @@
 import Logger from "@root/common/util/Logger";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
-import { UserInterest } from "@root/common/config/@types/GlobalConfig";
+import { UserInterest } from "@root/common/services/config/schemas/GlobalConfig";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
 

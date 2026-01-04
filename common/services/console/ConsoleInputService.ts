@@ -1,6 +1,6 @@
 import * as readline from "readline";
-import Logger from "./Logger";
-import { Disposable } from "../util/lifecycle/Disposable";
+import Logger from "../../util/Logger";
+import { Disposable } from "../../util/lifecycle/Disposable";
 
 /**
  * 控制台交互管理类，用于处理控制台的输入

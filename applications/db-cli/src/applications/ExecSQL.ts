@@ -1,8 +1,8 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import ConsoleInputService from "@root/common/util/ConsoleInputService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import ConsoleInputService from "@root/common/services/console/ConsoleInputService";
 import Logger from "@root/common/util/Logger";
 
 @mustInitBeforeUse
@@ -16,7 +16,7 @@ export class ExecSQL extends Disposable implements IApplication {
     }
 
     public async run() {
-        const imdbManager = new IMDBManager();
+        const imdbManager = new ImDbAccessService();
         await imdbManager.init();
 
         while (true) {

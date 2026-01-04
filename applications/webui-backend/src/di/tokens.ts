@@ -11,10 +11,10 @@ export const TOKENS = {
     ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
 
     // DBManagers (作为 Repository 层)
-    AGCDBManager: Symbol.for("AGCDBManager"),
-    IMDBManager: Symbol.for("IMDBManager"),
-    InterestScoreDBManager: Symbol.for("InterestScoreDBManager"),
-    ReportDBManager: Symbol.for("ReportDBManager"),
+    AgcDbAccessService: Symbol.for("AgcDbAccessService"),
+    ImDbAccessService: Symbol.for("ImDbAccessService"),
+    InterestScoreDbAccessService: Symbol.for("InterestScoreDbAccessService"),
+    ReportDbAccessService: Symbol.for("ReportDbAccessService"),
 
     // Status Managers
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),

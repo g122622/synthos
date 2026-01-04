@@ -2,16 +2,16 @@ import {
     ProcessedChatMessage,
     RawChatMessage,
     ProcessedChatMessageWithRawMessage
-} from "../contracts/data-provider/index";
-import Logger from "../util/Logger";
-import { CommonDBService } from "./CommonDBService";
-import { Disposable } from "../util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+} from "../../contracts/data-provider/index";
+import Logger from "../../util/Logger";
+import { CommonDBService } from "./infra/CommonDBService";
+import { Disposable } from "../../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { createIMDBTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
-export class IMDBManager extends Disposable {
-    private LOGGER = Logger.withTag("IMDBManager");
+export class ImDbAccessService extends Disposable {
+    private LOGGER = Logger.withTag("ImDbAccessService");
     private db: CommonDBService;
 
     public async init() {

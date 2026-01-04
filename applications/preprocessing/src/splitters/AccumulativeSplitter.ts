@@ -4,7 +4,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { KVStore } from "@root/common/util/KVStore";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
@@ -22,7 +22,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
 
-    public async assignSessionId(imdbManager: IMDBManager, groupId: string, startTimeStamp: number,
+    public async assignSessionId(imdbManager: ImDbAccessService, groupId: string, startTimeStamp: number,
         endTimeStamp: number) {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;

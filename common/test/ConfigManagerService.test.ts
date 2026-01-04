@@ -54,7 +54,7 @@ vi.mock("@root/common/util/ASSERT", () => ({
 }));
 
 // 在 mock 之后导入类（不是单例实例）
-import { ConfigManagerService } from "../config/ConfigManagerService";
+import { ConfigManagerService } from "../services/config/ConfigManagerService";
 
 // ==================== 测试数据 ====================
 

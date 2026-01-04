@@ -1,6 +1,6 @@
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import sqlite3 from "sqlite3";
 import Logger from "@root/common/util/Logger";
@@ -14,14 +14,14 @@ export class MigrateDB extends Disposable implements IApplication {
     public static readonly description = "将旧数据库迁移到新的统一数据库文件";
 
     private LOGGER = Logger.withTag("数据库迁移任务");
-    private imdbDBManager: IMDBManager = this._registerDisposable(new IMDBManager());
-    private agcDBManager: AGCDBManager = this._registerDisposable(new AGCDBManager());
-    private interestScoreDBManager: InterestScoreDBManager = this._registerDisposable(new InterestScoreDBManager());
+    private imdbDBManager: ImDbAccessService = this._registerDisposable(new ImDbAccessService());
+    private agcDbAccessService: AgcDbAccessService = this._registerDisposable(new AgcDbAccessService());
+    private interestScoreDbAccessService: InterestScoreDbAccessService = this._registerDisposable(new InterestScoreDbAccessService());
 
     public async init() {
         await this.imdbDBManager.init();
-        await this.agcDBManager.init();
-        await this.interestScoreDBManager.init();
+        await this.agcDbAccessService.init();
+        await this.interestScoreDbAccessService.init();
 
         this.LOGGER.info("初始化完成！");
     }
@@ -115,7 +115,7 @@ export class MigrateDB extends Disposable implements IApplication {
 
         // 迁移 AGC 数据库
         this.LOGGER.info("开始迁移 AGC 数据库...");
-        const allAgcData = await this.agcDBManager.selectAll();
+        const allAgcData = await this.agcDbAccessService.selectAll();
         this.LOGGER.info(`已获取 AGC 数据库所有数据，共 ${allAgcData.length} 条记录`);
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {
@@ -142,7 +142,7 @@ export class MigrateDB extends Disposable implements IApplication {
 
         // 迁移 Interest Score 数据库
         this.LOGGER.info("开始迁移 Interest Score 数据库...");
-        const allInterestScoreData = await this.interestScoreDBManager.selectAll();
+        const allInterestScoreData = await this.interestScoreDbAccessService.selectAll();
         this.LOGGER.info(
             `已获取 Interest Score 数据库所有数据，共 ${allInterestScoreData.length} 条记录`
         );

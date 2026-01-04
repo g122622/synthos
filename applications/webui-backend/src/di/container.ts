@@ -7,10 +7,10 @@ import { TOKENS } from "./tokens";
 import { registerConfigManagerService, registerEmailService } from "@root/common/di/container";
 
 // DBManagers
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 
 // Status Managers
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
@@ -49,15 +49,15 @@ import { ReportController } from "../controllers/ReportController";
  * 注册所有 DBManager 实例
  */
 export function registerDBManagers(
-    agcDBManager: AGCDBManager,
-    imDBManager: IMDBManager,
-    interestScoreDBManager: InterestScoreDBManager,
-    reportDBManager: ReportDBManager
+    agcDbAccessService: AgcDbAccessService,
+    imDbAccessService: ImDbAccessService,
+    interestScoreDbAccessService: InterestScoreDbAccessService,
+    reportDbAccessService: ReportDbAccessService
 ): void {
-    container.registerInstance(TOKENS.AGCDBManager, agcDBManager);
-    container.registerInstance(TOKENS.IMDBManager, imDBManager);
-    container.registerInstance(TOKENS.InterestScoreDBManager, interestScoreDBManager);
-    container.registerInstance(TOKENS.ReportDBManager, reportDBManager);
+    container.registerInstance(TOKENS.AgcDbAccessService, agcDbAccessService);
+    container.registerInstance(TOKENS.ImDbAccessService, imDbAccessService);
+    container.registerInstance(TOKENS.InterestScoreDbAccessService, interestScoreDbAccessService);
+    container.registerInstance(TOKENS.ReportDbAccessService, reportDbAccessService);
 }
 
 /**

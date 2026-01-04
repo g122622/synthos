@@ -5,9 +5,9 @@
 import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput, SendReportEmailOutput } from "@root/common/rpc/ai-model/index";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
@@ -41,9 +41,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
     public constructor(
         private vectorDB: VectorDBManager,
         private embeddingService: OllamaEmbeddingService,
-        private agcDB: AGCDBManager,
-        private imDB: IMDBManager,
-        private reportDB: ReportDBManager,
+        private agcDB: AgcDbAccessService,
+        private imDB: ImDbAccessService,
+        private reportDB: ReportDbAccessService,
         private textGenerator: TextGenerator,
         private defaultModelName: string,
         private ragCtxBuilder: RAGCtxBuilder

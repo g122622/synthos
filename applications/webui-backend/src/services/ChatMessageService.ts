@@ -3,11 +3,11 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 
 @injectable()
 export class ChatMessageService {
-    constructor(@inject(TOKENS.IMDBManager) private imDBManager: IMDBManager) {}
+    constructor(@inject(TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService) {}
 
     /**
      * 根据群组 ID 和时间范围获取聊天消息
@@ -17,7 +17,7 @@ export class ChatMessageService {
         timeStart: number,
         timeEnd: number
     ) {
-        return await this.imDBManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+        return await this.imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
             timeStart,
             timeEnd
@@ -34,7 +34,7 @@ export class ChatMessageService {
     ) {
         const results = [];
         for (const groupId of groupIds) {
-            const sessionIds = await this.imDBManager.getSessionIdsByGroupIdAndTimeRange(
+            const sessionIds = await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
                 groupId,
                 timeStart,
                 timeEnd
@@ -50,7 +50,7 @@ export class ChatMessageService {
     async getSessionTimeDurations(sessionIds: string[]) {
         const results = [];
         for (const sessionId of sessionIds) {
-            const result = await this.imDBManager.getSessionTimeDuration(sessionId);
+            const result = await this.imDbAccessService.getSessionTimeDuration(sessionId);
             results.push({
                 sessionId,
                 timeStart: result?.timeStart,
@@ -102,12 +102,12 @@ export class ChatMessageService {
 
         // 从数据库获取原始聚合数据
         const [currentRawStats, previousRawStats] = await Promise.all([
-            this.imDBManager.getMessageHourlyStatsByGroupIds(
+            this.imDbAccessService.getMessageHourlyStatsByGroupIds(
                 groupIds,
                 currentPeriodStart,
                 currentPeriodEnd
             ),
-            this.imDBManager.getMessageHourlyStatsByGroupIds(
+            this.imDbAccessService.getMessageHourlyStatsByGroupIds(
                 groupIds,
                 previousPeriodStart,
                 previousPeriodEnd

@@ -8,7 +8,7 @@ applications/webui-frontend/src/pages/rag/rag.tsx是rag页面，负责展示并�
 
 需要注意，目前这个系统是不支持多轮对话的（一次会话用户只能提问一次）
 
-1. 新开一个数据库，位于apps/webui-backend/src/repositories/RagChatHistoryManager.ts，使用SQLite（可参考common/database/AGCDBManager.ts的实现）。RAG历史记录是webui-backend专用的功能，放在 repositories/ 目录是合理的。
+1. 新开一个数据库，位于apps/webui-backend/src/repositories/RagChatHistoryManager.ts，使用SQLite（可参考common/database/AgcDbAccessService.ts的实现）。RAG历史记录是webui-backend专用的功能，放在 repositories/ 目录是合理的。
 2. 为了避免页面主文件过大，新增的子组件放在apps/webui-frontend/src/pages/rag/components
 3. 对于AI回答：还需要保存references（参考来源）
 4. 会话持久化的范围：只存储问答（Ask）Tab的历史

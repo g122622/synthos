@@ -4,8 +4,8 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import type { IConfigManagerService } from "@root/common/config/ConfigManagerService";
-import { GlobalConfig, PartialGlobalConfig } from "@root/common/config/@types/GlobalConfig";
+import type { IConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { GlobalConfig, PartialGlobalConfig } from "@root/common/services/config/schemas/GlobalConfig";
 import type { JsonSchema7Type } from "zod-to-json-schema";
 
 @injectable()

@@ -5,9 +5,9 @@ import { getConfigManagerService } from "@root/common/di/container";
 import { getReportEmailService } from "../di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { TextGenerator } from "../generators/text/TextGenerator";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { Report, ReportStatistics, ReportType } from "@root/common/contracts/report";
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import getRandomHash from "@root/common/util/getRandomHash";
@@ -82,9 +82,9 @@ function calculateStatistics(
 }
 
 export async function setupGenerateReportTask(
-    agcDBManager: AGCDBManager,
-    reportDBManager: ReportDBManager,
-    interestScoreDBManager: InterestScoreDBManager
+    agcDbAccessService: AgcDbAccessService,
+    reportDbAccessService: ReportDbAccessService,
+    interestScoreDbAccessService: InterestScoreDbAccessService
 ) {
     const LOGGER = Logger.withTag("📰 [ai-model-root-script] [GenerateReportTask]");
     const configManagerService = getConfigManagerService();
@@ -111,7 +111,7 @@ export async function setupGenerateReportTask(
             const { reportType, timeStart, timeEnd } = attrs;
 
             // 检查是否已存在该时间段的日报
-            if (await reportDBManager.isReportExists(reportType, timeStart, timeEnd)) {
+            if (await reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)) {
                 LOGGER.info(
                     `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
                 );
@@ -123,7 +123,7 @@ export async function setupGenerateReportTask(
 
             try {
                 // 1. 获取该时间段内的所有 AI 摘要结果
-                const allDigestResults = await agcDBManager.selectAll();
+                const allDigestResults = await agcDbAccessService.selectAll();
                 const digestResults = allDigestResults.filter(
                     result => result.updateTime >= timeStart && result.updateTime <= timeEnd
                 );
@@ -133,7 +133,7 @@ export async function setupGenerateReportTask(
                 const interestScores = new Map<string, number>();
 
                 for (const topicId of topicIds) {
-                    const score = await interestScoreDBManager.getInterestScoreResult(topicId);
+                    const score = await interestScoreDbAccessService.getInterestScoreResult(topicId);
                     if (score !== null) {
                         interestScores.set(topicId, score);
                     }
@@ -166,7 +166,7 @@ export async function setupGenerateReportTask(
                         updatedAt: Date.now()
                     };
 
-                await reportDBManager.storeReport(emptyReport);
+                await reportDbAccessService.storeReport(emptyReport);
                 LOGGER.success(`${periodDescription} 空日报生成完成`);
 
                 // 发送空日报邮件
@@ -196,7 +196,7 @@ export async function setupGenerateReportTask(
                 for (const result of sortedResults) {
                     // TODO 修正这部分逻辑
                     // 暂时将 sessionId 的前缀作为 groupId（简化实现）
-                    // 实际项目中可能需要从 IMDBManager 查询
+                    // 实际项目中可能需要从 ImDbAccessService 查询
                     for (const groupId of groupIds) {
                         if (result.sessionId.includes(groupId)) {
                             sessionGroupMap.set(result.sessionId, groupId);
@@ -238,7 +238,7 @@ export async function setupGenerateReportTask(
                         updatedAt: Date.now()
                     };
 
-                    await reportDBManager.storeReport(report);
+                    await reportDbAccessService.storeReport(report);
                     return;
                 }
 
@@ -299,7 +299,7 @@ export async function setupGenerateReportTask(
                     updatedAt: Date.now()
                 };
 
-                await reportDBManager.storeReport(report);
+                await reportDbAccessService.storeReport(report);
                 LOGGER.success(
                     `📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`
                 );

@@ -5,13 +5,13 @@ import { getConfigManagerService } from "@root/common/di/container";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { PooledTextGenerator, PooledTask, PooledTaskResult } from "../generators/text/PooledTextGenerator";
 import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/getRandomHash";
 
-export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManager: AGCDBManager) {
+export async function setupAISummarizeTask(imdbManager: ImDbAccessService, agcDbAccessService: AgcDbAccessService) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
     const configManagerService = getConfigManagerService();
     let config = await configManagerService.getCurrentConfig(); // 初始化配置
@@ -71,7 +71,7 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                 for (const msg of msgs) {
                     const { sessionId } = msg;
                     // 如果 sessionId 已经被生成过摘要，跳过
-                    if (!(await agcDBManager.isSessionIdSummarized(sessionId))) {
+                    if (!(await agcDbAccessService.isSessionIdSummarized(sessionId))) {
                         if (!sessions[sessionId]) {
                             sessions[sessionId] = [];
                         }
@@ -166,7 +166,7 @@ export async function setupAISummarizeTask(imdbManager: IMDBManager, agcDBManage
                         }
 
                         // 存储摘要结果
-                        await agcDBManager.storeAIDigestResults(results as AIDigestResult[]);
+                        await agcDbAccessService.storeAIDigestResults(results as AIDigestResult[]);
                         LOGGER.success(`session ${sessionId} 存储摘要成功！`);
                     } catch (error) {
                         LOGGER.error(

@@ -3,18 +3,18 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
 import { NotFoundError } from "../errors/AppError";
 
 @injectable()
 export class AIDigestService {
-    constructor(@inject(TOKENS.AGCDBManager) private agcDBManager: AGCDBManager) {}
+    constructor(@inject(TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService) {}
 
     /**
      * 根据 topicId 获取 AI 摘要结果
      */
     async getAIDigestResultByTopicId(topicId: string) {
-        const result = await this.agcDBManager.getAIDigestResultByTopicId(topicId);
+        const result = await this.agcDbAccessService.getAIDigestResultByTopicId(topicId);
         if (!result) {
             throw new NotFoundError("未找到对应的摘要结果");
         }
@@ -29,7 +29,7 @@ export class AIDigestService {
         for (const sessionId of sessionIds) {
             results.push({
                 sessionId,
-                result: await this.agcDBManager.getAIDigestResultsBySessionId(sessionId)
+                result: await this.agcDbAccessService.getAIDigestResultsBySessionId(sessionId)
             });
         }
         return results;
@@ -39,6 +39,6 @@ export class AIDigestService {
      * 检查会话是否已被摘要
      */
     async isSessionSummarized(sessionId: string): Promise<boolean> {
-        return await this.agcDBManager.isSessionIdSummarized(sessionId);
+        return await this.agcDbAccessService.isSessionIdSummarized(sessionId);
     }
 }

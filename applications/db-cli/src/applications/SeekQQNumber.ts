@@ -1,7 +1,7 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
 
 /**
@@ -59,7 +59,7 @@ export class SeekQQNumber extends Disposable implements IApplication {
     }
 
     public async run() {
-        const imdbManager = new IMDBManager();
+        const imdbManager = new ImDbAccessService();
         await imdbManager.init();
         // 使用SQL先过滤出messageContent不为空的记录
         // SQLite中可以用GLOB模式来初步筛选包含数字的内容

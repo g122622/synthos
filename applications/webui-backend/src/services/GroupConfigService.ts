@@ -3,7 +3,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import type ConfigManagerServiceType from "@root/common/config/ConfigManagerService";
+import type ConfigManagerServiceType from "@root/common/services/config/ConfigManagerService";
 
 @injectable()
 export class GroupConfigService {

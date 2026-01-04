@@ -2,17 +2,17 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 import { getConfigManagerService } from "@root/common/di/container";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { SemanticRater } from "../misc/SemanticRater";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 
 export async function setupInterestScoreTask(
-    imdbManager: IMDBManager,
-    agcDBManager: AGCDBManager,
-    interestScoreDBManager: InterestScoreDBManager
+    imdbManager: ImDbAccessService,
+    agcDbAccessService: AgcDbAccessService,
+    interestScoreDbAccessService: InterestScoreDbAccessService
 ) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [InterestScoreTask]");
     const configManagerService = getConfigManagerService();
@@ -56,7 +56,7 @@ export async function setupInterestScoreTask(
             const digestResults = [] as AIDigestResult[];
             for (const sessionId of sessionIds) {
                 digestResults.push(
-                    ...(await agcDBManager.getAIDigestResultsBySessionId(sessionId))
+                    ...(await agcDbAccessService.getAIDigestResultsBySessionId(sessionId))
                 );
             }
             LOGGER.info(`共获取到 ${digestResults.length} 可能需要打分的摘要结果`);
@@ -64,7 +64,7 @@ export async function setupInterestScoreTask(
             // 过滤掉已经计算过兴趣度的结果
             const filteredDigestResults = [];
             for (const digestResult of digestResults) {
-                const exists = await interestScoreDBManager.isInterestScoreResultExist(
+                const exists = await interestScoreDbAccessService.isInterestScoreResultExist(
                     digestResult.topicId
                 );
                 if (!exists) {
@@ -102,7 +102,7 @@ export async function setupInterestScoreTask(
                     argArr,
                     `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
                 );
-                await interestScoreDBManager.storeInterestScoreResult(digestResult.topicId, score);
+                await interestScoreDbAccessService.storeInterestScoreResult(digestResult.topicId, score);
             }
 
             LOGGER.success(`🥳任务完成: ${job.attrs.name}`);

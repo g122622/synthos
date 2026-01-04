@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import Logger from "@root/common/util/Logger";
 import { QQProvider } from "./providers/QQProvider/QQProvider";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
@@ -18,7 +18,7 @@ class DataProviderApplication {
         registerConfigManagerService();
         const configManagerService = getConfigManagerService();
 
-        const imdbManager = new IMDBManager();
+        const imdbManager = new ImDbAccessService();
         await imdbManager.init();
 
         let config = await configManagerService.getCurrentConfig();

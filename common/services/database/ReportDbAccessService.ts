@@ -1,19 +1,19 @@
-import Logger from "../util/Logger";
+import Logger from "../../util/Logger";
 import {
     Report,
     ReportDBRecord,
     ReportType,
     dbRecordToReport,
     reportToDBRecord
-} from "../contracts/report/index";
-import { Disposable } from "../util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
-import { CommonDBService } from "./CommonDBService";
+} from "../../contracts/report/index";
+import { Disposable } from "../../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
+import { CommonDBService } from "./infra/CommonDBService";
 import { createReportTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
-export class ReportDBManager extends Disposable {
-    private LOGGER = Logger.withTag("ReportDBManager");
+export class ReportDbAccessService extends Disposable {
+    private LOGGER = Logger.withTag("ReportDbAccessService");
     private db: CommonDBService;
 
     public async init() {

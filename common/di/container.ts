@@ -5,7 +5,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { COMMON_TOKENS } from "./tokens";
-import ConfigManagerService from "../config/ConfigManagerService";
+import ConfigManagerService from "../services/config/ConfigManagerService";
 import EmailServiceInstance, { EmailService } from "../services/email/EmailService";
 
 /**

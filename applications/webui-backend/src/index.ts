@@ -6,10 +6,10 @@ import express, { Express } from "express";
 import * as path from "path";
 
 // 基础设施
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
@@ -24,7 +24,7 @@ import {
     container
 } from "./di/container";
 import { TOKENS } from "./di/tokens";
-import type ConfigManagerServiceType from "@root/common/config/ConfigManagerService";
+import type ConfigManagerServiceType from "@root/common/services/config/ConfigManagerService";
 
 // 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
@@ -52,10 +52,10 @@ const LOGGER = Logger.withTag("WebUI-Backend");
 export class WebUILocalServer {
     private app: Express;
     private port: number = 3002;
-    private agcDBManager: AGCDBManager | null = null;
-    private imDBManager: IMDBManager | null = null;
-    private interestScoreDBManager: InterestScoreDBManager | null = null;
-    private reportDBManager: ReportDBManager | null = null;
+    private agcDbAccessService: AgcDbAccessService | null = null;
+    private imDbAccessService: ImDbAccessService | null = null;
+    private interestScoreDbAccessService: InterestScoreDbAccessService | null = null;
+    private reportDbAccessService: ReportDbAccessService | null = null;
 
     constructor() {
         this.app = express();
@@ -79,15 +79,15 @@ export class WebUILocalServer {
     }
 
     public async closeDatabases(): Promise<void> {
-        await closeDatabases(this.agcDBManager, this.imDBManager, this.interestScoreDBManager, this.reportDBManager);
+        await closeDatabases(this.agcDbAccessService, this.imDbAccessService, this.interestScoreDbAccessService, this.reportDbAccessService);
     }
 
     private async initializeDatabases(): Promise<void> {
-        const { agcDBManager, imDBManager, interestScoreDBManager, reportDBManager } = await initializeDatabases();
-        this.agcDBManager = agcDBManager;
-        this.imDBManager = imDBManager;
-        this.interestScoreDBManager = interestScoreDBManager;
-        this.reportDBManager = reportDBManager;
+        const { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService } = await initializeDatabases();
+        this.agcDbAccessService = agcDbAccessService;
+        this.imDbAccessService = imDbAccessService;
+        this.interestScoreDbAccessService = interestScoreDbAccessService;
+        this.reportDbAccessService = reportDbAccessService;
     }
 
     /**
@@ -130,10 +130,10 @@ private async initializeStatusManagers(): Promise<{
 
         // 1. 注册 DBManagers
         registerDBManagers(
-            this.agcDBManager!,
-            this.imDBManager!,
-            this.interestScoreDBManager!,
-            this.reportDBManager!
+            this.agcDbAccessService!,
+            this.imDbAccessService!,
+            this.interestScoreDbAccessService!,
+            this.reportDbAccessService!
         );
 
         // 2. 注册 Status Managers

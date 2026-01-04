@@ -3,7 +3,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 import { Report, ReportType } from "@root/common/contracts/report/index";
 import { NotFoundError } from "../errors/AppError";
 import { RAGClient } from "../rpc/aiModelClient";
@@ -12,7 +12,7 @@ import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager
 @injectable()
 export class ReportService {
     constructor(
-        @inject(TOKENS.ReportDBManager) private reportDBManager: ReportDBManager,
+        @inject(TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
         @inject(TOKENS.RAGClient) private ragClient: RAGClient,
         @inject(TOKENS.ReportReadStatusManager) private readStatusManager: ReportReadStatusManager
     ) {}
@@ -21,7 +21,7 @@ export class ReportService {
      * 根据 reportId 获取日报
      */
     public async getReportById(reportId: string): Promise<Report> {
-        const report = await this.reportDBManager.getReportById(reportId);
+        const report = await this.reportDbAccessService.getReportById(reportId);
         if (!report) {
             throw new NotFoundError("未找到对应的日报");
         }
@@ -36,7 +36,7 @@ export class ReportService {
         pageSize: number,
         type?: ReportType
     ): Promise<{ reports: Report[]; total: number; page: number; pageSize: number }> {
-        const result = await this.reportDBManager.getReportsPaginated(page, pageSize, type);
+        const result = await this.reportDbAccessService.getReportsPaginated(page, pageSize, type);
         return {
             ...result,
             page,
@@ -48,7 +48,7 @@ export class ReportService {
      * 获取指定日期的半日报
      */
     public async getHalfDailyReportsByDate(date: Date): Promise<Report[]> {
-        return this.reportDBManager.getHalfDailyReportsByDate(date);
+        return this.reportDbAccessService.getHalfDailyReportsByDate(date);
     }
 
     /**
@@ -60,16 +60,16 @@ export class ReportService {
         type?: ReportType
     ): Promise<Report[]> {
         if (type) {
-            return this.reportDBManager.getReportsByTypeAndTimeRange(type, timeStart, timeEnd);
+            return this.reportDbAccessService.getReportsByTypeAndTimeRange(type, timeStart, timeEnd);
         }
-        return this.reportDBManager.getReportsByTimeRange(timeStart, timeEnd);
+        return this.reportDbAccessService.getReportsByTimeRange(timeStart, timeEnd);
     }
 
     /**
      * 获取最近的日报
      */
     public async getRecentReports(type: ReportType, limit: number): Promise<Report[]> {
-        return this.reportDBManager.getRecentReportsByType(type, limit);
+        return this.reportDbAccessService.getRecentReportsByType(type, limit);
     }
 
     /**

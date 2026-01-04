@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { getConfigManagerService } from "@root/common/di/container";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
@@ -11,7 +11,7 @@ import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse
 export class TimeoutSplitter extends Disposable implements ISplitter {
     public async init() { }
 
-    public async assignSessionId(imdbManager: IMDBManager, groupId: string, startTimeStamp: number,
+    public async assignSessionId(imdbManager: ImDbAccessService, groupId: string, startTimeStamp: number,
         endTimeStamp: number) {
         const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .TimeoutSplitter;

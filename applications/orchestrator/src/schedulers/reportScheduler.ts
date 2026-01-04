@@ -1,7 +1,7 @@
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
-import { IConfigManagerService } from "@root/common/config/ConfigManagerService";
+import { IConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ReportType } from "@root/common/contracts/report";
 
 const LOGGER = Logger.withTag("📰 [orchestrator] [ReportScheduler]");

@@ -3,13 +3,13 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 
 @injectable()
 export class InterestScoreService {
     constructor(
-        @inject(TOKENS.InterestScoreDBManager)
-        private interestScoreDBManager: InterestScoreDBManager
+        @inject(TOKENS.InterestScoreDbAccessService)
+        private interestScoreDbAccessService: InterestScoreDbAccessService
     ) {}
 
     /**
@@ -20,7 +20,7 @@ export class InterestScoreService {
         for (const topicId of topicIds) {
             results.push({
                 topicId,
-                score: await this.interestScoreDBManager.getInterestScoreResult(topicId)
+                score: await this.interestScoreDbAccessService.getInterestScoreResult(topicId)
             });
         }
         return results;

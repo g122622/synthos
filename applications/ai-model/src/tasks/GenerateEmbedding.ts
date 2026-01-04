@@ -2,16 +2,16 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 import { getConfigManagerService } from "@root/common/di/container";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 
 export async function setupGenerateEmbeddingTask(
-    imdbManager: IMDBManager,
-    agcDBManager: AGCDBManager,
+    imdbManager: ImDbAccessService,
+    agcDbAccessService: AgcDbAccessService,
     vectorDBManager: VectorDBManager
 ) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [GenerateEmbeddingTask]");
@@ -59,7 +59,7 @@ export async function setupGenerateEmbeddingTask(
             const digestResults = [] as AIDigestResult[];
             for (const sessionId of sessionIds) {
                 digestResults.push(
-                    ...(await agcDBManager.getAIDigestResultsBySessionId(sessionId))
+                    ...(await agcDbAccessService.getAIDigestResultsBySessionId(sessionId))
                 );
             }
             LOGGER.info(`共获取到 ${digestResults.length} 条摘要结果`);

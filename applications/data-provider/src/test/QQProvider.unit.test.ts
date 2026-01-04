@@ -49,7 +49,7 @@ vi.mock("@root/common/util/Logger", () => ({
 }));
 
 // Mock ConfigManagerService
-vi.mock("@root/common/config/ConfigManagerService", () => ({
+vi.mock("@root/common/services/config/ConfigManagerService", () => ({
     default: {
         getCurrentConfig: vi.fn().mockResolvedValue(mockConfig)
     }
@@ -498,7 +498,7 @@ describe("QQProvider", () => {
     describe("数据库补丁配置", () => {
         it("启用数据库补丁时应在 SQL 中包含补丁语句", async () => {
             // 重新 mock 配置以启用补丁
-            const ConfigManagerService = await import("@root/common/config/ConfigManagerService");
+            const ConfigManagerService = await import("@root/common/services/config/ConfigManagerService");
             const configWithPatch = {
                 dataProviders: {
                     QQ: {

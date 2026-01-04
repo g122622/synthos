@@ -1,13 +1,13 @@
-import Logger from "../util/Logger";
-import { AIDigestResult } from "../contracts/ai-model";
-import { Disposable } from "../util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
-import { CommonDBService } from "./CommonDBService";
+import Logger from "../../util/Logger";
+import { AIDigestResult } from "../../contracts/ai-model";
+import { Disposable } from "../../util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
+import { CommonDBService } from "./infra/CommonDBService";
 import { createAGCTableSQL } from "./constants/InitialSQL";
 
 @mustInitBeforeUse
-export class AGCDBManager extends Disposable {
-    private LOGGER = Logger.withTag("AGCDBManager");
+export class AgcDbAccessService extends Disposable {
+    private LOGGER = Logger.withTag("AgcDbAccessService");
     private db: CommonDBService;
 
     public async init() {

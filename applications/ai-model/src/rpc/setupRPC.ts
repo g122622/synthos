@@ -4,17 +4,17 @@ import { TextGenerator } from "../generators/text/TextGenerator";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { RagRPCImpl } from "../rag/RagRPCImpl";
 import { VectorDBManager } from "../embedding/VectorDBManager";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { getConfigManagerService } from "@root/common/di/container";
 
 // ========== 启动 RPC Server ==========
 export const setupRPC = async (
     vectorDBManager: VectorDBManager,
-    agcDBManager: AGCDBManager,
-    imDBManager: IMDBManager,
-    reportDBManager: ReportDBManager
+    agcDbAccessService: AgcDbAccessService,
+    imDbAccessService: ImDbAccessService,
+    reportDbAccessService: ReportDbAccessService
 ) => {
     const configManagerService = getConfigManagerService();
     const config = await configManagerService.getCurrentConfig();
@@ -36,9 +36,9 @@ export const setupRPC = async (
     const rpcImpl = new RagRPCImpl(
         vectorDBManager,
         embeddingService,
-        agcDBManager,
-        imDBManager,
-        reportDBManager,
+        agcDbAccessService,
+        imDbAccessService,
+        reportDbAccessService,
         textGenerator,
         config.ai.defaultModelName,
         ragCtxBuilder

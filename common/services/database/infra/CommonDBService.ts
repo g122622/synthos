@@ -1,11 +1,11 @@
 import * as fs from "fs/promises";
 import * as path from "path";
-import { PromisifiedSQLite, PromisifiedStatement } from "../util/promisify/PromisifiedSQLite";
-import Logger from "../util/Logger";
-import { Disposable } from "../util/lifecycle/Disposable";
+import { PromisifiedSQLite, PromisifiedStatement } from "../../../util/promisify/PromisifiedSQLite";
+import Logger from "../../../util/Logger";
+import { Disposable } from "../../../util/lifecycle/Disposable";
 import sqlite3 from "sqlite3";
-import { getConfigManagerService } from "../di/container";
-import { mustInitBeforeUse } from "../util/lifecycle/mustInitBeforeUse";
+import { getConfigManagerService } from "../../../di/container";
+import { mustInitBeforeUse } from "../../../util/lifecycle/mustInitBeforeUse";
 sqlite3.verbose();
 
 // TODO 单例化

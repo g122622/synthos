@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { AccumulativeSplitter } from "./splitters/AccumulativeSplitter";
 import { TimeoutSplitter } from "./splitters/TimeoutSplitter";
 import Logger from "@root/common/util/Logger";
@@ -20,7 +20,7 @@ class PreprocessingApplication {
         registerConfigManagerService();
         const configManagerService = getConfigManagerService();
 
-        const imdbManager = new IMDBManager();
+        const imdbManager = new ImDbAccessService();
         await imdbManager.init();
 
         let config = await configManagerService.getCurrentConfig();

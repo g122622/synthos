@@ -1,31 +1,31 @@
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
-import { InterestScoreDBManager } from "@root/common/database/InterestScoreDBManager";
-import { ReportDBManager } from "@root/common/database/ReportDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
+import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
 
 const LOGGER = Logger.withTag("📃 WebUI-Backend");
 
 export const initializeDatabases = async (): Promise<{
-    agcDBManager: AGCDBManager;
-    imDBManager: IMDBManager;
-    interestScoreDBManager: InterestScoreDBManager;
-    reportDBManager: ReportDBManager;
+    agcDbAccessService: AgcDbAccessService;
+    imDbAccessService: ImDbAccessService;
+    interestScoreDbAccessService: InterestScoreDbAccessService;
+    reportDbAccessService: ReportDbAccessService;
 }> => {
     try {
-        const agcDBManager = new AGCDBManager();
-        const imDBManager = new IMDBManager();
-        const interestScoreDBManager = new InterestScoreDBManager();
-        const reportDBManager = new ReportDBManager();
+        const agcDbAccessService = new AgcDbAccessService();
+        const imDbAccessService = new ImDbAccessService();
+        const interestScoreDbAccessService = new InterestScoreDbAccessService();
+        const reportDbAccessService = new ReportDbAccessService();
 
-        await agcDBManager.init();
-        await imDBManager.init();
-        await interestScoreDBManager.init();
-        await reportDBManager.init();
+        await agcDbAccessService.init();
+        await imDbAccessService.init();
+        await interestScoreDbAccessService.init();
+        await reportDbAccessService.init();
 
         LOGGER.success("数据库初始化完成");
 
-        return { agcDBManager, imDBManager, interestScoreDBManager, reportDBManager };
+        return { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService };
     } catch (error) {
         LOGGER.error(`数据库初始化失败: ${error}`);
         process.exit(1);
@@ -33,13 +33,13 @@ export const initializeDatabases = async (): Promise<{
 };
 
 export const closeDatabases = async (
-    agcDBManager: AGCDBManager | null,
-    imDBManager: IMDBManager | null,
-    interestScoreDBManager: InterestScoreDBManager | null,
-    reportDBManager: ReportDBManager | null
+    agcDbAccessService: AgcDbAccessService | null,
+    imDbAccessService: ImDbAccessService | null,
+    interestScoreDbAccessService: InterestScoreDbAccessService | null,
+    reportDbAccessService: ReportDbAccessService | null
 ): Promise<void> => {
-    if (agcDBManager) await agcDBManager.dispose();
-    if (imDBManager) await imDBManager.dispose();
-    if (interestScoreDBManager) await interestScoreDBManager.dispose();
-    if (reportDBManager) await reportDBManager.dispose();
+    if (agcDbAccessService) await agcDbAccessService.dispose();
+    if (imDbAccessService) await imDbAccessService.dispose();
+    if (interestScoreDbAccessService) await interestScoreDbAccessService.dispose();
+    if (reportDbAccessService) await reportDbAccessService.dispose();
 };

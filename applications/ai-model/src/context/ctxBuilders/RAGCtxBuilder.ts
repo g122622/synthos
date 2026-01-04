@@ -2,8 +2,8 @@ import { ICtxBuilder } from "./contracts/ICtxBuilder";
 import { RagPromptStore } from "../prompts/RagPromptStore";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { AGCDBManager } from "@root/common/database/AGCDBManager";
-import { IMDBManager } from "@root/common/database/IMDBManager";
+import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { formatTimestamp } from "@root/common/util/TimeUtils";
 import { SearchOutput } from "@root/common/rpc/ai-model";
 
@@ -15,8 +15,8 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
         question: string,
         searchResults: SearchOutput,
         currentDate: string,
-        agcDB: AGCDBManager,
-        imDB: IMDBManager
+        agcDB: AgcDbAccessService,
+        imDB: ImDbAccessService
     ): Promise<string> {
         // 获取话题日期信息
         const topicDates: { [index: string]: { startTime?: string; endTime?: string } } = {};
