@@ -2,16 +2,42 @@
  * 配置面板工具函数
  */
 
-import { SENSITIVE_FIELDS } from "../constants";
+import { SENSITIVE_FIELDS } from "../constants/index";
+
+/**
+ * 判断路径是否匹配带通配符的 pattern。
+ * 规则：以 "." 分段，pattern 中的 "*" 匹配任意单段；必须完全匹配。
+ */
+const isPathMatchPattern = (path: string, pattern: string): boolean => {
+    const pathSegments = path.split(".");
+    const patternSegments = pattern.split(".");
+
+    if (pathSegments.length !== patternSegments.length) {
+        return false;
+    }
+
+    for (let i = 0; i < patternSegments.length; i++) {
+        const patternSegment = patternSegments[i];
+        const pathSegment = pathSegments[i];
+
+        if (patternSegment === "*") {
+            continue;
+        }
+
+        if (patternSegment !== pathSegment) {
+            return false;
+        }
+    }
+
+    return true;
+};
 
 /**
  * 判断字段是否为敏感字段
  */
 export const isSensitiveField = (path: string): boolean => {
     return SENSITIVE_FIELDS.some(pattern => {
-        const regexPattern = pattern.replace(/\*/g, "[^.]+");
-
-        return new RegExp(`^${regexPattern}$`).test(path);
+        return isPathMatchPattern(path, pattern);
     });
 };
 

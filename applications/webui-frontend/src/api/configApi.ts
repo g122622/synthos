@@ -12,16 +12,33 @@ import fetchWrapper from "@/util/fetchWrapper";
  * JSON Schema 类型（简化版）
  */
 export interface JsonSchema {
-    type: string;
-    properties?: Record<string, JsonSchema>;
-    items?: JsonSchema;
+    $ref?: string;
+    $schema?: string;
+
+    /**
+     * zod-to-json-schema 默认会把根 schema 放在 definitions 里，并用 $ref 指向它。
+     */
+    definitions?: Record<string, JsonSchema>;
+
+    type?: string;
+    title?: string;
     description?: string;
+    format?: string;
+
+    properties?: Record<string, JsonSchema>;
+    required?: string[];
+
+    items?: JsonSchema;
     enum?: string[];
+
     minimum?: number;
     maximum?: number;
     default?: unknown;
-    required?: string[];
+
     additionalProperties?: boolean | JsonSchema;
+
+    anyOf?: JsonSchema[];
+    oneOf?: JsonSchema[];
 }
 
 /**
@@ -29,10 +46,7 @@ export interface JsonSchema {
  */
 export interface ConfigValidationResult {
     valid: boolean;
-    errors?: Array<{
-        path: string;
-        message: string;
-    }>;
+    errors?: Array<{ path: string; message: string }> | string[];
 }
 
 // ==================== API 接口 ====================
