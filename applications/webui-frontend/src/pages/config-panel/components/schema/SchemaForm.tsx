@@ -5,14 +5,19 @@
  * 1. 完全由后端返回的 schema 驱动，无需在前端手写字段布局。
  * 2. 复用现有输入组件：StringInput / NumberInput / BooleanSwitch / EnumSelect / StringArrayEditor。
  * 3. 对于 record（additionalProperties）结构，支持动态新增/删除 key。
+ * 4. 支持搜索过滤、高亮匹配文本。
+ * 5. 支持全局和局部的展开/折叠控制。
  */
 import type { JsonSchema } from "@/api/configApi";
-import type { FieldChangeHandler, ValidationError } from "../../types/index";
+import type { FieldChangeHandler, SearchContext, ValidationError } from "../../types/index";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { Accordion, AccordionItem } from "@heroui/accordion";
+import { Button } from "@heroui/button";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import { BooleanSwitch, EnumSelect, NumberInput, StringArrayEditor, StringInput } from "../inputs/index";
+import { highlightText, isFieldMatchingSearch, collectAllExpandablePaths } from "../../utils/index";
 
 import SchemaRecordEditor from "./SchemaRecordEditor";
 
@@ -26,6 +31,9 @@ export interface SchemaFormProps {
     schema: JsonSchema;
     errors: ValidationError[];
     onFieldChange: FieldChangeHandler;
+
+    /** 搜索上下文，用于过滤和高亮 */
+    searchContext?: SearchContext;
 }
 
 /**
@@ -127,10 +135,70 @@ const getLabelAndDescription = (schema: JsonSchema, fallbackLabel: string): { la
 };
 
 /**
+ * 检查字段或其子字段是否匹配搜索条件
+ * 用于决定是否显示该字段
+ */
+const doesFieldOrChildrenMatch = (
+    schema: JsonSchema,
+    path: string,
+    value: unknown,
+    query: string,
+    getLabelAndDescFn: (s: JsonSchema, fallback: string) => { label: string; description?: string }
+): boolean => {
+    if (!query.trim()) {
+        return true;
+    }
+
+    const fieldKey = path.split(".").slice(-1)[0];
+    const { label, description } = getLabelAndDescFn(schema, fieldKey);
+
+    // 检查当前字段是否匹配
+    if (isFieldMatchingSearch(query, label, description, path)) {
+        return true;
+    }
+
+    // 如果是对象类型，递归检查子字段
+    const schemaType = getSchemaRenderType(schema);
+
+    if (schemaType === "object") {
+        // 检查 additionalProperties（Record 类型）
+        if (schema.additionalProperties && typeof schema.additionalProperties === "object") {
+            if (value && typeof value === "object" && !Array.isArray(value)) {
+                const recordValue = value as Record<string, unknown>;
+
+                for (const [key, itemValue] of Object.entries(recordValue)) {
+                    const itemPath = `${path}.${key}`;
+
+                    if (doesFieldOrChildrenMatch(schema.additionalProperties, itemPath, itemValue, query, getLabelAndDescFn)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // 检查 properties
+        if (schema.properties) {
+            const objValue = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+
+            for (const [key, propSchema] of Object.entries(schema.properties)) {
+                const propPath = `${path}.${key}`;
+
+                if (doesFieldOrChildrenMatch(propSchema, propPath, objValue[key], query, getLabelAndDescFn)) {
+                    return true;
+                }
+            }
+        }
+    }
+
+    return false;
+};
+
+/**
  * 递归渲染 schema。
  */
-const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors, onFieldChange }) => {
+const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors, onFieldChange, searchContext }) => {
     const schemaType = getSchemaRenderType(schema);
+    const searchQuery = searchContext?.query || "";
 
     const normalizedObjectValue = useMemo(() => {
         if (rootValue && typeof rootValue === "object" && !Array.isArray(rootValue)) {
@@ -139,6 +207,46 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
 
         return {} as Record<string, unknown>;
     }, [rootValue]);
+
+    /**
+     * 展开当前 Accordion 下的所有子项
+     */
+    const handleExpandAll = useCallback(
+        (nestedPaths: string[]) => {
+            if (!searchContext) {
+                return;
+            }
+
+            const newKeys = new Set(searchContext.expandedKeys);
+
+            for (const p of nestedPaths) {
+                newKeys.add(p);
+            }
+
+            searchContext.onExpandedKeysChange(newKeys);
+        },
+        [searchContext]
+    );
+
+    /**
+     * 折叠当前 Accordion 下的所有子项
+     */
+    const handleCollapseAll = useCallback(
+        (nestedPaths: string[]) => {
+            if (!searchContext) {
+                return;
+            }
+
+            const newKeys = new Set(searchContext.expandedKeys);
+
+            for (const p of nestedPaths) {
+                newKeys.delete(p);
+            }
+
+            searchContext.onExpandedKeysChange(newKeys);
+        },
+        [searchContext]
+    );
 
     // ============ object（常规对象）===========
 
@@ -151,8 +259,9 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
                 itemSchema={itemSchema}
                 path={path}
                 renderItem={(itemPath, itemSchemaFromRecord, itemValue) => {
-                    return <SchemaForm errors={errors} path={itemPath} rootValue={itemValue} schema={itemSchemaFromRecord} onFieldChange={onFieldChange} />;
+                    return <SchemaForm errors={errors} path={itemPath} rootValue={itemValue} schema={itemSchemaFromRecord} searchContext={searchContext} onFieldChange={onFieldChange} />;
                 }}
+                searchContext={searchContext}
                 value={recordValue}
                 onFieldChange={onFieldChange}
             />
@@ -179,29 +288,135 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
             }
         }
 
+        // 过滤匹配搜索条件的字段
+        const filteredPrimitiveFields = primitiveFields.filter(field => {
+            const fieldPath = `${path}.${field.key}`;
+
+            return doesFieldOrChildrenMatch(field.schema, fieldPath, field.value, searchQuery, getLabelAndDescription);
+        });
+
+        const filteredNestedFields = nestedFields.filter(field => {
+            const fieldPath = `${path}.${field.key}`;
+
+            return doesFieldOrChildrenMatch(field.schema, fieldPath, field.value, searchQuery, getLabelAndDescription);
+        });
+
+        // 计算当前 Accordion 下所有可展开的路径
+        const allNestedPaths: string[] = [];
+
+        for (const field of filteredNestedFields) {
+            const fieldPath = `${path}.${field.key}`;
+
+            allNestedPaths.push(fieldPath);
+
+            // 递归收集子路径
+            const childPaths = collectAllExpandablePaths(field.schema, fieldPath, field.value);
+
+            allNestedPaths.push(...childPaths);
+        }
+
+        // 计算当前展开的 key
+        let selectedKeys: Set<string> | undefined = undefined;
+
+        if (searchContext) {
+            selectedKeys = new Set<string>();
+
+            for (const field of filteredNestedFields) {
+                const fieldPath = `${path}.${field.key}`;
+
+                if (searchContext.expandedKeys.has(fieldPath)) {
+                    selectedKeys.add(field.key);
+                }
+            }
+        }
+
+        // 判断是否有匹配的字段
+        const hasMatchingFields = filteredPrimitiveFields.length > 0 || filteredNestedFields.length > 0;
+
+        if (!hasMatchingFields && searchQuery) {
+            return null;
+        }
+
         return (
             <div className="space-y-6">
                 <div className="space-y-4">
-                    {primitiveFields.map(field => {
-                        return <SchemaForm key={field.key} errors={errors} path={`${path}.${field.key}`} rootValue={field.value} schema={field.schema} onFieldChange={onFieldChange} />;
+                    {filteredPrimitiveFields.map(field => {
+                        return (
+                            <SchemaForm
+                                key={field.key}
+                                errors={errors}
+                                path={`${path}.${field.key}`}
+                                rootValue={field.value}
+                                schema={field.schema}
+                                searchContext={searchContext}
+                                onFieldChange={onFieldChange}
+                            />
+                        );
                     })}
                 </div>
 
-                {nestedFields.length > 0 && (
-                    <Accordion selectionMode="multiple" variant="bordered">
-                        {nestedFields.map(field => {
-                            const fieldPath = `${path}.${field.key}`;
-                            const { label, description } = getLabelAndDescription(field.schema, field.key);
+                {filteredNestedFields.length > 0 && (
+                    <div className="space-y-2">
+                        {/* 局部展开/折叠按钮 */}
+                        {searchContext && allNestedPaths.length > 0 && (
+                            <div className="flex justify-end gap-2">
+                                <Button size="sm" startContent={<ChevronDown className="w-3 h-3" />} variant="light" onPress={() => handleExpandAll(allNestedPaths)}>
+                                    展开全部
+                                </Button>
+                                <Button size="sm" startContent={<ChevronUp className="w-3 h-3" />} variant="light" onPress={() => handleCollapseAll(allNestedPaths)}>
+                                    折叠全部
+                                </Button>
+                            </div>
+                        )}
 
-                            return (
-                                <AccordionItem key={field.key} subtitle={description} title={label}>
-                                    <div className="p-2">
-                                        <SchemaForm errors={errors} path={fieldPath} rootValue={field.value} schema={field.schema} onFieldChange={onFieldChange} />
-                                    </div>
-                                </AccordionItem>
-                            );
-                        })}
-                    </Accordion>
+                        <Accordion
+                            selectedKeys={selectedKeys}
+                            selectionMode="multiple"
+                            variant="bordered"
+                            onSelectionChange={keys => {
+                                if (!searchContext) {
+                                    return;
+                                }
+
+                                const newExpandedKeys = new Set(searchContext.expandedKeys);
+
+                                // 先移除当前 Accordion 下的所有 key
+                                for (const field of filteredNestedFields) {
+                                    const fieldPath = `${path}.${field.key}`;
+
+                                    newExpandedKeys.delete(fieldPath);
+                                }
+
+                                // 添加新选中的 key
+                                if (keys !== "all") {
+                                    for (const key of keys) {
+                                        const fieldPath = `${path}.${key}`;
+
+                                        newExpandedKeys.add(fieldPath);
+                                    }
+                                }
+
+                                searchContext.onExpandedKeysChange(newExpandedKeys);
+                            }}
+                        >
+                            {filteredNestedFields.map(field => {
+                                const fieldPath = `${path}.${field.key}`;
+                                const { label, description } = getLabelAndDescription(field.schema, field.key);
+
+                                // 高亮标题和描述
+                                const highlightedLabel = searchQuery ? highlightText(label, searchQuery) : label;
+                                const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
+
+                                return (
+                                    <AccordionItem key={field.key} subtitle={highlightedDescription} title={highlightedLabel}>
+                                        <div className="p-2">
+                                            <SchemaForm errors={errors} path={fieldPath} rootValue={field.value} schema={field.schema} searchContext={searchContext} onFieldChange={onFieldChange} />
+                                        </div>
+                                    </AccordionItem>
+                                );
+                            })}
+                        </Accordion>
+                    </div>
                 )}
             </div>
         );
@@ -217,7 +432,25 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
             const fieldValue = Array.isArray(rootValue) ? (rootValue as string[]) : [];
             const { label, description } = getLabelAndDescription(schema, path.split(".").slice(-1)[0]);
 
-            return <StringArrayEditor description={description} label={label} path={path} value={fieldValue} onChange={onFieldChange} />;
+            // 检查是否匹配搜索条件
+            if (searchQuery && !isFieldMatchingSearch(searchQuery, label, description, path)) {
+                return null;
+            }
+
+            // 高亮标题和描述
+            const highlightedLabel = searchQuery ? highlightText(label, searchQuery) : label;
+            const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
+
+            return (
+                <StringArrayEditor
+                    description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
+                    label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                    labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
+                    path={path}
+                    value={fieldValue}
+                    onChange={onFieldChange}
+                />
+            );
         }
 
         return <div className="text-sm text-default-500">当前数组类型暂不支持渲染：{path}</div>;
@@ -229,7 +462,27 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
         const fieldValue = typeof rootValue === "string" ? rootValue : "";
         const { label, description } = getLabelAndDescription(schema, path.split(".").slice(-1)[0]);
 
-        return <EnumSelect description={description} error={getFieldError(errors, path)} label={label} options={schema.enum} path={path} value={fieldValue} onChange={onFieldChange} />;
+        // 检查是否匹配搜索条件
+        if (searchQuery && !isFieldMatchingSearch(searchQuery, label, description, path)) {
+            return null;
+        }
+
+        // 高亮标题和描述
+        const highlightedLabel = searchQuery ? highlightText(label, searchQuery) : label;
+        const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
+
+        return (
+            <EnumSelect
+                description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
+                error={getFieldError(errors, path)}
+                label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
+                options={schema.enum}
+                path={path}
+                value={fieldValue}
+                onChange={onFieldChange}
+            />
+        );
     }
 
     // ============ primitive ============
@@ -237,16 +490,44 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
     const fieldKey = path.split(".").slice(-1)[0];
     const { label, description } = getLabelAndDescription(schema, fieldKey);
 
+    // 检查是否匹配搜索条件
+    if (searchQuery && !isFieldMatchingSearch(searchQuery, label, description, path)) {
+        return null;
+    }
+
+    // 高亮标题和描述
+    const highlightedLabel = searchQuery ? highlightText(label, searchQuery) : label;
+    const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
+
     if (schemaType === "string") {
         const fieldValue = typeof rootValue === "string" ? rootValue : "";
 
-        return <StringInput description={description} error={getFieldError(errors, path)} label={label} path={path} value={fieldValue} onChange={onFieldChange} />;
+        return (
+            <StringInput
+                description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
+                error={getFieldError(errors, path)}
+                label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
+                path={path}
+                value={fieldValue}
+                onChange={onFieldChange}
+            />
+        );
     }
 
     if (schemaType === "boolean") {
         const fieldValue = typeof rootValue === "boolean" ? rootValue : false;
 
-        return <BooleanSwitch description={description} label={label} path={path} value={fieldValue} onChange={onFieldChange} />;
+        return (
+            <BooleanSwitch
+                description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
+                label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
+                path={path}
+                value={fieldValue}
+                onChange={onFieldChange}
+            />
+        );
     }
 
     if (schemaType === "number" || schemaType === "integer") {
@@ -254,9 +535,10 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
 
         return (
             <NumberInput
-                description={description}
+                description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
                 error={getFieldError(errors, path)}
-                label={label}
+                label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
                 max={schema.maximum}
                 min={schema.minimum}
                 path={path}

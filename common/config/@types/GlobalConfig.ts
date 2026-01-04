@@ -38,7 +38,7 @@ export const EmailConfigSchema = z.object({
     smtp: z.object({
         host: z.string().describe("SMTP 服务器地址"),
         port: z.number().int().positive().describe("SMTP 服务器端口"),
-        secure: z.boolean().describe("是否使用 SSL/TLS"),
+        secure: z.boolean().describe("是否使用 SSL/TLS，QQ邮箱需要设置为 true"),
         user: z.string().describe("SMTP 用户名"),
         pass: z.string().describe("SMTP 密码"),
     }).describe("SMTP 配置"),
@@ -108,7 +108,7 @@ export const GlobalConfigSchema = z.object({
         embedding: z.object({
             ollamaBaseURL: z.string().describe("embedding 服务base地址，如 http://localhost:11434"),
             model: z.string().describe("嵌入模型名"),
-            batchSize: z.number().positive().int().describe("批量处理大小"),
+            batchSize: z.number().positive().int().describe("批量处理大小，建议50左右"),
             vectorDBPath: z.string().describe("向量数据库路径"),
             dimension: z.number().positive().int().describe("向量维度"),
         }).describe("向量嵌入配置"),

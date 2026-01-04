@@ -1,19 +1,20 @@
 /**
  * 配置面板页面
  * 支持可视化编辑全局配置
+ * 支持搜索过滤、高亮匹配、全局展开/折叠
  */
 import type { JsonSchema } from "@/api/configApi";
-import type { SectionConfig, ValidationError } from "./types/index";
+import type { SectionConfig, SearchContext, ValidationError } from "./types/index";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Chip } from "@heroui/chip";
-import { Save, RotateCcw, AlertCircle } from "lucide-react";
+import { Save, RotateCcw, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import { DEFAULT_SECTION_ICON, PREFERRED_SECTION_ORDER, SECTION_ICON_MAP } from "./constants/index";
-import { setNestedValue } from "./utils/index";
+import { setNestedValue, collectAllExpandablePaths, getParentPaths, doesSchemaHaveMatchingFields } from "./utils/index";
 import { ConfigSidebar, SchemaForm } from "./components/index";
 
 import { getConfigSchema, getCurrentConfig, saveOverrideConfig, validateConfig } from "@/api/configApi";
@@ -159,6 +160,11 @@ export default function ConfigPage() {
     const [activeSection, setActiveSection] = useState<string>("");
     const [isScrolling, setIsScrolling] = useState(false);
 
+    // 搜索关键词
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    // 当前展开的路径集合
+    const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
     const sections = useMemo(() => {
         if (!schema) {
             return [];
@@ -166,6 +172,107 @@ export default function ConfigPage() {
 
         return buildSectionsFromSchema(schema);
     }, [schema]);
+
+    // 过滤后的 sections（搜索时只显示有匹配结果的 sections）
+    const filteredSections = useMemo(() => {
+        if (!searchQuery.trim() || !schema) {
+            return sections;
+        }
+
+        const rootSchema = unwrapRootSchema(schema);
+
+        if (!rootSchema.properties) {
+            return sections;
+        }
+
+        return sections.filter(section => {
+            const sectionSchema = rootSchema.properties?.[section.key];
+
+            if (!sectionSchema) {
+                return false;
+            }
+
+            const sectionValue = config[section.key];
+
+            return doesSchemaHaveMatchingFields(sectionSchema, section.key, sectionValue, searchQuery);
+        });
+    }, [config, schema, searchQuery, sections]);
+
+    // 收集所有可展开的路径
+    const allExpandablePaths = useMemo(() => {
+        if (!schema) {
+            return [];
+        }
+
+        const rootSchema = unwrapRootSchema(schema);
+
+        if (!rootSchema.properties) {
+            return [];
+        }
+
+        const paths: string[] = [];
+
+        for (const [sectionKey, sectionSchema] of Object.entries(rootSchema.properties)) {
+            const sectionValue = config[sectionKey];
+            const childPaths = collectAllExpandablePaths(sectionSchema, sectionKey, sectionValue);
+
+            paths.push(...childPaths);
+        }
+
+        return paths;
+    }, [config, schema]);
+
+    // 搜索上下文，传递给子组件
+    const searchContext: SearchContext = useMemo(() => {
+        return {
+            query: searchQuery,
+            expandedKeys,
+            onExpandedKeysChange: setExpandedKeys
+        };
+    }, [searchQuery, expandedKeys]);
+
+    /**
+     * 全局展开所有折叠项
+     */
+    const handleExpandAll = useCallback(() => {
+        setExpandedKeys(new Set(allExpandablePaths));
+    }, [allExpandablePaths]);
+
+    /**
+     * 全局折叠所有折叠项
+     */
+    const handleCollapseAll = useCallback(() => {
+        setExpandedKeys(new Set());
+    }, []);
+
+    /**
+     * 搜索关键词变化时，自动展开匹配字段的父级
+     */
+    const handleSearchQueryChange = useCallback(
+        (query: string) => {
+            setSearchQuery(query);
+
+            // 如果有搜索词，自动展开所有匹配路径的父级
+            if (query.trim()) {
+                const newExpandedKeys = new Set<string>();
+                const lowerQuery = query.toLowerCase();
+
+                for (const path of allExpandablePaths) {
+                    // 如果路径包含搜索词，展开其所有父路径
+                    if (path.toLowerCase().includes(lowerQuery)) {
+                        const parentPaths = getParentPaths(path);
+
+                        for (const p of parentPaths) {
+                            newExpandedKeys.add(p);
+                        }
+                    }
+                }
+
+                setExpandedKeys(newExpandedKeys);
+            }
+        },
+        [allExpandablePaths]
+    );
 
     // 加载配置 + schema
     const loadAll = useCallback(async () => {
@@ -371,12 +478,17 @@ export default function ConfigPage() {
             return null;
         }
 
-        return sections.map(section => {
+        return filteredSections.map(section => {
             const sectionSchema = rootSchema.properties?.[section.key];
 
             if (!sectionSchema) {
                 return null;
             }
+
+            // 渲染 SchemaForm，如果搜索时没有匹配内容，SchemaForm 可能返回 null
+            const formContent = (
+                <SchemaForm errors={errors} path={section.key} rootValue={config[section.key]} schema={sectionSchema} searchContext={searchContext} onFieldChange={handleFieldChange} />
+            );
 
             return (
                 <Card key={section.key} className="p-4" id={`section-${section.key}`}>
@@ -386,13 +498,11 @@ export default function ConfigPage() {
                             {section.label}
                         </h3>
                     </CardHeader>
-                    <CardBody>
-                        <SchemaForm errors={errors} path={section.key} rootValue={config[section.key]} schema={sectionSchema} onFieldChange={handleFieldChange} />
-                    </CardBody>
+                    <CardBody>{formContent}</CardBody>
                 </Card>
             );
         });
-    }, [config, errors, handleFieldChange, schema, sections]);
+    }, [config, errors, filteredSections, handleFieldChange, schema, searchContext]);
 
     if (isLoading) {
         return (
@@ -430,6 +540,12 @@ export default function ConfigPage() {
                     <Button startContent={<RotateCcw className="w-4 h-4" />} variant="flat" onPress={handleReset}>
                         重置
                     </Button>
+                    <Button startContent={<ChevronDown className="w-4 h-4" />} variant="flat" onPress={handleExpandAll}>
+                        全部展开
+                    </Button>
+                    <Button startContent={<ChevronUp className="w-4 h-4" />} variant="flat" onPress={handleCollapseAll}>
+                        全部折叠
+                    </Button>
                     {errors.length > 0 && (
                         <Chip color="danger" startContent={<AlertCircle className="w-4 h-4" />}>
                             {errors.length} 个错误
@@ -440,7 +556,7 @@ export default function ConfigPage() {
                 {/* 主内容区 */}
                 <div className="flex gap-6 mt-6">
                     {/* 侧边栏导航 */}
-                    <ConfigSidebar activeSection={activeSection} sections={sections} onSectionClick={scrollToSection} />
+                    <ConfigSidebar activeSection={activeSection} searchQuery={searchQuery} sections={filteredSections} onSearchQueryChange={handleSearchQueryChange} onSectionClick={scrollToSection} />
 
                     {/* 配置表单 */}
                     <div className="flex-1 space-y-6">{renderSections}</div>

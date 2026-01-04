@@ -1,7 +1,7 @@
 /**
  * 字符串数组编辑组件
  */
-import type { StringArrayEditorProps } from "../../types";
+import type { StringArrayEditorProps } from "../../types/index";
 
 import React, { useState } from "react";
 import { Button } from "@heroui/button";
@@ -9,7 +9,11 @@ import { Input } from "@heroui/input";
 import { Chip } from "@heroui/chip";
 import { Plus } from "lucide-react";
 
-const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ label, path, value, description, onChange }) => {
+/**
+ * 字符串数组类型配置项的编辑组件
+ * 支持添加、删除数组元素
+ */
+const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ label, labelNode, path, value, description, onChange }) => {
     const [newItem, setNewItem] = useState("");
     const items = Array.isArray(value) ? value : [];
 
@@ -29,7 +33,7 @@ const StringArrayEditor: React.FC<StringArrayEditorProps> = ({ label, path, valu
 
     return (
         <div className="flex items-start">
-            <label className="text-sm font-medium w-40 shrink-0 pt-2">{label}</label>
+            <label className="text-sm font-medium w-40 shrink-0 pt-2">{labelNode || label}</label>
             <div className="flex-1 space-y-2">
                 {description && <p className="text-sm text-default-500">{description}</p>}
                 <div className="flex flex-wrap gap-2">

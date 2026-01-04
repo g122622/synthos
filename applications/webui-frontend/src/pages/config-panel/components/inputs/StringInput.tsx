@@ -1,21 +1,25 @@
 /**
  * 字符串输入组件
  */
-import type { StringInputProps } from "../../types";
+import type { StringInputProps } from "../../types/index";
 
 import React, { useState } from "react";
 import { Input } from "@heroui/input";
 import { Eye, EyeOff } from "lucide-react";
 
-import { isSensitiveField } from "../../utils";
+import { isSensitiveField } from "../../utils/index";
 
-const StringInput: React.FC<StringInputProps> = ({ label, path, value, description, onChange, error }) => {
+/**
+ * 字符串类型配置项的输入组件
+ * 支持普通文本和敏感字段（密码形式显示）
+ */
+const StringInput: React.FC<StringInputProps> = ({ label, labelNode, path, value, description, onChange, error }) => {
     const [showPassword, setShowPassword] = useState(false);
     const isSensitive = isSensitiveField(path);
 
     return (
         <div className="flex items-center">
-            <label className="text-sm font-medium w-40 shrink-0">{label}</label>
+            <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <Input
                 description={description}
                 endContent={

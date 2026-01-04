@@ -1,15 +1,18 @@
 /**
  * 布尔开关组件
  */
-import type { BooleanSwitchProps } from "../../types";
+import type { BooleanSwitchProps } from "../../types/index";
 
 import React from "react";
 import { Switch } from "@heroui/switch";
 
-const BooleanSwitch: React.FC<BooleanSwitchProps> = ({ label, path, value, description, onChange }) => {
+/**
+ * 布尔类型配置项的开关组件
+ */
+const BooleanSwitch: React.FC<BooleanSwitchProps> = ({ label, labelNode, path, value, description, onChange }) => {
     return (
         <div className="flex items-center">
-            <label className="text-sm font-medium w-40 shrink-0">{label}</label>
+            <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <div className="flex items-center gap-2">
                 <Switch isSelected={!!value} onValueChange={v => onChange(path, v)} />
                 {description && <span className="text-sm text-default-500">{description}</span>}

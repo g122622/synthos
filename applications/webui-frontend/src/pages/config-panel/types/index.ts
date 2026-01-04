@@ -18,9 +18,21 @@ export interface SectionConfig {
 /** 字段变更处理函数类型 */
 export type FieldChangeHandler = (path: string, value: unknown) => void;
 
+/** 搜索上下文，用于传递搜索状态给子组件 */
+export interface SearchContext {
+    /** 搜索关键词 */
+    query: string;
+    /** 当前展开的路径集合 */
+    expandedKeys: Set<string>;
+    /** 设置展开路径的回调 */
+    onExpandedKeysChange: (keys: Set<string>) => void;
+}
+
 /** 字符串输入组件 Props */
 export interface StringInputProps {
     label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
     path: string;
     value: string;
     description?: string;
@@ -31,6 +43,8 @@ export interface StringInputProps {
 /** 数字输入组件 Props */
 export interface NumberInputProps {
     label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
     path: string;
     value: number;
     description?: string;
@@ -43,6 +57,8 @@ export interface NumberInputProps {
 /** 布尔开关组件 Props */
 export interface BooleanSwitchProps {
     label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
     path: string;
     value: boolean;
     description?: string;
@@ -52,6 +68,8 @@ export interface BooleanSwitchProps {
 /** 枚举选择组件 Props */
 export interface EnumSelectProps {
     label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
     path: string;
     value: string;
     options: string[];
@@ -63,6 +81,8 @@ export interface EnumSelectProps {
 /** 字符串数组编辑组件 Props */
 export interface StringArrayEditorProps {
     label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
     path: string;
     value: string[];
     description?: string;
@@ -91,4 +111,8 @@ export interface ConfigSidebarProps {
     sections: SectionConfig[];
     activeSection: string;
     onSectionClick: (sectionKey: string) => void;
+    /** 搜索关键词 */
+    searchQuery: string;
+    /** 搜索关键词变更回调 */
+    onSearchQueryChange: (query: string) => void;
 }
