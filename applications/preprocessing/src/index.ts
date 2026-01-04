@@ -20,8 +20,8 @@ class PreprocessingApplication {
         registerConfigManagerService();
         const configManagerService = getConfigManagerService();
 
-        const imdbManager = new ImDbAccessService();
-        await imdbManager.init();
+        const imDbAccessService = new ImDbAccessService();
+        await imDbAccessService.init();
 
         let config = await configManagerService.getCurrentConfig();
 
@@ -62,7 +62,7 @@ class PreprocessingApplication {
                     const results = await Promise.all(
                         (
                             await splitter.assignSessionId(
-                                imdbManager,
+                                imDbAccessService,
                                 groupId,
                                 attrs.startTimeStamp,
                                 attrs.endTimeStamp
@@ -74,14 +74,14 @@ class PreprocessingApplication {
                                 preProcessedContent: formatMsg(
                                     result,
                                     result.quotedMsgId
-                                        ? await imdbManager.getRawChatMessageByMsgId(result.quotedMsgId)
+                                        ? await imDbAccessService.getRawChatMessageByMsgId(result.quotedMsgId)
                                         : undefined,
                                     result.quotedMsgContent
                                 )
                             };
                         })
                     );
-                    await imdbManager.storeProcessedChatMessages(results);
+                    await imDbAccessService.storeProcessedChatMessages(results);
                     await splitter.dispose();
 
                     LOGGER.success(`为群${groupId}分配了${results.length}条消息`);

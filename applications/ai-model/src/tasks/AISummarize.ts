@@ -11,7 +11,7 @@ import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessSer
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/getRandomHash";
 
-export async function setupAISummarizeTask(imdbManager: ImDbAccessService, agcDbAccessService: AgcDbAccessService) {
+export async function setupAISummarizeTask(imDbAccessService: ImDbAccessService, agcDbAccessService: AgcDbAccessService) {
     const LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
     const configManagerService = getConfigManagerService();
     let config = await configManagerService.getCurrentConfig(); // 初始化配置
@@ -49,7 +49,7 @@ export async function setupAISummarizeTask(imdbManager: ImDbAccessService, agcDb
             for (const groupId of attrs.groupIds) {
                 /* 1. 获取指定时间范围内的消息 */
                 const msgs = (
-                    await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+                    await imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
                         groupId,
                         attrs.startTimeStamp,
                         attrs.endTimeStamp

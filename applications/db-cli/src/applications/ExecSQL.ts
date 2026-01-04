@@ -16,8 +16,8 @@ export class ExecSQL extends Disposable implements IApplication {
     }
 
     public async run() {
-        const imdbManager = new ImDbAccessService();
-        await imdbManager.init();
+        const imDbAccessService = new ImDbAccessService();
+        await imDbAccessService.init();
 
         while (true) {
             const sql = await ConsoleInputService.readEntireLine("请输入SQL语句：");
@@ -25,7 +25,7 @@ export class ExecSQL extends Disposable implements IApplication {
                 if (sql.trim().toLowerCase() === "e") {
                     break;
                 }
-                const res = await imdbManager.execQuerySQL(sql);
+                const res = await imDbAccessService.execQuerySQL(sql);
                 this.LOGGER.info(`执行结果：${JSON.stringify(res, null, 2)}`);
             } catch (e) {
                 this.LOGGER.error(`执行SQL时出错：${e}`);

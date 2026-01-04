@@ -18,8 +18,8 @@ class DataProviderApplication {
         registerConfigManagerService();
         const configManagerService = getConfigManagerService();
 
-        const imdbManager = new ImDbAccessService();
-        await imdbManager.init();
+        const imDbAccessService = new ImDbAccessService();
+        await imDbAccessService.init();
 
         let config = await configManagerService.getCurrentConfig();
 
@@ -53,7 +53,7 @@ class DataProviderApplication {
                 for (const groupId of attrs.groupIds) {
                     LOGGER.debug(`开始获取群 ${groupId} 的消息`);
                     // 计算开始时间
-                    // const latestMessage = await imdbManager.getNewestRawChatMessageByGroupId(groupId);
+                    // const latestMessage = await imDbAccessService.getNewestRawChatMessageByGroupId(groupId);
                     // let startTime = latestMessage?.timestamp
                     //     ? latestMessage.timestamp - 60 * 1000
                     //     : getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
@@ -71,7 +71,7 @@ class DataProviderApplication {
                         groupId
                     );
                     LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
-                    await imdbManager.storeRawChatMessages(results);
+                    await imDbAccessService.storeRawChatMessages(results);
                     await job.touch(); // 保证任务存活
                 }
                 await activeProvider.dispose();

@@ -10,7 +10,7 @@ import { VectorDBManager } from "../embedding/VectorDBManager";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 
 export async function setupGenerateEmbeddingTask(
-    imdbManager: ImDbAccessService,
+    imDbAccessService: ImDbAccessService,
     agcDbAccessService: AgcDbAccessService,
     vectorDBManager: VectorDBManager
 ) {
@@ -47,7 +47,7 @@ export async function setupGenerateEmbeddingTask(
             const sessionIds = [] as string[];
             for (const groupId of Object.keys(config.groupConfigs)) {
                 sessionIds.push(
-                    ...(await imdbManager.getSessionIdsByGroupIdAndTimeRange(
+                    ...(await imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
                         groupId,
                         attrs.startTimeStamp,
                         attrs.endTimeStamp

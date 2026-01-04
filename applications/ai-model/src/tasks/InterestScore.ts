@@ -10,7 +10,7 @@ import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 
 export async function setupInterestScoreTask(
-    imdbManager: ImDbAccessService,
+    imDbAccessService: ImDbAccessService,
     agcDbAccessService: AgcDbAccessService,
     interestScoreDbAccessService: InterestScoreDbAccessService
 ) {
@@ -45,7 +45,7 @@ export async function setupInterestScoreTask(
             const sessionIds = [] as string[];
             for (const groupId of Object.keys(config.groupConfigs)) {
                 sessionIds.push(
-                    ...(await imdbManager.getSessionIdsByGroupIdAndTimeRange(
+                    ...(await imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
                         groupId,
                         attrs.startTimeStamp,
                         attrs.endTimeStamp

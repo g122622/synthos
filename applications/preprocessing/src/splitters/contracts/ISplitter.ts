@@ -11,11 +11,11 @@ export interface ISplitter extends Disposable {
     init(): Promise<void>;
     /**
      * 为指定的群内的未分配消息分配会话ID。
-     * @param imdbManager IM数据库管理器实例（必须已经初始化过）。
+     * @param imDbAccessService IM数据库管理器实例（必须已经初始化过）。
      * @param groupId 要分配会话ID的群ID。
      */
     assignSessionId(
-        imdbManager: ImDbAccessService,
+        imDbAccessService: ImDbAccessService,
         groupId: string,
         startTimeStamp: number,
         endTimeStamp: number

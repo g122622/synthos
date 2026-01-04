@@ -28,8 +28,8 @@ class AIModelApplication {
         // 初始化配置
         const config = await configManagerService.getCurrentConfig();
         // 初始化数据库管理器
-        const imdbManager = new ImDbAccessService();
-        await imdbManager.init();
+        const imDbAccessService = new ImDbAccessService();
+        await imDbAccessService.init();
         const agcDbAccessService = new AgcDbAccessService();
         await agcDbAccessService.init();
         const interestScoreDbAccessService = new InterestScoreDbAccessService();
@@ -43,12 +43,12 @@ class AIModelApplication {
         );
         await vectorDBManager.init();
         // 初始化 RPC 服务
-        await setupRPC(vectorDBManager, agcDbAccessService, imdbManager, reportDbAccessService);
+        await setupRPC(vectorDBManager, agcDbAccessService, imDbAccessService, reportDbAccessService);
 
         // 定义各大任务（由 orchestrator 统一调度，此处只注册任务处理器）
-        await setupAISummarizeTask(imdbManager, agcDbAccessService);
-        await setupInterestScoreTask(imdbManager, agcDbAccessService, interestScoreDbAccessService);
-        await setupGenerateEmbeddingTask(imdbManager, agcDbAccessService, vectorDBManager);
+        await setupAISummarizeTask(imDbAccessService, agcDbAccessService);
+        await setupInterestScoreTask(imDbAccessService, agcDbAccessService, interestScoreDbAccessService);
+        await setupGenerateEmbeddingTask(imDbAccessService, agcDbAccessService, vectorDBManager);
         await setupGenerateReportTask(agcDbAccessService, reportDbAccessService, interestScoreDbAccessService);
 
         LOGGER.success("Ready to start agenda scheduler");

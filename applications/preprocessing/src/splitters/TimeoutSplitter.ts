@@ -11,7 +11,7 @@ import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse
 export class TimeoutSplitter extends Disposable implements ISplitter {
     public async init() { }
 
-    public async assignSessionId(imdbManager: ImDbAccessService, groupId: string, startTimeStamp: number,
+    public async assignSessionId(imDbAccessService: ImDbAccessService, groupId: string, startTimeStamp: number,
         endTimeStamp: number) {
         const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
             .TimeoutSplitter;
@@ -19,7 +19,7 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
         // 获取配置的超时阈值（单位：毫秒）
         const timeoutThresholdMs = config.timeoutInMinutes * 60 * 1000;
 
-        const msgs = await imdbManager.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+        const msgs = await imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
             startTimeStamp,
             endTimeStamp

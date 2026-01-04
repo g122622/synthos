@@ -59,8 +59,8 @@ export class SeekQQNumber extends Disposable implements IApplication {
     }
 
     public async run() {
-        const imdbManager = new ImDbAccessService();
-        await imdbManager.init();
+        const imDbAccessService = new ImDbAccessService();
+        await imDbAccessService.init();
         // 使用SQL先过滤出messageContent不为空的记录
         // SQLite中可以用GLOB模式来初步筛选包含数字的内容
         const sql = `
@@ -74,7 +74,7 @@ export class SeekQQNumber extends Disposable implements IApplication {
         `;
 
         this.LOGGER.info("正在查询数据库...");
-        const rows = await imdbManager.execQuerySQL(sql);
+        const rows = await imDbAccessService.execQuerySQL(sql);
         this.LOGGER.info(`初步筛选出 ${rows.length} 条记录，正在精确筛选...`);
 
         let matchCount = 0;
