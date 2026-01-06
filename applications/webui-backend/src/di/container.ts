@@ -4,13 +4,17 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { TOKENS } from "./tokens";
-import { registerConfigManagerService, registerEmailService } from "@root/common/di/container";
+import {
+    registerConfigManagerService,
+    registerEmailService,
+    registerDbAccessServices
+} from "@root/common/di/container";
 
 // DBManagers
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
-import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 
 // Status Managers
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
@@ -47,6 +51,7 @@ import { ReportController } from "../controllers/ReportController";
 
 /**
  * 注册所有 DBManager 实例
+ * 使用公共的 registerDbAccessServices 函数进行注册
  */
 export function registerDBManagers(
     agcDbAccessService: AgcDbAccessService,
@@ -54,10 +59,12 @@ export function registerDBManagers(
     interestScoreDbAccessService: InterestScoreDbAccessService,
     reportDbAccessService: ReportDbAccessService
 ): void {
-    container.registerInstance(TOKENS.AgcDbAccessService, agcDbAccessService);
-    container.registerInstance(TOKENS.ImDbAccessService, imDbAccessService);
-    container.registerInstance(TOKENS.InterestScoreDbAccessService, interestScoreDbAccessService);
-    container.registerInstance(TOKENS.ReportDbAccessService, reportDbAccessService);
+    registerDbAccessServices({
+        agcDbAccessService,
+        imDbAccessService,
+        interestScoreDbAccessService,
+        reportDbAccessService
+    });
 }
 
 /**

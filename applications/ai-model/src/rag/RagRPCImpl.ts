@@ -2,12 +2,14 @@
  * RAG RPC 实现
  * 提供语义搜索和 RAG 问答能力
  */
+import "reflect-metadata";
+import { injectable, inject } from "tsyringe";
 import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput, SendReportEmailOutput } from "@root/common/rpc/ai-model/index";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
-import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
@@ -18,38 +20,63 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ReportType } from "@root/common/contracts/report/index";
 import { getReportEmailService } from "../di/container";
+import { AI_MODEL_TOKENS } from "../di/tokens";
+import { getConfigManagerService } from "@root/common/di/container";
 
 /**
  * RAG RPC 实现类
  * 提供语义搜索、RAG 问答、日报生成触发和日报邮件发送能力
  */
+@injectable()
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
     private queryRewriter: QueryRewriter;
+    private embeddingService: OllamaEmbeddingService | null = null;
+    private defaultModelName: string = "";
 
     /**
      * 构造函数
      * @param vectorDB 向量数据库管理器
-     * @param embeddingService Ollama 嵌入服务
      * @param agcDB AGC 数据库管理器
      * @param imDB IM 数据库管理器
      * @param reportDB 日报数据库管理器
      * @param textGenerator 文本生成器
-     * @param defaultModelName 默认模型名称
      * @param ragCtxBuilder RAG 上下文构建器
      */
     public constructor(
-        private vectorDB: VectorDBManager,
-        private embeddingService: OllamaEmbeddingService,
-        private agcDB: AgcDbAccessService,
-        private imDB: ImDbAccessService,
-        private reportDB: ReportDbAccessService,
-        private textGenerator: TextGenerator,
-        private defaultModelName: string,
-        private ragCtxBuilder: RAGCtxBuilder
+        @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDB: VectorDBManager,
+        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
+        @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
+        @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
+        @inject(AI_MODEL_TOKENS.TextGenerator) private textGenerator: TextGenerator,
+        @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder
     ) {
-        // 在构造函数中创建 QueryRewriter 实例
-        this.queryRewriter = new QueryRewriter(textGenerator, defaultModelName);
+        // QueryRewriter 将在 init 方法中初始化
+        this.queryRewriter = null as any;
+    }
+
+    /**
+     * 初始化 RPC 实现
+     * 必须在使用前调用
+     */
+    public async init(): Promise<void> {
+        const configManagerService = getConfigManagerService();
+        const config = await configManagerService.getCurrentConfig();
+
+        // 初始化 Ollama 嵌入服务
+        this.embeddingService = new OllamaEmbeddingService(
+            config.ai.embedding.ollamaBaseURL,
+            config.ai.embedding.model,
+            config.ai.embedding.dimension
+        );
+
+        this.defaultModelName = config.ai.defaultModelName;
+
+        // 创建 QueryRewriter 实例
+        this.queryRewriter = new QueryRewriter(this.textGenerator, this.defaultModelName);
+
+        // 初始化 RAGCtxBuilder
+        await this.ragCtxBuilder.init();
     }
 
     /**
@@ -57,6 +84,10 @@ export class RagRPCImpl implements RAGRPCImplementation {
      */
     public async search(input: { query: string; limit: number }): Promise<SearchOutput> {
         this.LOGGER.info(`收到搜索请求: "${input.query}", limit=${input.limit}`);
+
+        if (!this.embeddingService) {
+            throw new Error("RagRPCImpl 尚未初始化，请先调用 init() 方法");
+        }
 
         // 1. 将查询转换为向量
         const queryEmbedding = await this.embeddingService.embed(
@@ -127,9 +158,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         const prompt = await this.ragCtxBuilder.buildCtx(
             input.question,
             topResults,
-            getCurrentFormattedTime(),
-            this.agcDB,
-            this.imDB
+            getCurrentFormattedTime()
         );
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 

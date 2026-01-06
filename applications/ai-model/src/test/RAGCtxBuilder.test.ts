@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { container } from "tsyringe";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { SearchOutput } from "@root/common/rpc/ai-model";
+import { AI_MODEL_TOKENS } from "../di/tokens";
 
 // 模拟依赖
 vi.mock("@root/common/database/AgcDbAccessService");
@@ -15,9 +17,7 @@ describe("RAGCtxBuilder", () => {
     let mockImDB: ImDbAccessService;
 
     beforeEach(async () => {
-        ragCtxBuilder = new RAGCtxBuilder();
-        await ragCtxBuilder.init();
-
+        // 创建模拟对象
         mockAgcDB = {
             getAIDigestResultByTopicId: vi.fn()
         } as any;
@@ -25,6 +25,14 @@ describe("RAGCtxBuilder", () => {
         mockImDB = {
             getSessionTimeDuration: vi.fn()
         } as any;
+
+        // 注册模拟服务到 DI 容器
+        container.registerInstance(AI_MODEL_TOKENS.AgcDbAccessService, mockAgcDB);
+        container.registerInstance(AI_MODEL_TOKENS.ImDbAccessService, mockImDB);
+
+        // 从容器获取 RAGCtxBuilder 实例
+        ragCtxBuilder = container.resolve(RAGCtxBuilder);
+        await ragCtxBuilder.init();
     });
 
     it("应该能够构建包含日期信息的 RAG 上下文", async () => {
@@ -107,9 +115,7 @@ describe("RAGCtxBuilder", () => {
         const prompt = await ragCtxBuilder.buildCtx(
             question,
             searchResults,
-            currentDate,
-            mockAgcDB,
-            mockImDB
+            currentDate
         );
 
         // 验证返回值
@@ -188,9 +194,7 @@ describe("RAGCtxBuilder", () => {
         const prompt = await ragCtxBuilder.buildCtx(
             question,
             searchResults,
-            currentDate,
-            mockAgcDB,
-            mockImDB
+            currentDate
         );
 
         // 验证返回值

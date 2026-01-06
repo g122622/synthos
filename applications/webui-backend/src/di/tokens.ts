@@ -10,11 +10,11 @@ export const TOKENS = {
     // 引用共享的 ConfigManagerService Token
     ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
 
-    // DBManagers (作为 Repository 层)
-    AgcDbAccessService: Symbol.for("AgcDbAccessService"),
-    ImDbAccessService: Symbol.for("ImDbAccessService"),
-    InterestScoreDbAccessService: Symbol.for("InterestScoreDbAccessService"),
-    ReportDbAccessService: Symbol.for("ReportDbAccessService"),
+    // DBManagers (作为 Repository 层) - 使用共享 Token
+    AgcDbAccessService: COMMON_TOKENS.AgcDbAccessService,
+    ImDbAccessService: COMMON_TOKENS.ImDbAccessService,
+    InterestScoreDbAccessService: COMMON_TOKENS.InterestScoreDbAccessService,
+    ReportDbAccessService: COMMON_TOKENS.ReportDbAccessService,
 
     // Status Managers
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),

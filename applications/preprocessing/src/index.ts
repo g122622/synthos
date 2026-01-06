@@ -1,100 +1,42 @@
 import "reflect-metadata";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
-import { AccumulativeSplitter } from "./splitters/AccumulativeSplitter";
-import { TimeoutSplitter } from "./splitters/TimeoutSplitter";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
-import { formatMsg } from "./formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { ISplitter } from "./splitters/contracts/ISplitter";
+import {
+    registerConfigManagerService,
+    registerImDbAccessService
+} from "@root/common/di/container";
+import { registerTaskHandlers, getPreprocessTaskHandler } from "./di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 
+/**
+ * Preprocessing 应用入口类
+ * 负责初始化 DI 容器、数据库服务和任务处理器
+ */
 @bootstrap
 class PreprocessingApplication {
+    /**
+     * 应用主入口
+     */
     public async main(): Promise<void> {
-        // 初始化 DI 容器
+        // 1. 初始化 DI 容器 - 注册基础服务
         registerConfigManagerService();
-        const configManagerService = getConfigManagerService();
 
+        // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
         await imDbAccessService.init();
 
-        let config = await configManagerService.getCurrentConfig();
+        // 3. 注册 ImDbAccessService 到 DI 容器
+        registerImDbAccessService(imDbAccessService);
 
-        await agendaInstance
-            .create(TaskHandlerTypes.Preprocess)
-            .unique({ name: TaskHandlerTypes.Preprocess }, { insertOnly: true })
-            .save();
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.Preprocess>>(
-            TaskHandlerTypes.Preprocess,
-            async job => {
-                LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-                const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+        // 4. 注册任务处理器
+        registerTaskHandlers();
 
-                for (const groupId of attrs.groupIds) {
-                    let splitter: ISplitter;
-                    switch (config.groupConfigs[groupId]?.splitStrategy) {
-                        case "accumulative": {
-                            splitter = new AccumulativeSplitter();
-                            break;
-                        }
-                        case "realtime": {
-                            splitter = new TimeoutSplitter();
-                            break;
-                        }
-                        default: {
-                            LOGGER.warning(
-                                `未知的分割策略: ${config.groupConfigs[groupId]?.splitStrategy}，使用accumulative策略兜底`
-                            );
-                            splitter = new AccumulativeSplitter();
-                            // TODO 实现
-                            break;
-                        }
-                    }
-
-                    // 开始消息分割，分配sessionId
-                    await splitter.init();
-                    const results = await Promise.all(
-                        (
-                            await splitter.assignSessionId(
-                                imDbAccessService,
-                                groupId,
-                                attrs.startTimeStamp,
-                                attrs.endTimeStamp
-                            )
-                        ).map<Promise<ProcessedChatMessage>>(async result => {
-                            return {
-                                sessionId: result.sessionId!,
-                                msgId: result.msgId,
-                                preProcessedContent: formatMsg(
-                                    result,
-                                    result.quotedMsgId
-                                        ? await imDbAccessService.getRawChatMessageByMsgId(result.quotedMsgId)
-                                        : undefined,
-                                    result.quotedMsgContent
-                                )
-                            };
-                        })
-                    );
-                    await imDbAccessService.storeProcessedChatMessages(results);
-                    await splitter.dispose();
-
-                    LOGGER.success(`为群${groupId}分配了${results.length}条消息`);
-                    await job.touch(); // 保活
-                }
-
-                LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            },
-            {
-                concurrency: 1,
-                priority: "high"
-            }
-        );
+        // 5. 获取任务处理器并注册到 Agenda
+        const preprocessTaskHandler = getPreprocessTaskHandler();
+        await preprocessTaskHandler.register();
 
         LOGGER.success("Ready to start agenda scheduler");
         await agendaInstance.start(); // 启动调度器

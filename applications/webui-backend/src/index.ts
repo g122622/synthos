@@ -14,7 +14,6 @@ import Logger from "@root/common/util/Logger";
 
 // DI 容器
 import {
-    registerDBManagers,
     registerStatusManagers,
     registerRagChatHistoryManager,
     registerRAGClient,
@@ -128,25 +127,19 @@ private async initializeStatusManagers(): Promise<{
         // 0. 注册 ConfigManagerService（必须最先注册）
         registerConfigManagerService();
 
-        // 1. 注册 DBManagers
-        registerDBManagers(
-            this.agcDbAccessService!,
-            this.imDbAccessService!,
-            this.interestScoreDbAccessService!,
-            this.reportDbAccessService!
-        );
+        // 注意：DBManagers 已在 initializeDatabases 中注册到 DI 容器
 
-        // 2. 注册 Status Managers
+        // 1. 注册 Status Managers
         const { favoriteStatusManager, readStatusManager, reportReadStatusManager } = await this.initializeStatusManagers();
         registerStatusManagers(favoriteStatusManager, readStatusManager, reportReadStatusManager);
 
-        // 2.5. 注册 RAG 聊天历史管理器
+        // 2. 注册 RAG 聊天历史管理器
         const ragChatHistoryManager = await this.initializeRagChatHistoryManager();
         registerRagChatHistoryManager(ragChatHistoryManager);
 
         // 3. 注册 RAG RPC 客户端
         const config = await this.getConfigManagerService().getCurrentConfig();
-        const rpcPort = config.ai?.rpc?.port || 7979;
+        const rpcPort = config.ai.rpc.port;
         registerRAGClient(`http://localhost:${rpcPort}`);
 
         // 4. 注册 Services

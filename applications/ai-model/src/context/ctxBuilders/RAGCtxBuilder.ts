@@ -1,22 +1,51 @@
+import "reflect-metadata";
+import { injectable, inject } from "tsyringe";
 import { ICtxBuilder } from "./contracts/ICtxBuilder";
 import { RagPromptStore } from "../prompts/RagPromptStore";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { formatTimestamp } from "@root/common/util/TimeUtils";
 import { SearchOutput } from "@root/common/rpc/ai-model";
+import { AI_MODEL_TOKENS } from "../../di/tokens";
 
-@mustInitBeforeUse
+/**
+ * RAG 上下文构建器
+ * 负责构建 RAG 问答的上下文提示词
+ * 
+ * 注意：由于使用 DI 容器管理，不再使用 @mustInitBeforeUse 装饰器
+ * 初始化责任由 RagRPCImpl.init() 调用
+ */
+@injectable()
 export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
-    async init(): Promise<void> {}
+    /**
+     * 构造函数
+     * @param agcDB AGC 数据库访问服务
+     * @param imDB IM 数据库访问服务
+     */
+    public constructor(
+        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
+        @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService
+    ) {
+        super();
+    }
 
-    async buildCtx(
+    /**
+     * 初始化方法
+     */
+    public async init(): Promise<void> {}
+
+    /**
+     * 构建 RAG 上下文
+     * @param question 用户问题
+     * @param searchResults 搜索结果
+     * @param currentDate 当前日期字符串
+     * @returns 构建的提示词
+     */
+    public async buildCtx(
         question: string,
         searchResults: SearchOutput,
-        currentDate: string,
-        agcDB: AgcDbAccessService,
-        imDB: ImDbAccessService
+        currentDate: string
     ): Promise<string> {
         // 获取话题日期信息
         const topicDates: { [index: string]: { startTime?: string; endTime?: string } } = {};
@@ -25,9 +54,9 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             const result = searchResults[i];
             const indexStr = String(i + 1); // 使用索引作为键
 
-            const digest = await agcDB.getAIDigestResultByTopicId(result.topicId!);
+            const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId!);
             if (digest && digest.sessionId) {
-                const timeRange = await imDB.getSessionTimeDuration(digest.sessionId);
+                const timeRange = await this.imDB.getSessionTimeDuration(digest.sessionId);
                 if (timeRange) {
                     topicDates[indexStr] = {
                         startTime: formatTimestamp(timeRange.timeStart),

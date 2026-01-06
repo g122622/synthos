@@ -1,89 +1,42 @@
 import "reflect-metadata";
 import Logger from "@root/common/util/Logger";
-import { QQProvider } from "./providers/QQProvider/QQProvider";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { IMTypes } from "@root/common/contracts/data-provider/index";
-import { IIMProvider } from "./providers/contracts/IIMProvider";
-import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
+import {
+    registerConfigManagerService,
+    registerImDbAccessService
+} from "@root/common/di/container";
+import { registerTaskHandlers, getProvideDataTaskHandler } from "./di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("🌏 data-provider-root-script");
 
+/**
+ * Data Provider 应用入口类
+ * 负责初始化 DI 容器、数据库服务和任务处理器
+ */
 @bootstrap
 class DataProviderApplication {
+    /**
+     * 应用主入口
+     */
     public async main(): Promise<void> {
-        // 初始化 DI 容器
+        // 1. 初始化 DI 容器 - 注册基础服务
         registerConfigManagerService();
-        const configManagerService = getConfigManagerService();
 
+        // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
         await imDbAccessService.init();
 
-        let config = await configManagerService.getCurrentConfig();
+        // 3. 注册 ImDbAccessService 到 DI 容器
+        registerImDbAccessService(imDbAccessService);
 
-        await agendaInstance
-            .create(TaskHandlerTypes.ProvideData)
-            .unique({ name: TaskHandlerTypes.ProvideData }, { insertOnly: true })
-            .save();
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.ProvideData>>(
-            TaskHandlerTypes.ProvideData,
-            async job => {
-                LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-                const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+        // 4. 注册任务处理器
+        registerTaskHandlers();
 
-                // 根据 IM 类型初始化对应的 IM 提供者
-                let activeProvider: IIMProvider;
-                switch (attrs.IMType) {
-                    case IMTypes.QQ: {
-                        activeProvider = new QQProvider();
-                        break;
-                    }
-                    default: {
-                        LOGGER.error(`Unknown IM type: ${attrs.IMType}`);
-                        job.fail("Unknown IM type");
-                        return;
-                    }
-                }
-
-                await activeProvider.init();
-                LOGGER.debug(`IM provider initialized for ${attrs.IMType}`);
-                for (const groupId of attrs.groupIds) {
-                    LOGGER.debug(`开始获取群 ${groupId} 的消息`);
-                    // 计算开始时间
-                    // const latestMessage = await imDbAccessService.getNewestRawChatMessageByGroupId(groupId);
-                    // let startTime = latestMessage?.timestamp
-                    //     ? latestMessage.timestamp - 60 * 1000
-                    //     : getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
-                    // if (!latestMessage?.timestamp) {
-                    //     LOGGER.warning(`群 ${groupId} 没有找到最新消息，使用默认时间范围`);
-                    // }
-                    // if (Date.now() - startTime > attrs.startTimeInHoursFromNow * 60 * 60 * 1000) {
-                    //     LOGGER.warning(`群 ${groupId} 的最新消息时间超过${attrs.startTimeInHoursFromNow}小时，使用该范围。最新消息时间：${latestMessage?.timestamp}`);
-                    //     startTime = getHoursAgoTimestamp(attrs.startTimeInHoursFromNow);
-                    // }
-
-                    const results = await activeProvider.getMsgByTimeRange(
-                        attrs.startTimeStamp, // 从最新消息往前1分钟的数据
-                        attrs.endTimeStamp,
-                        groupId
-                    );
-                    LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
-                    await imDbAccessService.storeRawChatMessages(results);
-                    await job.touch(); // 保证任务存活
-                }
-                await activeProvider.dispose();
-
-                LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-            },
-            {
-                concurrency: 1,
-                priority: "high",
-                lockLifetime: 10 * 60 * 1000 // 10分钟
-            }
-        );
+        // 5. 获取任务处理器并注册到 Agenda
+        const provideDataTaskHandler = getProvideDataTaskHandler();
+        await provideDataTaskHandler.register();
 
         LOGGER.success("Ready to start agenda scheduler");
         await agendaInstance.start(); // 启动调度器

@@ -1,50 +1,22 @@
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { startRAGRPCServer } from "./server";
-import { TextGenerator } from "../generators/text/TextGenerator";
-import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { RagRPCImpl } from "../rag/RagRPCImpl";
-import { VectorDBManager } from "../embedding/VectorDBManager";
-import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
-import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { getRagRPCImpl } from "../di/container";
 import { getConfigManagerService } from "@root/common/di/container";
 
-// ========== 启动 RPC Server ==========
-export const setupRPC = async (
-    vectorDBManager: VectorDBManager,
-    agcDbAccessService: AgcDbAccessService,
-    imDbAccessService: ImDbAccessService,
-    reportDbAccessService: ReportDbAccessService
-) => {
+/**
+ * 启动 RPC Server
+ * 使用 DI 容器获取 RagRPCImpl 实例
+ */
+export const setupRPC = async () => {
     const configManagerService = getConfigManagerService();
     const config = await configManagerService.getCurrentConfig();
 
-    // 初始化 Ollama 嵌入服务（用于 RPC 查询）
-    const embeddingService = new OllamaEmbeddingService(
-        config.ai.embedding.ollamaBaseURL,
-        config.ai.embedding.model,
-        config.ai.embedding.dimension
-    );
+    // 从 DI 容器获取 RPC 实现
+    const rpcImpl = getRagRPCImpl();
 
-    // 初始化 TextGenerator（用于 RAG 问答）
-    const textGenerator = new TextGenerator();
-    await textGenerator.init();
-
-    // 创建 RPC 实现
-    const ragCtxBuilder = new RAGCtxBuilder();
-    await ragCtxBuilder.init();
-    const rpcImpl = new RagRPCImpl(
-        vectorDBManager,
-        embeddingService,
-        agcDbAccessService,
-        imDbAccessService,
-        reportDbAccessService,
-        textGenerator,
-        config.ai.defaultModelName,
-        ragCtxBuilder
-    );
+    // 初始化 RPC 实现
+    await rpcImpl.init();
 
     // 启动 RPC 服务器
-    const rpcPort = config.ai.rpc?.port || 7979;
+    const rpcPort = config.ai.rpc.port;
     startRAGRPCServer(rpcImpl, rpcPort);
 };

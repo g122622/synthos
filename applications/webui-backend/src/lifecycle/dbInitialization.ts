@@ -1,11 +1,16 @@
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
-import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { registerDbAccessServices } from "@root/common/di/container";
 import Logger from "@root/common/util/Logger";
 
 const LOGGER = Logger.withTag("📃 WebUI-Backend");
 
+/**
+ * 初始化所有数据库服务并注册到 DI 容器
+ * @returns 包含所有已初始化数据库服务的对象
+ */
 export const initializeDatabases = async (): Promise<{
     agcDbAccessService: AgcDbAccessService;
     imDbAccessService: ImDbAccessService;
@@ -23,7 +28,15 @@ export const initializeDatabases = async (): Promise<{
         await interestScoreDbAccessService.init();
         await reportDbAccessService.init();
 
-        LOGGER.success("数据库初始化完成");
+        // 注册到 DI 容器
+        registerDbAccessServices({
+            agcDbAccessService,
+            imDbAccessService,
+            interestScoreDbAccessService,
+            reportDbAccessService
+        });
+
+        LOGGER.success("数据库初始化完成并注册到 DI 容器");
 
         return { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService };
     } catch (error) {
