@@ -6,10 +6,10 @@ import express, { Express } from "express";
 import * as path from "path";
 
 // 基础设施
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
-import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
@@ -77,11 +77,17 @@ export class WebUILocalServer {
     }
 
     public async closeDatabases(): Promise<void> {
-        await closeDatabases(this.agcDbAccessService, this.imDbAccessService, this.interestScoreDbAccessService, this.reportDbAccessService);
+        await closeDatabases(
+            this.agcDbAccessService,
+            this.imDbAccessService,
+            this.interestScoreDbAccessService,
+            this.reportDbAccessService
+        );
     }
 
     private async initializeDatabases(): Promise<void> {
-        const { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService } = await initializeDatabases();
+        const { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService } =
+            await initializeDatabases();
         this.agcDbAccessService = agcDbAccessService;
         this.imDbAccessService = imDbAccessService;
         this.interestScoreDbAccessService = interestScoreDbAccessService;
@@ -108,9 +114,7 @@ export class WebUILocalServer {
 
     private async initializeRagChatHistoryManager(): Promise<RagChatHistoryManager> {
         const config = await ConfigManagerService.getCurrentConfig();
-        const ragChatHistoryManager = RagChatHistoryManager.getInstance(
-            config.webUI_Backend.dbBasePath
-        );
+        const ragChatHistoryManager = RagChatHistoryManager.getInstance(config.webUI_Backend.dbBasePath);
         await ragChatHistoryManager.init();
         return ragChatHistoryManager;
     }
@@ -120,7 +124,8 @@ export class WebUILocalServer {
         // 注意：DBManagers 已在 initializeDatabases 中注册到 DI 容器
 
         // 1. 注册 Status Managers
-        const { favoriteStatusManager, readStatusManager, reportReadStatusManager } = await this.initializeStatusManagers();
+        const { favoriteStatusManager, readStatusManager, reportReadStatusManager } =
+            await this.initializeStatusManagers();
         registerStatusManagers(favoriteStatusManager, readStatusManager, reportReadStatusManager);
 
         // 2. 注册 RAG 聊天历史管理器

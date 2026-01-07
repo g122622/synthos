@@ -9,9 +9,7 @@ import { GetInterestScoreResultsSchema } from "../schemas/index";
 
 @injectable()
 export class InterestScoreController {
-    constructor(
-        @inject(TOKENS.InterestScoreService) private interestScoreService: InterestScoreService
-    ) {}
+    constructor(@inject(TOKENS.InterestScoreService) private interestScoreService: InterestScoreService) {}
 
     /**
      * POST /api/interest-score-results

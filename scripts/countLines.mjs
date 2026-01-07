@@ -1,43 +1,35 @@
 #!/usr/bin/env node
 
-import { readdir, readFile, open } from 'fs/promises';
-import path, { extname } from 'path';
-import { fileURLToPath } from 'url';
+import { readdir, readFile, open } from "fs/promises";
+import path, { extname } from "path";
+import { fileURLToPath } from "url";
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const ROOT_DIR = path.resolve(__dirname, '..');
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const ROOT_DIR = path.resolve(__dirname, "..");
 
-const DIR_IGNORE_SET = new Set([
-    'node_modules',
-    'dist',
-    'assets',
-    'logs',
-    '.idea',
-    '.vscode',
-    '.git'
-]);
+const DIR_IGNORE_SET = new Set(["node_modules", "dist", "assets", "logs", ".idea", ".vscode", ".git"]);
 
-const FILE_NAME_IGNORE = new Set(['.DS_Store', '.env.local', 'synthos_config.json']);
+const FILE_NAME_IGNORE = new Set([".DS_Store", ".env.local", "synthos_config.json"]);
 
 /**
  * 将路径转为 posix 形式，方便模式匹配
  */
 function toPosix(p) {
-    return p.split(path.sep).join('/');
+    return p.split(path.sep).join("/");
 }
 
 /**
  * 判断是否应跳过当前路径（目录或文件）
  */
 function isIgnored(relPath, isDirectory) {
-    const parts = relPath.split('/');
+    const parts = relPath.split("/");
 
     // 路径级别忽略：若任一片段在忽略目录集合中，直接跳过
-    if (parts.some((p) => DIR_IGNORE_SET.has(p))) {
+    if (parts.some(p => DIR_IGNORE_SET.has(p))) {
         return true;
     }
 
-    const base = parts[parts.length - 1] ?? '';
+    const base = parts[parts.length - 1] ?? "";
 
     // 目录层面的忽略
     if (isDirectory) {
@@ -85,7 +77,7 @@ function isIgnored(relPath, isDirectory) {
 async function isLikelyBinary(filePath) {
     let handle;
     try {
-        handle = await open(filePath, 'r');
+        handle = await open(filePath, "r");
         const buffer = Buffer.alloc(8192);
         const { bytesRead } = await handle.read({ buffer, position: 0 });
         if (bytesRead === 0) return false;
@@ -113,9 +105,9 @@ async function isLikelyBinary(filePath) {
  */
 async function countLines(filePath) {
     try {
-        const content = await readFile(filePath, 'utf8');
-        if (content === '') return 0;
-        return content.split('\n').length;
+        const content = await readFile(filePath, "utf8");
+        if (content === "") return 0;
+        return content.split("\n").length;
     } catch (err) {
         console.warn(`⚠️ 读取文件失败，已跳过: ${filePath}`);
         return 0;
@@ -126,17 +118,17 @@ async function countLines(filePath) {
  * 按目录/包分组：applications/<name>，否则取顶级目录；根目录文件归入 root
  */
 function getPackageKey(relPath) {
-    const parts = relPath.split('/');
+    const parts = relPath.split("/");
     if (parts.length === 1) {
-        return 'root';
+        return "root";
     }
-    if (parts[0] === 'applications' && parts[1]) {
+    if (parts[0] === "applications" && parts[1]) {
         return `applications/${parts[1]}`;
     }
     if (parts[0]) {
         return parts[0];
     }
-    return 'root';
+    return "root";
 }
 
 /**
@@ -165,7 +157,7 @@ async function walk(dir, accumulators) {
         if (lines === 0) continue;
 
         const pkgKey = getPackageKey(relPath);
-        const ext = extname(entry.name) || '<no-ext>';
+        const ext = extname(entry.name) || "<no-ext>";
 
         accumulators.total += lines;
         accumulators.package.set(pkgKey, (accumulators.package.get(pkgKey) ?? 0) + lines);
@@ -185,19 +177,19 @@ async function main() {
     console.log(`📊 总行数: ${accumulators.total}`);
 
     const sortedPackages = [...accumulators.package.entries()].sort((a, b) => b[1] - a[1]);
-    console.log('\n📁 按目录/包:');
+    console.log("\n📁 按目录/包:");
     for (const [key, value] of sortedPackages) {
         console.log(`- ${key}: ${value}`);
     }
 
     const sortedExts = [...accumulators.extension.entries()].sort((a, b) => b[1] - a[1]);
-    console.log('\n📝 按扩展名:');
+    console.log("\n📝 按扩展名:");
     for (const [key, value] of sortedExts) {
         console.log(`- ${key}: ${value}`);
     }
 }
 
-main().catch((err) => {
-    console.error('❌ 统计行数失败:', err);
+main().catch(err => {
+    console.error("❌ 统计行数失败:", err);
     process.exit(1);
 });

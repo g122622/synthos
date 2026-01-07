@@ -141,9 +141,7 @@ describe("QQProvider", () => {
             const uninitializedProvider = getQQProvider();
 
             // 由于 db 为 null，调用 getMsgByTimeRange 会抛出 UNINITIALIZED_ERROR
-            await expect(uninitializedProvider.getMsgByTimeRange(0, 1000)).rejects.toBe(
-                "UNINITIALIZED_ERROR"
-            );
+            await expect(uninitializedProvider.getMsgByTimeRange(0, 1000)).rejects.toBe("UNINITIALIZED_ERROR");
 
             await uninitializedProvider.dispose();
         });
@@ -153,12 +151,8 @@ describe("QQProvider", () => {
 
             // 验证数据库连接流程
             expect(mockDbMethods.open).toHaveBeenCalledWith(":memory:");
-            expect(mockDbMethods.loadExtension).toHaveBeenCalledWith(
-                mockConfig.dataProviders.QQ.VFSExtPath
-            );
-            expect(mockDbMethods.open).toHaveBeenCalledWith(
-                mockConfig.dataProviders.QQ.dbBasePath + "/nt_msg.db"
-            );
+            expect(mockDbMethods.loadExtension).toHaveBeenCalledWith(mockConfig.dataProviders.QQ.VFSExtPath);
+            expect(mockDbMethods.open).toHaveBeenCalledWith(mockConfig.dataProviders.QQ.dbBasePath + "/nt_msg.db");
             expect(mockDbMethods.exec).toHaveBeenCalled();
 
             // 验证解析器初始化
@@ -243,10 +237,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].messageContent).toBe("[微笑]");
@@ -264,10 +255,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].messageContent).toBe("[图片]");
@@ -285,10 +273,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].messageContent).toBe("[语音]");
@@ -307,10 +292,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].messageContent).toBe("[文件][文件名：test.pdf]");
@@ -334,10 +316,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].messageContent).toBe("今天天气真好[太阳]");
@@ -356,10 +335,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(0);
         });
@@ -368,11 +344,7 @@ describe("QQProvider", () => {
             mockDbMethods.all.mockResolvedValue([]);
             mockParserMethods.parseMessageSegment.mockReturnValue({ messages: [] });
 
-            await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000,
-                mockGroupId
-            );
+            await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000, mockGroupId);
 
             const sqlCall = mockDbMethods.all.mock.calls[0][0] as string;
             expect(sqlCall).toContain(`"${GMC.groupUin}" = ${mockGroupId}`);
@@ -381,10 +353,7 @@ describe("QQProvider", () => {
         it("应正确处理空结果", async () => {
             mockDbMethods.all.mockResolvedValue([]);
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toEqual([]);
         });
@@ -454,10 +423,7 @@ describe("QQProvider", () => {
                     ]
                 });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].quotedMsgContent).toBe(quotedMsgContent);
@@ -492,10 +458,7 @@ describe("QQProvider", () => {
                 ]
             });
 
-            const result = await qqProvider.getMsgByTimeRange(
-                mockTimestamp - 1000,
-                mockTimestamp + 1000
-            );
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
 
             expect(result).toHaveLength(1);
             expect(result[0].quotedMsgContent).toBeUndefined();
@@ -517,9 +480,7 @@ describe("QQProvider", () => {
                     }
                 }
             };
-            (ConfigManagerService.default.getCurrentConfig as Mock).mockResolvedValue(
-                configWithPatch
-            );
+            (ConfigManagerService.default.getCurrentConfig as Mock).mockResolvedValue(configWithPatch);
 
             // 从 DI 容器获取新实例使用新配置
             const providerWithPatch = getQQProvider();

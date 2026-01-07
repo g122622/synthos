@@ -5,7 +5,7 @@ import { Disposable } from "./Disposable";
 /**
  * 装饰器：确保类在使用前必须调用 init() 方法（支持异步 init）
  * 赦免所有来自 Disposable 基类的方法/属性（如 dispose, isDisposed, _registerDisposable 等）
- * 
+ *
  * init() 方法具有幂等性：
  * - 如果已初始化完成，再次调用 init() 会直接返回
  * - 如果正在初始化，再次调用 init() 会等待当前初始化完成
@@ -91,10 +91,7 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
 
                     // 赦免规则 2：来自 Disposable 基类原型链上的属性（动态判断）
                     // 这样即使未来 Disposable 新增方法，也能自动豁免
-                    if (
-                        typeof prop === "string" &&
-                        (prop in Disposable.prototype || prop === "isDisposed")
-                    ) {
+                    if (typeof prop === "string" && (prop in Disposable.prototype || prop === "isDisposed")) {
                         return Reflect.get(target, prop, receiver);
                     }
 

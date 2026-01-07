@@ -36,11 +36,7 @@ export class ReportController {
      */
     public async getReportsPaginated(req: Request, res: Response): Promise<void> {
         const params = GetReportsPaginatedSchema.parse(req.body);
-        const result = await this.reportService.getReportsPaginated(
-            params.page,
-            params.pageSize,
-            params.type
-        );
+        const result = await this.reportService.getReportsPaginated(params.page, params.pageSize, params.type);
         res.json({ success: true, data: result });
     }
 
@@ -85,11 +81,7 @@ export class ReportController {
      */
     public async triggerGenerate(req: Request, res: Response): Promise<void> {
         const params = TriggerReportGenerateSchema.parse(req.body);
-        const result = await this.reportService.triggerGenerate(
-            params.type,
-            params.timeStart,
-            params.timeEnd
-        );
+        const result = await this.reportService.triggerGenerate(params.type, params.timeStart, params.timeEnd);
         res.json({ success: true, data: result });
     }
 

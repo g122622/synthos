@@ -31,7 +31,8 @@ export class InterestScoreTaskHandler {
         @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService) private interestScoreDbAccessService: InterestScoreDbAccessService
+        @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService)
+        private interestScoreDbAccessService: InterestScoreDbAccessService
     ) {}
 
     /**

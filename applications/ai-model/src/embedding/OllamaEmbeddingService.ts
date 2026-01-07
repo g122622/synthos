@@ -65,9 +65,7 @@ export class OllamaEmbeddingService {
             // 校验向量维度
             for (let i = 0; i < embeddings.length; i++) {
                 if (embeddings[i].length !== this.dimension) {
-                    throw new Error(
-                        `向量维度不匹配：期望 ${this.dimension}，实际 ${embeddings[i].length}`
-                    );
+                    throw new Error(`向量维度不匹配：期望 ${this.dimension}，实际 ${embeddings[i].length}`);
                 }
             }
 

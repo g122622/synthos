@@ -105,9 +105,7 @@ describe("anonymizeDigestDetail", () => {
 
             const result = anonymizeDigestDetail(digest);
 
-            expect(result.detail).toBe(
-                "用户1说：注意特殊字符。用户2回复：是的。用户3补充：还有问号。"
-            );
+            expect(result.detail).toBe("用户1说：注意特殊字符。用户2回复：是的。用户3补充：还有问号。");
         });
 
         it("应该正确处理包含中括号的昵称", () => {
@@ -119,9 +117,7 @@ describe("anonymizeDigestDetail", () => {
 
             const result = anonymizeDigestDetail(digest);
 
-            expect(result.detail).toBe(
-                "用户1说：注意括号。用户2回复：是的。用户3补充：还有圆括号。"
-            );
+            expect(result.detail).toBe("用户1说：注意括号。用户2回复：是的。用户3补充：还有圆括号。");
         });
 
         it("应该正确处理包含正则量词的昵称", () => {
@@ -147,9 +143,7 @@ describe("anonymizeDigestDetail", () => {
 
             const result = anonymizeDigestDetail(digest);
 
-            expect(result.detail).toBe(
-                "用户1说：我是用户1。用户2回复：我是用户2。用户3说：你们好。"
-            );
+            expect(result.detail).toBe("用户1说：我是用户1。用户2回复：我是用户2。用户3说：你们好。");
         });
 
         it("应该正确处理包含关系的昵称", () => {
@@ -215,9 +209,7 @@ describe("anonymizeDigestDetail", () => {
 
             const result = anonymizeDigestDetail(digest);
 
-            expect(result.detail).toBe(
-                "会议开始了，首先请用户1发言，然后用户2补充，最后用户1总结。"
-            );
+            expect(result.detail).toBe("会议开始了，首先请用户1发言，然后用户2补充，最后用户1总结。");
         });
 
         it("应该正确处理昵称包含在句子中的情况", () => {

@@ -3,7 +3,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 
 @injectable()
 export class ChatMessageService {
@@ -12,11 +12,7 @@ export class ChatMessageService {
     /**
      * 根据群组 ID 和时间范围获取聊天消息
      */
-    async getChatMessagesByGroupIdAndTimeRange(
-        groupId: string,
-        timeStart: number,
-        timeEnd: number
-    ) {
+    async getChatMessagesByGroupIdAndTimeRange(groupId: string, timeStart: number, timeEnd: number) {
         return await this.imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
             timeStart,
@@ -27,11 +23,7 @@ export class ChatMessageService {
     /**
      * 根据多个群组 ID 和时间范围获取 sessionId 列表
      */
-    async getSessionIdsByGroupIdsAndTimeRange(
-        groupIds: string[],
-        timeStart: number,
-        timeEnd: number
-    ) {
+    async getSessionIdsByGroupIdsAndTimeRange(groupIds: string[], timeStart: number, timeEnd: number) {
         const results = [];
         for (const groupId of groupIds) {
             const sessionIds = await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
@@ -102,11 +94,7 @@ export class ChatMessageService {
 
         // 从数据库获取原始聚合数据
         const [currentRawStats, previousRawStats] = await Promise.all([
-            this.imDbAccessService.getMessageHourlyStatsByGroupIds(
-                groupIds,
-                currentPeriodStart,
-                currentPeriodEnd
-            ),
+            this.imDbAccessService.getMessageHourlyStatsByGroupIds(groupIds, currentPeriodStart, currentPeriodEnd),
             this.imDbAccessService.getMessageHourlyStatsByGroupIds(
                 groupIds,
                 previousPeriodStart,
@@ -127,9 +115,7 @@ export class ChatMessageService {
 
         // 填充当前24小时数据
         for (const stat of currentRawStats) {
-            const hourIndex = Math.floor(
-                (stat.hourTimestamp - currentPeriodStart) / (60 * 60 * 1000)
-            );
+            const hourIndex = Math.floor((stat.hourTimestamp - currentPeriodStart) / (60 * 60 * 1000));
             if (hourIndex >= 0 && hourIndex < 24 && data[stat.groupId]) {
                 data[stat.groupId].current[hourIndex] = stat.count;
             }
@@ -137,9 +123,7 @@ export class ChatMessageService {
 
         // 填充前一天24小时数据
         for (const stat of previousRawStats) {
-            const hourIndex = Math.floor(
-                (stat.hourTimestamp - previousPeriodStart) / (60 * 60 * 1000)
-            );
+            const hourIndex = Math.floor((stat.hourTimestamp - previousPeriodStart) / (60 * 60 * 1000));
             if (hourIndex >= 0 && hourIndex < 24 && data[stat.groupId]) {
                 data[stat.groupId].previous[hourIndex] = stat.count;
             }

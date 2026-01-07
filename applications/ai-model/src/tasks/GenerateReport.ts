@@ -75,7 +75,11 @@ export class GenerateReportTaskHandler {
                     return;
                 }
 
-                const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
+                const periodDescription = this.formatPeriodDescription(
+                    reportType,
+                    timeStart,
+                    timeEnd
+                );
                 this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
                 try {

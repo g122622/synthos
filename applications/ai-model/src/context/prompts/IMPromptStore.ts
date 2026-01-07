@@ -1,9 +1,5 @@
 export class IMPromptStore {
-    public static getSummarizePrompt(
-        groupIntroduction: string,
-        maxTopics: number,
-        messages: string
-    ): string {
+    public static getSummarizePrompt(groupIntroduction: string, maxTopics: number, messages: string): string {
         return `你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的全部准则：
         请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。
 

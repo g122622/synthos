@@ -215,10 +215,7 @@ export class ImDbAccessService extends Disposable {
      * @returns 消息对象
      */
     public async getRawChatMessageByMsgId(msgId: string): Promise<RawChatMessage> {
-        const result = await this.db.get<RawChatMessage>(
-            `SELECT * FROM chat_messages WHERE msgId =?`,
-            [msgId]
-        );
+        const result = await this.db.get<RawChatMessage>(`SELECT * FROM chat_messages WHERE msgId =?`, [msgId]);
         if (!result) {
             this.LOGGER.warning(`未找到消息id为${msgId}的消息`);
         }
@@ -227,9 +224,7 @@ export class ImDbAccessService extends Disposable {
 
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
-        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(
-            `SELECT * FROM chat_messages`
-        );
+        const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
         this.LOGGER.info(`去重前消息数量: ${res.length}`);
         // 按照id进行去重
         const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
@@ -292,10 +287,11 @@ export class ImDbAccessService extends Disposable {
 
     public async storeProcessedChatMessage(message: ProcessedChatMessage) {
         // 执行这个函数的时候，数据库内已经通过storeRawChatMessage函数存储了原始消息，这里只需要更新原记录中的sessionId和preProcessedContent字段即可
-        await this.db.run(
-            `UPDATE chat_messages SET sessionId = ?, preProcessedContent = ? WHERE msgId = ?`,
-            [message.sessionId, message.preProcessedContent, message.msgId]
-        );
+        await this.db.run(`UPDATE chat_messages SET sessionId = ?, preProcessedContent = ? WHERE msgId = ?`, [
+            message.sessionId,
+            message.preProcessedContent,
+            message.msgId
+        ]);
     }
 
     public async storeProcessedChatMessages(messages: ProcessedChatMessage[]) {

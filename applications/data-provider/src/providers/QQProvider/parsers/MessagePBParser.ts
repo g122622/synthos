@@ -110,7 +110,7 @@ export class MessagePBParser extends Disposable {
         const errMsg = this.messageSegment.verify(buffer);
         if (errMsg) {
             this.LOGGER.error("Protobuf verify error:" + errMsg);
-            console.dir
+            console.dir;
             throw ErrorReasons.PROTOBUF_ERROR;
         }
 

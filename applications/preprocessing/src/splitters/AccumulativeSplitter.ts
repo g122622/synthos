@@ -5,7 +5,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { KVStore } from "@root/common/util/KVStore";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
@@ -36,8 +36,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * 初始化分割器
      */
     public async init() {
-        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
-            .AccumulativeSplitter;
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
@@ -50,13 +49,16 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * @param endTimeStamp 结束时间戳
      * @returns 带有 sessionId 的消息列表
      */
-    public async assignSessionId(imDbAccessService: ImDbAccessService, groupId: string, startTimeStamp: number,
-        endTimeStamp: number) {
+    public async assignSessionId(
+        imDbAccessService: ImDbAccessService,
+        groupId: string,
+        startTimeStamp: number,
+        endTimeStamp: number
+    ) {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
-        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
-            .AccumulativeSplitter;
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {
             // 为其分配一个新的 sessionId
@@ -102,10 +104,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
                         // 此时上一个sessionId的容量未满，为这条消息分配上一个sessionId，并更新其容量
                         msg.sessionId = previousMsgSessionId; // 分配上一个sessionId
                         if (config.mode === "charCount") {
-                            await this.kvStore!.put(
-                                previousMsgSessionId,
-                                capacity + msg.messageContent!.length
-                            ); // 更新容量
+                            await this.kvStore!.put(previousMsgSessionId, capacity + msg.messageContent!.length); // 更新容量
                         } else if (config.mode === "messageCount") {
                             await this.kvStore!.put(previousMsgSessionId, capacity + 1); // 更新容量
                         } else {

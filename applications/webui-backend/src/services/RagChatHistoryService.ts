@@ -5,11 +5,7 @@
 import { injectable, inject } from "tsyringe";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { TOKENS } from "../di/tokens";
-import {
-    RagChatHistoryManager,
-    RagChatSession,
-    SessionListItem
-} from "../repositories/RagChatHistoryManager";
+import { RagChatHistoryManager, RagChatSession, SessionListItem } from "../repositories/RagChatHistoryManager";
 
 /**
  * 引用项类型
@@ -55,9 +51,7 @@ export interface SessionListResponse {
 
 @injectable()
 export class RagChatHistoryService {
-    constructor(
-        @inject(TOKENS.RagChatHistoryManager) private ragChatHistoryManager: RagChatHistoryManager
-    ) {}
+    constructor(@inject(TOKENS.RagChatHistoryManager) private ragChatHistoryManager: RagChatHistoryManager) {}
 
     /**
      * 创建新会话
@@ -66,8 +60,7 @@ export class RagChatHistoryService {
     async createSession(input: CreateSessionServiceInput): Promise<SessionDetail> {
         const id = getRandomHash(32);
         // 使用问题的前30个字符作为标题
-        const title =
-            input.question.length > 30 ? input.question.substring(0, 30) + "..." : input.question;
+        const title = input.question.length > 30 ? input.question.substring(0, 30) + "..." : input.question;
 
         const session = await this.ragChatHistoryManager.createSession({
             id,

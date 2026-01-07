@@ -19,9 +19,7 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
         const parsed = JSON.parse(contributorsStr);
         if (Array.isArray(parsed)) {
             // 过滤出非空字符串的有效昵称
-            contributors = parsed.filter(
-                (item): item is string => typeof item === "string" && item.trim() !== ""
-            );
+            contributors = parsed.filter((item): item is string => typeof item === "string" && item.trim() !== "");
         }
     } catch (e) {
         // 如果解析失败，视为无有效参与者

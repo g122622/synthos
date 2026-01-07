@@ -48,21 +48,14 @@ export class TextGenerator extends Disposable {
         if (!this.models.has(modelName)) {
             const config = await this.configManagerService.getCurrentConfig();
             const chatModel = new ChatOpenAI({
-                openAIApiKey:
-                    config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey, // 从配置中获取 API Key
+                openAIApiKey: config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey, // 从配置中获取 API Key
                 apiKey: config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey, // 从配置中获取 API Key
                 configuration: {
-                    baseURL:
-                        config.ai?.models[modelName]?.baseURL ??
-                        config.ai.defaultModelConfig.baseURL // 支持自定义 base URL
+                    baseURL: config.ai?.models[modelName]?.baseURL ?? config.ai.defaultModelConfig.baseURL // 支持自定义 base URL
                 },
                 model: modelName,
-                temperature:
-                    config.ai?.models[modelName]?.temperature ??
-                    config.ai.defaultModelConfig.temperature,
-                maxTokens:
-                    config.ai?.models[modelName]?.maxTokens ??
-                    config.ai.defaultModelConfig.maxTokens,
+                temperature: config.ai?.models[modelName]?.temperature ?? config.ai.defaultModelConfig.temperature,
+                maxTokens: config.ai?.models[modelName]?.maxTokens ?? config.ai.defaultModelConfig.maxTokens,
                 reasoning: {
                     effort: "minimal" // 默认不思考
                 }
@@ -164,9 +157,7 @@ export class TextGenerator extends Disposable {
                     throw new Error(`生成的摘要为空`);
                 }
             } catch (error) {
-                this.LOGGER.error(
-                    `模型 ${modelName} 生成摘要失败，错误信息为：${error}, 尝试下一个模型`
-                );
+                this.LOGGER.error(`模型 ${modelName} 生成摘要失败，错误信息为：${error}, 尝试下一个模型`);
                 await sleep(10000); // 等待10秒
                 continue; // 跳过当前模型，尝试下一个
             }

@@ -3,7 +3,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { NotFoundError } from "../errors/AppError";
 
 @injectable()

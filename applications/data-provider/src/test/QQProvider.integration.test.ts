@@ -203,11 +203,7 @@ describe("QQProvider 集成测试", () => {
             // 获取第一条消息的群号进行过滤测试
             const testGroupId = allMessages[0].groupId;
 
-            const filteredMessages = await qqProvider.getMsgByTimeRange(
-                timeStart,
-                timeEnd,
-                testGroupId
-            );
+            const filteredMessages = await qqProvider.getMsgByTimeRange(timeStart, timeEnd, testGroupId);
 
             expect(Array.isArray(filteredMessages)).toBe(true);
 

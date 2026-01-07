@@ -314,9 +314,7 @@ describe("@bootstrap 装饰器", () => {
                 // 预期抛出错误
             }
 
-            expect(mockLogger.error).toHaveBeenCalledWith(
-                expect.stringContaining("FailingService")
-            );
+            expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining("FailingService"));
         });
     });
 

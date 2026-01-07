@@ -5,26 +5,24 @@ import { sep, join, dirname } from "path";
 
 // 使用 vi.hoisted 来创建可以在 mock 中引用的变量
 // 设置默认返回值以便模块加载时不会崩溃
-const { mockReadFile, mockWriteFile, mockAccess, mockFindFileUpwards, mockLogger } = vi.hoisted(
-    () => {
-        const loggerInstance: Record<string, unknown> = {
-            debug: vi.fn(),
-            info: vi.fn(),
-            success: vi.fn(),
-            warning: vi.fn(),
-            error: vi.fn()
-        };
-        loggerInstance.withTag = vi.fn().mockReturnValue(loggerInstance);
+const { mockReadFile, mockWriteFile, mockAccess, mockFindFileUpwards, mockLogger } = vi.hoisted(() => {
+    const loggerInstance: Record<string, unknown> = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        success: vi.fn(),
+        warning: vi.fn(),
+        error: vi.fn()
+    };
+    loggerInstance.withTag = vi.fn().mockReturnValue(loggerInstance);
 
-        return {
-            mockReadFile: vi.fn().mockResolvedValue("{}"),
-            mockWriteFile: vi.fn().mockResolvedValue(undefined),
-            mockAccess: vi.fn().mockRejectedValue(new Error("File not found")),
-            mockFindFileUpwards: vi.fn().mockResolvedValue("/default/path/synthos_config.json"),
-            mockLogger: loggerInstance
-        };
-    }
-);
+    return {
+        mockReadFile: vi.fn().mockResolvedValue("{}"),
+        mockWriteFile: vi.fn().mockResolvedValue(undefined),
+        mockAccess: vi.fn().mockRejectedValue(new Error("File not found")),
+        mockFindFileUpwards: vi.fn().mockResolvedValue("/default/path/synthos_config.json"),
+        mockLogger: loggerInstance
+    };
+});
 
 // Mock fs/promises
 vi.mock("fs/promises", () => ({
@@ -537,10 +535,7 @@ describe("ConfigManagerService", () => {
             const config = await service.getCurrentConfig();
 
             // 数组应被完整替换
-            expect(config.ai.interestScore.UserInterestsPositiveKeywords).toEqual([
-                "new",
-                "keywords"
-            ]);
+            expect(config.ai.interestScore.UserInterestsPositiveKeywords).toEqual(["new", "keywords"]);
             // 其他数组保持原值
             expect(config.ai.interestScore.UserInterestsNegativeKeywords).toEqual(["spam"]);
         });

@@ -112,11 +112,7 @@ describe("RAGCtxBuilder", () => {
                 return "mocked prompt";
             });
 
-        const prompt = await ragCtxBuilder.buildCtx(
-            question,
-            searchResults,
-            currentDate
-        );
+        const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
 
         // 验证返回值
         expect(prompt).toBe("mocked prompt");
@@ -191,11 +187,7 @@ describe("RAGCtxBuilder", () => {
                 return "mocked prompt";
             });
 
-        const prompt = await ragCtxBuilder.buildCtx(
-            question,
-            searchResults,
-            currentDate
-        );
+        const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
 
         // 验证返回值
         expect(prompt).toBe("mocked prompt");

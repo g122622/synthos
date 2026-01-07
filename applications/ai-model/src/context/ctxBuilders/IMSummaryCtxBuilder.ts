@@ -7,10 +7,7 @@ import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse
 @mustInitBeforeUse
 export class IMSummaryCtxBuilder extends Disposable implements ICtxBuilder {
     async init(): Promise<void> {}
-    async buildCtx(
-        messages: ProcessedChatMessageWithRawMessage[],
-        groupIntroduction: string
-    ): Promise<string> {
+    async buildCtx(messages: ProcessedChatMessageWithRawMessage[], groupIntroduction: string): Promise<string> {
         let content = "";
         for (const message of messages) {
             content += message.preProcessedContent + "\n";

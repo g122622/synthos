@@ -4,7 +4,13 @@
  */
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
-import { RAGRPCImplementation, SearchOutput, AskOutput, TriggerReportGenerateOutput, SendReportEmailOutput } from "@root/common/rpc/ai-model/index";
+import {
+    RAGRPCImplementation,
+    SearchOutput,
+    AskOutput,
+    TriggerReportGenerateOutput,
+    SendReportEmailOutput
+} from "@root/common/rpc/ai-model/index";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
@@ -156,11 +162,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             .slice(0, input.topK);
 
         // 5. 构建 RAG prompt
-        const prompt = await this.ragCtxBuilder.buildCtx(
-            input.question,
-            topResults,
-            getCurrentFormattedTime()
-        );
+        const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults, getCurrentFormattedTime());
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
@@ -208,19 +210,21 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 // 使用默认时间范围
                 timeEnd = now;
                 switch (input.type) {
-                    case 'half-daily':
+                    case "half-daily":
                         timeStart = now - 12 * 60 * 60 * 1000; // 过去 12 小时
                         break;
-                    case 'weekly':
+                    case "weekly":
                         timeStart = now - 7 * 24 * 60 * 60 * 1000; // 过去 7 天
                         break;
-                    case 'monthly':
+                    case "monthly":
                         timeStart = now - 30 * 24 * 60 * 60 * 1000; // 过去 30 天
                         break;
                 }
             }
 
-            this.LOGGER.info(`日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`);
+            this.LOGGER.info(
+                `日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`
+            );
 
             // 调度即时任务
             const taskData: TaskParameters<TaskHandlerTypes.GenerateReport> = {

@@ -3,7 +3,7 @@ import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
@@ -29,7 +29,7 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
     /**
      * 初始化分割器
      */
-    public async init() { }
+    public async init() {}
 
     /**
      * 为消息分配 sessionId
@@ -39,10 +39,13 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
      * @param endTimeStamp 结束时间戳
      * @returns 带有 sessionId 的消息列表
      */
-    public async assignSessionId(imDbAccessService: ImDbAccessService, groupId: string, startTimeStamp: number,
-        endTimeStamp: number) {
-        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
-            .TimeoutSplitter;
+    public async assignSessionId(
+        imDbAccessService: ImDbAccessService,
+        groupId: string,
+        startTimeStamp: number,
+        endTimeStamp: number
+    ) {
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors.TimeoutSplitter;
 
         // 获取配置的超时阈值（单位：毫秒）
         const timeoutThresholdMs = config.timeoutInMinutes * 60 * 1000;

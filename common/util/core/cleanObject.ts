@@ -5,8 +5,7 @@ export function cleanObject(obj: any, shouldRemoveZeroValue = false) {
             const value = obj[key];
             if (value === "" || value === undefined || value === null || (shouldRemoveZeroValue && value === 0)) {
                 delete obj[key];
-            }
-            else if (typeof value === "object" && value !== null) {
+            } else if (typeof value === "object" && value !== null) {
                 cleanObject(value, shouldRemoveZeroValue); // 递归处理嵌套对象
             }
         }

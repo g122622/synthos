@@ -7,9 +7,4 @@ import { MigrateDB } from "./MigrateDB";
 import { SeekQQNumber } from "./SeekQQNumber";
 
 // 全部导出
-export const applications: IApplicationClass[] = [
-    ExecSQL,
-    PrintCurrentConfig,
-    MigrateDB,
-    SeekQQNumber,
-];
+export const applications: IApplicationClass[] = [ExecSQL, PrintCurrentConfig, MigrateDB, SeekQQNumber];

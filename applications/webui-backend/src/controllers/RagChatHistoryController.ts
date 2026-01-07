@@ -15,9 +15,7 @@ import {
 
 @injectable()
 export class RagChatHistoryController {
-    constructor(
-        @inject(TOKENS.RagChatHistoryService) private ragChatHistoryService: RagChatHistoryService
-    ) {}
+    constructor(@inject(TOKENS.RagChatHistoryService) private ragChatHistoryService: RagChatHistoryService) {}
 
     /**
      * POST /api/rag/session/create

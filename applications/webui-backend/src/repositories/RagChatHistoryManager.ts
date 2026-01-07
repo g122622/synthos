@@ -206,11 +206,7 @@ export class RagChatHistoryManager extends Disposable {
         this.ensureInitialized();
 
         const now = Date.now();
-        await this.db!.run(`UPDATE rag_sessions SET title = ?, updatedAt = ? WHERE id = ?`, [
-            title,
-            now,
-            id
-        ]);
+        await this.db!.run(`UPDATE rag_sessions SET title = ?, updatedAt = ? WHERE id = ?`, [title, now, id]);
 
         this.LOGGER.info(`更新会话标题: ${id}`);
         return true;

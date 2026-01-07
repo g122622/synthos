@@ -12,7 +12,7 @@ import { AI_MODEL_TOKENS } from "../../di/tokens";
 /**
  * RAG 上下文构建器
  * 负责构建 RAG 问答的上下文提示词
- * 
+ *
  * 注意：由于使用 DI 容器管理，不再使用 @mustInitBeforeUse 装饰器
  * 初始化责任由 RagRPCImpl.init() 调用
  */
@@ -42,11 +42,7 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
      * @param currentDate 当前日期字符串
      * @returns 构建的提示词
      */
-    public async buildCtx(
-        question: string,
-        searchResults: SearchOutput,
-        currentDate: string
-    ): Promise<string> {
+    public async buildCtx(question: string, searchResults: SearchOutput, currentDate: string): Promise<string> {
         // 获取话题日期信息
         const topicDates: { [index: string]: { startTime?: string; endTime?: string } } = {};
 
@@ -74,11 +70,7 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
                 let topicStr = `【话题${index}:${r.topic}】\n【参与者:${r.contributors}】`;
 
                 // 如果有日期信息，添加起止时间
-                if (
-                    topicDates[indexStr] &&
-                    topicDates[indexStr].startTime &&
-                    topicDates[indexStr].endTime
-                ) {
+                if (topicDates[indexStr] && topicDates[indexStr].startTime && topicDates[indexStr].endTime) {
                     topicStr += `\n【起止时间:${topicDates[indexStr].startTime}至${topicDates[indexStr].endTime}】`;
                 }
 

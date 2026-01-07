@@ -50,9 +50,7 @@ export class KVStore<T = any> extends Disposable {
      * 批量操作（原子性）
      * @param ops 操作数组，每个操作包含 type、key，put 操作还需 value
      */
-    async batch(
-        ops: Array<{ type: "put"; key: string; value: T } | { type: "del"; key: string }>
-    ): Promise<void> {
+    async batch(ops: Array<{ type: "put"; key: string; value: T } | { type: "del"; key: string }>): Promise<void> {
         await this.db.batch(ops);
     }
 }

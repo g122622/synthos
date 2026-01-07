@@ -9,9 +9,7 @@ import { TopicIdSchema, TopicIdsSchema } from "../schemas/index";
 
 @injectable()
 export class TopicStatusController {
-    constructor(
-        @inject(TOKENS.TopicStatusService) private topicStatusService: TopicStatusService
-    ) {}
+    constructor(@inject(TOKENS.TopicStatusService) private topicStatusService: TopicStatusService) {}
 
     // ==================== 收藏相关 ====================
 

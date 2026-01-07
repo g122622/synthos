@@ -1,7 +1,7 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
 
 /**
@@ -55,8 +55,7 @@ export class SeekQQNumber extends Disposable implements IApplication {
 
     private LOGGER = Logger.withTag("筛选QQ号");
 
-    public async init() {
-    }
+    public async init() {}
 
     public async run() {
         const imDbAccessService = new ImDbAccessService();

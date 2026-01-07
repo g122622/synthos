@@ -44,7 +44,9 @@ export class QueryRewriter {
         }
 
         // 所有重试都失败，抛出错误
-        throw new Error(`Multi-Query 多次重试仍然失败，已重试 ${maxRetries} 次: ${lastError?.message}。放弃重试。`);
+        throw new Error(
+            `Multi-Query 多次重试仍然失败，已重试 ${maxRetries} 次: ${lastError?.message}。放弃重试。`
+        );
     }
 
     /**

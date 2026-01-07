@@ -60,7 +60,7 @@ class Disposable implements IDisposable {
         process.on("SIGTERM", () => handleSignal("SIGTERM"));
 
         // 监听未捕获的异常，一旦发生未捕获的异常，会自动释放所有资源并退出进程
-        process.on("uncaughtException", (error) => {
+        process.on("uncaughtException", error => {
             LOGGER.error("Uncaught exception: " + error);
             handleSignal("uncaughtException");
         });
@@ -98,9 +98,7 @@ class Disposable implements IDisposable {
             return disposable;
         }
         if (this._isDisposed) {
-            LOGGER.warning(
-                "Cannot register disposable on a disposed object. Disposing the disposable instead!"
-            );
+            LOGGER.warning("Cannot register disposable on a disposed object. Disposing the disposable instead!");
             disposable.dispose();
             return disposable;
         } else {

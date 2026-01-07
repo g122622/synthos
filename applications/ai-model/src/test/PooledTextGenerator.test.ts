@@ -1,10 +1,6 @@
 // tests/PooledTextGenerator.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-    PooledTextGenerator,
-    PooledTask,
-    PooledTaskResult
-} from "../generators/text/PooledTextGenerator";
+import { PooledTextGenerator, PooledTask, PooledTaskResult } from "../generators/text/PooledTextGenerator";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
@@ -97,12 +93,8 @@ describe("PooledTextGenerator", () => {
 
     describe("构造函数", () => {
         it("应该在 maxConcurrency <= 0 时抛出错误", () => {
-            expect(() => new PooledTextGenerator(0)).toThrow(
-                "maxConcurrency must be greater than 0"
-            );
-            expect(() => new PooledTextGenerator(-1)).toThrow(
-                "maxConcurrency must be greater than 0"
-            );
+            expect(() => new PooledTextGenerator(0)).toThrow("maxConcurrency must be greater than 0");
+            expect(() => new PooledTextGenerator(-1)).toThrow("maxConcurrency must be greater than 0");
         });
 
         it("应该成功创建实例当 maxConcurrency > 0", () => {
@@ -291,10 +283,7 @@ describe("PooledTextGenerator", () => {
             const modelNames = ["model1"];
 
             // 第一次调用
-            const results1 = await generator.generateTextWithModelCandidates(modelNames, [
-                "batch1_a",
-                "batch1_b"
-            ]);
+            const results1 = await generator.generateTextWithModelCandidates(modelNames, ["batch1_a", "batch1_b"]);
             expect(results1.length).toBe(2);
 
             // 第二次调用

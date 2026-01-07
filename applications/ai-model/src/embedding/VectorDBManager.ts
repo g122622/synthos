@@ -231,9 +231,7 @@ export class VectorDBManager extends Disposable {
         limit: number
     ): Array<{ topicId: string; distance: number }> {
         if (queryEmbedding.length !== this.dimension) {
-            throw new Error(
-                `查询向量维度不匹配：期望 ${this.dimension}，实际 ${queryEmbedding.length}`
-            );
+            throw new Error(`查询向量维度不匹配：期望 ${this.dimension}，实际 ${queryEmbedding.length}`);
         }
 
         let sql: string;
@@ -289,9 +287,7 @@ export class VectorDBManager extends Disposable {
         limit: number
     ): Array<{ topicId: string; distance: number }> {
         if (queryEmbedding.length !== this.dimension) {
-            throw new Error(
-                `查询向量维度不匹配：期望 ${this.dimension}，实际 ${queryEmbedding.length}`
-            );
+            throw new Error(`查询向量维度不匹配：期望 ${this.dimension}，实际 ${queryEmbedding.length}`);
         }
 
         let sql: string;

@@ -87,23 +87,19 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
             return impl.ask(validatedInput);
         }),
 
-        triggerReportGenerate: t.procedure
-            .input(TriggerReportGenerateInputSchema)
-            .mutation(async ({ input }) => {
-                return impl.triggerReportGenerate({
-                    type: input.type,
-                    timeStart: input.timeStart,
-                    timeEnd: input.timeEnd
-                });
-            }),
+        triggerReportGenerate: t.procedure.input(TriggerReportGenerateInputSchema).mutation(async ({ input }) => {
+            return impl.triggerReportGenerate({
+                type: input.type,
+                timeStart: input.timeStart,
+                timeEnd: input.timeEnd
+            });
+        }),
 
-        sendReportEmail: t.procedure
-            .input(SendReportEmailInputSchema)
-            .mutation(async ({ input }) => {
-                return impl.sendReportEmail({
-                    reportId: input.reportId
-                });
-            })
+        sendReportEmail: t.procedure.input(SendReportEmailInputSchema).mutation(async ({ input }) => {
+            return impl.sendReportEmail({
+                reportId: input.reportId
+            });
+        })
     });
 
     // 将 _config 放宽到 AnyRootConfig，便于跨包消费（如 webui-backend 客户端）

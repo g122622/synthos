@@ -70,9 +70,7 @@ class ConfigManagerService {
         // 4. 用 Zod 全量 Schema 验证合并后的配置文件是否完整且类型正确
         const parsed = GlobalConfigSchema.safeParse(mergedConfig);
         if (!parsed.success) {
-            const errors = parsed.error.errors
-                .map(e => `${e.path.join(".")}: ${e.message}`)
-                .join("\n");
+            const errors = parsed.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
             throw new Error(`配置文件schema完整性校验失败:\n${errors}`);
         }
 
@@ -143,9 +141,7 @@ class ConfigManagerService {
      * @param config 要验证的配置
      * @returns 验证结果，成功返回 true，失败返回错误信息
      */
-    public validateConfig(
-        config: unknown
-    ): { success: true } | { success: false; errors: string[] } {
+    public validateConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
         const result = GlobalConfigSchema.safeParse(config);
         if (result.success) {
             return { success: true };
@@ -161,9 +157,7 @@ class ConfigManagerService {
      * @param config 要验证的部分配置
      * @returns 验证结果
      */
-    public validatePartialConfig(
-        config: unknown
-    ): { success: true } | { success: false; errors: string[] } {
+    public validatePartialConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
         const partialSchema = GlobalConfigSchema.deepPartial();
         const result = partialSchema.safeParse(config);
         if (result.success) {

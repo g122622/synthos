@@ -17,9 +17,7 @@ export const GetSessionIdsByGroupIdsAndTimeRangeSchema = z.object({
     timeStart: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeStart" }),
     timeEnd: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeEnd" })
 });
-export type GetSessionIdsByGroupIdsAndTimeRangeParams = z.infer<
-    typeof GetSessionIdsByGroupIdsAndTimeRangeSchema
->;
+export type GetSessionIdsByGroupIdsAndTimeRangeParams = z.infer<typeof GetSessionIdsByGroupIdsAndTimeRangeSchema>;
 
 export const GetSessionTimeDurationsSchema = z.object({
     sessionIds: z.array(z.string(), { message: "缺少sessionIds参数" })
@@ -41,9 +39,7 @@ export type GetAIDigestResultByTopicIdParams = z.infer<typeof GetAIDigestResultB
 export const GetAIDigestResultsBySessionIdsSchema = z.object({
     sessionIds: z.array(z.string(), { message: "缺少sessionIds参数" })
 });
-export type GetAIDigestResultsBySessionIdsParams = z.infer<
-    typeof GetAIDigestResultsBySessionIdsSchema
->;
+export type GetAIDigestResultsBySessionIdsParams = z.infer<typeof GetAIDigestResultsBySessionIdsSchema>;
 
 export const CheckSessionSummarizedSchema = z.object({
     sessionId: z.string({ message: "缺少sessionId参数" })

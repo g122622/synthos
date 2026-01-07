@@ -1,5 +1,5 @@
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
-import { AgcDbAccessService} from "@root/common/services/database/AgcDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import sqlite3 from "sqlite3";
@@ -16,7 +16,9 @@ export class MigrateDB extends Disposable implements IApplication {
     private LOGGER = Logger.withTag("数据库迁移任务");
     private imdbDBManager: ImDbAccessService = this._registerDisposable(new ImDbAccessService());
     private agcDbAccessService: AgcDbAccessService = this._registerDisposable(new AgcDbAccessService());
-    private interestScoreDbAccessService: InterestScoreDbAccessService = this._registerDisposable(new InterestScoreDbAccessService());
+    private interestScoreDbAccessService: InterestScoreDbAccessService = this._registerDisposable(
+        new InterestScoreDbAccessService()
+    );
 
     public async init() {
         await this.imdbDBManager.init();
@@ -53,7 +55,7 @@ export class MigrateDB extends Disposable implements IApplication {
                     quotedMsgContent TEXT,
                     sessionId TEXT,
                     preProcessedContent TEXT
-                );`
+                );`;
         const createAGCTableSQL = `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
                     topicId TEXT NOT NULL PRIMARY KEY,
@@ -63,7 +65,7 @@ export class MigrateDB extends Disposable implements IApplication {
                     detail TEXT,
                     modelName TEXT,
                     updateTime INTEGER
-                );`
+                );`;
         const createInterestScoreTableSQL = `
                 CREATE TABLE IF NOT EXISTS interset_score_results (
                     topicId TEXT NOT NULL PRIMARY KEY,
@@ -72,7 +74,7 @@ export class MigrateDB extends Disposable implements IApplication {
                     scoreV3 REAL,
                     scoreV4 REAL,
                     scoreV5 REAL
-                );`
+                );`;
         await newDB.run(createIMDBTableSQL);
         await newDB.run(createAGCTableSQL);
         await newDB.run(createInterestScoreTableSQL);
@@ -120,18 +122,15 @@ export class MigrateDB extends Disposable implements IApplication {
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {
             for (const data of allAgcData) {
-                await newDB.run(
-                    `INSERT INTO ai_digest_results VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        data.topicId,
-                        data.sessionId,
-                        data.topic,
-                        data.contributors,
-                        data.detail,
-                        undefined, // modelName 旧数据库没有该字段，暂时插入 undefined
-                        undefined  // updateTime 旧数据库没有该字段，暂时插入 undefined
-                    ]
-                );
+                await newDB.run(`INSERT INTO ai_digest_results VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+                    data.topicId,
+                    data.sessionId,
+                    data.topic,
+                    data.contributors,
+                    data.detail,
+                    undefined, // modelName 旧数据库没有该字段，暂时插入 undefined
+                    undefined // updateTime 旧数据库没有该字段，暂时插入 undefined
+                ]);
             }
             await newDB.run(`COMMIT`);
         } catch (error) {
@@ -143,22 +142,18 @@ export class MigrateDB extends Disposable implements IApplication {
         // 迁移 Interest Score 数据库
         this.LOGGER.info("开始迁移 Interest Score 数据库...");
         const allInterestScoreData = await this.interestScoreDbAccessService.selectAll();
-        this.LOGGER.info(
-            `已获取 Interest Score 数据库所有数据，共 ${allInterestScoreData.length} 条记录`
-        );
+        this.LOGGER.info(`已获取 Interest Score 数据库所有数据，共 ${allInterestScoreData.length} 条记录`);
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {
             for (const data of allInterestScoreData) {
-                await newDB.run(
-                    `INSERT INTO interset_score_results VALUES (?, ?, ?, ?, ?, ?)`, [
+                await newDB.run(`INSERT INTO interset_score_results VALUES (?, ?, ?, ?, ?, ?)`, [
                     data.topicId,
                     data.scoreV1,
                     undefined,
                     undefined,
                     undefined,
                     undefined
-                ]
-                );
+                ]);
             }
             await newDB.run(`COMMIT`);
         } catch (error) {
@@ -171,5 +166,4 @@ export class MigrateDB extends Disposable implements IApplication {
         this.LOGGER.success("已关闭数据库连接");
         this.LOGGER.success("数据库迁移完成");
     }
-
 }

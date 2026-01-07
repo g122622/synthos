@@ -8,9 +8,7 @@ import { GroupConfigService } from "../services/GroupConfigService";
 
 @injectable()
 export class GroupConfigController {
-    constructor(
-        @inject(TOKENS.GroupConfigService) private groupConfigService: GroupConfigService
-    ) {}
+    constructor(@inject(TOKENS.GroupConfigService) private groupConfigService: GroupConfigService) {}
 
     /**
      * GET /api/group-details

@@ -9,11 +9,7 @@ import express, { Express } from "express";
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
-import {
-    registerConfigPanelDependencies,
-    registerConfigManagerService,
-    container
-} from "./di/container";
+import { registerConfigPanelDependencies, registerConfigManagerService, container } from "./di/container";
 
 // 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";

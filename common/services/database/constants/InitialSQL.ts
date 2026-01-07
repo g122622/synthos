@@ -11,7 +11,7 @@ export const createIMDBTableSQL = `
                     quotedMsgContent TEXT,
                     sessionId TEXT,
                     preProcessedContent TEXT
-                );`
+                );`;
 
 export const createAGCTableSQL = `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
@@ -22,7 +22,7 @@ export const createAGCTableSQL = `
                     detail TEXT,
                     modelName TEXT,
                     updateTime INTEGER
-                );`
+                );`;
 
 export const createInterestScoreTableSQL = `
                 CREATE TABLE IF NOT EXISTS interset_score_results (
@@ -32,7 +32,7 @@ export const createInterestScoreTableSQL = `
                     scoreV3 REAL,
                     scoreV4 REAL,
                     scoreV5 REAL
-                );`
+                );`;
 
 export const createReportTableSQL = `
                 CREATE TABLE IF NOT EXISTS reports (
@@ -52,4 +52,4 @@ export const createReportTableSQL = `
                 );
                 CREATE INDEX IF NOT EXISTS idx_reports_type ON reports(type);
                 CREATE INDEX IF NOT EXISTS idx_reports_timeStart ON reports(timeStart);
-                CREATE INDEX IF NOT EXISTS idx_reports_timeEnd ON reports(timeEnd);`
+                CREATE INDEX IF NOT EXISTS idx_reports_timeEnd ON reports(timeEnd);`;

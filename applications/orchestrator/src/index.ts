@@ -53,9 +53,7 @@ class OrchestratorApplication {
             async job => {
                 LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
                 config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
-                const startTimeStamp = getHoursAgoTimestamp(
-                    config.orchestrator.dataSeekTimeWindowInHours
-                );
+                const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours);
                 const endTimeStamp = Date.now();
 
                 const groupIds = Object.keys(config.groupConfigs);

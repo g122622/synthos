@@ -59,18 +59,16 @@ export class AgcDbAccessService extends Disposable {
     }
 
     public async getAIDigestResultByTopicId(topicId: string): Promise<AIDigestResult | null> {
-        const result = await this.db.get<AIDigestResult>(
-            `SELECT * FROM ai_digest_results WHERE topicId =?`,
-            [topicId]
-        );
+        const result = await this.db.get<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE topicId =?`, [
+            topicId
+        ]);
         return result;
     }
 
     public async getAIDigestResultsBySessionId(sessionId: string): Promise<AIDigestResult[]> {
-        const results = await this.db.all<AIDigestResult>(
-            `SELECT * FROM ai_digest_results WHERE sessionId =?`,
-            [sessionId]
-        );
+        const results = await this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE sessionId =?`, [
+            sessionId
+        ]);
         return results;
     }
 
@@ -82,10 +80,9 @@ export class AgcDbAccessService extends Disposable {
      */
     public async isSessionIdSummarized(sessionId: string): Promise<boolean> {
         // 返回结果类似 { 'EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)': 0 }
-        const result = await this.db.get(
-            `SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`,
-            [sessionId]
-        );
+        const result = await this.db.get(`SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`, [
+            sessionId
+        ]);
         return result[Object.keys(result)[0]] === 1;
     }
 

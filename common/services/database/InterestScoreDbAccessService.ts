@@ -39,10 +39,7 @@ export class InterestScoreDbAccessService extends Disposable {
     }
 
     // 如果对应的topicid不存在 或者 topicid存在但是没有对应的分数，那么该项目对应的score为null
-    public async getInterestScoreResult(
-        topicId: string,
-        version: number = 1
-    ): Promise<number | null> {
+    public async getInterestScoreResult(topicId: string, version: number = 1): Promise<number | null> {
         const result = await this.db.get<{ scoreV1: number | null }>(
             `SELECT scoreV${version} FROM interset_score_results WHERE topicId = ?`,
             [topicId]
@@ -51,10 +48,7 @@ export class InterestScoreDbAccessService extends Disposable {
         return result?.scoreV1 || null;
     }
 
-    public async isInterestScoreResultExist(
-        topicId: string,
-        version: number = 1
-    ): Promise<boolean> {
+    public async isInterestScoreResultExist(topicId: string, version: number = 1): Promise<boolean> {
         // 返回结果类似 { 'EXISTS(SELECT 1 FROM interset_score_results WHERE topicId = ?)': 0 }
         const result = await this.db.get(
             `SELECT EXISTS(SELECT 1 FROM interset_score_results WHERE topicId = ? AND scoreV${version} IS NOT NULL)`,
@@ -65,8 +59,6 @@ export class InterestScoreDbAccessService extends Disposable {
 
     // 获取所有数据，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<{ topicId: string; scoreV1: number | null }[]> {
-        return this.db.all<{ topicId: string; scoreV1: number | null }>(
-            `SELECT * FROM interset_score_results`
-        );
+        return this.db.all<{ topicId: string; scoreV1: number | null }>(`SELECT * FROM interset_score_results`);
     }
 }

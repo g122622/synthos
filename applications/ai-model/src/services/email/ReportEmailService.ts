@@ -136,9 +136,7 @@ class ReportEmailService {
         const reportTypeName = reportTypeNameMap[report.type];
 
         const activeGroupsStr =
-            report.statistics.mostActiveGroups.length > 0
-                ? report.statistics.mostActiveGroups.join("、")
-                : "暂无";
+            report.statistics.mostActiveGroups.length > 0 ? report.statistics.mostActiveGroups.join("、") : "暂无";
 
         return `
 <!DOCTYPE html>

@@ -63,9 +63,7 @@ export class SemanticRater {
         const topicVec = await this.getEmbedding(topicDetail, false);
 
         const positiveKeywords = userInterests.filter(item => item.liked).map(item => item.keyword);
-        const negativeKeywords = userInterests
-            .filter(item => !item.liked)
-            .map(item => item.keyword);
+        const negativeKeywords = userInterests.filter(item => !item.liked).map(item => item.keyword);
 
         let posSim = 0;
         let negSim = 0;
@@ -99,9 +97,7 @@ export class SemanticRater {
     }
 
     public async scoreTopics(userInterests: UserInterest[], topics: string[]): Promise<number[]> {
-        const scores = await Promise.all(
-            topics.map(topic => this.scoreTopic(userInterests, topic))
-        );
+        const scores = await Promise.all(topics.map(topic => this.scoreTopic(userInterests, topic)));
         return scores;
     }
 

@@ -25,7 +25,7 @@ export class RagPromptStore {
             ]
 
             请输出3个改写后的查询：
-        `
+        `;
     }
 
     /**
@@ -35,20 +35,16 @@ export class RagPromptStore {
      * @param currentDate 当前日期（可选）
      * @returns 完整的 prompt
      */
-    public static getRagAnswerPrompt(
-        userQuestion: string, 
-        topics: string, 
-        currentDate?: string
-    ): string {
+    public static getRagAnswerPrompt(userQuestion: string, topics: string, currentDate?: string): string {
         let prompt = `你是一个智能助手，请根据以下检索到的话题内容回答用户问题。`;
-        
+
         // 添加当前日期信息
         if (currentDate) {
             prompt += `\n\n【当前日期时间】\n${currentDate}`;
         }
-        
+
         prompt += `\n\n【相关话题】\n${topics}`;
-        
+
         prompt += `\n【用户问题】\n${userQuestion}\n\n【回答要求】
             1. 遵从上述话题内容回答问题，考虑话题发生的时间背景
             2. 如果引用了某个话题的内容，请在句子末尾标注来源，格式类似：[话题7] [话题11] [话题23]
@@ -57,7 +53,7 @@ export class RagPromptStore {
             5. 请注意话题发生的时间，考虑时效性对回答的影响
 
             请回答：`;
-        
+
         return prompt;
     }
 }

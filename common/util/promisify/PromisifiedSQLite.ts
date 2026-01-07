@@ -113,11 +113,7 @@ class PromisifiedSQLite extends Disposable {
         });
     }
 
-    public each(
-        sql: string,
-        params: any[] = [],
-        callback: (err: Error | null, row: any) => void
-    ): Promise<void> {
+    public each(sql: string, params: any[] = [], callback: (err: Error | null, row: any) => void): Promise<void> {
         return new Promise((resolve, reject) => {
             this.db.each(sql, params, callback, err => {
                 if (err) {

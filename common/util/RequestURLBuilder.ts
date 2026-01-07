@@ -35,5 +35,3 @@ class RequestURLBuilder {
 }
 
 export default RequestURLBuilder;
-
-

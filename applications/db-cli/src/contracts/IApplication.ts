@@ -12,5 +12,5 @@ export interface IApplicationClass {
     appName: string;
     /** 应用描述 */
     description: string;
-    new(): IApplication;
+    new (): IApplication;
 }

@@ -31,12 +31,7 @@ function formatZodError(error: ZodError): string {
 /**
  * 全局错误处理中间件
  */
-export function errorHandler(
-    err: Error,
-    _req: Request,
-    res: Response,
-    _next: NextFunction
-): void {
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
     // Zod 验证错误
     if (err instanceof ZodError) {
         const message = formatZodError(err);
@@ -70,11 +65,8 @@ export function errorHandler(
 /**
  * 包装异步路由处理器，自动捕获错误
  */
-export function asyncHandler(
-    fn: (req: Request, res: Response, next: NextFunction) => Promise<void>
-) {
+export function asyncHandler(fn: (req: Request, res: Response, next: NextFunction) => Promise<void>) {
     return (req: Request, res: Response, next: NextFunction) => {
         Promise.resolve(fn(req, res, next)).catch(next);
     };
 }
-

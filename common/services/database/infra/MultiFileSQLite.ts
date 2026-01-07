@@ -59,9 +59,7 @@ class MultiFileSQLite extends Disposable {
             .map(file => {
                 const name = basename(file, ".db");
                 const ts = parseInt(name, 10);
-                return isNaN(ts)
-                    ? null
-                    : { path: join(this.config.dbBasePath, file), timestamp: ts };
+                return isNaN(ts) ? null : { path: join(this.config.dbBasePath, file), timestamp: ts };
             })
             .filter(Boolean) as { path: string; timestamp: number }[];
 
@@ -91,11 +89,7 @@ class MultiFileSQLite extends Disposable {
         const maxDurationSec = this.config.maxDBDuration * 24 * 3600;
 
         // 检查是否需要切换到新库
-        if (
-            this.activeDBPath &&
-            this.activeDBTimestamp &&
-            nowSeconds - this.activeDBTimestamp > maxDurationSec
-        ) {
+        if (this.activeDBPath && this.activeDBTimestamp && nowSeconds - this.activeDBTimestamp > maxDurationSec) {
             // 标记旧库为非活跃，但不关闭（仍可能用于读）
             this.activeDBPath = null;
             this.activeDBTimestamp = null;
@@ -167,11 +161,7 @@ class MultiFileSQLite extends Disposable {
         return undefined;
     }
 
-    public async all<T>(
-        sql: string,
-        params: any[] = [],
-        shouldDeepUnique: boolean = true
-    ): Promise<T[]> {
+    public async all<T>(sql: string, params: any[] = [], shouldDeepUnique: boolean = true): Promise<T[]> {
         const dbFiles = await this.getAllDBPaths();
         let allRows: T[] = [];
         for (const dbInfo of dbFiles) {
@@ -228,19 +218,12 @@ class MultiFileSQLite extends Disposable {
                     await db.exec(sql);
                     this.LOGGER.info(`Migration applied to ${dbInfo.path}: ${sql}`);
                 } catch (err) {
-                    if (
-                        err.message.includes("duplicate column name") ||
-                        err.message.includes("already exists")
-                    ) {
-                        this.LOGGER.debug(
-                            `Migration skipped for ${dbInfo.path} (column exists): ${sql}`
-                        );
+                    if (err.message.includes("duplicate column name") || err.message.includes("already exists")) {
+                        this.LOGGER.debug(`Migration skipped for ${dbInfo.path} (column exists): ${sql}`);
                     } else if (err.message.includes("no such table")) {
                         this.LOGGER.warning(`Table not found during migration: ${dbInfo.path}`);
                     } else {
-                        this.LOGGER.error(
-                            `Migration failed for ${dbInfo.path}: ${err.message}\nSQL: ${sql}`
-                        );
+                        this.LOGGER.error(`Migration failed for ${dbInfo.path}: ${err.message}\nSQL: ${sql}`);
                         throw err;
                     }
                 }

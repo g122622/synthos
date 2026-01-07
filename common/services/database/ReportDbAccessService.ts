@@ -77,10 +77,7 @@ export class ReportDbAccessService extends Disposable {
      * 根据 reportId 获取日报
      */
     public async getReportById(reportId: string): Promise<Report | null> {
-        const record = await this.db.get<ReportDBRecord>(
-            `SELECT * FROM reports WHERE reportId = ?`,
-            [reportId]
-        );
+        const record = await this.db.get<ReportDBRecord>(`SELECT * FROM reports WHERE reportId = ?`, [reportId]);
         return record ? dbRecordToReport(record) : null;
     }
 
@@ -140,11 +137,7 @@ export class ReportDbAccessService extends Disposable {
     /**
      * 检查指定时间范围和类型的日报是否已存在
      */
-    public async isReportExists(
-        type: ReportType,
-        timeStart: number,
-        timeEnd: number
-    ): Promise<boolean> {
+    public async isReportExists(type: ReportType, timeStart: number, timeEnd: number): Promise<boolean> {
         const result = await this.db.get<{ count: number }>(
             `SELECT COUNT(*) as count FROM reports WHERE type = ? AND timeStart = ? AND timeEnd = ?`,
             [type, timeStart, timeEnd]
@@ -178,9 +171,7 @@ export class ReportDbAccessService extends Disposable {
      * 获取所有日报（用于数据库迁移、导出、备份等操作）
      */
     public async selectAll(): Promise<Report[]> {
-        const records = await this.db.all<ReportDBRecord>(
-            `SELECT * FROM reports ORDER BY createdAt DESC`
-        );
+        const records = await this.db.all<ReportDBRecord>(`SELECT * FROM reports ORDER BY createdAt DESC`);
         return records.map(dbRecordToReport);
     }
 

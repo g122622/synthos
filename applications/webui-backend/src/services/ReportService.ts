@@ -3,7 +3,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import { ReportDbAccessService} from "@root/common/services/database/ReportDbAccessService";
+import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { Report, ReportType } from "@root/common/contracts/report/index";
 import { NotFoundError } from "../errors/AppError";
 import { RAGClient } from "../rpc/aiModelClient";
@@ -54,11 +54,7 @@ export class ReportService {
     /**
      * 获取指定时间范围内的日报
      */
-    public async getReportsByTimeRange(
-        timeStart: number,
-        timeEnd: number,
-        type?: ReportType
-    ): Promise<Report[]> {
+    public async getReportsByTimeRange(timeStart: number, timeEnd: number, type?: ReportType): Promise<Report[]> {
         if (type) {
             return this.reportDbAccessService.getReportsByTypeAndTimeRange(type, timeStart, timeEnd);
         }

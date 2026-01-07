@@ -67,11 +67,7 @@ describe("SemanticRater", () => {
 
     beforeEach(() => {
         embedCallCount = 0; // 重置计数器
-        mockEmbeddingService = new OllamaEmbeddingService(
-            TEST_BASE_URL,
-            TEST_MODEL,
-            TEST_DIMENSION
-        );
+        mockEmbeddingService = new OllamaEmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
         rater = new SemanticRater(mockEmbeddingService);
     });
 
@@ -80,9 +76,7 @@ describe("SemanticRater", () => {
     });
 
     it("should throw if user interests is empty", async () => {
-        await expect(rater.scoreTopic([], "some topic")).rejects.toThrow(
-            "User interests cannot be empty"
-        );
+        await expect(rater.scoreTopic([], "some topic")).rejects.toThrow("User interests cannot be empty");
     });
 
     it("should return score in [-1, 1] for valid input", async () => {

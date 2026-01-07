@@ -154,12 +154,11 @@ export class PooledTextGenerator extends Disposable {
                     const task = async () => {
                         let result: PooledTaskResult<TContext>;
                         try {
-                            const generatedResult =
-                                await this.textGenerator!.generateTextWithModelCandidates(
-                                    taskDef.modelNames,
-                                    taskDef.input,
-                                    taskDef.checkJsonFormat,
-                                );
+                            const generatedResult = await this.textGenerator!.generateTextWithModelCandidates(
+                                taskDef.modelNames,
+                                taskDef.input,
+                                taskDef.checkJsonFormat
+                            );
 
                             result = {
                                 isSuccess: true,
@@ -227,11 +226,10 @@ export class PooledTextGenerator extends Disposable {
                 new Promise<void>(resolve => {
                     const task = async () => {
                         try {
-                            const result =
-                                await this.textGenerator!.generateTextWithModelCandidates(
-                                    modelNames,
-                                    input
-                                );
+                            const result = await this.textGenerator!.generateTextWithModelCandidates(
+                                modelNames,
+                                input
+                            );
 
                             results[inputIndex] = {
                                 isSuccess: true,

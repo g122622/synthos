@@ -29,9 +29,7 @@ export class AIDigestController {
      */
     async getAIDigestResultsBySessionIds(req: Request, res: Response): Promise<void> {
         const params = GetAIDigestResultsBySessionIdsSchema.parse(req.body);
-        const results = await this.aiDigestService.getAIDigestResultsBySessionIds(
-            params.sessionIds
-        );
+        const results = await this.aiDigestService.getAIDigestResultsBySessionIds(params.sessionIds);
         res.json({ success: true, data: results });
     }
 

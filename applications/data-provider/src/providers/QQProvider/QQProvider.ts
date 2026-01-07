@@ -125,9 +125,7 @@ export class QQProvider extends Disposable implements IIMProvider {
                 // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
                 default: {
                     // 忽略其他类型的消息，不加入messages
-                    this.LOGGER.debug(
-                        `未知的element类型: ${rawMsgElement.elementType}，忽略该element。`
-                    );
+                    this.LOGGER.debug(`未知的element类型: ${rawMsgElement.elementType}，忽略该element。`);
                     break;
                 }
             }
@@ -190,14 +188,10 @@ export class QQProvider extends Disposable implements IIMProvider {
                 // 处理引用消息，首先尝试获取被引用消息的消息正文而不是id，减少一次开销极大的数据库查询，极大提升性能
                 if (result[GMC.msgType] === MsgType.REPLY) {
                     this.LOGGER.debug(`这是一条引用消息！`);
-                    ASSERT(
-                        !!result[GMC.replyMsgSeq],
-                        "MsgType为REPLY时，对应的replyMsgSeq应该也是有效的"
-                    );
+                    ASSERT(!!result[GMC.replyMsgSeq], "MsgType为REPLY时，对应的replyMsgSeq应该也是有效的");
                     try {
                         const quotedMsgContent = await this._parseMessageContent(
-                            this.messagePBParser.parseMessageSegment(result[GMC.extraData])
-                                .extraMessage.messages
+                            this.messagePBParser.parseMessageSegment(result[GMC.extraData]).extraMessage.messages
                         );
                         if (!quotedMsgContent) {
                             this.LOGGER.warning(
@@ -208,12 +202,8 @@ export class QQProvider extends Disposable implements IIMProvider {
                         }
                         processedMsg.quotedMsgContent = quotedMsgContent;
                     } catch (error) {
-                        if (
-                            error === ErrorReasons.EMPTY_VALUE_ERROR ||
-                            error === ErrorReasons.PROTOBUF_ERROR
-                        ) {
+                        if (error === ErrorReasons.EMPTY_VALUE_ERROR || error === ErrorReasons.PROTOBUF_ERROR) {
                             // ⚠️⚠️⚠️实验发现如果消息的消息正文为空，那么大概率其id也是找不到的，所以这里直接忽略该条消息，下面代码不执行了
-
                             // // 引用消息内容为空或者protobuf解析出错，尝试获取其id
                             // this.LOGGER.warning(
                             //     `msgId: ${result[GMC.msgId]}的引用消息内容为空或者protobuf解析出错，尝试获取其id。

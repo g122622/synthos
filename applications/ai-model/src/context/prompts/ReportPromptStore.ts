@@ -18,14 +18,10 @@ export class ReportPromptStore {
             monthly: "月报"
         }[reportType];
 
-        const topicsList = topicsData
-            .map((t, i) => `${i + 1}. 【${t.topic}】\n   ${t.detail}`)
-            .join("\n\n");
+        const topicsList = topicsData.map((t, i) => `${i + 1}. 【${t.topic}】\n   ${t.detail}`).join("\n\n");
 
         const activeGroupsStr =
-            statistics.mostActiveGroups.length > 0
-                ? statistics.mostActiveGroups.join("、")
-                : "暂无";
+            statistics.mostActiveGroups.length > 0 ? statistics.mostActiveGroups.join("、") : "暂无";
 
         return `你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。
 

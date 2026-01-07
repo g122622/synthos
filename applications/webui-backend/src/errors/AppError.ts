@@ -46,4 +46,3 @@ export class InternalError extends AppError {
         Object.setPrototypeOf(this, InternalError.prototype);
     }
 }
-

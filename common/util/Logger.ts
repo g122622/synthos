@@ -20,16 +20,15 @@ class Logger {
         this.isTestEnv = process.env.VITEST === "true";
         // 由于ConfigManagerService间接引用了Logger，为避免循环引用带来的Temporal Dead Zone问题，使用nextTick延迟初始化
         nextTick(() => {
-            ConfigManagerService.getCurrentConfig()
-                .then(config => {
-                    this.logLevel = config.logger.logLevel;
-                    this.logDirectory = config.logger.logDirectory;
-                    // 测试环境下不启动定时器，日志不落盘
-                    if (!this.isTestEnv) {
-                        // 启动定时器，每1秒将缓冲区中的日志写入文件
-                        setInterval(() => this.flushLogBuffer(), 1000);
-                    }
-                });
+            ConfigManagerService.getCurrentConfig().then(config => {
+                this.logLevel = config.logger.logLevel;
+                this.logDirectory = config.logger.logDirectory;
+                // 测试环境下不启动定时器，日志不落盘
+                if (!this.isTestEnv) {
+                    // 启动定时器，每1秒将缓冲区中的日志写入文件
+                    setInterval(() => this.flushLogBuffer(), 1000);
+                }
+            });
         });
     }
 

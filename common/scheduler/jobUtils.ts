@@ -27,9 +27,7 @@ export async function waitForJobCompletionV1(
     const initialJob = initialJobs[0];
     const initialLastFinishedAt = initialJob?.attrs?.lastFinishedAt?.getTime() || 0;
 
-    LOGGER.info(
-        `开始等待任务 [${taskName}] 完成，轮询间隔: ${pollIntervalMs}ms，超时时间: ${timeoutMs}ms`
-    );
+    LOGGER.info(`开始等待任务 [${taskName}] 完成，轮询间隔: ${pollIntervalMs}ms，超时时间: ${timeoutMs}ms`);
 
     while (Date.now() - startTime < timeoutMs) {
         await sleep(pollIntervalMs);
@@ -58,9 +56,7 @@ export async function waitForJobCompletionV1(
         // 检查任务是否完成（lastFinishedAt 更新了）
         const currentLastFinishedAt = attrs.lastFinishedAt?.getTime() || 0;
         if (currentLastFinishedAt > initialLastFinishedAt && currentLastFinishedAt > startTime) {
-            LOGGER.success(
-                `任务 [${taskName}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`
-            );
+            LOGGER.success(`任务 [${taskName}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`);
             return true;
         }
 
@@ -118,9 +114,7 @@ export async function waitForJobCompletionByIdV3(
 ): Promise<boolean> {
     const startTime = Date.now();
 
-    LOGGER.info(
-        `开始等待任务ID [${jobId}] 完成，轮询间隔: ${pollIntervalMs}ms，超时时间: ${timeoutMs}ms`
-    );
+    LOGGER.info(`开始等待任务ID [${jobId}] 完成，轮询间隔: ${pollIntervalMs}ms，超时时间: ${timeoutMs}ms`);
 
     while (Date.now() - startTime < timeoutMs) {
         await sleep(pollIntervalMs);
@@ -148,9 +142,7 @@ export async function waitForJobCompletionByIdV3(
         // 检查任务是否完成
         const currentLastFinishedAt = attrs.lastFinishedAt?.getTime() || 0;
         if (currentLastFinishedAt > startTime) {
-            LOGGER.success(
-                `任务ID [${jobId}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`
-            );
+            LOGGER.success(`任务ID [${jobId}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`);
             return true;
         }
 

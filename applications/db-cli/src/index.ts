@@ -13,16 +13,17 @@ class ConsoleApplicationMain {
      * 构建 Inquirer 选择列表的选项
      */
     private buildChoices() {
-        const choices: Array<{ name: string; value: IApplicationClass | typeof EXIT_OPTION }> = 
-            applications.map((appClass: IApplicationClass) => ({
+        const choices: Array<{ name: string; value: IApplicationClass | typeof EXIT_OPTION }> = applications.map(
+            (appClass: IApplicationClass) => ({
                 name: `${appClass.appName} - ${appClass.description}`,
-                value: appClass,
-            }));
+                value: appClass
+            })
+        );
 
         // 添加退出选项
         choices.push({
             name: "退出",
-            value: EXIT_OPTION,
+            value: EXIT_OPTION
         });
 
         return choices;
@@ -34,7 +35,7 @@ class ConsoleApplicationMain {
     private async showMenu(): Promise<IApplicationClass | typeof EXIT_OPTION> {
         const selectedApp = await select({
             message: "请选择要运行的应用：",
-            choices: this.buildChoices(),
+            choices: this.buildChoices()
         });
         return selectedApp;
     }

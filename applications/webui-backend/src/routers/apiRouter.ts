@@ -20,23 +20,13 @@ import { ReportController } from "../controllers/ReportController";
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
     const aiDigestController = container.resolve<AIDigestController>(TOKENS.AIDigestController);
-    const chatMessageController = container.resolve<ChatMessageController>(
-        TOKENS.ChatMessageController
-    );
-    const groupConfigController = container.resolve<GroupConfigController>(
-        TOKENS.GroupConfigController
-    );
-    const interestScoreController = container.resolve<InterestScoreController>(
-        TOKENS.InterestScoreController
-    );
+    const chatMessageController = container.resolve<ChatMessageController>(TOKENS.ChatMessageController);
+    const groupConfigController = container.resolve<GroupConfigController>(TOKENS.GroupConfigController);
+    const interestScoreController = container.resolve<InterestScoreController>(TOKENS.InterestScoreController);
     const miscController = container.resolve<MiscController>(TOKENS.MiscController);
-    const topicStatusController = container.resolve<TopicStatusController>(
-        TOKENS.TopicStatusController
-    );
+    const topicStatusController = container.resolve<TopicStatusController>(TOKENS.TopicStatusController);
     const searchController = container.resolve<SearchController>(TOKENS.SearchController);
-    const ragChatHistoryController = container.resolve<RagChatHistoryController>(
-        TOKENS.RagChatHistoryController
-    );
+    const ragChatHistoryController = container.resolve<RagChatHistoryController>(TOKENS.RagChatHistoryController);
     const reportController = container.resolve<ReportController>(TOKENS.ReportController);
 
     // ==================== 群组 ====================
@@ -56,9 +46,7 @@ export const setupApiRoutes = (app: Express): void => {
     // 获取会话ID
     app.post(
         "/api/session-ids-by-group-ids-and-time-range",
-        asyncHandler((req, res) =>
-            chatMessageController.getSessionIdsByGroupIdsAndTimeRange(req, res)
-        )
+        asyncHandler((req, res) => chatMessageController.getSessionIdsByGroupIdsAndTimeRange(req, res))
     );
 
     // 获取会话时间范围

@@ -1,7 +1,7 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
+import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import ConsoleInputService from "@root/common/services/console/ConsoleInputService";
 import Logger from "@root/common/util/Logger";
 
@@ -12,8 +12,7 @@ export class ExecSQL extends Disposable implements IApplication {
 
     LOGGER = Logger.withTag("执行SQL");
 
-    public async init() {
-    }
+    public async init() {}
 
     public async run() {
         const imDbAccessService = new ImDbAccessService();
@@ -32,5 +31,4 @@ export class ExecSQL extends Disposable implements IApplication {
             }
         }
     }
-
 }

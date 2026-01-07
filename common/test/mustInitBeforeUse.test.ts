@@ -310,7 +310,7 @@ describe("mustInitBeforeUse 装饰器", () => {
             public async init(): Promise<void> {
                 this.initCount++;
                 // 模拟异步操作
-                await new Promise((resolve) => setTimeout(resolve, 10));
+                await new Promise(resolve => setTimeout(resolve, 10));
             }
 
             public getInitCount(): number {
@@ -320,7 +320,7 @@ describe("mustInitBeforeUse 装饰器", () => {
 
         it("已初始化完成后再次调用 init 应直接返回，不重复执行", async () => {
             const counter = new InitCounterService();
-            
+
             await counter.init();
             expect(counter.getInitCount()).toBe(1);
 
@@ -340,11 +340,7 @@ describe("mustInitBeforeUse 装饰器", () => {
             const counter = new InitCounterService();
 
             // 并发调用多次 init
-            const promises = [
-                counter.init(),
-                counter.init(),
-                counter.init()
-            ];
+            const promises = [counter.init(), counter.init(), counter.init()];
 
             await Promise.all(promises);
 

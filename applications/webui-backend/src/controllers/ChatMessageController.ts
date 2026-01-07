@@ -14,9 +14,7 @@ import {
 
 @injectable()
 export class ChatMessageController {
-    constructor(
-        @inject(TOKENS.ChatMessageService) private chatMessageService: ChatMessageService
-    ) {}
+    constructor(@inject(TOKENS.ChatMessageService) private chatMessageService: ChatMessageService) {}
 
     /**
      * GET /api/chat-messages-by-group-id
@@ -36,12 +34,8 @@ export class ChatMessageController {
      */
     public async getSessionIdsByGroupIdsAndTimeRange(req: Request, res: Response): Promise<void> {
         const params = GetSessionIdsByGroupIdsAndTimeRangeSchema.parse(req.body);
-        const timeStart =
-            typeof params.timeStart === "string"
-                ? parseInt(params.timeStart, 10)
-                : params.timeStart;
-        const timeEnd =
-            typeof params.timeEnd === "string" ? parseInt(params.timeEnd, 10) : params.timeEnd;
+        const timeStart = typeof params.timeStart === "string" ? parseInt(params.timeStart, 10) : params.timeStart;
+        const timeEnd = typeof params.timeEnd === "string" ? parseInt(params.timeEnd, 10) : params.timeEnd;
 
         const results = await this.chatMessageService.getSessionIdsByGroupIdsAndTimeRange(
             params.groupIds,
