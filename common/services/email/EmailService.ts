@@ -1,6 +1,7 @@
 /**
  * 通用邮件发送服务
- * 提供基础的邮件发送能力，与具体业务逻辑无关
+ * 封装 nodemailer，基于 SMTP 协议提供基础的邮件发送能力，与具体业务逻辑无关
+ * 可以用来发送告警邮件、报告等
  */
 import "reflect-metadata";
 import * as nodemailer from "nodemailer";
@@ -8,6 +9,7 @@ import { injectable, inject } from "tsyringe";
 import Logger from "../../util/Logger";
 import { ConfigManagerService } from "../config/ConfigManagerService";
 import { COMMON_TOKENS } from "../../di/tokens";
+import { Disposable } from "../../util/lifecycle/Disposable";
 
 /**
  * 发送邮件的选项
@@ -25,7 +27,7 @@ export interface SendEmailOptions {
  * 发件人、收件人、重试次数等配置统一从 config.email 读取
  */
 @injectable()
-class EmailService {
+class EmailService extends Disposable {
     private _logger: ReturnType<typeof Logger.withTag> | null = null;
     private transporter: nodemailer.Transporter | null = null;
 
@@ -34,8 +36,16 @@ class EmailService {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
-    ) {}
+        @inject(COMMON_TOKENS.ConfigManagerService)
+        private configManagerService: ConfigManagerService
+    ) {
+        super();
+        this._registerDisposableFunction(() => {
+            if (this.transporter) {
+                this.transporter.close();
+            }
+        });
+    }
 
     /**
      * 获取 Logger 实例（懒加载，避免循环依赖）

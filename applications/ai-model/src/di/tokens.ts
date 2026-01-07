@@ -14,6 +14,7 @@ export const AI_MODEL_TOKENS = {
     InterestScoreDbAccessService: COMMON_TOKENS.InterestScoreDbAccessService,
     ReportDbAccessService: COMMON_TOKENS.ReportDbAccessService,
     ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
+    EmailService: COMMON_TOKENS.EmailService,
 
     // ai-model 特有的服务
     /** 日报邮件服务 */

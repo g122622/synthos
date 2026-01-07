@@ -5,10 +5,10 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
-import { getEmailService } from "@root/common/di/container";
 import { Report, ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AI_MODEL_TOKENS } from "../../di/tokens";
+import { EmailService } from "@root/common/services/email/EmailService";
 
 /**
  * 日报邮件服务
@@ -23,7 +23,8 @@ class ReportEmailService {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(AI_MODEL_TOKENS.EmailService) private emailService: EmailService
     ) {}
 
     /**
@@ -85,8 +86,7 @@ class ReportEmailService {
         const html = this.buildEmailHtml(report);
 
         // 调用通用邮件服务发送（发件人、收件人、重试逻辑由 EmailService 统一处理）
-        const emailService = getEmailService();
-        const success = await emailService.sendEmail({ subject, html });
+        const success = await this.emailService.sendEmail({ subject, html });
 
         if (success) {
             this.LOGGER.success(`日报邮件发送成功: ${subject}`);
@@ -122,7 +122,6 @@ class ReportEmailService {
      * @returns HTML 格式的邮件内容
      */
     private buildEmailHtml(report: Report): string {
-        const emailService = getEmailService();
         const startDate = new Date(report.timeStart);
         const endDate = new Date(report.timeEnd);
 
@@ -195,7 +194,7 @@ class ReportEmailService {
                 : `
         <div class="summary">
             <h2>📝 综述</h2>
-            <div class="summary-text">${emailService.escapeHtml(report.summary)}</div>
+            <div class="summary-text">${this.emailService.escapeHtml(report.summary)}</div>
         </div>
         `
         }
