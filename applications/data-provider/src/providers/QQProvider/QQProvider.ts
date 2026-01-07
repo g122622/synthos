@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { getConfigManagerService } from "@root/common/di/container";
+import { injectable, inject } from "tsyringe";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { RawChatMessage } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "../contracts/IIMProvider";
 import Logger from "@root/common/util/Logger";
@@ -15,16 +16,35 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import sqlite3 from "@journeyapps/sqlcipher";
 import { MsgType } from "./@types/mappers/MsgType";
+import { DATA_PROVIDER_TOKENS } from "../../di/tokens";
 sqlite3.verbose();
 
+/**
+ * QQ 消息提供者
+ * 负责从 QQNT 数据库中读取消息数据
+ */
+@injectable()
 @mustInitBeforeUse
 export class QQProvider extends Disposable implements IIMProvider {
     private db: PromisifiedSQLite | null = null;
     private LOGGER = Logger.withTag("QQProvider");
     private messagePBParser = this._registerDisposable(new MessagePBParser());
 
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(DATA_PROVIDER_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {
+        super();
+    }
+
+    /**
+     * 初始化 QQ 消息提供者
+     */
     public async init() {
-        const config = (await getConfigManagerService().getCurrentConfig()).dataProviders.QQ;
+        const config = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
         // 1. 创建一个临时内存数据库（仅用于加载扩展）
         const tempDb = new PromisifiedSQLite(sqlite3);
         await tempDb.open(":memory:"); // 内存数据库，瞬间打开
@@ -68,7 +88,7 @@ export class QQProvider extends Disposable implements IIMProvider {
      * @returns 数据库补丁SQL
      */
     private async _getPatchSQL() {
-        const qqConfig = (await getConfigManagerService().getCurrentConfig()).dataProviders.QQ;
+        const qqConfig = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
         const patchSQL = qqConfig.dbPatch.enabled ? `(${qqConfig.dbPatch.patchSQL})` : "";
         return patchSQL;
     }

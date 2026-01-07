@@ -6,7 +6,8 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { COMMON_TOKENS } from "./tokens";
 import ConfigManagerService from "../services/config/ConfigManagerService";
-import EmailServiceInstance, { EmailService } from "../services/email/EmailService";
+import { EmailService } from "../services/email/EmailService";
+import { CommonDBService } from "../services/database/infra/CommonDBService";
 import { AgcDbAccessService } from "../services/database/AgcDbAccessService";
 import { ImDbAccessService } from "../services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
@@ -21,16 +22,11 @@ export function registerConfigManagerService(): void {
 }
 
 /**
- * 从 DI 容器获取 ConfigManagerService 实例
- * 优先从 DI 容器获取，如果容器未初始化则回退到默认单例
+ * 注册 CommonDBService 到 DI 容器
+ * 每次 resolve 返回新实例（非单例）
  */
-export function getConfigManagerService(): typeof ConfigManagerService {
-    try {
-        return container.resolve<typeof ConfigManagerService>(COMMON_TOKENS.ConfigManagerService);
-    } catch {
-        // DI 容器未初始化，回退到默认单例
-        return ConfigManagerService;
-    }
+export function registerCommonDBService(): void {
+    container.register(COMMON_TOKENS.CommonDBService, { useClass: CommonDBService });
 }
 
 /**
@@ -38,7 +34,7 @@ export function getConfigManagerService(): typeof ConfigManagerService {
  * 在需要发送邮件的应用启动时调用
  */
 export function registerEmailService(): void {
-    container.registerInstance(COMMON_TOKENS.EmailService, EmailServiceInstance);
+    container.registerSingleton(COMMON_TOKENS.EmailService, EmailService);
 }
 
 /**

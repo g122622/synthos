@@ -1,18 +1,30 @@
+import "reflect-metadata";
+import { injectable, container } from "tsyringe";
 import Logger from "../../util/Logger";
 import { CommonDBService } from "./infra/CommonDBService";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { createInterestScoreTableSQL } from "./constants/InitialSQL";
+import { COMMON_TOKENS } from "../../di/tokens";
 
+/**
+ * 兴趣评分数据库访问服务
+ * 负责兴趣评分结果的存储和查询
+ */
+@injectable()
 @mustInitBeforeUse
 export class InterestScoreDbAccessService extends Disposable {
     private LOGGER = Logger.withTag("InterestScoreDbAccessService");
-    private db: CommonDBService;
+    private db: CommonDBService | null = null;
 
+    /**
+     * 初始化数据库服务
+     */
     public async init() {
-        this.db = new CommonDBService(createInterestScoreTableSQL);
+        // 从 DI 容器获取 CommonDBService 实例
+        this.db = container.resolve<CommonDBService>(COMMON_TOKENS.CommonDBService);
         this._registerDisposable(this.db);
-        await this.db.init();
+        await this.db.init(createInterestScoreTableSQL);
         this.LOGGER.info("初始化完成！");
     }
 

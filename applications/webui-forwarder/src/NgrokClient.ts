@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { getConfigManagerService } from "@root/common/di/container";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
 import ngrok from "ngrok";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
@@ -12,7 +12,7 @@ export class NgrokClient extends Disposable {
     private LOGGER = Logger.withTag("NgrokClient");
 
     public async init() {
-        const config = await getConfigManagerService().getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
         if (!config.webUI_Forwarder.enabled) {
             this.LOGGER.warning("Ngrok客户端未在配置文件中启用, 跳过初始化");
             return;

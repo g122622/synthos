@@ -20,10 +20,9 @@ import {
     registerServices,
     registerControllers,
     registerConfigManagerService,
-    container
+    registerCommonDBService
 } from "./di/container";
-import { TOKENS } from "./di/tokens";
-import type ConfigManagerServiceType from "@root/common/services/config/ConfigManagerService";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 
 // 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
@@ -89,19 +88,12 @@ export class WebUILocalServer {
         this.reportDbAccessService = reportDbAccessService;
     }
 
-    /**
-     * 获取 ConfigManagerService 实例
-     */
-    private getConfigManagerService(): typeof ConfigManagerServiceType {
-        return container.resolve<typeof ConfigManagerServiceType>(TOKENS.ConfigManagerService);
-    }
-
-private async initializeStatusManagers(): Promise<{
+    private async initializeStatusManagers(): Promise<{
         favoriteStatusManager: TopicFavoriteStatusManager;
         readStatusManager: TopicReadStatusManager;
         reportReadStatusManager: ReportReadStatusManager;
     }> {
-        const config = await this.getConfigManagerService().getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
         const favoriteStatusManager = TopicFavoriteStatusManager.getInstance(
             path.join(config.webUI_Backend.kvStoreBasePath, "favorite_topics")
         );
@@ -115,7 +107,7 @@ private async initializeStatusManagers(): Promise<{
     }
 
     private async initializeRagChatHistoryManager(): Promise<RagChatHistoryManager> {
-        const config = await this.getConfigManagerService().getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
         const ragChatHistoryManager = RagChatHistoryManager.getInstance(
             config.webUI_Backend.dbBasePath
         );
@@ -124,9 +116,7 @@ private async initializeStatusManagers(): Promise<{
     }
 
     private async registerDependencies(): Promise<void> {
-        // 0. 注册 ConfigManagerService（必须最先注册）
-        registerConfigManagerService();
-
+        // 注意：ConfigManagerService 和 CommonDBService 已在 main() 中提前注册
         // 注意：DBManagers 已在 initializeDatabases 中注册到 DI 容器
 
         // 1. 注册 Status Managers
@@ -138,7 +128,7 @@ private async initializeStatusManagers(): Promise<{
         registerRagChatHistoryManager(ragChatHistoryManager);
 
         // 3. 注册 RAG RPC 客户端
-        const config = await this.getConfigManagerService().getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
         const rpcPort = config.ai.rpc.port;
         registerRAGClient(`http://localhost:${rpcPort}`);
 
@@ -150,22 +140,26 @@ private async initializeStatusManagers(): Promise<{
     }
 
     public async main(): Promise<void> {
-        // 1. 初始化数据库
+        // 1. 注册基础 DI 服务（必须最先）
+        registerConfigManagerService();
+        registerCommonDBService();
+
+        // 2. 初始化数据库（需要 CommonDBService）
         await this.initializeDatabases();
 
-        // 2. 注册依赖
+        // 3. 注册其他依赖
         await this.registerDependencies();
 
-        // 3. 设置路由（必须在依赖注册后）
+        // 4. 设置路由（必须在依赖注册后）
         this.setupRoutes();
 
-        // 4. 设置优雅关闭
+        // 5. 设置优雅关闭
         this.setupGracefulShutdown();
 
-        // 5. 获取端口配置
-        this.port = (await this.getConfigManagerService().getCurrentConfig()).webUI_Backend.port;
+        // 6. 获取端口配置
+        this.port = (await ConfigManagerService.getCurrentConfig()).webUI_Backend.port;
 
-        // 6. 启动服务
+        // 7. 启动服务
         this.app.listen(this.port, () => {
             LOGGER.success(`WebUI后端服务启动成功，端口: ${this.port}`);
             LOGGER.info(`健康检查地址: http://localhost:${this.port}/health`);

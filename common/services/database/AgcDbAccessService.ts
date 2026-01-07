@@ -1,19 +1,31 @@
+import "reflect-metadata";
+import { injectable, inject, container } from "tsyringe";
 import Logger from "../../util/Logger";
 import { AIDigestResult } from "../../contracts/ai-model";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { CommonDBService } from "./infra/CommonDBService";
 import { createAGCTableSQL } from "./constants/InitialSQL";
+import { COMMON_TOKENS } from "../../di/tokens";
 
+/**
+ * AI 生成内容数据库访问服务
+ * 负责 AI 摘要结果的存储和查询
+ */
+@injectable()
 @mustInitBeforeUse
 export class AgcDbAccessService extends Disposable {
     private LOGGER = Logger.withTag("AgcDbAccessService");
-    private db: CommonDBService;
+    private db: CommonDBService | null = null;
 
+    /**
+     * 初始化数据库服务
+     */
     public async init() {
-        this.db = new CommonDBService(createAGCTableSQL);
+        // 从 DI 容器获取 CommonDBService 实例
+        this.db = container.resolve<CommonDBService>(COMMON_TOKENS.CommonDBService);
         this._registerDisposable(this.db);
-        await this.db.init();
+        await this.db.init(createAGCTableSQL);
     }
 
     public async storeAIDigestResult(result: AIDigestResult) {

@@ -14,11 +14,14 @@
 import "reflect-metadata";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { QQProvider } from "../providers/QQProvider/QQProvider";
-import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
+import { registerConfigManagerService } from "@root/common/di/container";
+import { registerQQProvider, getQQProvider } from "../di/container";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { existsSync } from "fs";
 
 // 初始化 DI 容器
 registerConfigManagerService();
+registerQQProvider();
 
 // 检查集成测试是否可以运行
 async function canRunIntegrationTest(): Promise<{
@@ -26,7 +29,7 @@ async function canRunIntegrationTest(): Promise<{
     reason?: string;
 }> {
     try {
-        const config = await getConfigManagerService().getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
         const qqConfig = config.dataProviders?.QQ;
 
         if (!qqConfig) {
@@ -83,7 +86,7 @@ describe("QQProvider 集成测试", () => {
             return;
         }
 
-        qqProvider = new QQProvider();
+        qqProvider = getQQProvider();
         await qqProvider.init();
     });
 

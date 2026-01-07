@@ -21,7 +21,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import { ReportType } from "@root/common/contracts/report/index";
 import { getReportEmailService } from "../di/container";
 import { AI_MODEL_TOKENS } from "../di/tokens";
-import { getConfigManagerService } from "@root/common/di/container";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 
 /**
  * RAG RPC 实现类
@@ -36,6 +36,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
     /**
      * 构造函数
+     * @param configManagerService 配置管理服务
      * @param vectorDB 向量数据库管理器
      * @param agcDB AGC 数据库管理器
      * @param imDB IM 数据库管理器
@@ -44,6 +45,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * @param ragCtxBuilder RAG 上下文构建器
      */
     public constructor(
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDB: VectorDBManager,
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
         @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
@@ -60,8 +62,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * 必须在使用前调用
      */
     public async init(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
 
         // 初始化 Ollama 嵌入服务
         this.embeddingService = new OllamaEmbeddingService(

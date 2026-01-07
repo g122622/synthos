@@ -3,10 +3,9 @@ import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getConfigManagerService } from "@root/common/di/container";
-import { getReportEmailService } from "../di/container";
+import { getReportEmailService, getTextGenerator } from "../di/container";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
-import { TextGenerator } from "../generators/text/TextGenerator";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
@@ -14,75 +13,6 @@ import { Report, ReportStatistics, ReportType } from "@root/common/contracts/rep
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { AI_MODEL_TOKENS } from "../di/tokens";
-
-/**
- * 格式化时间段描述
- */
-function formatPeriodDescription(type: ReportType, timeStart: number, timeEnd: number): string {
-    const startDate = new Date(timeStart);
-    const endDate = new Date(timeEnd);
-
-    const formatDate = (d: Date) => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
-
-    if (type === "half-daily") {
-        const hour = startDate.getHours();
-        const period = hour < 12 ? "上午" : "下午";
-        return `${formatDate(startDate)} ${period}`;
-    } else if (type === "weekly") {
-        return `${formatDate(startDate)} - ${formatDate(endDate)} 周报`;
-    } else {
-        return `${formatDate(startDate)} - ${formatDate(endDate)} 月报`;
-    }
-}
-
-/**
- * 计算统计数据
- */
-function calculateStatistics(
-    topics: {
-        topicId: string;
-        sessionId: string;
-        topic: string;
-        detail: string;
-        updateTime: number;
-        groupId?: string;
-    }[],
-    sessionGroupMap: Map<string, string>
-): ReportStatistics {
-    // 计算最活跃群组
-    const groupTopicCount = new Map<string, number>();
-    for (const topic of topics) {
-        const groupId = topic.groupId || sessionGroupMap.get(topic.sessionId) || "unknown";
-        groupTopicCount.set(groupId, (groupTopicCount.get(groupId) || 0) + 1);
-    }
-
-    const sortedGroups = Array.from(groupTopicCount.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3)
-        .map(([groupId]) => groupId);
-
-    // 计算最活跃时段
-    const hourCount = new Map<number, number>();
-    for (const topic of topics) {
-        const hour = new Date(topic.updateTime).getHours();
-        hourCount.set(hour, (hourCount.get(hour) || 0) + 1);
-    }
-
-    let mostActiveHour = 0;
-    let maxCount = 0;
-    for (const [hour, count] of hourCount.entries()) {
-        if (count > maxCount) {
-            maxCount = count;
-            mostActiveHour = hour;
-        }
-    }
-
-    return {
-        topicCount: topics.length,
-        mostActiveGroups: sortedGroups,
-        mostActiveHour
-    };
-}
 
 /**
  * 日报生成任务处理器
@@ -94,22 +24,26 @@ export class GenerateReportTaskHandler {
 
     /**
      * 构造函数
+     * @param configManagerService 配置管理服务
      * @param agcDbAccessService AGC 数据库访问服务
      * @param reportDbAccessService 日报数据库访问服务
      * @param interestScoreDbAccessService 兴趣度评分数据库访问服务
      */
     public constructor(
+        @inject(AI_MODEL_TOKENS.ConfigManagerService)
+        private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
-        @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService) private interestScoreDbAccessService: InterestScoreDbAccessService
+        @inject(AI_MODEL_TOKENS.ReportDbAccessService)
+        private reportDbAccessService: ReportDbAccessService,
+        @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService)
+        private interestScoreDbAccessService: InterestScoreDbAccessService
     ) {}
 
     /**
      * 注册任务到 Agenda 调度器
      */
     public async register(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        let config = await configManagerService.getCurrentConfig();
+        let config = await this.configManagerService.getCurrentConfig();
 
         await agendaInstance
             .create(TaskHandlerTypes.GenerateReport)
@@ -121,7 +55,7 @@ export class GenerateReportTaskHandler {
             async job => {
                 this.LOGGER.info(`📰 开始处理日报生成任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig();
+                config = await this.configManagerService.getCurrentConfig();
 
                 // 检查日报功能是否启用
                 if (!config.report.enabled) {
@@ -132,14 +66,16 @@ export class GenerateReportTaskHandler {
                 const { reportType, timeStart, timeEnd } = attrs;
 
                 // 检查是否已存在该时间段的日报
-                if (await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)) {
+                if (
+                    await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)
+                ) {
                     this.LOGGER.info(
                         `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
                     );
                     return;
                 }
 
-                const periodDescription = formatPeriodDescription(reportType, timeStart, timeEnd);
+                const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
                 this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
                 try {
@@ -154,7 +90,8 @@ export class GenerateReportTaskHandler {
                     const interestScores = new Map<string, number>();
 
                     for (const topicId of topicIds) {
-                        const score = await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
+                        const score =
+                            await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
                         if (score !== null) {
                             interestScores.set(topicId, score);
                         }
@@ -231,7 +168,7 @@ export class GenerateReportTaskHandler {
                         ...r,
                         groupId: sessionGroupMap.get(r.sessionId)
                     }));
-                    const statistics = calculateStatistics(topicsWithGroupId, sessionGroupMap);
+                    const statistics = this.calculateStatistics(topicsWithGroupId, sessionGroupMap);
 
                     // 7. 准备话题数据给 LLM
                     const topicsData = sortedResults.map(r => ({
@@ -263,9 +200,8 @@ export class GenerateReportTaskHandler {
                         return;
                     }
 
-                    // 9. 调用 LLM 生成综述
-                    const textGenerator = new TextGenerator();
-                    await textGenerator.init();
+                    // 9. 从 DI 容器获取 TextGenerator
+                    const textGenerator = getTextGenerator();
 
                     const prompt = ReportPromptStore.getReportSummaryPrompt(
                         reportType,
@@ -345,5 +281,74 @@ export class GenerateReportTaskHandler {
                 lockLifetime: 10 * 60 * 1000 // 10分钟
             }
         );
+    }
+
+    /**
+     * 格式化时间段描述
+     */
+    private formatPeriodDescription(type: ReportType, timeStart: number, timeEnd: number): string {
+        const startDate = new Date(timeStart);
+        const endDate = new Date(timeEnd);
+
+        const formatDate = (d: Date) => `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+
+        if (type === "half-daily") {
+            const hour = startDate.getHours();
+            const period = hour < 12 ? "上午" : "下午";
+            return `${formatDate(startDate)} ${period}`;
+        } else if (type === "weekly") {
+            return `${formatDate(startDate)} - ${formatDate(endDate)} 周报`;
+        } else {
+            return `${formatDate(startDate)} - ${formatDate(endDate)} 月报`;
+        }
+    }
+
+    /**
+     * 计算统计数据
+     */
+    private calculateStatistics(
+        topics: {
+            topicId: string;
+            sessionId: string;
+            topic: string;
+            detail: string;
+            updateTime: number;
+            groupId?: string;
+        }[],
+        sessionGroupMap: Map<string, string>
+    ): ReportStatistics {
+        // 计算最活跃群组
+        const groupTopicCount = new Map<string, number>();
+        for (const topic of topics) {
+            const groupId = topic.groupId || sessionGroupMap.get(topic.sessionId) || "unknown";
+            groupTopicCount.set(groupId, (groupTopicCount.get(groupId) || 0) + 1);
+        }
+
+        const sortedGroups = Array.from(groupTopicCount.entries())
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([groupId]) => groupId);
+
+        // 计算最活跃时段
+        const hourCount = new Map<number, number>();
+        for (const topic of topics) {
+            const hour = new Date(topic.updateTime).getHours();
+            hourCount.set(hour, (hourCount.get(hour) || 0) + 1);
+        }
+
+        let mostActiveHour = 0;
+        let maxCount = 0;
+        for (const [hour, count] of hourCount.entries()) {
+            if (count > maxCount) {
+                maxCount = count;
+                mostActiveHour = hour;
+            }
+        }
+
+        return {
+            topicCount: topics.length,
+            mostActiveGroups: sortedGroups,
+            mostActiveHour
+        };
     }
 }

@@ -1,4 +1,4 @@
-import { getConfigManagerService } from "@root/common/di/container";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
@@ -12,8 +12,7 @@ export class PrintCurrentConfig extends Disposable implements IApplication {
     }
 
     public async run() {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
 
         console.log("当前配置：");
         console.dir(config, { depth: 10 });

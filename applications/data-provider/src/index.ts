@@ -4,9 +4,10 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import {
     registerConfigManagerService,
+    registerCommonDBService,
     registerImDbAccessService
 } from "@root/common/di/container";
-import { registerTaskHandlers, getProvideDataTaskHandler } from "./di/container";
+import { registerTaskHandlers, getProvideDataTaskHandler, registerQQProvider } from "./di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("🌏 data-provider-root-script");
@@ -23,6 +24,7 @@ class DataProviderApplication {
     public async main(): Promise<void> {
         // 1. 初始化 DI 容器 - 注册基础服务
         registerConfigManagerService();
+        registerCommonDBService();
 
         // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
@@ -31,10 +33,13 @@ class DataProviderApplication {
         // 3. 注册 ImDbAccessService 到 DI 容器
         registerImDbAccessService(imDbAccessService);
 
-        // 4. 注册任务处理器
+        // 4. 注册 QQProvider
+        registerQQProvider();
+
+        // 5. 注册任务处理器
         registerTaskHandlers();
 
-        // 5. 获取任务处理器并注册到 Agenda
+        // 6. 获取任务处理器并注册到 Agenda
         const provideDataTaskHandler = getProvideDataTaskHandler();
         await provideDataTaskHandler.register();
 

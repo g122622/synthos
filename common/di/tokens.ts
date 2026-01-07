@@ -7,7 +7,10 @@ export const COMMON_TOKENS = {
     // 配置服务
     ConfigManagerService: Symbol.for("ConfigManagerService"),
 
-    // 数据库管理器
+    // 数据库基础服务
+    CommonDBService: Symbol.for("CommonDBService"),
+
+    // 数据库访问服务
     AgcDbAccessService: Symbol.for("AgcDbAccessService"),
     ImDbAccessService: Symbol.for("ImDbAccessService"),
     InterestScoreDbAccessService: Symbol.for("InterestScoreDbAccessService"),

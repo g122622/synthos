@@ -14,5 +14,9 @@ export const PREPROCESSING_TOKENS = {
 
     // preprocessing 特有的服务
     /** 预处理任务处理器 */
-    PreprocessTaskHandler: Symbol.for("PreprocessTaskHandler")
+    PreprocessTaskHandler: Symbol.for("PreprocessTaskHandler"),
+    /** 累积式消息分割器 */
+    AccumulativeSplitter: Symbol.for("AccumulativeSplitter"),
+    /** 超时式消息分割器 */
+    TimeoutSplitter: Symbol.for("TimeoutSplitter")
 } as const;

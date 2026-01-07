@@ -4,9 +4,10 @@
  */
 import "reflect-metadata";
 import * as nodemailer from "nodemailer";
-import { injectable } from "tsyringe";
+import { injectable, inject } from "tsyringe";
 import Logger from "../../util/Logger";
-import { getConfigManagerService } from "../../di/container";
+import { ConfigManagerService } from "../config/ConfigManagerService";
+import { COMMON_TOKENS } from "../../di/tokens";
 
 /**
  * 发送邮件的选项
@@ -29,6 +30,14 @@ class EmailService {
     private transporter: nodemailer.Transporter | null = null;
 
     /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {}
+
+    /**
      * 获取 Logger 实例（懒加载，避免循环依赖）
      */
     private get LOGGER(): ReturnType<typeof Logger.withTag> {
@@ -42,8 +51,7 @@ class EmailService {
      * 初始化邮件传输器
      */
     private async initTransporter(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
 
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用");
@@ -77,8 +85,7 @@ class EmailService {
      * @returns 是否启用
      */
     public async isEnabled(): Promise<boolean> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
         return config.email.enabled;
     }
 
@@ -89,8 +96,7 @@ class EmailService {
      * @returns 是否发送成功
      */
     public async sendEmail(options: SendEmailOptions): Promise<boolean> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
 
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用，跳过发送");
@@ -156,8 +162,6 @@ class EmailService {
     }
 }
 
-const instance = new EmailService();
-
 /**
  * EmailService 实例类型
  * 用于依赖注入时的类型标注
@@ -165,4 +169,3 @@ const instance = new EmailService();
 export type IEmailService = EmailService;
 
 export { EmailService };
-export default instance;

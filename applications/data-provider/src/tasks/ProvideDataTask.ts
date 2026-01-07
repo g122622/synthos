@@ -1,14 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
-import { QQProvider } from "../providers/QQProvider/QQProvider";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "../providers/contracts/IIMProvider";
-import { getConfigManagerService } from "@root/common/di/container";
 import { DATA_PROVIDER_TOKENS } from "../di/tokens";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { getQQProvider } from "../di/container";
 
 /**
  * 数据提供任务处理器
@@ -20,9 +20,11 @@ export class ProvideDataTaskHandler {
 
     /**
      * 构造函数
+     * @param configManagerService 配置管理服务
      * @param imDbAccessService IM 数据库访问服务
      */
     public constructor(
+        @inject(DATA_PROVIDER_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(DATA_PROVIDER_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {}
 
@@ -30,8 +32,7 @@ export class ProvideDataTaskHandler {
      * 注册任务到 Agenda 调度器
      */
     public async register(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        let config = await configManagerService.getCurrentConfig();
+        let config = await this.configManagerService.getCurrentConfig();
 
         await agendaInstance
             .create(TaskHandlerTypes.ProvideData)
@@ -43,13 +44,13 @@ export class ProvideDataTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
-                // 根据 IM 类型初始化对应的 IM 提供者
+                // 根据 IM 类型从 DI 容器获取对应的 IM 提供者
                 let activeProvider: IIMProvider;
                 switch (attrs.IMType) {
                     case IMTypes.QQ: {
-                        activeProvider = new QQProvider();
+                        activeProvider = getQQProvider();
                         break;
                     }
                     default: {

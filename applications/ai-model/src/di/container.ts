@@ -5,7 +5,7 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import { AI_MODEL_TOKENS } from "./tokens";
-import ReportEmailServiceInstance, { ReportEmailService } from "../services/email/ReportEmailService";
+import { ReportEmailService } from "../services/email/ReportEmailService";
 import { VectorDBManager } from "../embedding/VectorDBManager";
 import { TextGenerator } from "../generators/text/TextGenerator";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
@@ -20,7 +20,7 @@ import { GenerateReportTaskHandler } from "../tasks/GenerateReport";
  * 在 ai-model 应用启动时调用
  */
 export function registerReportEmailService(): void {
-    container.registerInstance(AI_MODEL_TOKENS.ReportEmailService, ReportEmailServiceInstance);
+    container.registerSingleton(AI_MODEL_TOKENS.ReportEmailService, ReportEmailService);
 }
 
 /**
@@ -48,11 +48,10 @@ export function getVectorDBManager(): VectorDBManager {
 }
 
 /**
- * 注册 TextGenerator 实例到 DI 容器
- * @param instance 已初始化的 TextGenerator 实例
+ * 注册 TextGenerator 到 DI 容器
  */
-export function registerTextGenerator(instance: TextGenerator): void {
-    container.registerInstance(AI_MODEL_TOKENS.TextGenerator, instance);
+export function registerTextGenerator(): void {
+    container.registerSingleton(AI_MODEL_TOKENS.TextGenerator, TextGenerator);
 }
 
 /**

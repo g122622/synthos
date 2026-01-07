@@ -1,7 +1,7 @@
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
-import { IConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { ReportType } from "@root/common/contracts/report";
 
 const LOGGER = Logger.withTag("📰 [orchestrator] [ReportScheduler]");
@@ -55,12 +55,9 @@ function calculateHalfDailyTimeRange(
 
 /**
  * 设置日报定时任务调度器
- * @param configManagerService 配置管理服务
  */
-export async function setupReportScheduler(
-    configManagerService: IConfigManagerService
-): Promise<void> {
-    const config = await configManagerService.getCurrentConfig();
+export async function setupReportScheduler(): Promise<void> {
+    const config = await ConfigManagerService.getCurrentConfig();
 
     // 检查日报功能是否启用
     if (!config.report?.enabled) {
@@ -93,7 +90,7 @@ export async function setupReportScheduler(
     // 为每个半日报时间点定义任务处理器
     for (const timeStr of reportConfig.schedule.halfDailyTimes) {
         agendaInstance.define(`HalfDailyReport_${timeStr}`, async () => {
-            const currentConfig = await configManagerService.getCurrentConfig();
+            const currentConfig = await ConfigManagerService.getCurrentConfig();
             if (!currentConfig.report?.enabled) {
                 LOGGER.info("日报功能未启用，跳过");
                 return;
@@ -136,7 +133,7 @@ export async function setupReportScheduler(
     );
 
     agendaInstance.define("WeeklyReport", async () => {
-        const currentConfig = await configManagerService.getCurrentConfig();
+        const currentConfig = await ConfigManagerService.getCurrentConfig();
         if (!currentConfig.report?.enabled) {
             LOGGER.info("日报功能未启用，跳过");
             return;
@@ -177,7 +174,7 @@ export async function setupReportScheduler(
     );
 
     agendaInstance.define("MonthlyReport", async () => {
-        const currentConfig = await configManagerService.getCurrentConfig();
+        const currentConfig = await ConfigManagerService.getCurrentConfig();
         if (!currentConfig.report?.enabled) {
             LOGGER.info("日报功能未启用，跳过");
             return;

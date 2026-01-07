@@ -6,6 +6,7 @@ import { container } from "tsyringe";
 import { TOKENS } from "./tokens";
 import {
     registerConfigManagerService,
+    registerCommonDBService,
     registerEmailService,
     registerDbAccessServices
 } from "@root/common/di/container";
@@ -146,4 +147,4 @@ export function getContainer() {
     return container;
 }
 
-export { container, registerConfigManagerService };
+export { container, registerConfigManagerService, registerCommonDBService };

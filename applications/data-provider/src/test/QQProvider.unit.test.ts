@@ -107,6 +107,12 @@ vi.mock("@root/common/util/lifecycle/Disposable", () => ({
 
 // 在所有 mock 之后导入被测试的模块
 import { QQProvider } from "../providers/QQProvider/QQProvider";
+import { registerConfigManagerService } from "@root/common/di/container";
+import { registerQQProvider, getQQProvider } from "../di/container";
+
+// 初始化 DI 容器
+registerConfigManagerService();
+registerQQProvider();
 
 // ==================== 测试用例 ====================
 
@@ -122,7 +128,8 @@ describe("QQProvider", () => {
             finalize: vi.fn().mockResolvedValue(undefined)
         });
 
-        qqProvider = new QQProvider();
+        // 从 DI 容器获取 QQProvider 实例
+        qqProvider = getQQProvider();
     });
 
     afterEach(async () => {
@@ -131,7 +138,7 @@ describe("QQProvider", () => {
 
     describe("初始化相关", () => {
         it("未初始化时调用方法应抛出 UNINITIALIZED_ERROR", async () => {
-            const uninitializedProvider = new QQProvider();
+            const uninitializedProvider = getQQProvider();
 
             // 由于 db 为 null，调用 getMsgByTimeRange 会抛出 UNINITIALIZED_ERROR
             await expect(uninitializedProvider.getMsgByTimeRange(0, 1000)).rejects.toBe(
@@ -514,8 +521,8 @@ describe("QQProvider", () => {
                 configWithPatch
             );
 
-            // 创建新实例使用新配置
-            const providerWithPatch = new QQProvider();
+            // 从 DI 容器获取新实例使用新配置
+            const providerWithPatch = getQQProvider();
             await providerWithPatch.init();
 
             mockDbMethods.all.mockResolvedValue([]);

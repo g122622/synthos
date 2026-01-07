@@ -38,11 +38,6 @@ vi.mock("@root/common/util/Logger", () => ({
     default: mockLogger
 }));
 
-// Mock DI container 以避免加载其他依赖
-vi.mock("@root/common/di/container", () => ({
-    getConfigManagerService: vi.fn()
-}));
-
 // Mock ASSERT 以避免它发送 SIGINT 信号终止进程
 vi.mock("@root/common/util/ASSERT", () => ({
     ASSERT: (condition: unknown, message?: string) => {

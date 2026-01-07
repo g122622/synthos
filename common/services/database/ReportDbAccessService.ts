@@ -1,3 +1,5 @@
+import "reflect-metadata";
+import { injectable, container } from "tsyringe";
 import Logger from "../../util/Logger";
 import {
     Report,
@@ -10,16 +12,26 @@ import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { CommonDBService } from "./infra/CommonDBService";
 import { createReportTableSQL } from "./constants/InitialSQL";
+import { COMMON_TOKENS } from "../../di/tokens";
 
+/**
+ * 日报数据库访问服务
+ * 负责日报的存储和查询
+ */
+@injectable()
 @mustInitBeforeUse
 export class ReportDbAccessService extends Disposable {
     private LOGGER = Logger.withTag("ReportDbAccessService");
-    private db: CommonDBService;
+    private db: CommonDBService | null = null;
 
+    /**
+     * 初始化数据库服务
+     */
     public async init() {
-        this.db = new CommonDBService(createReportTableSQL);
+        // 从 DI 容器获取 CommonDBService 实例
+        this.db = container.resolve<CommonDBService>(COMMON_TOKENS.CommonDBService);
         this._registerDisposable(this.db);
-        await this.db.init();
+        await this.db.init(createReportTableSQL);
     }
 
     /**

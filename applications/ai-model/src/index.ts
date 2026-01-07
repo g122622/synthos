@@ -4,9 +4,10 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import {
     registerConfigManagerService,
-    getConfigManagerService,
+    registerCommonDBService,
     registerEmailService,
     registerDbAccessServices
 } from "@root/common/di/container";
@@ -20,12 +21,12 @@ import {
     getAISummarizeTaskHandler,
     getInterestScoreTaskHandler,
     getGenerateEmbeddingTaskHandler,
-    getGenerateReportTaskHandler
+    getGenerateReportTaskHandler,
+    getTextGenerator
 } from "./di/container";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { VectorDBManager } from "./embedding/VectorDBManager";
-import { TextGenerator } from "./generators/text/TextGenerator";
 import { setupRPC } from "./rpc/setupRPC";
 
 const LOGGER = Logger.withTag("🤖 ai-model-root-script");
@@ -42,13 +43,13 @@ class AIModelApplication {
     public async main(): Promise<void> {
         // 1. 初始化 DI 容器 - 注册基础服务
         registerConfigManagerService();
+        registerCommonDBService();
         registerEmailService();
         registerReportEmailService();
 
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
 
-        // 2. 初始化数据库管理器
+        // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
         await imDbAccessService.init();
         const agcDbAccessService = new AgcDbAccessService();
@@ -74,10 +75,10 @@ class AIModelApplication {
         await vectorDBManager.init();
         registerVectorDBManager(vectorDBManager);
 
-        // 5. 初始化文本生成器并注册
-        const textGenerator = new TextGenerator();
+        // 5. 注册并初始化文本生成器
+        registerTextGenerator();
+        const textGenerator = getTextGenerator();
         await textGenerator.init();
-        registerTextGenerator(textGenerator);
 
         // 6. 注册 RAGCtxBuilder 和 RagRPCImpl
         registerRAGCtxBuilder();

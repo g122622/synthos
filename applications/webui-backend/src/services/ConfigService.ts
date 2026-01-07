@@ -4,7 +4,7 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
-import type { IConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { GlobalConfig, PartialGlobalConfig } from "@root/common/services/config/schemas/GlobalConfig";
 import type { JsonSchema7Type } from "zod-to-json-schema";
 
@@ -12,7 +12,7 @@ import type { JsonSchema7Type } from "zod-to-json-schema";
 export class ConfigService {
     constructor(
         @inject(TOKENS.ConfigManagerService)
-        private configManagerService: IConfigManagerService
+        private configManagerService: ConfigManagerService
     ) {}
 
     /**

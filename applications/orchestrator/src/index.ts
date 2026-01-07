@@ -3,7 +3,8 @@ import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { cleanupStaleJobs, scheduleAndWaitForJob } from "@root/common/scheduler/jobUtils";
-import { registerConfigManagerService, getConfigManagerService } from "@root/common/di/container";
+import { registerConfigManagerService } from "@root/common/di/container";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { sleep } from "@root/common/util/promisify/sleep";
@@ -28,9 +29,8 @@ class OrchestratorApplication {
     public async main(): Promise<void> {
         // 初始化 DI 容器
         registerConfigManagerService();
-        const configManagerService = getConfigManagerService();
 
-        let config = await configManagerService.getCurrentConfig();
+        let config = await ConfigManagerService.getCurrentConfig();
 
         // 在启动前清理所有残留任务，避免上次运行残留的任务导致非预期执行
         await cleanupStaleJobs([
@@ -52,7 +52,7 @@ class OrchestratorApplication {
             TaskHandlerTypes.RunPipeline,
             async job => {
                 LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+                config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
                 const startTimeStamp = getHoursAgoTimestamp(
                     config.orchestrator.dataSeekTimeWindowInHours
                 );
@@ -179,7 +179,7 @@ class OrchestratorApplication {
         await agendaInstance.start();
 
         // 设置日报定时任务
-        await setupReportScheduler(configManagerService);
+        await setupReportScheduler();
     }
 }
 

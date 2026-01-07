@@ -2,6 +2,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { TextGenerator } from "./TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { getTextGenerator } from "../../di/container";
 
 /**
  * 池化任务定义
@@ -31,6 +32,7 @@ export interface PooledTaskResult<TContext> {
 
 /**
  * 支持控制并发数的文本生成器池
+ * 提供并发控制的文本生成能力
  */
 @mustInitBeforeUse
 export class PooledTextGenerator extends Disposable {
@@ -46,6 +48,10 @@ export class PooledTextGenerator extends Disposable {
     private readonly semaphoreQueue: Array<() => void> = [];
     private readonly LOGGER = Logger.withTag("PooledTextGenerator");
 
+    /**
+     * 构造函数
+     * @param maxConcurrency 最大并发数
+     */
     constructor(maxConcurrency: number) {
         super();
         if (maxConcurrency <= 0) {
@@ -54,9 +60,12 @@ export class PooledTextGenerator extends Disposable {
         this.maxConcurrency = maxConcurrency;
     }
 
+    /**
+     * 初始化池化文本生成器
+     */
     public async init(): Promise<void> {
-        this.textGenerator = this._registerDisposable(new TextGenerator());
-        await this.textGenerator.init();
+        // 从 DI 容器获取已初始化的 TextGenerator
+        this.textGenerator = getTextGenerator();
         this._registerDisposableFunction(() => {
             // 清空等待中的任务：立即 resolve 但标记为失败
             for (const { resolve } of this.taskQueue) {

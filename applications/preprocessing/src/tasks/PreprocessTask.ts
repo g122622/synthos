@@ -1,16 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
-import { AccumulativeSplitter } from "../splitters/AccumulativeSplitter";
-import { TimeoutSplitter } from "../splitters/TimeoutSplitter";
 import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
 import { formatMsg } from "../formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { getConfigManagerService } from "@root/common/di/container";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ISplitter } from "../splitters/contracts/ISplitter";
 import { PREPROCESSING_TOKENS } from "../di/tokens";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { getAccumulativeSplitter, getTimeoutSplitter } from "../di/container";
 
 /**
  * 预处理任务处理器
@@ -22,9 +21,11 @@ export class PreprocessTaskHandler {
 
     /**
      * 构造函数
+     * @param configManagerService 配置管理服务
      * @param imDbAccessService IM 数据库访问服务
      */
     public constructor(
+        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(PREPROCESSING_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {}
 
@@ -32,8 +33,7 @@ export class PreprocessTaskHandler {
      * 注册任务到 Agenda 调度器
      */
     public async register(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        let config = await configManagerService.getCurrentConfig();
+        let config = await this.configManagerService.getCurrentConfig();
 
         await agendaInstance
             .create(TaskHandlerTypes.Preprocess)
@@ -45,24 +45,25 @@ export class PreprocessTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 for (const groupId of attrs.groupIds) {
+                    // 从 DI 容器获取对应的分割器
                     let splitter: ISplitter;
                     switch (config.groupConfigs[groupId]?.splitStrategy) {
                         case "accumulative": {
-                            splitter = new AccumulativeSplitter();
+                            splitter = getAccumulativeSplitter();
                             break;
                         }
                         case "realtime": {
-                            splitter = new TimeoutSplitter();
+                            splitter = getTimeoutSplitter();
                             break;
                         }
                         default: {
                             this.LOGGER.warning(
                                 `未知的分割策略: ${config.groupConfigs[groupId]?.splitStrategy}，使用accumulative策略兜底`
                             );
-                            splitter = new AccumulativeSplitter();
+                            splitter = getAccumulativeSplitter();
                             break;
                         }
                     }

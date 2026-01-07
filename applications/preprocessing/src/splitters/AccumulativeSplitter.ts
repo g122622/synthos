@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { getConfigManagerService } from "@root/common/di/container";
+import { injectable, inject } from "tsyringe";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
@@ -10,24 +11,51 @@ import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { PREPROCESSING_TOKENS } from "../di/tokens";
 
+/**
+ * 累积式消息分割器
+ * 按照消息数量或字符数量累积分组
+ */
+@injectable()
 @mustInitBeforeUse
 export class AccumulativeSplitter extends Disposable implements ISplitter {
     private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
 
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {
+        super();
+    }
+
+    /**
+     * 初始化分割器
+     */
     public async init() {
-        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
             .AccumulativeSplitter;
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
 
+    /**
+     * 为消息分配 sessionId
+     * @param imDbAccessService IM 数据库访问服务
+     * @param groupId 群组 ID
+     * @param startTimeStamp 开始时间戳
+     * @param endTimeStamp 结束时间戳
+     * @returns 带有 sessionId 的消息列表
+     */
     public async assignSessionId(imDbAccessService: ImDbAccessService, groupId: string, startTimeStamp: number,
         endTimeStamp: number) {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
-        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
             .AccumulativeSplitter;
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {

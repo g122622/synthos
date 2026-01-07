@@ -1,5 +1,6 @@
 import "reflect-metadata";
-import { getConfigManagerService } from "@root/common/di/container";
+import { injectable, inject } from "tsyringe";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ChatOpenAI } from "@langchain/openai";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
@@ -7,13 +8,32 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import { duplicateElements } from "@root/common/util/core/duplicateElements";
 import { sleep } from "@root/common/util/promisify/sleep";
+import { AI_MODEL_TOKENS } from "../../di/tokens";
 
+/**
+ * 文本生成器
+ * 提供基于 LLM 的文本生成能力，支持多模型候选和重试机制
+ */
+@injectable()
 @mustInitBeforeUse
 export class TextGenerator extends Disposable {
     private models = new Map<string, ChatOpenAI>();
     private activeModel: ChatOpenAI | null = null;
     private LOGGER = Logger.withTag("TextGenerator");
 
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {
+        super();
+    }
+
+    /**
+     * 初始化文本生成器
+     */
     public async init() {
         this._registerDisposableFunction(() => {
             // LangChain 的 ChatOpenAI 通常不需要显式关闭，但可以清空模型缓存
@@ -26,7 +46,7 @@ export class TextGenerator extends Disposable {
     private async useModel(modelName: string) {
         // 懒加载：当需要使用某个模型时才创建实例
         if (!this.models.has(modelName)) {
-            const config = await getConfigManagerService().getCurrentConfig();
+            const config = await this.configManagerService.getCurrentConfig();
             const chatModel = new ChatOpenAI({
                 openAIApiKey:
                     config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey, // 从配置中获取 API Key
@@ -122,7 +142,7 @@ export class TextGenerator extends Disposable {
         selectedModelName: string;
         content: string;
     }> {
-        const config = await getConfigManagerService().getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
         // 从第一个开始尝试，如果失败了就会尝试下一个
         const modelCandidates = [
             ...duplicateElements(config.ai.pinnedModels, 2), // 失败重复机制：每个模型重复2次

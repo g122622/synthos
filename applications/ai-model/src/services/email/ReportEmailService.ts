@@ -3,10 +3,12 @@
  * 负责构建和发送日报相关的邮件通知
  */
 import "reflect-metadata";
-import { injectable } from "tsyringe";
+import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
-import { getConfigManagerService, getEmailService } from "@root/common/di/container";
+import { getEmailService } from "@root/common/di/container";
 import { Report, ReportType } from "@root/common/contracts/report/index";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { AI_MODEL_TOKENS } from "../../di/tokens";
 
 /**
  * 日报邮件服务
@@ -15,6 +17,14 @@ import { Report, ReportType } from "@root/common/contracts/report/index";
 @injectable()
 class ReportEmailService {
     private _logger: ReturnType<typeof Logger.withTag> | null = null;
+
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {}
 
     /**
      * 获取 Logger 实例（懒加载，避免循环依赖）
@@ -33,8 +43,7 @@ class ReportEmailService {
      * @returns 是否发送成功
      */
     public async sendReportEmail(report: Report): Promise<boolean> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
 
         // 检查日报邮件发送功能是否启用
         if (!config.report.sendEmail) {
@@ -52,8 +61,7 @@ class ReportEmailService {
      * @returns 是否发送成功
      */
     public async sendReportEmailManually(report: Report): Promise<boolean> {
-        const configManagerService = getConfigManagerService();
-        const config = await configManagerService.getCurrentConfig();
+        const config = await this.configManagerService.getCurrentConfig();
 
         // 检查邮件功能是否启用
         if (!config.email.enabled) {
@@ -202,8 +210,6 @@ class ReportEmailService {
     }
 }
 
-const instance = new ReportEmailService();
-
 /**
  * ReportEmailService 实例类型
  * 用于依赖注入时的类型标注
@@ -211,4 +217,3 @@ const instance = new ReportEmailService();
 export type IReportEmailService = ReportEmailService;
 
 export { ReportEmailService };
-export default instance;

@@ -3,8 +3,8 @@ import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getConfigManagerService } from "@root/common/di/container";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
@@ -22,11 +22,13 @@ export class GenerateEmbeddingTaskHandler {
 
     /**
      * 构造函数
+     * @param configManagerService 配置管理服务
      * @param imDbAccessService IM 数据库访问服务
      * @param agcDbAccessService AGC 数据库访问服务
      * @param vectorDBManager 向量数据库管理器
      */
     public constructor(
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
         @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDBManager: VectorDBManager
@@ -36,8 +38,7 @@ export class GenerateEmbeddingTaskHandler {
      * 注册任务到 Agenda 调度器
      */
     public async register(): Promise<void> {
-        const configManagerService = getConfigManagerService();
-        let config = await configManagerService.getCurrentConfig();
+        let config = await this.configManagerService.getCurrentConfig();
 
         await agendaInstance
             .create(TaskHandlerTypes.GenerateEmbedding)
@@ -49,7 +50,7 @@ export class GenerateEmbeddingTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
-                config = await configManagerService.getCurrentConfig(); // 刷新配置
+                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 // 初始化 Ollama 嵌入服务
                 const embeddingService = new OllamaEmbeddingService(

@@ -1,19 +1,47 @@
 import "reflect-metadata";
-import { getConfigManagerService } from "@root/common/di/container";
+import { injectable, inject } from "tsyringe";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { ImDbAccessService} from "@root/common/services/database/ImDbAccessService";
 import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { PREPROCESSING_TOKENS } from "../di/tokens";
 
+/**
+ * 超时式消息分割器
+ * 按照消息间隔时间进行分组
+ */
+@injectable()
 @mustInitBeforeUse
 export class TimeoutSplitter extends Disposable implements ISplitter {
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {
+        super();
+    }
+
+    /**
+     * 初始化分割器
+     */
     public async init() { }
 
+    /**
+     * 为消息分配 sessionId
+     * @param imDbAccessService IM 数据库访问服务
+     * @param groupId 群组 ID
+     * @param startTimeStamp 开始时间戳
+     * @param endTimeStamp 结束时间戳
+     * @returns 带有 sessionId 的消息列表
+     */
     public async assignSessionId(imDbAccessService: ImDbAccessService, groupId: string, startTimeStamp: number,
         endTimeStamp: number) {
-        const config = (await getConfigManagerService().getCurrentConfig()).preprocessors
+        const config = (await this.configManagerService.getCurrentConfig()).preprocessors
             .TimeoutSplitter;
 
         // 获取配置的超时阈值（单位：毫秒）

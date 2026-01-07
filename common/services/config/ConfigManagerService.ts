@@ -12,9 +12,9 @@ import type { JsonSchema7Type } from "zod-to-json-schema";
 class ConfigManagerService {
     private configPath: Promise<string>;
 
-    constructor(configPath?: string) {
-        if (configPath) {
-            this.configPath = Promise.resolve(configPath);
+    constructor() {
+        if (process.env.SYNTHOS_CONFIG_PATH) {
+            this.configPath = Promise.resolve(process.env.SYNTHOS_CONFIG_PATH);
         } else {
             // 从当前目录开始逐层向上层查找synthos_config.json文件
             const absolutePath = findFileUpwards("synthos_config.json");
@@ -39,7 +39,7 @@ class ConfigManagerService {
     public async getOverridePath(): Promise<string | null> {
         const configPath = await this.getConfigPath();
         if (!configPath) return null;
-        return join(dirname(configPath), "synthos_config_override.json");                                    
+        return join(dirname(configPath), "synthos_config_override.json");
     }
 
     /**
@@ -70,7 +70,9 @@ class ConfigManagerService {
         // 4. 用 Zod 全量 Schema 验证合并后的配置文件是否完整且类型正确
         const parsed = GlobalConfigSchema.safeParse(mergedConfig);
         if (!parsed.success) {
-            const errors = parsed.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
+            const errors = parsed.error.errors
+                .map(e => `${e.path.join(".")}: ${e.message}`)
+                .join("\n");
             throw new Error(`配置文件schema完整性校验失败:\n${errors}`);
         }
 
@@ -132,7 +134,7 @@ class ConfigManagerService {
     public getConfigJsonSchema(): JsonSchema7Type {
         return zodToJsonSchema(GlobalConfigSchema, {
             name: "GlobalConfig",
-            $refStrategy: "none", // 展开所有引用，方便前端使用
+            $refStrategy: "none" // 展开所有引用，方便前端使用
         });
     }
 
@@ -141,14 +143,16 @@ class ConfigManagerService {
      * @param config 要验证的配置
      * @returns 验证结果，成功返回 true，失败返回错误信息
      */
-    public validateConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
+    public validateConfig(
+        config: unknown
+    ): { success: true } | { success: false; errors: string[] } {
         const result = GlobalConfigSchema.safeParse(config);
         if (result.success) {
             return { success: true };
         }
         return {
             success: false,
-            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`),
+            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`)
         };
     }
 
@@ -157,7 +161,9 @@ class ConfigManagerService {
      * @param config 要验证的部分配置
      * @returns 验证结果
      */
-    public validatePartialConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
+    public validatePartialConfig(
+        config: unknown
+    ): { success: true } | { success: false; errors: string[] } {
         const partialSchema = GlobalConfigSchema.deepPartial();
         const result = partialSchema.safeParse(config);
         if (result.success) {
@@ -165,7 +171,7 @@ class ConfigManagerService {
         }
         return {
             success: false,
-            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`),
+            errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`)
         };
     }
 
@@ -205,12 +211,6 @@ class ConfigManagerService {
 }
 
 const instance = new ConfigManagerService();
-
-/**
- * ConfigManagerService 实例类型
- * 用于依赖注入时的类型标注
- */
-export type IConfigManagerService = ConfigManagerService;
 
 export { ConfigManagerService };
 export default instance;

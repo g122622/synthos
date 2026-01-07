@@ -5,7 +5,7 @@ import { getCurrentFunctionName } from "./getCurrentFunctionName";
 import { appendFile, mkdir, access } from "fs/promises";
 import { join } from "path";
 import { nextTick } from "process";
-import { getConfigManagerService } from "../di/container";
+import ConfigManagerService from "../services/config/ConfigManagerService";
 
 class Logger {
     private tag: string | null = null;
@@ -20,8 +20,7 @@ class Logger {
         this.isTestEnv = process.env.VITEST === "true";
         // 由于ConfigManagerService间接引用了Logger，为避免循环引用带来的Temporal Dead Zone问题，使用nextTick延迟初始化
         nextTick(() => {
-            getConfigManagerService()
-                .getCurrentConfig()
+            ConfigManagerService.getCurrentConfig()
                 .then(config => {
                     this.logLevel = config.logger.logLevel;
                     this.logDirectory = config.logger.logDirectory;

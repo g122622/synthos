@@ -14,5 +14,7 @@ export const DATA_PROVIDER_TOKENS = {
 
     // data-provider 特有的服务
     /** 数据提供任务处理器 */
-    ProvideDataTaskHandler: Symbol.for("ProvideDataTaskHandler")
+    ProvideDataTaskHandler: Symbol.for("ProvideDataTaskHandler"),
+    /** QQ 消息提供者 */
+    QQProvider: Symbol.for("QQProvider")
 } as const;

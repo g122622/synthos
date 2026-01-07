@@ -1,47 +1,54 @@
+import "reflect-metadata";
 import * as fs from "fs/promises";
 import * as path from "path";
+import { injectable, inject } from "tsyringe";
 import { PromisifiedSQLite, PromisifiedStatement } from "../../../util/promisify/PromisifiedSQLite";
 import Logger from "../../../util/Logger";
 import { Disposable } from "../../../util/lifecycle/Disposable";
 import sqlite3 from "sqlite3";
-import { getConfigManagerService } from "../../../di/container";
+import { ConfigManagerService } from "../../config/ConfigManagerService";
 import { mustInitBeforeUse } from "../../../util/lifecycle/mustInitBeforeUse";
+import { COMMON_TOKENS } from "../../../di/tokens";
 sqlite3.verbose();
 
-// TODO 单例化
+/**
+ * 通用数据库服务
+ * 提供 SQLite 数据库的基础操作能力
+ */
+@injectable()
 @mustInitBeforeUse
 export class CommonDBService extends Disposable {
     private LOGGER = Logger.withTag("CommonDBService");
-    private initialSQL = ""; // 初始SQL语句，用于创建表等。建立每个数据库连接时会自动执行一次
-    private configManagerService = getConfigManagerService();
-    private db = new PromisifiedSQLite(sqlite3);
+    private db: PromisifiedSQLite;
 
-    constructor(initialSQL?: string) {
+    /**
+     * 构造函数
+     * @param configManagerService 配置管理服务
+     */
+    public constructor(
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+    ) {
         super();
-        this.initialSQL = initialSQL || "";
         this.db = this._registerDisposable(new PromisifiedSQLite(sqlite3));
         this.LOGGER.info("初始化完成！");
     }
 
-    async init(): Promise<void> {
+    /**
+     * 初始化数据库连接
+     * @param initialSQL 初始 SQL 语句，用于创建表等，建立连接时会自动执行一次
+     */
+    public async init(initialSQL?: string): Promise<void> {
         // 确保 dbBasePath 存在
+        const config = await this.configManagerService.getCurrentConfig();
         try {
-            await fs.mkdir(
-                (await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-                { recursive: true }
-            );
+            await fs.mkdir(config.commonDatabase.dbBasePath, { recursive: true });
         } catch (err) {
             this.LOGGER.error(`Failed to create dbBasePath: ${err.message}`);
             throw err;
         }
-        await this.db.open(
-            path.join(
-                (await this.configManagerService.getCurrentConfig()).commonDatabase.dbBasePath,
-                "common_database.db"
-            )
-        );
-        if (this.initialSQL) {
-            await this.db.exec(this.initialSQL);
+        await this.db.open(path.join(config.commonDatabase.dbBasePath, "common_database.db"));
+        if (initialSQL) {
+            await this.db.exec(initialSQL);
         }
     }
 
