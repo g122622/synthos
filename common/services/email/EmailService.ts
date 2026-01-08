@@ -36,8 +36,7 @@ class EmailService extends Disposable {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(COMMON_TOKENS.ConfigManagerService)
-        private configManagerService: ConfigManagerService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
     ) {
         super();
         this._registerDisposableFunction(() => {

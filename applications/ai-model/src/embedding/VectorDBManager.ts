@@ -44,16 +44,16 @@ export class VectorDBManager extends Disposable {
         // 加载 sqlite-vec 扩展
         sqliteVec.load(this.db);
         // 优化数据库性能
-        this.optimizeDatabasePerformance();
+        this._optimizeDatabasePerformance();
         // 创建表结构
-        this.createTables();
+        this._createTables();
         // 预热索引
-        await this.warmupIndex();
+        await this._warmupIndex();
 
         this.LOGGER.success("数据库初始化完成");
     }
 
-    private createTables(): void {
+    private _createTables(): void {
         // topicId 映射表（因为 vec0 只支持 rowid 作为主键）
         this.db!.exec(`
             CREATE TABLE IF NOT EXISTS topic_vector_mapping (
@@ -74,7 +74,7 @@ export class VectorDBManager extends Disposable {
         this.LOGGER.info("表结构创建/验证完成");
     }
 
-    private optimizeDatabasePerformance(): void {
+    private _optimizeDatabasePerformance(): void {
         // 启用内存映射，大幅提升性能
         this.db!.pragma("mmap_size = 1024000000"); // 1GB
 
@@ -90,7 +90,7 @@ export class VectorDBManager extends Disposable {
         this.LOGGER.success("数据库性能优化配置已应用");
     }
 
-    async warmupIndex(): Promise<void> {
+    private async _warmupIndex(): Promise<void> {
         if (this.getCount() === 0) return;
 
         // 创建一个随机查询向量进行预热
@@ -108,6 +108,7 @@ export class VectorDBManager extends Disposable {
 
     /**
      * 存储单个 topic 的嵌入向量
+     * 如果 topicId 已存在，会先删除旧向量再插入新向量，避免产生孤儿记录
      * @param topicId 话题ID（主键）
      * @param embedding 向量数据
      */
@@ -118,16 +119,19 @@ export class VectorDBManager extends Disposable {
 
         // 使用事务确保原子性
         const transaction = this.db!.transaction(() => {
-            // 1. 插入向量到 vec_topics，获取 rowid
+            // 1. 如果 topicId 已存在，先删除旧向量，避免产生孤儿记录
+            this._doDeleteEmbedding(topicId);
+
+            // 2. 插入向量到 vec_topics，获取 rowid
             const insertVec = this.db!.prepare(`
                 INSERT INTO vec_topics (embedding) VALUES (?)
             `);
             const result = insertVec.run(embedding);
             const vectorRowid = result.lastInsertRowid;
 
-            // 2. 插入映射关系到 topic_vector_mapping
+            // 3. 插入映射关系到 topic_vector_mapping
             const insertMapping = this.db!.prepare(`
-                INSERT OR REPLACE INTO topic_vector_mapping (topic_id, vector_rowid) VALUES (?, ?)
+                INSERT INTO topic_vector_mapping (topic_id, vector_rowid) VALUES (?, ?)
             `);
             insertMapping.run(topicId, vectorRowid);
         });
@@ -137,6 +141,7 @@ export class VectorDBManager extends Disposable {
 
     /**
      * 批量存储嵌入向量
+     * 如果 topicId 已存在，会先删除旧向量再插入新向量，避免产生孤儿记录
      * @param items 包含 topicId 和 embedding 的数组
      */
     public storeEmbeddings(items: Array<{ topicId: string; embedding: Float32Array }>): void {
@@ -148,7 +153,7 @@ export class VectorDBManager extends Disposable {
             INSERT INTO vec_topics (embedding) VALUES (?)
         `);
         const insertMapping = this.db!.prepare(`
-            INSERT OR REPLACE INTO topic_vector_mapping (topic_id, vector_rowid) VALUES (?, ?)
+            INSERT INTO topic_vector_mapping (topic_id, vector_rowid) VALUES (?, ?)
         `);
 
         const transaction = this.db!.transaction(() => {
@@ -159,6 +164,9 @@ export class VectorDBManager extends Disposable {
                     );
                 }
 
+                // 如果 topicId 已存在，先删除旧向量，避免产生孤儿记录
+                this._doDeleteEmbedding(item.topicId);
+
                 const result = insertVec.run(item.embedding);
                 const vectorRowid = result.lastInsertRowid;
                 insertMapping.run(item.topicId, vectorRowid);
@@ -167,6 +175,84 @@ export class VectorDBManager extends Disposable {
 
         transaction();
         this.LOGGER.info(`批量存储完成，共 ${items.length} 条向量`);
+    }
+
+    // ========== 删除操作 ==========
+
+    /**
+     * 删除单个 topicId 的嵌入向量
+     * @param topicId 话题ID
+     * @throws 如果 topicId 不存在，抛出错误
+     */
+    public deleteEmbedding(topicId: string): void {
+        if (!this.hasEmbedding(topicId)) {
+            throw new Error(`向量不存在：topicId = ${topicId}`);
+        }
+
+        const transaction = this.db!.transaction(() => {
+            this._doDeleteEmbedding(topicId);
+        });
+
+        transaction();
+        this.LOGGER.info(`已删除向量：topicId = ${topicId}`);
+    }
+
+    /**
+     * 批量删除嵌入向量
+     * @param topicIds 话题ID数组
+     * @throws 如果任一 topicId 不存在，抛出错误（不会执行任何删除操作）
+     */
+    public deleteEmbeddings(topicIds: string[]): void {
+        if (topicIds.length === 0) {
+            return;
+        }
+
+        // 先检查所有 topicId 是否都存在
+        const missingTopicIds = this.filterWithoutEmbedding(topicIds);
+        if (missingTopicIds.length > 0) {
+            throw new Error(`向量不存在：topicId = ${missingTopicIds.join(", ")}`);
+        }
+
+        const transaction = this.db!.transaction(() => {
+            for (const topicId of topicIds) {
+                this._doDeleteEmbedding(topicId);
+            }
+        });
+
+        transaction();
+        this.LOGGER.info(`批量删除完成，共 ${topicIds.length} 条向量`);
+    }
+
+    /**
+     * 内部删除方法，删除单个 topicId 的嵌入向量（如果存在）
+     * 不检查 topicId 是否存在，静默处理不存在的情况
+     * @param topicId 话题ID
+     */
+    private _doDeleteEmbedding(topicId: string): void {
+        // 1. 查询映射表获取 vector_rowid
+        const getRowidStmt = this.db!.prepare(`
+            SELECT vector_rowid FROM topic_vector_mapping WHERE topic_id = ?
+        `);
+        const row = getRowidStmt.get(topicId) as { vector_rowid: number } | undefined;
+
+        if (!row) {
+            // topicId 不存在，静默返回
+            return;
+        }
+
+        const vectorRowid = row.vector_rowid;
+
+        // 2. 删除 vec_topics 中的向量记录
+        const deleteVecStmt = this.db!.prepare(`
+            DELETE FROM vec_topics WHERE rowid = ?
+        `);
+        deleteVecStmt.run(vectorRowid);
+
+        // 3. 删除 topic_vector_mapping 中的映射记录
+        const deleteMappingStmt = this.db!.prepare(`
+            DELETE FROM topic_vector_mapping WHERE topic_id = ?
+        `);
+        deleteMappingStmt.run(topicId);
     }
 
     // ========== 查询操作 ==========

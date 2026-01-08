@@ -30,11 +30,9 @@ export class GenerateReportTaskHandler {
      * @param interestScoreDbAccessService 兴趣度评分数据库访问服务
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService)
-        private configManagerService: ConfigManagerService,
+        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.ReportDbAccessService)
-        private reportDbAccessService: ReportDbAccessService,
+        @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
         @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService)
         private interestScoreDbAccessService: InterestScoreDbAccessService
     ) {}
@@ -66,20 +64,14 @@ export class GenerateReportTaskHandler {
                 const { reportType, timeStart, timeEnd } = attrs;
 
                 // 检查是否已存在该时间段的日报
-                if (
-                    await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)
-                ) {
+                if (await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)) {
                     this.LOGGER.info(
                         `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
                     );
                     return;
                 }
 
-                const periodDescription = this.formatPeriodDescription(
-                    reportType,
-                    timeStart,
-                    timeEnd
-                );
+                const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
                 this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
                 try {
@@ -94,8 +86,7 @@ export class GenerateReportTaskHandler {
                     const interestScores = new Map<string, number>();
 
                     for (const topicId of topicIds) {
-                        const score =
-                            await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
+                        const score = await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
                         if (score !== null) {
                             interestScores.set(topicId, score);
                         }
@@ -261,9 +252,7 @@ export class GenerateReportTaskHandler {
                     };
 
                     await this.reportDbAccessService.storeReport(report);
-                    this.LOGGER.success(
-                        `📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`
-                    );
+                    this.LOGGER.success(`📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`);
 
                     // 发送日报邮件（仅当综述生成成功时）
                     if (summaryStatus === "success") {

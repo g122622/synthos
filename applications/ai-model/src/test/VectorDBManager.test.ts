@@ -83,7 +83,7 @@ describe("VectorDBManager", () => {
             );
         });
 
-        it("should replace embedding for same topicId", () => {
+        it("should replace embedding for same topicId without orphan records", () => {
             const topicId = "topic-003";
             const embedding1 = generateRandomVector(TEST_DIMENSION);
             const embedding2 = generateRandomVector(TEST_DIMENSION);
@@ -91,9 +91,10 @@ describe("VectorDBManager", () => {
             manager.storeEmbedding(topicId, embedding1);
             manager.storeEmbedding(topicId, embedding2);
 
-            // 由于 INSERT OR REPLACE，映射表只有一条记录
-            // 但 vec_topics 会有两条记录（旧的成为孤儿记录）
+            // 更新时会先删除旧向量再插入新向量，不会产生孤儿记录
+            // 映射表和向量表都只有一条记录
             expect(manager.hasEmbedding(topicId)).toBe(true);
+            expect(manager.getCount()).toBe(1);
         });
     });
 
@@ -253,6 +254,80 @@ describe("VectorDBManager", () => {
             expect(topicIds).toContain("candidate-001");
             expect(topicIds).toContain("candidate-002");
             expect(topicIds).not.toContain("non-candidate");
+        });
+    });
+
+    describe("deleteEmbedding", () => {
+        it("should delete an existing embedding", () => {
+            const topicId = "delete-001";
+            manager.storeEmbedding(topicId, generateRandomVector(TEST_DIMENSION));
+            expect(manager.hasEmbedding(topicId)).toBe(true);
+            expect(manager.getCount()).toBe(1);
+
+            manager.deleteEmbedding(topicId);
+
+            expect(manager.hasEmbedding(topicId)).toBe(false);
+            expect(manager.getCount()).toBe(0);
+        });
+
+        it("should throw error when deleting non-existing topicId", () => {
+            expect(() => manager.deleteEmbedding("non-existent")).toThrow("向量不存在：topicId = non-existent");
+        });
+
+        it("should only delete the specified embedding", () => {
+            manager.storeEmbedding("keep-001", generateRandomVector(TEST_DIMENSION));
+            manager.storeEmbedding("delete-002", generateRandomVector(TEST_DIMENSION));
+            manager.storeEmbedding("keep-002", generateRandomVector(TEST_DIMENSION));
+
+            manager.deleteEmbedding("delete-002");
+
+            expect(manager.hasEmbedding("keep-001")).toBe(true);
+            expect(manager.hasEmbedding("delete-002")).toBe(false);
+            expect(manager.hasEmbedding("keep-002")).toBe(true);
+            expect(manager.getCount()).toBe(2);
+        });
+    });
+
+    describe("deleteEmbeddings", () => {
+        it("should delete multiple embeddings in batch", () => {
+            manager.storeEmbedding("batch-del-001", generateRandomVector(TEST_DIMENSION));
+            manager.storeEmbedding("batch-del-002", generateRandomVector(TEST_DIMENSION));
+            manager.storeEmbedding("batch-del-003", generateRandomVector(TEST_DIMENSION));
+            expect(manager.getCount()).toBe(3);
+
+            manager.deleteEmbeddings(["batch-del-001", "batch-del-002"]);
+
+            expect(manager.hasEmbedding("batch-del-001")).toBe(false);
+            expect(manager.hasEmbedding("batch-del-002")).toBe(false);
+            expect(manager.hasEmbedding("batch-del-003")).toBe(true);
+            expect(manager.getCount()).toBe(1);
+        });
+
+        it("should do nothing for empty array", () => {
+            manager.storeEmbedding("keep-003", generateRandomVector(TEST_DIMENSION));
+
+            manager.deleteEmbeddings([]);
+
+            expect(manager.getCount()).toBe(1);
+        });
+
+        it("should throw error if any topicId does not exist", () => {
+            manager.storeEmbedding("exists-001", generateRandomVector(TEST_DIMENSION));
+
+            expect(() => manager.deleteEmbeddings(["exists-001", "non-existent"])).toThrow(
+                "向量不存在：topicId = non-existent"
+            );
+
+            // 由于事务回滚，存在的向量也不应该被删除
+            expect(manager.hasEmbedding("exists-001")).toBe(true);
+        });
+
+        it("should throw error with all missing topicIds", () => {
+            manager.storeEmbedding("exists-002", generateRandomVector(TEST_DIMENSION));
+
+            expect(() => manager.deleteEmbeddings(["missing-001", "exists-002", "missing-002"])).toThrow(
+                "向量不存在：topicId = missing-001, missing-002"
+            );
         });
     });
 });
