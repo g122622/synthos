@@ -7,21 +7,19 @@
 
 **写代码时：**
 1. 本项目的monorepo结构要求子项目之间不能有任何的相互引用（子项目只能引用 `项目根目录/common` 下的代码；特别的是，webui-frontend子项目必须完全内聚，不允许引用`项目根目录/common`）；如果需要子项目之间相互调用，可以走tRPC
-2. 涉及到迁移和重构类任务时，务必尽可能保留原代码中的注释（如果注释内容随着迁移已经过时或错误，则进行改写）
-3. 若要新增后端接口，务必使用 applications/webui-backend/src/schemas 来进行参数校验
-4. ConfigManagerService在冷启动时会对配置文件根据schema进行强校验，因此配置文件在运行时一定是完整的、正确的，不用担心某些字段不存在，因此不要写出类似下面代码：
+2. 项目使用tsyringe进行依赖注入，若要使用common/services下的服务，必须通过DI框架进行获取。可参考`applications\ai-model\src\tasks\AISummarize.ts`的写法
+3. 涉及到迁移和重构类任务时，务必尽可能保留原代码中的注释（如果注释内容随着迁移已经过时或错误，则进行改写）
+4. 若要新增后端接口，务必使用 applications/webui-backend/src/schemas 来进行参数校验
+5. ConfigManagerService在冷启动时会对配置文件根据schema进行强校验，因此配置文件在运行时一定是完整的、正确的，不用担心某些字段不存在，因此不要写出类似下面代码：
 ```ts
-const config = await getConfigManagerService().getCurrentConfig();
+// NO!
 const interestScoreThreshold = config.report?.generation?.interestScoreThreshold ?? 0;
-```
-直接写成下面的即可：
-```ts
-const config = await getConfigManagerService().getCurrentConfig();
+// 直接写成下面的即可：
 const interestScoreThreshold = config.report.generation.interestScoreThreshold; // 不允许使用可选链和默认值
 ```
-5. 对于涉及`index`的引入，import的时候不允许省略`index` 例如：`import { xxx } from "../contracts/report/index";` 而不是 `import { xxx } from "../contracts/report";`，此外也不能写成 `import { xxx } from "../contracts/report/index.ts";`
-6. 项目中所有number类型的时间表示统一使用标准UNIX毫秒级时间戳
-7. 错误处理规范：所有空指针操作（比如根据不存在的id查询对应的数据、删除不存在的id等）一律立即抛错，不要静默处理；如果该操作返回结果是数组，那么此时不必抛错，可以返回空数组。
+6. 对于涉及`index`的引入，import的时候不允许省略`index` 例如：`import { xxx } from "../contracts/report/index";` 而不是 `import { xxx } from "../contracts/report";`，此外也不能写成 `import { xxx } from "../contracts/report/index.ts";`
+7. 项目中所有number类型的时间表示统一使用标准UNIX毫秒级时间戳
+8. 错误处理规范：所有空指针操作（比如根据不存在的id查询对应的数据、删除不存在的id等）一律立即抛错，不要静默处理；如果该操作返回结果是数组，那么此时不必抛错，可以返回空数组
 
 **写完代码后：**
 1. 请在代码修改完成后，检查对应的这些文件（如果有的话）是否要增加/删除相应内容：README；package.json；文档；单元测试；集成测试；mock
