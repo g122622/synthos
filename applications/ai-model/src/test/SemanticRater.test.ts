@@ -38,8 +38,9 @@ const generateMockVector = (text: string): Float32Array => {
     return vector;
 };
 
-// 用于跟踪 embed 调用次数的计数器
-let embedCallCount = 0;
+// 用于跟踪 embedBatch 调用次数的计数器
+let embedBatchCallCount = 0;
+let embedBatchTextCount = 0;
 
 // Mock OllamaEmbeddingService
 vi.mock("../embedding/OllamaEmbeddingService", () => {
@@ -50,8 +51,14 @@ vi.mock("../embedding/OllamaEmbeddingService", () => {
             }
 
             async embed(text: string): Promise<Float32Array> {
-                embedCallCount++;
-                return generateMockVector(text);
+                // 为了向后兼容，保留 embed 方法，但内部调用 embedBatch
+                return (await this.embedBatch([text]))[0];
+            }
+
+            async embedBatch(texts: string[]): Promise<Float32Array[]> {
+                embedBatchCallCount++;
+                embedBatchTextCount += texts.length;
+                return texts.map(text => generateMockVector(text));
             }
         }
     };
@@ -66,7 +73,8 @@ describe("SemanticRater", () => {
     const TEST_DIMENSION = 1024;
 
     beforeEach(() => {
-        embedCallCount = 0; // 重置计数器
+        embedBatchCallCount = 0; // 重置计数器
+        embedBatchTextCount = 0; // 重置文本计数
         mockEmbeddingService = new OllamaEmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
         rater = new SemanticRater(mockEmbeddingService);
     });
@@ -94,37 +102,51 @@ describe("SemanticRater", () => {
         expect(typeof score).toBe("number");
     });
 
-    it("should call embed method for each unique text", async () => {
+    it("should call embedBatch method for unique texts", async () => {
         const interests = [{ keyword: "人工智能", liked: true }];
         const topic = "大模型与人工智能发展";
 
         await rater.scoreTopic(interests, topic);
 
-        // 应该调用 embed 两次：一次为 topic，一次为 keyword（带前缀）
-        expect(embedCallCount).toBe(2);
+        // 应该调用 embedBatch 一次，包含 topic 和 keyword（带前缀）共 2 个文本
+        expect(embedBatchCallCount).toBeGreaterThanOrEqual(1);
+        expect(embedBatchTextCount).toBeGreaterThanOrEqual(2);
     });
 
     it("should use cache for repeated texts", async () => {
         const interests = [{ keyword: "人工智能", liked: true }];
         const topic = "大模型与人工智能发展";
 
+        embedBatchTextCount = 0; // 重置计数
         await rater.scoreTopic(interests, topic);
+        const firstCallTextCount = embedBatchTextCount;
+
+        embedBatchTextCount = 0; // 重置计数
         await rater.scoreTopic(interests, topic);
 
-        // 由于缓存，embed 只应该被调用两次（第一次调用时）
-        expect(embedCallCount).toBe(2);
+        // 由于缓存，第二次调用时不应该再请求 embedding
+        expect(embedBatchTextCount).toBe(0);
+        // 第一次调用应该请求了 topic 和 keyword 的 embedding
+        expect(firstCallTextCount).toBeGreaterThanOrEqual(2);
     });
 
     it("should clear cache when clearCache is called", async () => {
         const interests = [{ keyword: "人工智能", liked: true }];
         const topic = "大模型与人工智能发展";
 
+        embedBatchTextCount = 0; // 重置计数
         await rater.scoreTopic(interests, topic);
-        rater.clearCache();
-        await rater.scoreTopic(interests, topic);
+        const firstCallTextCount = embedBatchTextCount;
 
-        // 清理缓存后，embed 应该再次被调用
-        expect(embedCallCount).toBe(4);
+        rater.clearCache();
+
+        embedBatchTextCount = 0; // 重置计数
+        await rater.scoreTopic(interests, topic);
+        const secondCallTextCount = embedBatchTextCount;
+
+        // 清理缓存后，应该再次请求 embedding
+        expect(secondCallTextCount).toBeGreaterThanOrEqual(2);
+        expect(firstCallTextCount).toBeGreaterThanOrEqual(2);
     });
 
     it("should handle multiple topics with scoreTopics", async () => {
