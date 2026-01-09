@@ -3,10 +3,7 @@ import { applications } from "./applications/index";
 import { select } from "@inquirer/prompts";
 import { IApplicationClass } from "./contracts/IApplication";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
-import {
-    registerConfigManagerService,
-    registerCommonDBService,
-} from "@root/common/di/container";
+import { registerConfigManagerService, registerCommonDBService } from "@root/common/di/container";
 
 const LOGGER = Logger.withTag("⛏️ db-cli");
 const EXIT_OPTION = "__exit__";

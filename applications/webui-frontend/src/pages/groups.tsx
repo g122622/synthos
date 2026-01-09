@@ -234,96 +234,98 @@ export default function GroupsPage() {
         }
     };
 
+    // 获取消息统计
+    const fetchMessageHourlyStats = async (groupIds: string[]) => {
+        try {
+            const response = await getMessageHourlyStats(groupIds);
+
+            if (response.success) {
+                const statsData = response.data;
+
+                setHourlyStats(statsData);
+
+                // 计算每个群组的当前24小时/前一天24小时总消息量
+                const currentCounts: Record<string, number> = {};
+                const previousCounts: Record<string, number> = {};
+
+                for (const groupId of groupIds) {
+                    const groupData = statsData.data[groupId];
+
+                    if (groupData) {
+                        currentCounts[groupId] = groupData.current.reduce((sum, count) => sum + count, 0);
+                        previousCounts[groupId] = groupData.previous.reduce((sum, count) => sum + count, 0);
+                    } else {
+                        currentCounts[groupId] = 0;
+                        previousCounts[groupId] = 0;
+                    }
+                }
+                setRecentMessageCounts(currentCounts);
+                setPreviousMessageCounts(previousCounts);
+                setTotalRecentMessageCount(statsData.totalCounts.current);
+                setTotalPreviousMessageCount(statsData.totalCounts.previous);
+
+                // 计算总计的每小时数据
+                const totalCurrentHourly = new Array(24).fill(0);
+                const totalPreviousHourly = new Array(24).fill(0);
+
+                for (const groupId of groupIds) {
+                    const groupData = statsData.data[groupId];
+
+                    if (groupData) {
+                        groupData.current.forEach((count, index) => {
+                            totalCurrentHourly[index] += count;
+                        });
+                        groupData.previous.forEach((count, index) => {
+                            totalPreviousHourly[index] += count;
+                        });
+                    }
+                }
+
+                // 在数据加载完成后渲染图表
+                setTimeout(() => {
+                    // 渲染总计图表
+                    renderTotalMessageTrendChart(totalCurrentHourly, totalPreviousHourly, statsData.timestamps.current);
+
+                    // 渲染各群组图表
+                    for (const groupId of groupIds) {
+                        const chartRef = chartRefs.current[groupId];
+                        const groupData = statsData.data[groupId];
+
+                        if (chartRef && groupData) {
+                            renderMessageTrendChart(groupId, groupData.current, groupData.previous, statsData.timestamps.current);
+                        }
+                    }
+                }, 100);
+            } else {
+                console.error("获取消息统计失败:", response.message);
+            }
+        } catch (error) {
+            console.error("获取消息统计失败:", error);
+        }
+    };
+
     // 获取群组信息
+    const fetchGroups = async () => {
+        setIsLoading(true);
+        try {
+            const response = await getGroupDetails();
+
+            if (response.success) {
+                setGroups(response.data);
+                // 获取所有群组的每小时消息统计
+                await fetchMessageHourlyStats(Object.keys(response.data));
+            } else {
+                console.error("获取群组信息失败:", response.message);
+            }
+        } catch (error) {
+            console.error("获取群组信息失败:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // 初始化加载群组信息
     useEffect(() => {
-        const fetchGroups = async () => {
-            setIsLoading(true);
-            try {
-                const response = await getGroupDetails();
-
-                if (response.success) {
-                    setGroups(response.data);
-                    // 获取所有群组的每小时消息统计
-                    await fetchMessageHourlyStats(Object.keys(response.data));
-                } else {
-                    console.error("获取群组信息失败:", response.message);
-                }
-            } catch (error) {
-                console.error("获取群组信息失败:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        const fetchMessageHourlyStats = async (groupIds: string[]) => {
-            try {
-                const response = await getMessageHourlyStats(groupIds);
-
-                if (response.success) {
-                    const statsData = response.data;
-
-                    setHourlyStats(statsData);
-
-                    // 计算每个群组的当前24小时/前一天24小时总消息量
-                    const currentCounts: Record<string, number> = {};
-                    const previousCounts: Record<string, number> = {};
-
-                    for (const groupId of groupIds) {
-                        const groupData = statsData.data[groupId];
-
-                        if (groupData) {
-                            currentCounts[groupId] = groupData.current.reduce((sum, count) => sum + count, 0);
-                            previousCounts[groupId] = groupData.previous.reduce((sum, count) => sum + count, 0);
-                        } else {
-                            currentCounts[groupId] = 0;
-                            previousCounts[groupId] = 0;
-                        }
-                    }
-                    setRecentMessageCounts(currentCounts);
-                    setPreviousMessageCounts(previousCounts);
-                    setTotalRecentMessageCount(statsData.totalCounts.current);
-                    setTotalPreviousMessageCount(statsData.totalCounts.previous);
-
-                    // 计算总计的每小时数据
-                    const totalCurrentHourly = new Array(24).fill(0);
-                    const totalPreviousHourly = new Array(24).fill(0);
-
-                    for (const groupId of groupIds) {
-                        const groupData = statsData.data[groupId];
-
-                        if (groupData) {
-                            groupData.current.forEach((count, index) => {
-                                totalCurrentHourly[index] += count;
-                            });
-                            groupData.previous.forEach((count, index) => {
-                                totalPreviousHourly[index] += count;
-                            });
-                        }
-                    }
-
-                    // 在数据加载完成后渲染图表
-                    setTimeout(() => {
-                        // 渲染总计图表
-                        renderTotalMessageTrendChart(totalCurrentHourly, totalPreviousHourly, statsData.timestamps.current);
-
-                        // 渲染各群组图表
-                        for (const groupId of groupIds) {
-                            const chartRef = chartRefs.current[groupId];
-                            const groupData = statsData.data[groupId];
-
-                            if (chartRef && groupData) {
-                                renderMessageTrendChart(groupId, groupData.current, groupData.previous, statsData.timestamps.current);
-                            }
-                        }
-                    }, 100);
-                } else {
-                    console.error("获取消息统计失败:", response.message);
-                }
-            } catch (error) {
-                console.error("获取消息统计失败:", error);
-            }
-        };
-
         fetchGroups();
     }, []);
 
@@ -444,7 +446,7 @@ export default function GroupsPage() {
                     <CardHeader>
                         <div className="flex justify-between items-center w-full p-3">
                             <h3 className="text-lg font-bold">群组列表 ({Object.entries(groups).length})</h3>
-                            <Button color="primary" isLoading={isLoading} size="sm" onPress={() => window.location.reload()}>
+                            <Button color="primary" isLoading={isLoading} size="sm" onPress={fetchGroups}>
                                 {isLoading ? <Spinner size="sm" /> : "刷新"}
                             </Button>
                         </div>
