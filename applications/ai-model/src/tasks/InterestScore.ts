@@ -102,31 +102,40 @@ export class InterestScoreTaskHandler {
                 }
 
                 const rater = new SemanticRater(embeddingService);
-                for (const digestResult of filteredDigestResults) {
-                    await job.touch(); // 保证任务存活
-                    // 转换参数格式
-                    const argArr = [];
-                    argArr.push(
-                        ...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
-                            return {
-                                keyword,
-                                liked: true
-                            };
-                        })
+                // 转换参数格式
+                const argArr = [];
+                argArr.push(
+                    ...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
+                        return {
+                            keyword,
+                            liked: true
+                        };
+                    })
+                );
+                argArr.push(
+                    ...config.ai.interestScore.UserInterestsNegativeKeywords.map(keyword => {
+                        return {
+                            keyword,
+                            liked: false
+                        };
+                    })
+                );
+
+                // 构建所有话题详情文本
+                const topics = filteredDigestResults.map(
+                    digestResult => `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
+                );
+
+                // 批量获取所有话题的分数
+                await job.touch(); // 保证任务存活
+                const scores = await rater.scoreTopics(argArr, topics);
+
+                // 存储所有分数结果
+                for (let i = 0; i < filteredDigestResults.length; i++) {
+                    await this.interestScoreDbAccessService.storeInterestScoreResult(
+                        filteredDigestResults[i].topicId,
+                        scores[i]
                     );
-                    argArr.push(
-                        ...config.ai.interestScore.UserInterestsNegativeKeywords.map(keyword => {
-                            return {
-                                keyword,
-                                liked: false
-                            };
-                        })
-                    );
-                    const score = await rater.scoreTopic(
-                        argArr,
-                        `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
-                    );
-                    await this.interestScoreDbAccessService.storeInterestScoreResult(digestResult.topicId, score);
                 }
 
                 this.LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
