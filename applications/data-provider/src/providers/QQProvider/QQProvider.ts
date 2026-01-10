@@ -109,7 +109,11 @@ export class QQProvider extends Disposable implements IIMProvider {
                 }
                 case MsgElementType.IMAGE: {
                     // TODO: 处理图片消息
-                    result += `[图片]`;
+                    if (rawMsgElement.imageText) {
+                        result += rawMsgElement.imageText;
+                    } else {
+                        result += `[图片]`;
+                    }
                     break;
                 }
                 case MsgElementType.VOICE: {

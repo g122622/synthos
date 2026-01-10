@@ -24,7 +24,7 @@ export class OllamaEmbeddingService {
     constructor(baseURL: string, model: string, dimension: number) {
         this.client = axios.create({
             baseURL,
-            timeout: 60000, // 60秒超时
+            timeout: 10 * 60 * 1000, // 10min超时
             headers: {
                 "Content-Type": "application/json"
             }
@@ -76,7 +76,9 @@ export class OllamaEmbeddingService {
                 if (error.code === "ECONNREFUSED") {
                     this.LOGGER.error(`Ollama 服务不可用，请确保 Ollama 正在运行`);
                 } else {
-                    this.LOGGER.error(`Ollama API 请求失败: ${error.message}`);
+                    this.LOGGER.error(
+                        `Ollama API 请求失败: ${error.message}。如果出现请求超时报错，可以尝试延长超时时间`
+                    );
                 }
             } else {
                 this.LOGGER.error(`生成嵌入向量失败: ${error}`);

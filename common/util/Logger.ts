@@ -41,9 +41,9 @@ class Logger {
         const time = this.getTimeString();
         const emojiMap: Record<string, string> = {
             debug: "🐞",
-            info: "ℹ️ ",
+            info: "ℹ️",
             success: "✅",
-            warning: "⚠️ ",
+            warning: "⚠️",
             error: "❌"
         };
         return `${emojiMap[level]}  ${time}${("[" + level.toUpperCase() + "]").padEnd(9, " ")} ${this.tag ? `${this.tag} ` : ""}[${getCurrentFunctionName()}] `;
