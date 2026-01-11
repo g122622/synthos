@@ -2,7 +2,7 @@
  * RAG 智能问答页面
  * 提供语义搜索和 AI 问答功能，支持历史会话记录
  */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input, Textarea } from "@heroui/input";
@@ -11,7 +11,8 @@ import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
 import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Link } from "@heroui/link";
-import { Search, MessageSquare, Sparkles, BookOpen, Users } from "lucide-react";
+import { Search, MessageSquare, Sparkles, BookOpen, Users, Download } from "lucide-react";
+import domtoimage from "dom-to-image";
 
 import ChatHistorySidebar from "./components/ChatHistorySidebar";
 
@@ -46,6 +47,10 @@ export default function RagPage() {
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // 卡片引用
+    const answerCardRef = useRef<HTMLDivElement>(null);
+    const saveButtonRef = useRef<HTMLButtonElement>(null);
 
     // 处理问答
     const handleAsk = useCallback(async () => {
@@ -184,6 +189,33 @@ export default function RagPage() {
         }));
     }, []);
 
+    // 保存为图片
+    const handleSaveAsImage = useCallback(async () => {
+        if (!answerCardRef.current || !saveButtonRef.current) return;
+
+        // 临时隐藏保存按钮
+        const originalDisplay = saveButtonRef.current.style.display;
+
+        saveButtonRef.current.style.display = "none";
+
+        try {
+            const dataUrl = await domtoimage.toPng(answerCardRef.current, {
+                quality: 1.0
+            });
+
+            const link = document.createElement("a");
+
+            link.download = `AI回答_${new Date().getTime()}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (error) {
+            console.error("保存图片失败:", error);
+        } finally {
+            // 恢复显示保存按钮
+            saveButtonRef.current.style.display = originalDisplay;
+        }
+    }, []);
+
     // 渲染搜索结果卡片
     const renderSearchResultCard = (item: SearchResultItem, index: number) => (
         <TopicPopover key={item.topicId} favoriteTopics={favoriteTopics} readTopics={readTopics} topicId={item.topicId} onMarkAsRead={markAsRead} onToggleFavorite={toggleFavorite}>
@@ -224,7 +256,7 @@ export default function RagPage() {
         return (
             <div className="space-y-4">
                 {/* AI 回答 */}
-                <Card className="w-full">
+                <Card ref={answerCardRef} className="w-full">
                     <CardHeader className="flex gap-3 pl-7 pt-5">
                         <Sparkles className="w-6 h-6 text-primary" />
                         <div className="flex flex-col">
@@ -232,8 +264,19 @@ export default function RagPage() {
                             <p className="text-small text-default-500">基于群聊记录生成</p>
                         </div>
                     </CardHeader>
-                    <CardBody className="p-7 pt-3">
+                    <CardBody className="p-7 pt-3 relative">
                         <MarkdownRenderer content={askResponse.answer} />
+                        <Button
+                            ref={saveButtonRef}
+                            className="absolute bottom-7 right-33"
+                            color="primary"
+                            size="sm"
+                            startContent={<Download className="w-4 h-4" />}
+                            variant="flat"
+                            onClick={handleSaveAsImage}
+                        >
+                            保存为图片
+                        </Button>
                     </CardBody>
                 </Card>
 
