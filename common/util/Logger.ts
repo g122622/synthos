@@ -26,7 +26,7 @@ class Logger {
                 // 测试环境下不启动定时器，日志不落盘
                 if (!this.isTestEnv) {
                     // 启动定时器，每1秒将缓冲区中的日志写入文件
-                    setInterval(() => this.flushLogBuffer(), 1000);
+                    setInterval(() => this._flushLogBuffer(), 1000);
                 }
             });
         });
@@ -37,8 +37,8 @@ class Logger {
         return new Logger(`[${tag}]`);
     }
 
-    private getPrefix(level: string): string {
-        const time = this.getTimeString();
+    private _getPrefix(level: string): string {
+        const time = this._getTimeString();
         const emojiMap: Record<string, string> = {
             debug: "🐞",
             info: "ℹ️",
@@ -46,10 +46,10 @@ class Logger {
             warning: "⚠️",
             error: "❌"
         };
-        return `${emojiMap[level]}  ${time}${("[" + level.toUpperCase() + "]").padEnd(9, " ")} ${this.tag ? `${this.tag} ` : ""}[${getCurrentFunctionName()}] `;
+        return `${emojiMap[level]} ${time}${("[" + level.toUpperCase() + "]").padEnd(9, " ")}${this.tag ? `${this.tag} ` : ""}[${getCurrentFunctionName()}] `;
     }
 
-    private getTimeString(): string {
+    private _getTimeString(): string {
         const now = new Date();
         // 生成yyyy-MM-dd HH:mm:ss.SSS格式的时间字符串
         const year = now.getFullYear();
@@ -59,16 +59,16 @@ class Logger {
         const minutes = String(now.getMinutes()).padStart(2, "0");
         const seconds = String(now.getSeconds()).padStart(2, "0");
         const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
-        return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}] `;
+        return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}]`;
     }
 
-    private async addLineToLogBuffer(line: string) {
+    private async _addLineToLogBuffer(line: string) {
         // 测试环境下不写入缓冲区，日志不落盘
         if (this.isTestEnv) return;
         this.logBuffer.push(line);
     }
 
-    private async flushLogBuffer() {
+    private async _flushLogBuffer() {
         if (this.logBuffer.length === 0) return;
         // 使用交换缓冲区策略避免极端并发下日志丢失问题
         const bufferToFlush = [...this.logBuffer]; // 复制当前内容
@@ -94,49 +94,52 @@ class Logger {
     }
 
     // ANSI color log helper
-    private logWithColor(colorCode: string, message: string, level: string): void {
+    private _logWithColor(colorCode: string, message: string, level: string): void {
         // 输出到控制台
-        console.log(`${colorCode}${this.getPrefix(level)}${message}\x1b[0m`);
+        console.log(`${colorCode}${this._getPrefix(level)}${message}\x1b[0m`);
         // 输出到文件
-        this.addLineToLogBuffer(`${this.getPrefix(level)}${message}`);
+        this._addLineToLogBuffer(`${this._getPrefix(level)}${message}`);
     }
 
     // Gradient log helper
-    private logWithGradient(fn: (msg: string) => string, message: string, level: string): void {
+    private _logWithGradient(fn: (msg: string) => string, message: string, level: string): void {
         // 输出到控制台
-        console.log(fn(`${this.getPrefix(level)}${message}`));
+        console.log(fn(`${this._getPrefix(level)}${message}`));
         // 输出到文件
-        this.addLineToLogBuffer(`${this.getPrefix(level)}${message}`);
+        this._addLineToLogBuffer(`${this._getPrefix(level)}${message}`);
     }
 
     // --- 颜色方法 ---
     public blue(message: string, level: string = "info") {
-        this.logWithColor("\x1b[34m", message, level);
+        this._logWithColor("\x1b[34m", message, level);
+    }
+    public brightCyan(message: string, level: string = "info") {
+        this._logWithColor("\x1b[96m", message, level);
     }
     public green(message: string, level: string = "success") {
-        this.logWithColor("\x1b[32m", message, level);
+        this._logWithColor("\x1b[32m", message, level);
     }
     public yellow(message: string, level: string = "warning") {
-        this.logWithColor("\x1b[33m", message, level);
+        this._logWithColor("\x1b[33m", message, level);
     }
     public red(message: string, level: string = "error") {
-        this.logWithColor("\x1b[31m", message, level);
+        this._logWithColor("\x1b[31m", message, level);
     }
     public gray(message: string, level: string = "debug") {
-        this.logWithColor("\x1b[30m", message, level);
+        this._logWithColor("\x1b[30m", message, level);
     }
 
     public bgRed(message: string, level: string = "error") {
-        this.logWithColor("\x1b[41m", message, level);
+        this._logWithColor("\x1b[41m", message, level);
     }
     public bgGreen(message: string, level: string = "success") {
-        this.logWithColor("\x1b[42m", message, level);
+        this._logWithColor("\x1b[42m", message, level);
     }
     public bgYellow(message: string, level: string = "warning") {
-        this.logWithColor("\x1b[43m", message, level);
+        this._logWithColor("\x1b[43m", message, level);
     }
     public bgBlue(message: string, level: string = "info") {
-        this.logWithColor("\x1b[44m", message, level);
+        this._logWithColor("\x1b[44m", message, level);
     }
 
     // --- 语义化方法 ---
@@ -147,7 +150,7 @@ class Logger {
     }
     public info(message: string) {
         if (["debug", "info"].includes(this.logLevel)) {
-            this.blue(message);
+            this.brightCyan(message);
         }
     }
     public success(message: string) {
@@ -168,13 +171,13 @@ class Logger {
 
     // --- 渐变方法 ---
     public gradientWithPastel(message: string, level: string = "info") {
-        this.logWithGradient(pastel, message, level);
+        this._logWithGradient(pastel, message, level);
     }
     public gradientWithAtlas(message: string, level: string = "info") {
-        this.logWithGradient(atlas, message, level);
+        this._logWithGradient(atlas, message, level);
     }
     public gradientWithRainbow(message: string, level: string = "info") {
-        this.logWithGradient(rainbow, message, level);
+        this._logWithGradient(rainbow, message, level);
     }
 }
 
