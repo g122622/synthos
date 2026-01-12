@@ -6,6 +6,7 @@ import { injectable, inject } from "tsyringe";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { TOKENS } from "../di/tokens";
 import { RagChatHistoryManager, RagChatSession, SessionListItem } from "../repositories/RagChatHistoryManager";
+import Logger from "@root/common/util/Logger";
 
 /**
  * 引用项类型
@@ -53,6 +54,8 @@ export interface SessionListResponse {
 export class RagChatHistoryService {
     constructor(@inject(TOKENS.RagChatHistoryManager) private ragChatHistoryManager: RagChatHistoryManager) {}
 
+    private LOGGER = Logger.withTag("RagChatHistoryService");
+
     /**
      * 创建新会话
      * 自动生成标题（使用问题的前30个字符）
@@ -67,7 +70,7 @@ export class RagChatHistoryService {
             title,
             question: input.question,
             answer: input.answer,
-            references: JSON.stringify(input.references),
+            refs: JSON.stringify(input.references),
             topK: input.topK
         });
 
@@ -128,8 +131,9 @@ export class RagChatHistoryService {
     private transformSession(session: RagChatSession): SessionDetail {
         let references: ReferenceItem[] = [];
         try {
-            references = JSON.parse(session.references);
-        } catch {
+            references = JSON.parse(session.refs);
+        } catch (e) {
+            this.LOGGER.warning(`会话 ${session.id} 的引用项解析失败，将使用空数组。错误：${e}`);
             references = [];
         }
 

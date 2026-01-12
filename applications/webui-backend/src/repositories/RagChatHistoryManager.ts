@@ -18,7 +18,7 @@ export interface RagChatSession {
     title: string;
     question: string;
     answer: string;
-    references: string; // JSON 字符串，存储 ReferenceItem[]
+    refs: string; // JSON 字符串，存储 ReferenceItem[]
     topK: number;
     createdAt: number;
     updatedAt: number;
@@ -32,7 +32,7 @@ export interface CreateSessionInput {
     title: string;
     question: string;
     answer: string;
-    references: string;
+    refs: string;
     topK: number;
 }
 
@@ -136,7 +136,7 @@ export class RagChatHistoryManager extends Disposable {
                 session.title,
                 session.question,
                 session.answer,
-                session.references,
+                session.refs,
                 session.topK,
                 session.createdAt,
                 session.updatedAt
