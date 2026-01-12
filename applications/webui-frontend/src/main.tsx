@@ -6,6 +6,7 @@ import App from "./App.tsx";
 import { Provider } from "./provider.tsx";
 import "@/styles/globals.css";
 import { preventPageClose } from "./util/closePrevension.ts";
+import { DeviceType, getDeviceType } from "./util/getDeviceType.ts";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
@@ -17,4 +18,6 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </React.StrictMode>
 );
 
-preventPageClose();
+if (getDeviceType() !== DeviceType.PC) {
+    preventPageClose();
+}
