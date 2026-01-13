@@ -15,8 +15,9 @@ export class CtxTemplateNode {
      * 设置节点标题
      * @param title 标题字符串
      */
-    public setTitle(title: string): void {
+    public setTitle(title: string): CtxTemplateNode {
         this._title = title;
+        return this;
     }
 
     /**

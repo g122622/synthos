@@ -203,7 +203,7 @@ export class GenerateReportTaskHandler {
                         periodDescription,
                         topicsData,
                         statistics
-                    );
+                    ).serializeToString();
 
                     let summary = "";
                     let selectedModelName = "";

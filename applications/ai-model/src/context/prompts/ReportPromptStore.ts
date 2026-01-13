@@ -1,3 +1,5 @@
+import { CtxTemplateNode } from "../template/CtxTemplate";
+
 export class ReportPromptStore {
     /**
      * 获取日报综述生成的 Prompt
@@ -11,7 +13,9 @@ export class ReportPromptStore {
         periodDescription: string,
         topicsData: { topic: string; detail: string }[],
         statistics: { topicCount: number; mostActiveGroups: string[]; mostActiveHour: number }
-    ): string {
+    ): CtxTemplateNode {
+        const root = new CtxTemplateNode();
+
         const reportTypeName = {
             "half-daily": "半日报",
             weekly: "周报",
@@ -23,29 +27,48 @@ export class ReportPromptStore {
         const activeGroupsStr =
             statistics.mostActiveGroups.length > 0 ? statistics.mostActiveGroups.join("、") : "暂无";
 
-        return `你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。
+        root.insertChildNodeToBack(
+            new CtxTemplateNode()
+                .setTitle("你的角色")
+                .setContentText(`你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。`)
+        );
 
-                ## 时间段
-                ${periodDescription}
+        root.insertChildNodeToBack(
+            new CtxTemplateNode()
+                .setTitle("时间段")
+                .setContentText(periodDescription)
+        );
 
-                ## 统计概览
-                - 话题总数：${statistics.topicCount}
-                - 最活跃群组：${activeGroupsStr}
-                - 最活跃时段：${statistics.mostActiveHour}:00 - ${statistics.mostActiveHour + 1}:00
+        root.insertChildNodeToBack(
+            new CtxTemplateNode()
+                .setTitle("统计概览")
+                .setContentText(`- 话题总数：${statistics.topicCount}
+                                - 最活跃群组：${activeGroupsStr}
+                                - 最活跃时段：${statistics.mostActiveHour}:00 - ${statistics.mostActiveHour + 1}:00`)
+        );
 
-                ## 话题列表
-                ${topicsList}
+        root.insertChildNodeToBack(
+            new CtxTemplateNode()
+                .setTitle("话题列表")
+                .setContentText(topicsList)
+        );
 
-                ## 要求
-                请生成一段精美的、完备的、略带趣味性的、结构清晰的综述文本，要求：
-                1. 概括本时段的主要讨论内容和热点话题
-                2. 突出最有价值、最有信息量的讨论点
-                3. 语言简洁流畅，易于阅读
-                4. 使用 Markdown 格式
-                5. 不要重复罗列所有话题，而是提炼出核心要点
-                6. 如果话题较少或没有特别值得关注的内容，可以简短概括
+        root.insertChildNodeToBack(
+            new CtxTemplateNode()
+                .setTitle("要求")
+                .setContentText(`请生成一段精美的、完备的、略带趣味性的、结构清晰的综述文本，要求：
+                                1. 概括本时段的主要讨论内容和热点话题
+                                2. 突出最有价值、最有信息量的讨论点
+                                3. 语言简洁流畅，易于阅读
+                                4. 使用 Markdown 格式
+                                5. 不要重复罗列所有话题，而是提炼出核心要点
+                                6. 如果话题较少或没有特别值得关注的内容，可以简短概括
 
-                请直接输出综述文本，不要添加任何前缀或后缀说明。`;
+                                请直接输出综述文本，不要添加任何前缀或后缀说明。
+`)
+        );
+
+        return root;
     }
 
     /**

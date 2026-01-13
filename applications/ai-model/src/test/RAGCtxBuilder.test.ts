@@ -109,7 +109,10 @@ describe("RAGCtxBuilder", () => {
                 expect(topics).toContain("【起止时间:2024-01-12-14:15:20至2024-01-12-15:45:30】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
 
-                return "mocked prompt";
+                // 返回模拟的 CtxTemplateNode 对象
+                return {
+                    serializeToString: () => "mocked prompt"
+                } as any;
             });
 
         const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
@@ -184,7 +187,10 @@ describe("RAGCtxBuilder", () => {
                 expect(topics).toContain("【参与者:用户3, 用户4】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
 
-                return "mocked prompt";
+                // 返回模拟的 CtxTemplateNode 对象
+                return {
+                    serializeToString: () => "mocked prompt"
+                } as any;
             });
 
         const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
