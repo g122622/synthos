@@ -130,10 +130,12 @@ function main() {
         changedTestFiles.forEach(file => console.log(`  - ${file}`));
 
         // 提取测试文件名（不带路径）并传递给 pnpm test
-        const testFileNames = changedTestFiles.map(file => {
-            const parts = file.split(/[/\\]/);
-            return parts[parts.length - 1];
-        }).join(" ");
+        const testFileNames = changedTestFiles
+            .map(file => {
+                const parts = file.split(/[/\\]/);
+                return parts[parts.length - 1];
+            })
+            .join(" ");
 
         if (!execCommand(`pnpm test ${testFileNames}`, rootDir, "运行测试")) {
             hasError = true;

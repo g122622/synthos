@@ -20,35 +20,38 @@ export class CtxTemplateNode {
     }
 
     /**
-     * 设置节点内容文本
+     * 设置节点内容文本。支持链式调用
      * @param contentText 内容文本字符串
      */
-    public setContentText(contentText: string): void {
+    public setContentText(contentText: string): CtxTemplateNode {
         this._contentText = contentText;
+        return this;
     }
 
     /**
-     * 设置子节点列表（会替换原有子节点）
+     * 设置子节点列表（会替换原有子节点）。支持链式调用
      * @param childNodes 新的子节点数组
      */
-    public setChildNodes(childNodes: CtxTemplateNode[]): void {
+    public setChildNodes(childNodes: CtxTemplateNode[]): CtxTemplateNode {
         this._childNodes = [...childNodes];
+        return this;
     }
 
     /**
-     * 在子节点列表的最前面插入一个子节点
+     * 在子节点列表的最前面插入一个子节点。支持链式调用
      * @param node 要插入的子节点
      */
-    public insertChildNodeToFront(node: CtxTemplateNode): void {
+    public insertChildNodeToFront(node: CtxTemplateNode): CtxTemplateNode {
         this._childNodes.unshift(node);
+        return this;
     }
-
     /**
-     * 在子节点列表的末尾追加一个子节点
+     * 在子节点列表的末尾追加一个子节点。支持链式调用
      * @param node 要插入的子节点
      */
-    public insertChildNodeToBack(node: CtxTemplateNode): void {
+    public insertChildNodeToBack(node: CtxTemplateNode): CtxTemplateNode {
         this._childNodes.push(node);
+        return this;
     }
 
     /**
