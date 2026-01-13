@@ -9,16 +9,14 @@ export class IMPromptStore {
         const root = new CtxTemplateNode();
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("你的任务")
+            new CtxTemplateNode().setTitle("你的任务")
                 .setContentText(`你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的全部准则：
                                  请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。
                                  `)
         );
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("对于每个话题，请提供：")
+            new CtxTemplateNode().setTitle("对于每个话题，请提供：")
                 .setContentText(`1. 话题名称（突出主题内容，尽量简明扼要）
                                 2. 主要参与者（最多10人）
                                 3. 话题详细描述（包含关键信息和结论）
@@ -26,8 +24,7 @@ export class IMPromptStore {
         );
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("注意")
+            new CtxTemplateNode().setTitle("注意")
                 .setContentText(`- 对于比较有价值的点，用几句话详细展开讲讲，但是不要生成类似于 "李嘉浩和杨浩然讨论了中科大计算机研究生院今年招生情况" 这种宽泛的内容，而是生成更加具体的讨论内容，让其他人只看这个消息就能知道讨论中有价值的，有营养的信息。
                                 - 对于其中一些重要信息，你需要特意提到主题施加的主体是谁，是哪个群友做了什么事情，而不要直接生成和群友没有关系的语句；对于次要信息，则不需要提到主题施加的主体。
                                 - 对于每一条总结，尽量讲清楚前因后果，以及话题的结论，是什么，为什么，怎么做，如果用户没有讲到细节，则可以不用这么做。
@@ -45,9 +42,7 @@ export class IMPromptStore {
         root.insertChildNodeToBack(new CtxTemplateNode().setTitle("群聊记录").setContentText(messages));
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-            .setTitle("输出格式要求")
-            .setContentText(`
+            new CtxTemplateNode().setTitle("输出格式要求").setContentText(`
                     重要：必须返回标准JSON格式，严格遵守以下规则：
                     1. 只使用英文双引号 " 不要使用中文引号 " "
                     2. 字符串内容中的引号必须转义为 \\"

@@ -15,33 +15,25 @@ export class RagPromptStore {
         root.insertChildNodeToBack(
             new CtxTemplateNode()
                 .setTitle("你的角色")
-                .setContentText("你是一个查询扩展助手。请将以下用户问题改写为3个不同角度的查询，以便更好地从向量数据库中检索相关内容。")
+                .setContentText(
+                    "你是一个查询扩展助手。请将以下用户问题改写为3个不同角度的查询，以便更好地从向量数据库中检索相关内容。"
+                )
         );
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("用户问题")
-                .setContentText(userQuestion)
-        );
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("用户问题").setContentText(userQuestion));
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("要求")
-                .setContentText(`1. 保持原意，但从不同角度表述
+            new CtxTemplateNode().setTitle("要求").setContentText(`1. 保持原意，但从不同角度表述
                                  2. 使用同义词、近义词并拓展相关概念
                                  3. 请严格按照下面标准JSON数组格式输出，数组中每个元素为一个查询字符串，且你的输出不要在JSON外添加任何文字说明`)
         );
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("输入示例")
-                .setContentText("评价一下AI领域的各个研究方向？")
+            new CtxTemplateNode().setTitle("输入示例").setContentText("评价一下AI领域的各个研究方向？")
         );
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("输出示例")
-                .setContentText(`
+            new CtxTemplateNode().setTitle("输出示例").setContentText(`
 [
     "AI领域有哪些主要科研方向，各自的研究内容、优缺点和发展前景如何？",
     "如何评估当前人工智能不同研究分支（如机器学习、自然语言处理、计算机视觉等）的进展与价值？",
@@ -50,9 +42,7 @@ export class RagPromptStore {
         );
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("你的任务")
-                .setContentText("请输出3个改写后的查询：")
+            new CtxTemplateNode().setTitle("你的任务").setContentText("请输出3个改写后的查询：")
         );
 
         return root;
@@ -76,28 +66,15 @@ export class RagPromptStore {
 
         // 添加当前日期信息
         if (currentDate) {
-            root.insertChildNodeToBack(
-                new CtxTemplateNode()
-                    .setTitle("当前日期时间")
-                    .setContentText(currentDate)
-            );
+            root.insertChildNodeToBack(new CtxTemplateNode().setTitle("当前日期时间").setContentText(currentDate));
         }
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("相关话题")
-                .setContentText(topics)
-        );
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("相关话题").setContentText(topics));
+
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("用户问题").setContentText(userQuestion));
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("用户问题")
-                .setContentText(userQuestion)
-        );
-
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("回答要求")
+            new CtxTemplateNode().setTitle("回答要求")
                 .setContentText(`1. 遵从上述话题内容回答问题，考虑话题发生的时间背景
                                  2. 如果引用了某个话题的内容，请在句子末尾标注来源，格式类似：[话题7] [话题11] [话题23]
                                  3. 如果话题内容无法回答问题，请如实告知
@@ -107,11 +84,7 @@ export class RagPromptStore {
 `)
         );
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("你的任务")
-                .setContentText("请开始回答：")
-        );
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("你的任务").setContentText("请开始回答："));
 
         return root;
     }

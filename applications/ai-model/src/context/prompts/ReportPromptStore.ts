@@ -30,32 +30,23 @@ export class ReportPromptStore {
         root.insertChildNodeToBack(
             new CtxTemplateNode()
                 .setTitle("你的角色")
-                .setContentText(`你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。`)
+                .setContentText(
+                    `你是一个群聊信息汇总助手，请根据以下话题信息生成一份完备的${reportTypeName}综述。`
+                )
         );
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("时间段")
-                .setContentText(periodDescription)
-        );
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("时间段").setContentText(periodDescription));
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("统计概览")
-                .setContentText(`- 话题总数：${statistics.topicCount}
+            new CtxTemplateNode().setTitle("统计概览").setContentText(`- 话题总数：${statistics.topicCount}
                                 - 最活跃群组：${activeGroupsStr}
                                 - 最活跃时段：${statistics.mostActiveHour}:00 - ${statistics.mostActiveHour + 1}:00`)
         );
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("话题列表")
-                .setContentText(topicsList)
-        );
+        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("话题列表").setContentText(topicsList));
 
         root.insertChildNodeToBack(
-            new CtxTemplateNode()
-                .setTitle("要求")
+            new CtxTemplateNode().setTitle("要求")
                 .setContentText(`请生成一段精美的、完备的、略带趣味性的、结构清晰的综述文本，要求：
                                 1. 概括本时段的主要讨论内容和热点话题
                                 2. 突出最有价值、最有信息量的讨论点

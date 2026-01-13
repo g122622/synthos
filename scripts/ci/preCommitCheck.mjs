@@ -37,6 +37,23 @@ function getStagedFiles() {
     }
 }
 
+// 获取已经更改但未stage的文件列表（工作区中已修改的已跟踪文件）
+function getUnstagedFiles() {
+    try {
+        const output = execSync("git diff --name-only --diff-filter=ACM", {
+            encoding: "utf-8",
+            cwd: rootDir
+        });
+        return output
+            .split("\n")
+            .map(line => line.trim())
+            .filter(line => line.length > 0);
+    } catch (error) {
+        console.error("获取 unstaged 文件失败:", error.message);
+        return [];
+    }
+}
+
 // 检查是否涉及测试文件
 function hasTestFiles(files) {
     return files.some(file => file.includes(".test.") || file.includes(".spec.") || file.includes("/test/"));
@@ -176,20 +193,45 @@ function main() {
         return 1;
     }
 
-    // 步骤 5: 执行 prettier --write 格式化代码
+    // 步骤 5: 执行 prettier --write 格式化代码（仅限初始的 staged 文件）
     console.log("\n格式化代码...");
-    if (execCommand("npx prettier --write .", rootDir, "格式化代码")) {
-        // // prettier 可能修改了文件，需要重新添加到 staging area
-        // try {
-        //     execSync("git add -u", {
-        //         cwd: rootDir,
-        //         stdio: "inherit"
-        //     });
-        // } catch (error) {
-        //     // 忽略错误，可能没有修改
-        // }
+
+    // 仅处理初始的 staged 文件（不会包含工作区未暂存的修改）
+    const filesToPrettier = [...stagedFiles];
+
+    if (filesToPrettier.length > 0) {
+        console.log(`检测到 ${filesToPrettier.length} 个需要格式化的 staged 文件`);
+
+        // 分批处理文件（避免命令行长度限制）
+        const batchSize = 30;
+        for (let i = 0; i < filesToPrettier.length; i += batchSize) {
+            const batch = filesToPrettier.slice(i, i + batchSize);
+            const command = `npx prettier --write ${batch.map(file => `"${file}"`).join(" ")}`;
+
+            if (!execCommand(command, rootDir, `格式化代码 (批 ${Math.floor(i / batchSize) + 1})`)) {
+                hasError = true;
+                break;
+            }
+        }
+
+        // 仅将格式化的 staged 文件重新添加到暂存区
+        if (!hasError && filesToPrettier.length > 0) {
+            console.log("\n将格式化后的文件重新加入暂存区...");
+            try {
+                // 仅添加被 prettier 修改的文件（初始 staged 文件）
+                const gitAddCommand = `git add ${filesToPrettier.map(file => `"${file}"`).join(" ")}`;
+                execSync(gitAddCommand, {
+                    cwd: rootDir,
+                    stdio: "inherit"
+                });
+                console.log("✓ 格式化文件已重新加入暂存区");
+            } catch (error) {
+                console.error("✗ 重新添加格式化文件失败:", error.message);
+                hasError = true;
+            }
+        }
     } else {
-        hasError = true;
+        console.log("没有需要格式化的 staged 文件");
     }
 
     if (hasError) {
