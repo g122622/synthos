@@ -23,6 +23,7 @@ export class CtxTemplateNode {
     /**
      * 设置节点内容文本。支持链式调用
      * @param contentText 内容文本字符串
+     * @note 不用加末尾的换行符！
      */
     public setContentText(contentText: string): CtxTemplateNode {
         this._contentText = contentText;

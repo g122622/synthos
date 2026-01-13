@@ -1,3 +1,4 @@
+import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
 export class IMPromptStore {
@@ -8,40 +9,38 @@ export class IMPromptStore {
     ): CtxTemplateNode {
         const root = new CtxTemplateNode();
 
-        root.insertChildNodeToBack(
-            new CtxTemplateNode().setTitle("你的任务")
-                .setContentText(`你是一个帮我进行群聊信息总结的助手，生成总结内容时，你需要严格遵守下面的全部准则：
-                                 请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。
-                                 `)
-        );
-
-        root.insertChildNodeToBack(
-            new CtxTemplateNode().setTitle("对于每个话题，请提供：")
-                .setContentText(`1. 话题名称（突出主题内容，尽量简明扼要）
-                                2. 主要参与者（最多10人）
-                                3. 话题详细描述（包含关键信息和结论）
-                            `)
-        );
-
-        root.insertChildNodeToBack(
-            new CtxTemplateNode().setTitle("注意")
-                .setContentText(`- 对于比较有价值的点，用几句话详细展开讲讲，但是不要生成类似于 "李嘉浩和杨浩然讨论了中科大计算机研究生院今年招生情况" 这种宽泛的内容，而是生成更加具体的讨论内容，让其他人只看这个消息就能知道讨论中有价值的，有营养的信息。
-                                - 对于其中一些重要信息，你需要特意提到主题施加的主体是谁，是哪个群友做了什么事情，而不要直接生成和群友没有关系的语句；对于次要信息，则不需要提到主题施加的主体。
-                                - 对于每一条总结，尽量讲清楚前因后果，以及话题的结论，是什么，为什么，怎么做，如果用户没有讲到细节，则可以不用这么做。
-                                - 群聊记录中的消息有时候会出现相互引用（mention）的情况，会使用类似于这样的格式标出： "'杨浩然(群昵称：ユリの花)'：【引用来自'李嘉浩(群昵称：DEAR James·Jordan ≈)'的消息: 今年offer发了多少】@DEAR James·Jordan ≈ 我觉得今年会超发offer"。
-                                - 群成员的昵称可能是自己的qq昵称，也可能是群昵称，也可能是真实姓名。
-                                - 聊天中出现的表情使用以下格式标出： [/大怨种]
-                                - 如果一个话题只对应聊天消息中的两三句话，或者类似早安晚安之类的打招呼，那么请不要返回这个话题。
-                                - 对话中出现的链接、群号等信息请尽量完整保留下来
-                                - "detail"字段中出现的用户昵称名必须和"contributors"数组中的item一致，不允许改变和缩减。
-                                `)
-        );
-
-        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("群聊详情").setContentText(groupIntroduction));
-
-        root.insertChildNodeToBack(new CtxTemplateNode().setTitle("群聊记录").setContentText(messages));
-
-        root.insertChildNodeToBack(
+        root.setChildNodes([
+            new CtxTemplateNode()
+                .setTitle("你的任务")
+                .setContentText(
+                    `你是一个帮我进行群聊信息总结的助手，请分析接下来提供的群聊记录，提取出最多${maxTopics}个主要话题。生成总结内容时，你需要严格遵守下面的全部准则：`
+                ),
+            new CtxTemplateNode()
+                .setTitle("对于每个话题，请提供：")
+                .setContentText(
+                    ContentUtils.orderedList([
+                        "话题名称（突出主题内容，尽量简明扼要）",
+                        "主要参与者（最多10人）",
+                        "话题详细描述（包含关键信息和结论）"
+                    ])
+                ),
+            new CtxTemplateNode()
+                .setTitle("注意")
+                .setContentText(
+                    ContentUtils.unorderedList([
+                        '对于比较有价值的点，用几句话详细展开讲讲，但是不要生成类似于 "李嘉浩和杨浩然讨论了中科大计算机研究生院今年招生情况" 这种宽泛的内容，而是生成更加具体的讨论内容，让其他人只看这个消息就能知道讨论中有价值的、有营养的信息。',
+                        "对于其中一些重要信息，你需要特意提到主题施加的主体是谁，是哪个群友做了什么事情，而不要直接生成和群友没有关系的语句；对于次要信息，则不需要提到主题施加的主体。",
+                        "对于每一条总结，尽量讲清楚前因后果，以及话题的结论——是什么、为什么、怎么做；如果用户没有讲到细节，则可以不用这么做。",
+                        "群聊记录中的消息有时候会出现相互引用（mention）的情况，会使用类似于这样的格式标出：\"'杨浩然(群昵称：ユリの花)'：【引用来自'李嘉浩(群昵称：DEAR James·Jordan ≈)'的消息: 今年offer发了多少】@DEAR James·Jordan ≈ 我觉得今年会超发offer\"。",
+                        "群成员的昵称可能是自己的QQ昵称，也可能是群昵称，也可能是真实姓名。",
+                        "聊天中出现的表情使用以下格式标出：[/大怨种]。",
+                        "如果一个话题只对应聊天消息中的两三句话，或者类似早安晚安之类的打招呼，那么请不要返回这个话题。",
+                        "对话中出现的链接、群号等信息请尽量完整保留下来。",
+                        '"detail"字段中出现的用户昵称名必须和"contributors"数组中的item一致，不允许改变和缩减。'
+                    ])
+                ),
+            new CtxTemplateNode().setTitle("群聊详情").setContentText(groupIntroduction),
+            new CtxTemplateNode().setTitle("群聊记录").setContentText(messages),
             new CtxTemplateNode().setTitle("输出格式要求").setContentText(`
                     重要：必须返回标准JSON格式，严格遵守以下规则：
                     1. 只使用英文双引号 " 不要使用中文引号 " "
@@ -64,9 +63,8 @@ export class IMPromptStore {
                     "contributors": ["23-upc-爱卖菜的Julie😆","kltb","22-魔法少女上岸nju-ics的krkt","23-hust-koreyoshi","22-xdu-thu-残心"],
                     "detail": "23-upc-爱卖菜的Julie😆在群内询问中国科学院软件研究所的‘大学生创新实践训练计划’（科创计划）的含金量，以及其相当于什么学校的冬令营水平。kltb提供了详细解答，指出科创计划是一个为期6个月的实习项目，能提供顶级科研资源和导师指导，对于提升科研能力和积累长期规范的科研探索经历意义重大。从推免角度看，软件所的门槛略低于计算所和自动化所，但仍至少相当于C9高校水平，因其历史渊源是从计算所独立而来。kltb强调，在本科学校、绩点或竞赛不突出的情况下，一段成熟的科研经历或一篇B类会议论文可以作为有力补充，但并非硬性要求。他还提到，软件所录取标准相对模糊，存在一定的运气成分。23-hust-koreyoshi对此表示惊讶，认为要求似乎很高，而22-魔法少女上岸nju-ics的krkt则证实了软件所面试时生源背景多样，清北与双非学生俱全。相关官方信息链接为：https://yyy.cn/yyy.html 和 https://xxx.cn/xxx.html。"
                     }
-                    ]
-                                `)
-        );
+                    ]`)
+        ]);
 
         return root;
     }
