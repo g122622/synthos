@@ -15,7 +15,6 @@ export interface ISplitter extends Disposable {
      * @param groupId 要分配会话ID的群ID。
      */
     assignSessionId(
-        imDbAccessService: ImDbAccessService,
         groupId: string,
         startTimeStamp: number,
         endTimeStamp: number

@@ -71,14 +71,9 @@ export class PreprocessTaskHandler {
                     // 开始消息分割，分配sessionId
                     await splitter.init();
                     const results = await Promise.all(
-                        (
-                            await splitter.assignSessionId(
-                                this.imDbAccessService,
-                                groupId,
-                                attrs.startTimeStamp,
-                                attrs.endTimeStamp
-                            )
-                        ).map<Promise<ProcessedChatMessage>>(async result => {
+                        (await splitter.assignSessionId(groupId, attrs.startTimeStamp, attrs.endTimeStamp)).map<
+                            Promise<ProcessedChatMessage>
+                        >(async result => {
                             return {
                                 sessionId: result.sessionId!,
                                 msgId: result.msgId,

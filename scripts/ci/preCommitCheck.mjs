@@ -42,6 +42,11 @@ function hasTestFiles(files) {
     return files.some(file => file.includes(".test.") || file.includes(".spec.") || file.includes("/test/"));
 }
 
+// 获取变更的测试文件列表
+function getChangedTestFiles(files) {
+    return files.filter(file => file.includes(".test.") || file.includes(".spec.") || file.includes("/test/"));
+}
+
 // 检查是否涉及前端文件
 function hasFrontendFiles(files) {
     return files.some(file => file.startsWith("applications/webui-frontend/"));
@@ -98,6 +103,11 @@ function main() {
         hasError = true;
     }
 
+    if (hasError) {
+        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+        return 1;
+    }
+
     // 步骤 2: 在所有子项目中执行类型检查
     console.log("\n开始类型检查...");
     const subProjects = getSubProjects();
@@ -108,12 +118,31 @@ function main() {
         }
     }
 
+    if (hasError) {
+        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+        return 1;
+    }
+
     // 步骤 3: 如果涉及测试文件，运行测试
     if (hasTestFiles(stagedFiles)) {
-        console.log("\n检测到测试文件变更，运行测试...");
-        if (!execCommand("pnpm test", rootDir, "运行测试")) {
+        const changedTestFiles = getChangedTestFiles(stagedFiles);
+        console.log(`\n检测到测试文件变更，共 ${changedTestFiles.length} 个测试文件:`);
+        changedTestFiles.forEach(file => console.log(`  - ${file}`));
+
+        // 提取测试文件名（不带路径）并传递给 pnpm test
+        const testFileNames = changedTestFiles.map(file => {
+            const parts = file.split(/[/\\]/);
+            return parts[parts.length - 1];
+        }).join(" ");
+
+        if (!execCommand(`pnpm test ${testFileNames}`, rootDir, "运行测试")) {
             hasError = true;
         }
+    }
+
+    if (hasError) {
+        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+        return 1;
     }
 
     // 步骤 4: 如果涉及前端页面，执行 eslint --fix
@@ -140,18 +169,23 @@ function main() {
         }
     }
 
+    if (hasError) {
+        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+        return 1;
+    }
+
     // 步骤 5: 执行 prettier --write 格式化代码
     console.log("\n格式化代码...");
     if (execCommand("npx prettier --write .", rootDir, "格式化代码")) {
-        // prettier 可能修改了文件，需要重新添加到 staging area
-        try {
-            execSync("git add -u", {
-                cwd: rootDir,
-                stdio: "inherit"
-            });
-        } catch (error) {
-            // 忽略错误，可能没有修改
-        }
+        // // prettier 可能修改了文件，需要重新添加到 staging area
+        // try {
+        //     execSync("git add -u", {
+        //         cwd: rootDir,
+        //         stdio: "inherit"
+        //     });
+        // } catch (error) {
+        //     // 忽略错误，可能没有修改
+        // }
     } else {
         hasError = true;
     }

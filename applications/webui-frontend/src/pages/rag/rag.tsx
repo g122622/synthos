@@ -50,7 +50,6 @@ export default function RagPage() {
 
     // 卡片引用
     const answerCardRef = useRef<HTMLDivElement>(null);
-    const saveButtonRef = useRef<HTMLButtonElement>(null);
 
     // 处理问答
     const handleAsk = useCallback(async () => {
@@ -191,12 +190,7 @@ export default function RagPage() {
 
     // 保存为图片
     const handleSaveAsImage = useCallback(async () => {
-        if (!answerCardRef.current || !saveButtonRef.current) return;
-
-        // 临时隐藏保存按钮
-        const originalDisplay = saveButtonRef.current.style.display;
-
-        saveButtonRef.current.style.display = "none";
+        if (!answerCardRef.current) return;
 
         try {
             const dataUrl = await domtoimage.toPng(answerCardRef.current, {
@@ -210,9 +204,6 @@ export default function RagPage() {
             link.click();
         } catch (error) {
             console.error("保存图片失败:", error);
-        } finally {
-            // 恢复显示保存按钮
-            saveButtonRef.current.style.display = originalDisplay;
         }
     }, []);
 
@@ -266,15 +257,7 @@ export default function RagPage() {
                     </CardHeader>
                     <CardBody className="p-7 pt-3 relative">
                         <MarkdownRenderer content={askResponse.answer} />
-                        <Button
-                            ref={saveButtonRef}
-                            className="absolute bottom-7 right-33"
-                            color="primary"
-                            size="sm"
-                            startContent={<Download className="w-4 h-4" />}
-                            variant="flat"
-                            onClick={handleSaveAsImage}
-                        >
+                        <Button className="absolute bottom-7 right-33" color="primary" size="sm" startContent={<Download className="w-4 h-4" />} variant="flat" onClick={handleSaveAsImage}>
                             保存为图片
                         </Button>
                     </CardBody>

@@ -6,7 +6,6 @@ import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { KVStore } from "@root/common/util/KVStore";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
-import { getMinutesAgoTimestamp } from "@root/common/util/TimeUtils";
 import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
@@ -27,7 +26,8 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(PREPROCESSING_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {
         super();
     }
@@ -49,12 +49,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * @param endTimeStamp 结束时间戳
      * @returns 带有 sessionId 的消息列表
      */
-    public async assignSessionId(
-        imDbAccessService: ImDbAccessService,
-        groupId: string,
-        startTimeStamp: number,
-        endTimeStamp: number
-    ) {
+    public async assignSessionId(groupId: string, startTimeStamp: number, endTimeStamp: number) {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
@@ -72,7 +67,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
             }
         };
 
-        const msgs = await imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
+        const msgs = await this.imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
             startTimeStamp,
             endTimeStamp
