@@ -50,7 +50,7 @@ describe("OllamaEmbeddingService", () => {
         it("should create axios instance with correct config", () => {
             expect(axios.create).toHaveBeenCalledWith({
                 baseURL: TEST_BASE_URL,
-                timeout: 60000,
+                timeout: 600000, // 600s
                 headers: {
                     "Content-Type": "application/json"
                 }
