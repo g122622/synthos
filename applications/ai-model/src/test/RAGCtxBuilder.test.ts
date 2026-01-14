@@ -38,7 +38,6 @@ describe("RAGCtxBuilder", () => {
 
     it("应该能够构建包含日期信息的 RAG 上下文", async () => {
         const question = "什么是机器学习？";
-        const currentDate = "2024-01-15-10:30:45";
         const searchResults: SearchOutput = [
             {
                 topicId: "topic1",
@@ -98,7 +97,7 @@ describe("RAGCtxBuilder", () => {
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
         const getRagAnswerPromptSpy = vi
             .spyOn(RagPromptStore, "getRagAnswerPrompt")
-            .mockImplementation((question, topics, currentDate) => {
+            .mockImplementation((question, topics) => {
                 // 验证 topics 格式
                 expect(topics).toContain("【话题1:机器学习基础】");
                 expect(topics).toContain("【参与者:用户1, 用户2】");
@@ -116,7 +115,7 @@ describe("RAGCtxBuilder", () => {
                 } as any;
             });
 
-        const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
+        const prompt = await ragCtxBuilder.buildCtx(question, searchResults);
 
         // 验证返回值
         expect(prompt).toBe("mocked prompt");
@@ -128,7 +127,6 @@ describe("RAGCtxBuilder", () => {
 
     it("应该能够处理缺少日期信息的话题", async () => {
         const question = "什么是机器学习？";
-        const currentDate = "2024-01-15-10:30:45";
         const searchResults: SearchOutput = [
             {
                 topicId: "topic1",
@@ -176,7 +174,7 @@ describe("RAGCtxBuilder", () => {
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
         const getRagAnswerPromptSpy = vi
             .spyOn(RagPromptStore, "getRagAnswerPrompt")
-            .mockImplementation((question, topics, currentDate) => {
+            .mockImplementation((question, topics) => {
                 // 验证 topics 格式包含第一个话题的日期信息
                 expect(topics).toContain("【话题1:机器学习基础】");
                 expect(topics).toContain("【参与者:用户1, 用户2】");
@@ -194,7 +192,7 @@ describe("RAGCtxBuilder", () => {
                 } as any;
             });
 
-        const prompt = await ragCtxBuilder.buildCtx(question, searchResults, currentDate);
+        const prompt = await ragCtxBuilder.buildCtx(question, searchResults);
 
         // 验证返回值
         expect(prompt).toBe("mocked prompt");

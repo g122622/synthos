@@ -198,11 +198,13 @@ export class GenerateReportTaskHandler {
                     // 9. 从 DI 容器获取 TextGenerator
                     const textGenerator = getTextGenerator();
 
-                    const prompt = ReportPromptStore.getReportSummaryPrompt(
-                        reportType,
-                        periodDescription,
-                        topicsData,
-                        statistics
+                    const prompt = (
+                        await ReportPromptStore.getReportSummaryPrompt(
+                            reportType,
+                            periodDescription,
+                            topicsData,
+                            statistics
+                        )
                     ).serializeToString();
 
                     let summary = "";

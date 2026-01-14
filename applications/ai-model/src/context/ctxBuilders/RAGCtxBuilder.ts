@@ -42,7 +42,7 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
      * @param currentDate 当前日期字符串
      * @returns 构建的提示词
      */
-    public async buildCtx(question: string, searchResults: SearchOutput, currentDate: string): Promise<string> {
+    public async buildCtx(question: string, searchResults: SearchOutput): Promise<string> {
         // 获取话题日期信息
         const topicDates: { [index: string]: { startTime?: string; endTime?: string } } = {};
 
@@ -79,6 +79,6 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             })
             .join("\n\n");
 
-        return RagPromptStore.getRagAnswerPrompt(question, formattedTopics, currentDate).serializeToString();
+        return (await RagPromptStore.getRagAnswerPrompt(question, formattedTopics)).serializeToString();
     }
 }

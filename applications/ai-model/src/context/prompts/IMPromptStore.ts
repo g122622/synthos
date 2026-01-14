@@ -1,12 +1,15 @@
+import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
+import { useMiddleware } from "../middleware/useMiddleware";
 import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
 export class IMPromptStore {
-    public static getSummarizePrompt(
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
+    public static async getSummarizePrompt(
         groupIntroduction: string,
         maxTopics: number,
         messages: string
-    ): CtxTemplateNode {
+    ): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         root.setChildNodes([

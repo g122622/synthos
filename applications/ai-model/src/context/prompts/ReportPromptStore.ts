@@ -1,3 +1,5 @@
+import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
+import { useMiddleware } from "../middleware/useMiddleware";
 import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
@@ -9,12 +11,13 @@ export class ReportPromptStore {
      * @param topicsData 话题数据（标题和详情）
      * @param statistics 统计数据
      */
-    public static getReportSummaryPrompt(
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
+    public static async getReportSummaryPrompt(
         reportType: "half-daily" | "weekly" | "monthly",
         periodDescription: string,
         topicsData: { topic: string; detail: string }[],
         statistics: { topicCount: number; mostActiveGroups: string[]; mostActiveHour: number }
-    ): CtxTemplateNode {
+    ): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         const reportTypeName = {
@@ -64,7 +67,7 @@ export class ReportPromptStore {
     }
 
     /**
-     * 获取空日报的默认文本
+     * 获取空日报的默认文本 TODO 把此函数移出这个文件
      */
     public static getEmptyReportText(periodDescription: string): string {
         return `${periodDescription}暂无热门话题讨论。`;

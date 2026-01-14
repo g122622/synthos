@@ -19,7 +19,6 @@ import { ReportDbAccessService } from "@root/common/services/database/ReportDbAc
 import { TextGenerator } from "../generators/text/TextGenerator";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { getCurrentFormattedTime } from "@root/common/util/TimeUtils";
 import { QueryRewriter } from "./QueryRewriter";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { agendaInstance } from "@root/common/scheduler/agenda";
@@ -162,7 +161,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             .slice(0, input.topK);
 
         // 5. 构建 RAG prompt
-        const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults, getCurrentFormattedTime());
+        const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults);
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答

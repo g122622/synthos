@@ -54,7 +54,7 @@ export class QueryRewriter {
      */
     private async doExpandQuery(originalQuestion: string): Promise<string[]> {
         // 1. 获取 Multi-Query prompt
-        const prompt = RagPromptStore.getMultiQueryPrompt(originalQuestion).serializeToString();
+        const prompt = (await RagPromptStore.getMultiQueryPrompt(originalQuestion)).serializeToString();
 
         // 2. 调用 LLM 生成扩展查询
         const { content: response } = await this.textGenerator.generateTextWithModelCandidates(

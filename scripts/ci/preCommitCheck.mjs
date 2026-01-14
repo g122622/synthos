@@ -197,7 +197,12 @@ function main() {
     console.log("\n格式化代码...");
 
     // 仅处理初始的 staged 文件（不会包含工作区未暂存的修改）
-    const filesToPrettier = [...stagedFiles];
+    const filesToPrettier = stagedFiles.filter(file => {
+        const ext = file.split(".").pop().toLowerCase();
+        return [".js", ".ts", ".tsx", ".jsx", ".css", ".scss", ".html"].includes(
+            `.${ext}`
+        );
+    });
 
     if (filesToPrettier.length > 0) {
         console.log(`检测到 ${filesToPrettier.length} 个需要格式化的 staged 文件`);

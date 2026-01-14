@@ -12,6 +12,6 @@ export class IMSummaryCtxBuilder extends Disposable implements ICtxBuilder {
         for (const message of messages) {
             content += message.preProcessedContent + "\n";
         }
-        return IMPromptStore.getSummarizePrompt(groupIntroduction, 50, content).serializeToString();
+        return (await IMPromptStore.getSummarizePrompt(groupIntroduction, 50, content)).serializeToString();
     }
 }

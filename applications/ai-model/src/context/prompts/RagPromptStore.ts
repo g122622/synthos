@@ -1,3 +1,5 @@
+import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
+import { useMiddleware } from "../middleware/useMiddleware";
 import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
@@ -10,7 +12,8 @@ export class RagPromptStore {
      * Get multi-query expansion prompt
      * @param userQuestion User's question to be expanded
      */
-    public static getMultiQueryPrompt(userQuestion: string): CtxTemplateNode {
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
+    public static async getMultiQueryPrompt(userQuestion: string): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         root.setChildNodes([
@@ -48,7 +51,9 @@ export class RagPromptStore {
      * @param currentDate 当前日期（可选）
      * @returns 完整的 prompt
      */
-    public static getRagAnswerPrompt(userQuestion: string, topics: string, currentDate?: string): CtxTemplateNode {
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
+    public static async getRagAnswerPrompt(userQuestion: string, topics: string): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         root.insertChildNodeToBack(
@@ -56,11 +61,6 @@ export class RagPromptStore {
                 .setTitle("你的角色")
                 .setContentText("你是一个智能助手，请根据以下检索到的话题内容回答用户问题。")
         );
-
-        // 增加当前日期信息
-        if (currentDate) {
-            root.insertChildNodeToBack(new CtxTemplateNode().setTitle("当前日期时间").setContentText(currentDate));
-        }
 
         root.insertChildNodeToBack(new CtxTemplateNode().setTitle("相关话题").setContentText(topics));
 
