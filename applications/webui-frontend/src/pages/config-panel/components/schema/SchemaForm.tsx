@@ -338,8 +338,8 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
         }
 
         return (
-            <div className="space-y-6">
-                <div className="space-y-4">
+            <div className="space-y-3">
+                <div className="space-y-2">
                     {filteredPrimitiveFields.map(field => {
                         return (
                             <SchemaForm
@@ -360,16 +360,22 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
                         {/* 局部展开/折叠按钮 */}
                         {searchContext && allNestedPaths.length > 0 && (
                             <div className="flex justify-end gap-2">
-                                <Button size="sm" startContent={<ChevronDown className="w-3 h-3" />} variant="light" onPress={() => handleExpandAll(allNestedPaths)}>
+                                <Button className="h-6 min-h-6 text-xs" size="sm" startContent={<ChevronDown className="w-3 h-3" />} variant="light" onPress={() => handleExpandAll(allNestedPaths)}>
                                     展开全部
                                 </Button>
-                                <Button size="sm" startContent={<ChevronUp className="w-3 h-3" />} variant="light" onPress={() => handleCollapseAll(allNestedPaths)}>
+                                <Button className="h-6 min-h-6 text-xs" size="sm" startContent={<ChevronUp className="w-3 h-3" />} variant="light" onPress={() => handleCollapseAll(allNestedPaths)}>
                                     折叠全部
                                 </Button>
                             </div>
                         )}
 
                         <Accordion
+                            isCompact
+                            itemClasses={{
+                                title: "text-sm",
+                                subtitle: "text-xs",
+                                content: "py-2"
+                            }}
                             selectedKeys={selectedKeys}
                             selectionMode="multiple"
                             variant="bordered"
@@ -408,8 +414,8 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
                                 const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
 
                                 return (
-                                    <AccordionItem key={field.key} subtitle={highlightedDescription} title={highlightedLabel}>
-                                        <div className="p-2">
+                                    <AccordionItem key={field.key} className="pt-2 pl-1" subtitle={highlightedDescription} title={highlightedLabel}>
+                                        <div className="p-2 pt-0">
                                             <SchemaForm errors={errors} path={fieldPath} rootValue={field.value} schema={field.schema} searchContext={searchContext} onFieldChange={onFieldChange} />
                                         </div>
                                     </AccordionItem>

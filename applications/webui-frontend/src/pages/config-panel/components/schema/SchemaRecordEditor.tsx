@@ -168,9 +168,10 @@ const SchemaRecordEditor: React.FC<SchemaRecordEditorProps> = ({ path, value, it
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex gap-2">
+        <div className="space-y-2">
+            <div className="flex gap-2 items-center">
                 <Input
+                    classNames={{ inputWrapper: "h-8 min-h-8", input: "text-xs" }}
                     placeholder="添加新项"
                     size="sm"
                     value={newKey}
@@ -181,7 +182,7 @@ const SchemaRecordEditor: React.FC<SchemaRecordEditorProps> = ({ path, value, it
                         }
                     }}
                 />
-                <Button isDisabled={!newKey.trim() || items[newKey.trim()] !== undefined} size="sm" onPress={addItem}>
+                <Button className="h-8 min-h-8" isDisabled={!newKey.trim() || items[newKey.trim()] !== undefined} size="sm" onPress={addItem}>
                     <Plus className="w-4 h-4 mr-1" />
                     添加
                 </Button>
@@ -190,16 +191,22 @@ const SchemaRecordEditor: React.FC<SchemaRecordEditorProps> = ({ path, value, it
             {/* 局部展开/折叠按钮 */}
             {searchContext && allExpandablePaths.length > 0 && (
                 <div className="flex justify-end gap-2">
-                    <Button size="sm" startContent={<ChevronDown className="w-3 h-3" />} variant="light" onPress={handleExpandAll}>
+                    <Button className="h-6 min-h-6 text-xs" size="sm" startContent={<ChevronDown className="w-3 h-3" />} variant="light" onPress={handleExpandAll}>
                         展开全部
                     </Button>
-                    <Button size="sm" startContent={<ChevronUp className="w-3 h-3" />} variant="light" onPress={handleCollapseAll}>
+                    <Button className="h-6 min-h-6 text-xs" size="sm" startContent={<ChevronUp className="w-3 h-3" />} variant="light" onPress={handleCollapseAll}>
                         折叠全部
                     </Button>
                 </div>
             )}
 
             <Accordion
+                isCompact
+                itemClasses={{
+                    title: "text-sm",
+                    subtitle: "text-xs",
+                    content: "py-2"
+                }}
                 selectedKeys={selectedKeys}
                 selectionMode="multiple"
                 variant="bordered"
@@ -239,21 +246,21 @@ const SchemaRecordEditor: React.FC<SchemaRecordEditorProps> = ({ path, value, it
                         <AccordionItem
                             key={key}
                             startContent={
-                                <Chip size="sm" variant="flat">
+                                <Chip className="h-5 text-xs" size="sm" variant="flat">
                                     📦
                                 </Chip>
                             }
                             title={
                                 <div className="flex items-center justify-between w-full pr-4">
-                                    <span className="font-medium">{highlightedKey}</span>
+                                    <span className="font-medium text-sm">{highlightedKey}</span>
                                 </div>
                             }
                         >
-                            <div className="space-y-4 p-2">
+                            <div className="space-y-2 p-2 pt-0">
                                 {renderItem(itemPath, itemSchema, itemValue)}
 
-                                <Button color="danger" size="sm" variant="flat" onPress={() => removeItem(key)}>
-                                    <Trash2 className="w-4 h-4 mr-1" />
+                                <Button className="h-7 min-h-7 text-xs" color="danger" size="sm" variant="flat" onPress={() => removeItem(key)}>
+                                    <Trash2 className="w-3 h-3 mr-1" />
                                     删除
                                 </Button>
                             </div>
