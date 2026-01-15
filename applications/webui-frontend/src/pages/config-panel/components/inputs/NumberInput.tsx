@@ -11,14 +11,21 @@ import { Input } from "@heroui/input";
  */
 const NumberInput: React.FC<NumberInputProps> = ({ label, labelNode, path, value, description, min, max, onChange, error }) => {
     return (
-        <div className="flex items-center">
+        <div className="flex items-center min-h-8">
             <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <Input
+                classNames={{
+                    inputWrapper: "h-8 min-h-8",
+                    input: "text-xs",
+                    description: "text-xs",
+                    errorMessage: "text-xs"
+                }}
                 description={description}
                 errorMessage={error}
                 isInvalid={!!error}
                 max={max}
                 min={min}
+                size="sm"
                 type="number"
                 value={value?.toString() || "0"}
                 onChange={e => onChange(path, parseFloat(e.target.value) || 0)}

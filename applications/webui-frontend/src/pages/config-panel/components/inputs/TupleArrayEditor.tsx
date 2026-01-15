@@ -10,39 +10,17 @@ import React, { useState } from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
 import { Chip } from "@heroui/chip";
-import { Card, CardBody, CardHeader } from "@heroui/card";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import { Plus, Trash2 } from "lucide-react";
-
-/**
- * 单个元组项的编辑器
- */
-interface TupleItemEditorProps {
-    /** 元组索引 */
-    index: number;
-    /** 第一个数组的值 */
-    firstArray: string[];
-    /** 第二个数组的值 */
-    secondArray: string[];
-    /** 第一个数组的标签 */
-    firstLabel: string;
-    /** 第二个数组的标签 */
-    secondLabel: string;
-    /** 当第一个数组变化时的回调 */
-    onFirstChange: (value: string[]) => void;
-    /** 当第二个数组变化时的回调 */
-    onSecondChange: (value: string[]) => void;
-    /** 删除此元组项的回调 */
-    onDelete: () => void;
-}
 
 /**
  * 内联字符串数组编辑器
  */
 const InlineStringArrayEditor: React.FC<{
-    label: string;
     value: string[];
     onChange: (value: string[]) => void;
-}> = ({ label, value, onChange }) => {
+    placeholder?: string;
+}> = ({ value, onChange, placeholder }) => {
     const [newItem, setNewItem] = useState("");
     const items = Array.isArray(value) ? value : [];
 
@@ -58,18 +36,18 @@ const InlineStringArrayEditor: React.FC<{
     };
 
     return (
-        <div className="space-y-2">
-            <label className="text-xs font-medium text-default-600">{label}</label>
-            <div className="flex flex-wrap gap-1 min-h-[28px]">
+        <div className="min-w-[150px] max-w-sm">
+            <div className="flex flex-wrap gap-1 mb-1">
                 {items.map((item, index) => (
-                    <Chip key={index} size="sm" variant="flat" onClose={() => removeItem(index)}>
-                        {item}
+                    <Chip key={index} className="h-6 text-xs max-w-full" size="sm" variant="flat" onClose={() => removeItem(index)}>
+                        <span className="truncate">{item}</span>
                     </Chip>
                 ))}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
                 <Input
-                    placeholder={`添加${label}`}
+                    classNames={{ input: "text-xs", inputWrapper: "h-7 min-h-7" }}
+                    placeholder={placeholder}
                     size="sm"
                     value={newItem}
                     onChange={e => setNewItem(e.target.value)}
@@ -80,31 +58,11 @@ const InlineStringArrayEditor: React.FC<{
                         }
                     }}
                 />
-                <Button isIconOnly isDisabled={!newItem.trim()} size="sm" variant="flat" onPress={addItem}>
+                <Button isIconOnly className="h-7 min-w-7 w-7" isDisabled={!newItem.trim()} size="sm" variant="flat" onPress={addItem}>
                     <Plus className="w-3 h-3" />
                 </Button>
             </div>
         </div>
-    );
-};
-
-/**
- * 单个元组项的编辑器
- */
-const TupleItemEditor: React.FC<TupleItemEditorProps> = ({ index, firstArray, secondArray, firstLabel, secondLabel, onFirstChange, onSecondChange, onDelete }) => {
-    return (
-        <Card className="shadow-sm">
-            <CardHeader className="flex justify-between items-center py-2 px-4">
-                <span className="text-sm font-medium">#{index + 1}</span>
-                <Button isIconOnly color="danger" size="sm" variant="light" onPress={onDelete}>
-                    <Trash2 className="w-4 h-4" />
-                </Button>
-            </CardHeader>
-            <CardBody className="pt-0 pb-3 px-4 space-y-3">
-                <InlineStringArrayEditor label={firstLabel} value={firstArray} onChange={onFirstChange} />
-                <InlineStringArrayEditor label={secondLabel} value={secondArray} onChange={onSecondChange} />
-            </CardBody>
-        </Card>
     );
 };
 
@@ -174,31 +132,50 @@ const TupleArrayEditor: React.FC<TupleArrayEditorProps> = ({ label, labelNode, p
     };
 
     return (
-        <div className="flex items-start">
-            <label className="text-sm font-medium w-40 shrink-0 pt-2">{labelNode || label}</label>
-            <div className="flex-1 space-y-3">
-                {description && <p className="text-sm text-default-500">{description}</p>}
-
-                <div className="space-y-3">
-                    {items.map((item, index) => (
-                        <TupleItemEditor
-                            key={index}
-                            firstArray={item[0]}
-                            firstLabel={firstItemLabel}
-                            index={index}
-                            secondArray={item[1]}
-                            secondLabel={secondItemLabel}
-                            onDelete={() => removeItem(index)}
-                            onFirstChange={newValue => updateFirst(index, newValue)}
-                            onSecondChange={newValue => updateSecond(index, newValue)}
-                        />
-                    ))}
+        <div className="space-y-2 max-w-5xl">
+            <div className="flex justify-between items-end">
+                <div>
+                    <label className="text-sm font-medium block">{labelNode || label}</label>
+                    {description && <p className="text-xs text-default-500 mt-0.5">{description}</p>}
                 </div>
-
-                <Button className="w-full" size="sm" startContent={<Plus className="w-4 h-4" />} variant="flat" onPress={addItem}>
+                <Button className="h-7" size="sm" startContent={<Plus className="w-3 h-3" />} variant="flat" onPress={addItem}>
                     添加条目
                 </Button>
             </div>
+
+            <Table
+                isCompact
+                aria-label={label || "Tuple Array Editor"}
+                classNames={{ wrapper: "p-0 shadow-none border border-default-200 rounded-lg overflow-x-auto", th: "h-8 min-h-8 text-xs bg-default-100", td: "py-2" }}
+                layout="fixed"
+            >
+                <TableHeader>
+                    <TableColumn className="w-10 text-center">#</TableColumn>
+                    <TableColumn>{firstItemLabel}</TableColumn>
+                    <TableColumn>{secondItemLabel}</TableColumn>
+                    <TableColumn className="w-10 text-center">操作</TableColumn>
+                </TableHeader>
+                <TableBody emptyContent="点击上方“添加条目”按钮开始添加">
+                    {items.map((item, index) => (
+                        <TableRow key={index}>
+                            <TableCell className="text-xs text-default-400 text-center align-top pt-3">{index + 1}</TableCell>
+                            <TableCell className="align-top">
+                                <InlineStringArrayEditor placeholder={`添加${firstItemLabel}`} value={item[0]} onChange={newValue => updateFirst(index, newValue)} />
+                            </TableCell>
+                            <TableCell className="align-top">
+                                <InlineStringArrayEditor placeholder={`添加${secondItemLabel}`} value={item[1]} onChange={newValue => updateSecond(index, newValue)} />
+                            </TableCell>
+                            <TableCell className="align-top pt-2">
+                                <div className="flex justify-center">
+                                    <Button isIconOnly className="h-7 w-7 min-w-7" color="danger" size="sm" variant="light" onPress={() => removeItem(index)}>
+                                        <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
         </div>
     );
 };

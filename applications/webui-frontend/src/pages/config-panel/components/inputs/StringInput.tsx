@@ -18,19 +18,26 @@ const StringInput: React.FC<StringInputProps> = ({ label, labelNode, path, value
     const isSensitive = isSensitiveField(path);
 
     return (
-        <div className="flex items-center">
+        <div className="flex items-center min-h-8">
             <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <Input
+                classNames={{
+                    inputWrapper: "h-8 min-h-8",
+                    input: "text-xs",
+                    description: "text-xs",
+                    errorMessage: "text-xs"
+                }}
                 description={description}
                 endContent={
                     isSensitive && (
                         <button className="focus:outline-none" type="button" onClick={() => setShowPassword(!showPassword)}>
-                            {showPassword ? <EyeOff className="w-4 h-4 text-default-400" /> : <Eye className="w-4 h-4 text-default-400" />}
+                            {showPassword ? <EyeOff className="w-3 h-3 text-default-400" /> : <Eye className="w-3 h-3 text-default-400" />}
                         </button>
                     )
                 }
                 errorMessage={error}
                 isInvalid={!!error}
+                size="sm"
                 type={isSensitive && !showPassword ? "password" : "text"}
                 value={value || ""}
                 onChange={e => onChange(path, e.target.value)}

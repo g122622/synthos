@@ -11,11 +11,11 @@ import { Switch } from "@heroui/switch";
  */
 const BooleanSwitch: React.FC<BooleanSwitchProps> = ({ label, labelNode, path, value, description, onChange }) => {
     return (
-        <div className="flex items-center">
+        <div className="flex items-center min-h-8">
             <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <div className="flex items-center gap-2">
-                <Switch isSelected={!!value} onValueChange={v => onChange(path, v)} />
-                {description && <span className="text-sm text-default-500">{description}</span>}
+                <Switch isSelected={!!value} size="sm" onValueChange={v => onChange(path, v)} />
+                {description && <span className="text-xs text-default-500">{description}</span>}
             </div>
         </div>
     );

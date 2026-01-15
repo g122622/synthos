@@ -11,13 +11,20 @@ import { Select, SelectItem } from "@heroui/select";
  */
 const EnumSelect: React.FC<EnumSelectProps> = ({ label, labelNode, path, value, options, description, onChange, error }) => {
     return (
-        <div className="flex items-center">
+        <div className="flex items-center min-h-8">
             <label className="text-sm font-medium w-40 shrink-0">{labelNode || label}</label>
             <Select
+                classNames={{
+                    trigger: "h-8 min-h-8",
+                    value: "text-xs",
+                    description: "text-xs",
+                    errorMessage: "text-xs"
+                }}
                 description={description}
                 errorMessage={error}
                 isInvalid={!!error}
                 selectedKeys={value ? [value] : []}
+                size="sm"
                 onSelectionChange={keys => {
                     const selected = Array.from(keys)[0];
 
@@ -27,7 +34,9 @@ const EnumSelect: React.FC<EnumSelectProps> = ({ label, labelNode, path, value, 
                 }}
             >
                 {options.map(option => (
-                    <SelectItem key={option}>{option}</SelectItem>
+                    <SelectItem key={option} className="text-xs">
+                        {option}
+                    </SelectItem>
                 ))}
             </Select>
         </div>
