@@ -89,6 +89,22 @@ export interface StringArrayEditorProps {
     onChange: (path: string, value: string[]) => void;
 }
 
+/** 元组数组编辑组件 Props */
+export interface TupleArrayEditorProps {
+    label: string;
+    /** 可选的 React 节点形式的标签，用于显示高亮文本 */
+    labelNode?: React.ReactNode;
+    path: string;
+    /** 元组数组值，每个元组包含两个字符串数组 */
+    value: [string[], string[]][];
+    description?: string;
+    /** 第一个数组项的标签 */
+    firstItemLabel?: string;
+    /** 第二个数组项的标签 */
+    secondItemLabel?: string;
+    onChange: (path: string, value: [string[], string[]][]) => void;
+}
+
 /** Record 编辑器 Props */
 export interface RecordEditorProps {
     path: string;

@@ -28,6 +28,7 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { VectorDBManager } from "./embedding/VectorDBManager";
 import { setupRPC } from "./rpc/setupRPC";
+import "./context/middleware/registerAll";
 
 const LOGGER = Logger.withTag("🤖 ai-model-root-script");
 

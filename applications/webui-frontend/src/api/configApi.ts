@@ -28,7 +28,12 @@ export interface JsonSchema {
     properties?: Record<string, JsonSchema>;
     required?: string[];
 
-    items?: JsonSchema;
+    /** 数组项的 schema，可以是单个 schema 或 schema 数组（用于 tuple） */
+    items?: JsonSchema | JsonSchema[];
+    /** 数组最小长度（用于 tuple 类型） */
+    minItems?: number;
+    /** 数组最大长度（用于 tuple 类型） */
+    maxItems?: number;
     enum?: string[];
 
     minimum?: number;

@@ -6,3 +6,4 @@ export { default as NumberInput } from "./NumberInput";
 export { default as BooleanSwitch } from "./BooleanSwitch";
 export { default as EnumSelect } from "./EnumSelect";
 export { default as StringArrayEditor } from "./StringArrayEditor";
+export { default as TupleArrayEditor } from "./TupleArrayEditor";

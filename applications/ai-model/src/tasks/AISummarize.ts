@@ -57,7 +57,7 @@ export class AISummarizeTaskHandler {
                     return;
                 }
 
-                const pooledTextGenerator = new PooledTextGenerator(3); // 并行度=5
+                const pooledTextGenerator = new PooledTextGenerator(config.ai.maxConcurrentRequests);
                 await pooledTextGenerator.init();
                 const ctxBuilder = new IMSummaryCtxBuilder();
                 await ctxBuilder.init();

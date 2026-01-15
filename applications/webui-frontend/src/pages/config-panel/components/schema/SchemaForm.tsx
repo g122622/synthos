@@ -16,7 +16,7 @@ import { Accordion, AccordionItem } from "@heroui/accordion";
 import { Button } from "@heroui/button";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { BooleanSwitch, EnumSelect, NumberInput, StringArrayEditor, StringInput } from "../inputs/index";
+import { BooleanSwitch, EnumSelect, NumberInput, StringArrayEditor, StringInput, TupleArrayEditor } from "../inputs/index";
 import { highlightText, isFieldMatchingSearch, collectAllExpandablePaths } from "../../utils/index";
 
 import SchemaRecordEditor from "./SchemaRecordEditor";
@@ -427,8 +427,67 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
     if (schemaType === "array") {
         const itemsSchema = schema.items;
 
+        // 检查是否为 tuple 数组类型：array of tuple([string[], string[]])
+        // zod-to-json-schema 会将 tuple 转换为 items 数组 + minItems/maxItems 的结构
+        // 例如：{ type: "array", items: { type: "array", minItems: 2, maxItems: 2, items: [...] } }
+        if (
+            itemsSchema &&
+            !Array.isArray(itemsSchema) &&
+            itemsSchema.type === "array" &&
+            itemsSchema.minItems === 2 &&
+            itemsSchema.maxItems === 2 &&
+            Array.isArray(itemsSchema.items) &&
+            itemsSchema.items.length === 2
+        ) {
+            const tupleItems = itemsSchema.items;
+            const firstItemSchema = tupleItems[0];
+            const secondItemSchema = tupleItems[1];
+
+            // 检查每个 tuple 元素是否为 string[]
+            if (
+                firstItemSchema.type === "array" &&
+                firstItemSchema.items &&
+                !Array.isArray(firstItemSchema.items) &&
+                getSchemaRenderType(firstItemSchema.items) === "string" &&
+                secondItemSchema.type === "array" &&
+                secondItemSchema.items &&
+                !Array.isArray(secondItemSchema.items) &&
+                getSchemaRenderType(secondItemSchema.items) === "string"
+            ) {
+                const fieldValue = Array.isArray(rootValue) ? (rootValue as [string[], string[]][]) : [];
+                const { label, description } = getLabelAndDescription(schema, path.split(".").slice(-1)[0]);
+
+                // 从每个 tuple 元素的 description 获取标签
+                const firstLabel = firstItemSchema.description || "第一项";
+                const secondLabel = secondItemSchema.description || "第二项";
+
+                // 检查是否匹配搜索条件
+                if (searchQuery && !isFieldMatchingSearch(searchQuery, label, description, path)) {
+                    return null;
+                }
+
+                // 高亮标题和描述
+                const highlightedLabel = searchQuery ? highlightText(label, searchQuery) : label;
+                const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
+
+                return (
+                    <TupleArrayEditor
+                        description={typeof highlightedDescription === "string" ? highlightedDescription : undefined}
+                        firstItemLabel={firstLabel}
+                        label={typeof highlightedLabel === "string" ? highlightedLabel : label}
+                        labelNode={typeof highlightedLabel !== "string" ? highlightedLabel : undefined}
+                        path={path}
+                        secondItemLabel={secondLabel}
+                        value={fieldValue}
+                        onChange={onFieldChange}
+                    />
+                );
+            }
+        }
+
         // 目前配置项中主要使用 string[]，其余类型后续有需要再扩展。
-        if (itemsSchema && getSchemaRenderType(itemsSchema) === "string") {
+        // 注意：itemsSchema 可能是数组（tuple 类型），这里只处理非数组的情况
+        if (itemsSchema && !Array.isArray(itemsSchema) && getSchemaRenderType(itemsSchema) === "string") {
             const fieldValue = Array.isArray(rootValue) ? (rootValue as string[]) : [];
             const { label, description } = getLabelAndDescription(schema, path.split(".").slice(-1)[0]);
 

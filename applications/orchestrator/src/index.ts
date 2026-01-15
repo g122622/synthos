@@ -102,59 +102,59 @@ class OrchestratorApplication {
                 // }
                 // await job.touch();
 
-                // ==================== 步骤 3: AISummarize ====================
-                LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
-                const aiSummarizeSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.AISummarize,
-                    {
-                        groupIds,
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-                if (!aiSummarizeSuccess) {
-                    LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
-                    job.fail("AISummarize task failed");
-                    return;
-                }
-                await job.touch();
+                // // ==================== 步骤 3: AISummarize ====================
+                // LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
+                // const aiSummarizeSuccess = await scheduleAndWaitForJob(
+                //     TaskHandlerTypes.AISummarize,
+                //     {
+                //         groupIds,
+                //         startTimeStamp,
+                //         endTimeStamp
+                //     },
+                //     POLL_INTERVAL,
+                //     TASK_TIMEOUT
+                // );
+                // if (!aiSummarizeSuccess) {
+                //     LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
+                //     job.fail("AISummarize task failed");
+                //     return;
+                // }
+                // await job.touch();
 
-                // ==================== 步骤 4: GenerateEmbedding ====================
-                LOGGER.info("📐 [4/5] 开始执行 GenerateEmbedding 任务...");
-                const generateEmbeddingSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.GenerateEmbedding,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-                if (!generateEmbeddingSuccess) {
-                    LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
-                    job.fail("GenerateEmbedding task failed");
-                    return;
-                }
-                await job.touch();
+                // // ==================== 步骤 4: GenerateEmbedding ====================
+                // LOGGER.info("📐 [4/5] 开始执行 GenerateEmbedding 任务...");
+                // const generateEmbeddingSuccess = await scheduleAndWaitForJob(
+                //     TaskHandlerTypes.GenerateEmbedding,
+                //     {
+                //         startTimeStamp,
+                //         endTimeStamp
+                //     },
+                //     POLL_INTERVAL,
+                //     TASK_TIMEOUT
+                // );
+                // if (!generateEmbeddingSuccess) {
+                //     LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
+                //     job.fail("GenerateEmbedding task failed");
+                //     return;
+                // }
+                // await job.touch();
 
-                // ==================== 步骤 5: InterestScore ====================
-                LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
-                const interestScoreSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.InterestScore,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-                if (!interestScoreSuccess) {
-                    LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-                    job.fail("InterestScore task failed");
-                    return;
-                }
+                // // ==================== 步骤 5: InterestScore ====================
+                // LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
+                // const interestScoreSuccess = await scheduleAndWaitForJob(
+                //     TaskHandlerTypes.InterestScore,
+                //     {
+                //         startTimeStamp,
+                //         endTimeStamp
+                //     },
+                //     POLL_INTERVAL,
+                //     TASK_TIMEOUT
+                // );
+                // if (!interestScoreSuccess) {
+                //     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
+                //     job.fail("InterestScore task failed");
+                //     return;
+                // }
 
                 LOGGER.success(`🎉 Pipeline 任务全部完成！`);
             },

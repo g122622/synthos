@@ -133,6 +133,29 @@ export const GlobalConfigSchema = z.object({
             defaultModelConfig: ModelConfigSchema.describe("默认模型配置"),
             defaultModelName: z.string().describe("默认模型名称"),
             pinnedModels: z.array(z.string()).describe("固定模型列表"),
+            maxConcurrentRequests: z
+                .number()
+                .positive()
+                .int()
+                .describe("最大并发请求数，用于文本生成器池，太小了会导致吞吐量下降，太大了可能会被服务商限流"),
+            context: z
+                .object({
+                    backgroundKnowledge: z
+                        .object({
+                            enabled: z.boolean().describe("是否启用背景知识补充"),
+                            maxKnowledgeEntries: z.number().positive().int().describe("每次补充的最大知识条目数"),
+                            knowledgeBase: z
+                                .array(
+                                    z.tuple([
+                                        z.array(z.string()).describe("关键词列表"),
+                                        z.array(z.string()).describe("解释列表")
+                                    ])
+                                )
+                                .describe("背景知识库")
+                        })
+                        .describe("背景知识补充配置")
+                })
+                .describe("上下文相关配置"),
             interestScore: z
                 .object({
                     UserInterestsPositiveKeywords: z.array(z.string()).describe("正向关键词"),
