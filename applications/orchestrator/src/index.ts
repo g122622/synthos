@@ -53,8 +53,8 @@ class OrchestratorApplication {
             async job => {
                 LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
                 config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
-                const startTimeStamp = 1730736000000;
-                const endTimeStamp = 1760889600000;
+                const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours);
+                const endTimeStamp = Date.now();
 
                 const groupIds = Object.keys(config.groupConfigs);
                 LOGGER.info(`Pipeline 配置 - 处理群组: ${groupIds.join(", ")}`);
@@ -63,105 +63,105 @@ class OrchestratorApplication {
                 const TASK_TIMEOUT = 90 * 60 * 1000; // 90分钟
                 const POLL_INTERVAL = 5000; // 5秒
 
-                // // ==================== 步骤 1: ProvideData ====================
-                // LOGGER.info("📥 [1/5] 开始执行 ProvideData 任务...");
-                // const provideDataSuccess = await scheduleAndWaitForJob(
-                //     TaskHandlerTypes.ProvideData,
-                //     {
-                //         IMType: IMTypes.QQ, // TODO: 支持多种 IM 类型
-                //         groupIds,
-                //         startTimeStamp,
-                //         endTimeStamp
-                //     },
-                //     POLL_INTERVAL,
-                //     TASK_TIMEOUT
-                // );
-                // if (!provideDataSuccess) {
-                //     LOGGER.error("❌ ProvideData 任务失败，Pipeline 终止");
-                //     job.fail("ProvideData task failed");
-                //     return;
-                // }
-                // await job.touch();
+                // ==================== 步骤 1: ProvideData ====================
+                LOGGER.info("📥 [1/5] 开始执行 ProvideData 任务...");
+                const provideDataSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.ProvideData,
+                    {
+                        IMType: IMTypes.QQ, // TODO: 支持多种 IM 类型
+                        groupIds,
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!provideDataSuccess) {
+                    LOGGER.error("❌ ProvideData 任务失败，Pipeline 终止");
+                    job.fail("ProvideData task failed");
+                    return;
+                }
+                await job.touch();
 
-                // // ==================== 步骤 2: Preprocess ====================
-                // LOGGER.info("🔧 [2/5] 开始执行 Preprocess 任务...");
-                // const preprocessSuccess = await scheduleAndWaitForJob(
-                //     TaskHandlerTypes.Preprocess,
-                //     {
-                //         groupIds,
-                //         startTimeStamp,
-                //         endTimeStamp
-                //     },
-                //     POLL_INTERVAL,
-                //     TASK_TIMEOUT
-                // );
-                // if (!preprocessSuccess) {
-                //     LOGGER.error("❌ Preprocess 任务失败，Pipeline 终止");
-                //     job.fail("Preprocess task failed");
-                //     return;
-                // }
-                // await job.touch();
+                // ==================== 步骤 2: Preprocess ====================
+                LOGGER.info("🔧 [2/5] 开始执行 Preprocess 任务...");
+                const preprocessSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.Preprocess,
+                    {
+                        groupIds,
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!preprocessSuccess) {
+                    LOGGER.error("❌ Preprocess 任务失败，Pipeline 终止");
+                    job.fail("Preprocess task failed");
+                    return;
+                }
+                await job.touch();
 
-                // // ==================== 步骤 3: AISummarize ====================
-                // LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
-                // const aiSummarizeSuccess = await scheduleAndWaitForJob(
-                //     TaskHandlerTypes.AISummarize,
-                //     {
-                //         groupIds,
-                //         startTimeStamp,
-                //         endTimeStamp
-                //     },
-                //     POLL_INTERVAL,
-                //     TASK_TIMEOUT
-                // );
-                // if (!aiSummarizeSuccess) {
-                //     LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
-                //     job.fail("AISummarize task failed");
-                //     return;
-                // }
-                // await job.touch();
+                // ==================== 步骤 3: AISummarize ====================
+                LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
+                const aiSummarizeSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.AISummarize,
+                    {
+                        groupIds,
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!aiSummarizeSuccess) {
+                    LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
+                    job.fail("AISummarize task failed");
+                    return;
+                }
+                await job.touch();
 
-                // // ==================== 步骤 4: GenerateEmbedding ====================
-                // LOGGER.info("📐 [4/5] 开始执行 GenerateEmbedding 任务...");
-                // const generateEmbeddingSuccess = await scheduleAndWaitForJob(
-                //     TaskHandlerTypes.GenerateEmbedding,
-                //     {
-                //         startTimeStamp,
-                //         endTimeStamp
-                //     },
-                //     POLL_INTERVAL,
-                //     TASK_TIMEOUT
-                // );
-                // if (!generateEmbeddingSuccess) {
-                //     LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
-                //     job.fail("GenerateEmbedding task failed");
-                //     return;
-                // }
-                // await job.touch();
+                // ==================== 步骤 4: GenerateEmbedding ====================
+                LOGGER.info("📐 [4/5] 开始执行 GenerateEmbedding 任务...");
+                const generateEmbeddingSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.GenerateEmbedding,
+                    {
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!generateEmbeddingSuccess) {
+                    LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
+                    job.fail("GenerateEmbedding task failed");
+                    return;
+                }
+                await job.touch();
 
-                // // ==================== 步骤 5: InterestScore ====================
-                // LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
-                // const interestScoreSuccess = await scheduleAndWaitForJob(
-                //     TaskHandlerTypes.InterestScore,
-                //     {
-                //         startTimeStamp,
-                //         endTimeStamp
-                //     },
-                //     POLL_INTERVAL,
-                //     TASK_TIMEOUT
-                // );
-                // if (!interestScoreSuccess) {
-                //     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-                //     job.fail("InterestScore task failed");
-                //     return;
-                // }
+                // ==================== 步骤 5: InterestScore ====================
+                LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
+                const interestScoreSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.InterestScore,
+                    {
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!interestScoreSuccess) {
+                    LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
+                    job.fail("InterestScore task failed");
+                    return;
+                }
 
                 LOGGER.success(`🎉 Pipeline 任务全部完成！`);
             },
             {
                 concurrency: 1,
                 priority: "high",
-                lockLifetime: 900 * 60 * 1000 // 900min（Pipeline 整体超时）
+                lockLifetime: 90 * 60 * 1000 // 90min（Pipeline 整体超时）
             }
         );
 
