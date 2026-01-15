@@ -63,7 +63,7 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
     const typeConfig = getTypeConfig(report.type);
 
     return (
-        <Modal isOpen={isOpen} scrollBehavior="inside" size="3xl" onClose={onClose}>
+        <Modal isOpen={isOpen} scrollBehavior="inside" size="5xl" onClose={onClose}>
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1">
                     <div className="flex items-center gap-3">

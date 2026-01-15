@@ -603,7 +603,7 @@ export default function ConfigPage() {
             </section>
 
             {/* 配置对比模态框 */}
-            <Modal className="pt-2" isOpen={isOpen} scrollBehavior="inside" size="5xl" onOpenChange={onOpenChange}>
+            <Modal className="pt-2 max-w-7xl" isOpen={isOpen} scrollBehavior="inside" onOpenChange={onOpenChange}>
                 <ModalContent>
                     {onClose => (
                         <>
