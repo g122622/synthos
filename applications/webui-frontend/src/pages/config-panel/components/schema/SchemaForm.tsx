@@ -414,7 +414,7 @@ const SchemaForm: React.FC<SchemaFormProps> = ({ path, rootValue, schema, errors
                                 const highlightedDescription = searchQuery && description ? highlightText(description, searchQuery) : description;
 
                                 return (
-                                    <AccordionItem key={field.key} className="pt-2 pl-1" subtitle={highlightedDescription} title={highlightedLabel}>
+                                    <AccordionItem key={field.key} className="pt-2 pl-1 pb-2 pr-1" subtitle={highlightedDescription} title={highlightedLabel}>
                                         <div className="p-2 pt-0">
                                             <SchemaForm errors={errors} path={fieldPath} rootValue={field.value} schema={field.schema} searchContext={searchContext} onFieldChange={onFieldChange} />
                                         </div>
