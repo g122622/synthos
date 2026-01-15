@@ -122,7 +122,25 @@ class ConfigManagerService {
             throw new Error(`配置验证失败: ${validationResult.error.message}`);
         }
 
-        await writeFile(overridePath, JSON.stringify(config, null, 2), "utf8");
+        await writeFile(overridePath, JSON.stringify(config, null, 4), "utf8");
+    }
+
+    /**
+     * 保存基础配置
+     * @param config 要保存的基础配置（全量）
+     */
+    public async saveBaseConfig(config: GlobalConfig): Promise<void> {
+        const configPath = await this.getConfigPath();
+        ASSERT(configPath, "无法确定基础配置文件路径");
+
+        // 验证配置格式（全量验证）
+        const validationResult = GlobalConfigSchema.safeParse(config);
+        if (!validationResult.success) {
+            const errors = validationResult.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
+            throw new Error(`配置验证失败:\n${errors}`);
+        }
+
+        await writeFile(configPath, JSON.stringify(config, null, 4), "utf8");
     }
 
     /**

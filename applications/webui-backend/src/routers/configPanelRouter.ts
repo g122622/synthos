@@ -31,6 +31,12 @@ export const setupConfigPanelRoutes = (app: Express): void => {
         asyncHandler((req, res) => configController.getBaseConfig(req, res))
     );
 
+    // 保存基础配置
+    app.post(
+        "/api/config/base",
+        asyncHandler((req, res) => configController.saveBaseConfig(req, res))
+    );
+
     // 获取 override 配置
     app.get(
         "/api/config/override",

@@ -106,6 +106,19 @@ export const saveOverrideConfig = async (config: Record<string, unknown>): Promi
 };
 
 /**
+ * 保存基础配置
+ */
+export const saveBaseConfig = async (config: Record<string, unknown>): Promise<ApiResponse<{ message: string }>> => {
+    const response = await fetchWrapper(`${API_BASE_URL}/api/config/base`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+    });
+
+    return response.json();
+};
+
+/**
  * 验证配置
  */
 export const validateConfig = async (config: Record<string, unknown>, partial: boolean): Promise<ApiResponse<ConfigValidationResult>> => {

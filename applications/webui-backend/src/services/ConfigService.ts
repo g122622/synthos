@@ -51,6 +51,13 @@ export class ConfigService {
     }
 
     /**
+     * 保存基础配置
+     */
+    async saveBaseConfig(config: GlobalConfig): Promise<void> {
+        return this.configManagerService.saveBaseConfig(config);
+    }
+
+    /**
      * 验证完整配置
      */
     validateConfig(config: unknown): { success: true } | { success: false; errors: string[] } {

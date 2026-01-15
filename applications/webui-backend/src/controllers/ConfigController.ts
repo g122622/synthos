@@ -43,6 +43,20 @@ export class ConfigController {
     }
 
     /**
+     * POST /api/config/base
+     * 保存基础配置
+     */
+    async saveBaseConfig(req: Request, res: Response): Promise<void> {
+        const config = req.body;
+        try {
+            await this.configService.saveBaseConfig(config);
+            res.json({ success: true, message: "基础配置保存成功" });
+        } catch (error: any) {
+            res.status(400).json({ success: false, error: error.message });
+        }
+    }
+
+    /**
      * GET /api/config/override
      * 获取 override 配置
      */

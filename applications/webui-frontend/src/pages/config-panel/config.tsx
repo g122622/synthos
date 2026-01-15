@@ -8,6 +8,9 @@ import type { SectionConfig, SearchContext, ValidationError } from "./types/inde
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@heroui/button";
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react";
+import { useTheme } from "@heroui/use-theme";
+import { DiffEditor } from "@monaco-editor/react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Spinner } from "@heroui/spinner";
 import { Chip } from "@heroui/chip";
@@ -17,7 +20,7 @@ import { DEFAULT_SECTION_ICON, PREFERRED_SECTION_ORDER, SECTION_ICON_MAP } from 
 import { setNestedValue, collectAllExpandablePaths, getParentPaths, doesSchemaHaveMatchingFields } from "./utils/index";
 import { ConfigSidebar, SchemaForm } from "./components/index";
 
-import { getConfigSchema, getCurrentConfig, saveOverrideConfig, validateConfig } from "@/api/configApi";
+import { getConfigSchema, getCurrentConfig, saveBaseConfig, validateConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
@@ -148,6 +151,7 @@ const buildSectionsFromSchema = (schema: JsonSchema): SectionConfig[] => {
 };
 
 export default function ConfigPage() {
+    const { theme } = useTheme();
     const [config, setConfig] = useState<Record<string, unknown>>({});
     const [schema, setSchema] = useState<JsonSchema | null>(null);
 
@@ -164,6 +168,12 @@ export default function ConfigPage() {
     const [searchQuery, setSearchQuery] = useState<string>("");
     // 当前展开的路径集合
     const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
+    // 配置文件对比 Modal
+    const { isOpen, onOpen, onOpenChange } = useDisclosure();
+    const [baseConfigForDiff, setBaseConfigForDiff] = useState<string>("");
+    const [newConfigForDiff, setNewConfigForDiff] = useState<string>("");
+    const [showOnlyChanges, setShowOnlyChanges] = useState<boolean>(true);
 
     const sections = useMemo(() => {
         if (!schema) {
@@ -411,21 +421,17 @@ export default function ConfigPage() {
         [validateConfigDebounced]
     );
 
-    // 保存配置
-    const handleSave = async () => {
-        if (errors.length > 0) {
-            Notification.error({ title: "保存失败", description: "配置存在错误，请先修复后再保存" });
-
-            return;
-        }
-
+    // 确认保存配置
+    const confirmSave = async (onClose: () => void) => {
         setIsSaving(true);
+        onClose(); // 关闭模态框
+
         try {
-            const response = await saveOverrideConfig(config);
+            const response = await saveBaseConfig(config);
 
             if (response.success) {
                 setSaveStatus("success");
-                Notification.success({ title: "保存成功", description: "配置已成功保存" });
+                Notification.success({ title: "保存成功", description: "基础配置已成功更新" });
                 setTimeout(() => setSaveStatus("idle"), 3000);
             } else {
                 setSaveStatus("error");
@@ -434,6 +440,39 @@ export default function ConfigPage() {
         } catch (error) {
             setSaveStatus("error");
             console.error("保存配置失败:", error);
+            Notification.error({ title: "保存异常", description: String(error) });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    // 点击保存按钮，弹出对比模态框
+    const handleSave = async () => {
+        if (errors.length > 0) {
+            Notification.error({ title: "无法保存", description: "配置存在错误，请先修复后再保存" });
+
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            // 获取当前服务器端的最新配置，用于对比
+            const response = await getCurrentConfig();
+
+            if (response.success) {
+                const currentServerConfig = response.data;
+
+                // 设置 Diff 数据
+                setBaseConfigForDiff(JSON.stringify(currentServerConfig, null, 2));
+                setNewConfigForDiff(JSON.stringify(config, null, 2));
+
+                onOpen(); // 打开对比模态框
+            } else {
+                Notification.error({ title: "获取配置失败", description: "无法获取最新的配置进行对比" });
+            }
+        } catch (error) {
+            console.error("准备保存失败:", error);
+            Notification.error({ title: "准备保存失败", description: "无法准备配置对比信息" });
         } finally {
             setIsSaving(false);
         }
@@ -562,6 +601,56 @@ export default function ConfigPage() {
                     <div className="flex-1 space-y-6">{renderSections}</div>
                 </div>
             </section>
+
+            {/* 配置对比模态框 */}
+            <Modal className="pt-2" isOpen={isOpen} scrollBehavior="inside" size="5xl" onOpenChange={onOpenChange}>
+                <ModalContent>
+                    {onClose => (
+                        <>
+                            <ModalHeader className="flex flex-col gap-1">
+                                <div className="flex items-center gap-2 font-semibold text-lg">
+                                    <span>配置变更对比</span>
+                                    <Button size="sm" variant="flat" onPress={() => setShowOnlyChanges(prev => !prev)}>
+                                        当前状态：{!showOnlyChanges ? "展示文件全部内容" : "只展示变更区域"}
+                                    </Button>
+                                </div>
+                                <p className="text-sm font-normal text-default-500">
+                                    请仔细核对以下更改。左侧为当前运行的配置，右侧为您即将保存的新配置。 确认无误后点击“确认保存”以更新基础配置文件（Base Config）。
+                                </p>
+                            </ModalHeader>
+                            <ModalBody>
+                                <div className="h-[60vh] border border-default-200 rounded-md overflow-hidden">
+                                    <DiffEditor
+                                        height="100%"
+                                        language="json"
+                                        modified={newConfigForDiff}
+                                        options={{
+                                            minimap: { enabled: false },
+                                            scrollBeyondLastLine: false,
+                                            renderSideBySide: true,
+                                            readOnly: true,
+                                            diffCodeLens: true,
+                                            hideUnchangedRegions: {
+                                                enabled: showOnlyChanges
+                                            }
+                                        }}
+                                        original={baseConfigForDiff}
+                                        theme={theme === "dark" ? "vs-dark" : "vs"}
+                                    />
+                                </div>
+                            </ModalBody>
+                            <ModalFooter>
+                                <Button color="danger" variant="light" onPress={onClose}>
+                                    取消
+                                </Button>
+                                <Button color="primary" onPress={() => confirmSave(onClose)}>
+                                    确认保存
+                                </Button>
+                            </ModalFooter>
+                        </>
+                    )}
+                </ModalContent>
+            </Modal>
         </DefaultLayout>
     );
 }
