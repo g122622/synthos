@@ -66,6 +66,50 @@ export const SendReportEmailOutputSchema = z.object({
     message: z.string()
 });
 
+// ========== Agent 问答接口 ==========
+
+export const AgentAskInputSchema = z.object({
+    question: z.string().min(1, "问题不能为空"),
+    conversationId: z.string().optional(),
+    sessionId: z.string().optional(),
+    enabledTools: z.array(z.enum(["rag_search", "sql_query", "web_search"])).default(["rag_search", "sql_query"]),
+    maxToolRounds: z.number().int().positive().default(5),
+    temperature: z.number().min(0).max(2).default(0.7),
+    maxTokens: z.number().int().positive().default(2048)
+});
+
+export const AgentStreamChunkSchema = z.object({
+    type: z.enum(["content", "tool_start", "tool_result", "done", "error"]),
+    content: z.string().optional(),
+    toolName: z.string().optional(),
+    toolParams: z.record(z.unknown()).optional(),
+    toolResult: z.unknown().optional(),
+    error: z.string().optional(),
+    isFinished: z.boolean().optional(),
+    usage: z
+        .object({
+            promptTokens: z.number(),
+            completionTokens: z.number(),
+            totalTokens: z.number()
+        })
+        .optional()
+});
+
+export const AgentAskOutputSchema = z.object({
+    conversationId: z.string(),
+    messageId: z.string(),
+    content: z.string(),
+    toolsUsed: z.array(z.string()),
+    toolRounds: z.number(),
+    totalUsage: z
+        .object({
+            promptTokens: z.number(),
+            completionTokens: z.number(),
+            totalTokens: z.number()
+        })
+        .optional()
+});
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -81,3 +125,7 @@ export type TriggerReportGenerateOutput = z.infer<typeof TriggerReportGenerateOu
 
 export type SendReportEmailInput = z.infer<typeof SendReportEmailInputSchema>;
 export type SendReportEmailOutput = z.infer<typeof SendReportEmailOutputSchema>;
+
+export type AgentAskInput = z.infer<typeof AgentAskInputSchema>;
+export type AgentStreamChunk = z.infer<typeof AgentStreamChunkSchema>;
+export type AgentAskOutput = z.infer<typeof AgentAskOutputSchema>;

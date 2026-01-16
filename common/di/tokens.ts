@@ -15,6 +15,7 @@ export const COMMON_TOKENS = {
     ImDbAccessService: Symbol.for("ImDbAccessService"),
     InterestScoreDbAccessService: Symbol.for("InterestScoreDbAccessService"),
     ReportDbAccessService: Symbol.for("ReportDbAccessService"),
+    AgentDbAccessService: Symbol.for("AgentDbAccessService"),
 
     // 邮件服务
     EmailService: Symbol.for("EmailService")

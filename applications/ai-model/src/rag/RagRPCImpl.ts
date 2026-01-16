@@ -28,6 +28,11 @@ import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ReportEmailService } from "../services/email/ReportEmailService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { AgentExecutor } from "../agent/AgentExecutor";
+import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
+import { AgentDbAccessService, AgentMessage } from "@root/common/services/database/AgentDbAccessService";
+import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
+import { randomUUID } from "crypto";
 
 /**
  * RAG RPC 实现类
@@ -47,7 +52,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(COMMON_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
         @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder,
-        @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService
+        @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService,
+        @inject(AI_MODEL_TOKENS.AgentExecutor) private agentExecutor: AgentExecutor,
+        @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -315,5 +322,109 @@ export class RagRPCImpl implements RAGRPCImplementation {
         }
 
         return Array.from(topicMap.values());
+    }
+
+    /**
+     * Agent 问答（流式）
+     */
+    public async agentAsk(
+        input: {
+            question: string;
+            conversationId?: string;
+            sessionId?: string;
+            enabledTools?: ("rag_search" | "sql_query" | "web_search")[];
+            maxToolRounds?: number;
+            temperature?: number;
+            maxTokens?: number;
+        },
+        onChunk: (chunk: AgentStreamChunk) => void
+    ): Promise<{
+        conversationId: string;
+        messageId: string;
+        content: string;
+        toolsUsed: string[];
+        toolRounds: number;
+        totalUsage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+    }> {
+        this.LOGGER.info(`收到 Agent 问答请求: "${input.question}"`);
+
+        // 1. 确定对话 ID
+        let conversationId: string = input.conversationId || randomUUID();
+        if (!input.conversationId) {
+            // 创建新对话
+            await this.agentDB.createConversation(
+                conversationId,
+                input.question.substring(0, 50), // 用问题前50个字符作为标题
+                input.sessionId
+            );
+            this.LOGGER.info(`创建新对话: ${conversationId}`);
+        }
+
+        // 2. 保存用户消息
+        const userMessageId = randomUUID();
+        const userMessage: AgentMessage = {
+            id: userMessageId,
+            conversationId,
+            role: "user",
+            content: input.question,
+            timestamp: Date.now()
+        };
+        await this.agentDB.addMessage(userMessage);
+
+        // 3. 获取历史消息
+        const historyMessages = await this.agentDB.getMessagesByConversationId(conversationId);
+        const chatHistory = historyMessages.slice(0, -1).map(msg => ({
+            role: msg.role as "user" | "assistant" | "system",
+            content: msg.content
+        }));
+
+        // 4. 构建系统提示词
+        const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt();
+        const systemPrompt = systemPromptNode.toString();
+
+        // 5. 构建工具上下文
+        const toolContext: ToolContext = {
+            sessionId: input.sessionId,
+            conversationId
+        };
+
+        // 6. 执行 Agent（流式）
+        const result: AgentResult = await this.agentExecutor.executeStream(
+            input.question,
+            toolContext,
+            onChunk,
+            {
+                maxToolRounds: input.maxToolRounds,
+                temperature: input.temperature,
+                maxTokens: input.maxTokens
+            },
+            chatHistory,
+            systemPrompt
+        );
+
+        // 7. 保存 Assistant 消息
+        const assistantMessageId = randomUUID();
+        const assistantMessage: AgentMessage = {
+            id: assistantMessageId,
+            conversationId,
+            role: "assistant",
+            content: result.content,
+            timestamp: Date.now(),
+            toolsUsed: JSON.stringify(result.toolsUsed),
+            toolRounds: result.toolRounds,
+            tokenUsage: result.totalUsage ? JSON.stringify(result.totalUsage) : undefined
+        };
+        await this.agentDB.addMessage(assistantMessage);
+
+        this.LOGGER.success(`Agent 问答完成: ${conversationId}`);
+
+        return {
+            conversationId,
+            messageId: assistantMessageId,
+            content: result.content,
+            toolsUsed: result.toolsUsed,
+            toolRounds: result.toolRounds,
+            totalUsage: result.totalUsage
+        };
     }
 }

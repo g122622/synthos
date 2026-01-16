@@ -11,7 +11,9 @@ import {
     TriggerReportGenerateInputSchema,
     TriggerReportGenerateOutput,
     SendReportEmailInputSchema,
-    SendReportEmailOutput
+    SendReportEmailOutput,
+    AgentAskInputSchema,
+    AgentAskOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -60,6 +62,25 @@ export interface RAGRPCImplementation {
      * @returns 发送结果
      */
     sendReportEmail(input: { reportId: string }): Promise<SendReportEmailOutput>;
+
+    /**
+     * Agent 问答（流式）
+     * @param input Agent 问答输入
+     * @param onChunk 流式 chunk 回调
+     * @returns Agent 回答结果
+     */
+    agentAsk(
+        input: {
+            question: string;
+            conversationId?: string;
+            sessionId?: string;
+            enabledTools?: ("rag_search" | "sql_query" | "web_search")[];
+            maxToolRounds?: number;
+            temperature?: number;
+            maxTokens?: number;
+        },
+        onChunk: (chunk: any) => void
+    ): Promise<AgentAskOutput>;
 }
 
 /**
@@ -100,6 +121,23 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
             return impl.sendReportEmail({
                 reportId: input.reportId
             });
+        }),
+
+        agentAsk: t.procedure.input(AgentAskInputSchema).mutation(async ({ input }) => {
+            // 注意：这是一个简化实现，不支持真正的流式传输
+            // 未来可以升级为 tRPC subscription 或使用 SSE
+            const validatedInput = {
+                question: input.question,
+                conversationId: input.conversationId,
+                sessionId: input.sessionId,
+                enabledTools: input.enabledTools ?? ["rag_search", "sql_query"],
+                maxToolRounds: input.maxToolRounds ?? 5,
+                temperature: input.temperature ?? 0.7,
+                maxTokens: input.maxTokens ?? 2048
+            };
+
+            // TODO: 传递 onChunk 回调（当前版本暂不支持，需要升级到 subscription）
+            return impl.agentAsk(validatedInput, () => {});
         })
     });
 

@@ -18,6 +18,20 @@ export const AI_MODEL_TOKENS = {
     /** RAG RPC 实现 */
     RagRPCImpl: Symbol.for("RagRPCImpl"),
 
+    // Agent 相关服务
+    /** Agent 执行器 */
+    AgentExecutor: Symbol.for("AgentExecutor"),
+    /** 工具注册表 */
+    ToolRegistry: Symbol.for("ToolRegistry"),
+    /** RAG 搜索工具 */
+    RagSearchTool: Symbol.for("RagSearchTool"),
+    /** SQL 查询工具 */
+    SQLQueryTool: Symbol.for("SQLQueryTool"),
+    /** Web 搜索工具 */
+    WebSearchTool: Symbol.for("WebSearchTool"),
+    /** Agent 初始化器 */
+    AgentInitializer: Symbol.for("AgentInitializer"),
+
     // 任务处理器
     /** AI 摘要任务处理器 */
     AISummarizeTaskHandler: Symbol.for("AISummarizeTaskHandler"),

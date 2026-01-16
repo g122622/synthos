@@ -12,6 +12,7 @@ import { AgcDbAccessService } from "../services/database/AgcDbAccessService";
 import { ImDbAccessService } from "../services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "../services/database/ReportDbAccessService";
+import { AgentDbAccessService } from "../services/database/AgentDbAccessService";
 
 /**
  * 初始化并注册 ConfigManagerService 到 DI 容器
@@ -110,6 +111,22 @@ export function getReportDbAccessService(): ReportDbAccessService {
 }
 
 /**
+ * 注册 AgentDbAccessService 实例到 DI 容器
+ * @param instance 已初始化的 AgentDbAccessService 实例
+ */
+export function registerAgentDbAccessService(instance: AgentDbAccessService): void {
+    container.registerInstance(COMMON_TOKENS.AgentDbAccessService, instance);
+}
+
+/**
+ * 从 DI 容器获取 AgentDbAccessService 实例
+ * @returns AgentDbAccessService 实例
+ */
+export function getAgentDbAccessService(): AgentDbAccessService {
+    return container.resolve<AgentDbAccessService>(COMMON_TOKENS.AgentDbAccessService);
+}
+
+/**
  * 批量注册所有数据库服务到 DI 容器
  * @param services 包含所有已初始化数据库服务的对象
  */
@@ -118,11 +135,15 @@ export function registerDbAccessServices(services: {
     imDbAccessService: ImDbAccessService;
     interestScoreDbAccessService: InterestScoreDbAccessService;
     reportDbAccessService: ReportDbAccessService;
+    agentDbAccessService?: AgentDbAccessService;
 }): void {
     registerAgcDbAccessService(services.agcDbAccessService);
     registerImDbAccessService(services.imDbAccessService);
     registerInterestScoreDbAccessService(services.interestScoreDbAccessService);
     registerReportDbAccessService(services.reportDbAccessService);
+    if (services.agentDbAccessService) {
+        registerAgentDbAccessService(services.agentDbAccessService);
+    }
 }
 
 /**

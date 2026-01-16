@@ -25,8 +25,15 @@ import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessSe
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { AgentDbAccessService } from "@root/common/services/database/AgentDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
+import { AgentExecutor } from "../agent/AgentExecutor";
+import { ToolRegistry } from "../agent/ToolRegistry";
+import { RagSearchTool } from "../agent/tools/RagSearchTool";
+import { SQLQueryTool } from "../agent/tools/SQLQueryTool";
+import { WebSearchTool } from "../agent/tools/WebSearchTool";
+import { AgentInitializer } from "../agent/AgentInitializer";
 
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
@@ -46,12 +53,15 @@ export async function registerAllDependencies(): Promise<void> {
     await interestScoreDbAccessService.init();
     const reportDbAccessService = new ReportDbAccessService();
     await reportDbAccessService.init();
+    const agentDbAccessService = new AgentDbAccessService();
+    await agentDbAccessService.init();
     // 3. 注册数据库服务到 DI 容器
     registerDbAccessServices({
         agcDbAccessService,
         imDbAccessService,
         interestScoreDbAccessService,
-        reportDbAccessService
+        reportDbAccessService,
+        agentDbAccessService
     });
 
     // 4. 初始化向量数据库管理器和嵌入服务
@@ -85,4 +95,16 @@ export async function registerAllDependencies(): Promise<void> {
     container.registerSingleton(AI_MODEL_TOKENS.InterestScoreTaskHandler, InterestScoreTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler, GenerateEmbeddingTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.GenerateReportTaskHandler, GenerateReportTaskHandler);
+
+    // 8. 注册 Agent 相关服务
+    container.registerSingleton(AI_MODEL_TOKENS.ToolRegistry, ToolRegistry);
+    container.registerSingleton(AI_MODEL_TOKENS.RagSearchTool, RagSearchTool);
+    container.registerSingleton(AI_MODEL_TOKENS.SQLQueryTool, SQLQueryTool);
+    container.registerSingleton(AI_MODEL_TOKENS.WebSearchTool, WebSearchTool);
+    container.registerSingleton(AI_MODEL_TOKENS.AgentExecutor, AgentExecutor);
+    container.registerSingleton(AI_MODEL_TOKENS.AgentInitializer, AgentInitializer);
+
+    // 9. 初始化 Agent 系统
+    const agentInitializer = container.resolve<AgentInitializer>(AI_MODEL_TOKENS.AgentInitializer);
+    await agentInitializer.init();
 }
