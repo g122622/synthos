@@ -7,8 +7,8 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
-import { VectorDBManager } from "../embedding/VectorDBManager";
+import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 

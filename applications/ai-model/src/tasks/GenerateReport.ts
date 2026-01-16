@@ -3,7 +3,7 @@ import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getReportEmailService, getTextGenerator } from "../di/container";
+import { getReportEmailService, getTextGeneratorService } from "../di/container";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
@@ -195,8 +195,8 @@ export class GenerateReportTaskHandler {
                         return;
                     }
 
-                    // 9. 从 DI 容器获取 TextGenerator
-                    const textGenerator = getTextGenerator();
+                    // 9. 从 DI 容器获取 TextGeneratorService
+                    const TextGeneratorService = getTextGeneratorService();
 
                     const prompt = (
                         await ReportPromptStore.getReportSummaryPrompt(
@@ -217,7 +217,7 @@ export class GenerateReportTaskHandler {
                     this.LOGGER.info(`开始调用 LLM 生成日报综述，prompt长度：${prompt.length}`);
                     for (let attempt = 0; attempt <= retryCount; attempt++) {
                         try {
-                            const result = await textGenerator.generateTextWithModelCandidates(
+                            const result = await TextGeneratorService.generateTextWithModelCandidates(
                                 modelCandidates,
                                 prompt
                             );
@@ -234,7 +234,7 @@ export class GenerateReportTaskHandler {
                         }
                     }
 
-                    textGenerator.dispose();
+                    TextGeneratorService.dispose();
 
                     // 10. 保存日报
                     const report: Report = {

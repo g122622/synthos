@@ -1,6 +1,10 @@
-// tests/PooledTextGenerator.test.ts
+// tests/PooledTextGeneratorService.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { PooledTextGenerator, PooledTask, PooledTaskResult } from "../generators/text/PooledTextGenerator";
+import {
+    PooledTextGeneratorService,
+    PooledTask,
+    PooledTaskResult
+} from "../services/generators/text/PooledTextGeneratorService";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
@@ -27,10 +31,10 @@ let totalCalls = 0;
 // 用于追踪调用顺序
 let callOrder: string[] = [];
 
-// Mock TextGenerator
-vi.mock("../generators/text/TextGenerator", () => {
+// Mock TextGeneratorService
+vi.mock("../generators/text/TextGeneratorService", () => {
     return {
-        TextGenerator: class MockTextGenerator {
+        TextGeneratorService: class MockTextGeneratorService {
             public async init(): Promise<void> {
                 // 初始化不需要实际逻辑
             }
@@ -74,8 +78,8 @@ vi.mock("../generators/text/TextGenerator", () => {
     };
 });
 
-describe("PooledTextGenerator", () => {
-    let generator: PooledTextGenerator;
+describe("PooledTextGeneratorService", () => {
+    let generator: PooledTextGeneratorService;
 
     beforeEach(() => {
         // 重置追踪变量
@@ -93,40 +97,40 @@ describe("PooledTextGenerator", () => {
 
     describe("构造函数", () => {
         it("应该在 maxConcurrency <= 0 时抛出错误", () => {
-            expect(() => new PooledTextGenerator(0)).toThrow("maxConcurrency must be greater than 0");
-            expect(() => new PooledTextGenerator(-1)).toThrow("maxConcurrency must be greater than 0");
+            expect(() => new PooledTextGeneratorService(0)).toThrow("maxConcurrency must be greater than 0");
+            expect(() => new PooledTextGeneratorService(-1)).toThrow("maxConcurrency must be greater than 0");
         });
 
         it("应该成功创建实例当 maxConcurrency > 0", () => {
-            generator = new PooledTextGenerator(5);
-            expect(generator).toBeInstanceOf(PooledTextGenerator);
+            generator = new PooledTextGeneratorService(5);
+            expect(generator).toBeInstanceOf(PooledTextGeneratorService);
         });
 
         it("应该支持 maxConcurrency = 1（串行执行）", () => {
-            generator = new PooledTextGenerator(1);
-            expect(generator).toBeInstanceOf(PooledTextGenerator);
+            generator = new PooledTextGeneratorService(1);
+            expect(generator).toBeInstanceOf(PooledTextGeneratorService);
         });
 
         it("应该支持非常大的 maxConcurrency", () => {
-            generator = new PooledTextGenerator(1000);
-            expect(generator).toBeInstanceOf(PooledTextGenerator);
+            generator = new PooledTextGeneratorService(1000);
+            expect(generator).toBeInstanceOf(PooledTextGeneratorService);
         });
 
         it("应该在 maxConcurrency 为小数时正常处理", () => {
             // JavaScript 不会自动截断小数，但构造函数应该能接受
-            generator = new PooledTextGenerator(2.9);
-            expect(generator).toBeInstanceOf(PooledTextGenerator);
+            generator = new PooledTextGeneratorService(2.9);
+            expect(generator).toBeInstanceOf(PooledTextGeneratorService);
         });
     });
 
     describe("init", () => {
         it("应该成功初始化", async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await expect(generator.init()).resolves.not.toThrow();
         });
 
         it("应该支持多次初始化（幂等性）", async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
             // 第二次初始化不应抛出错误
             await expect(generator.init()).resolves.not.toThrow();
@@ -135,7 +139,7 @@ describe("PooledTextGenerator", () => {
 
     describe("generateTextWithModelCandidates", () => {
         beforeEach(async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
         });
 
@@ -173,7 +177,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该控制并发数不超过 maxConcurrency", async () => {
-            generator = new PooledTextGenerator(2);
+            generator = new PooledTextGeneratorService(2);
             await generator.init();
 
             const inputs = ["a", "b", "c", "d", "e"];
@@ -231,7 +235,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该在 maxConcurrency=1 时串行执行", async () => {
-            generator = new PooledTextGenerator(1);
+            generator = new PooledTextGeneratorService(1);
             await generator.init();
 
             const inputs = ["a", "b", "c"];
@@ -252,7 +256,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该处理大量输入（压力测试）", async () => {
-            generator = new PooledTextGenerator(5);
+            generator = new PooledTextGeneratorService(5);
             await generator.init();
 
             const inputs = Array.from({ length: 50 }, (_, i) => `input_${i}`);
@@ -301,7 +305,7 @@ describe("PooledTextGenerator", () => {
 
     describe("submitTasks", () => {
         beforeEach(async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
         });
 
@@ -399,7 +403,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该控制并发数不超过 maxConcurrency", async () => {
-            generator = new PooledTextGenerator(2);
+            generator = new PooledTextGeneratorService(2);
             await generator.init();
 
             interface TestContext {
@@ -540,7 +544,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该处理大量任务（压力测试）", async () => {
-            generator = new PooledTextGenerator(5);
+            generator = new PooledTextGeneratorService(5);
             await generator.init();
 
             interface TestContext {
@@ -569,7 +573,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该在 maxConcurrency=1 时串行执行回调", async () => {
-            generator = new PooledTextGenerator(1);
+            generator = new PooledTextGeneratorService(1);
             await generator.init();
 
             interface TestContext {
@@ -675,7 +679,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该在高并发下正确维护上下文隔离", async () => {
-            generator = new PooledTextGenerator(10);
+            generator = new PooledTextGeneratorService(10);
             await generator.init();
 
             interface TestContext {
@@ -737,7 +741,7 @@ describe("PooledTextGenerator", () => {
 
     describe("dispose", () => {
         it("应该清理资源", async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
 
             // dispose 不应该抛出错误
@@ -745,7 +749,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该支持多次调用 dispose", async () => {
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
 
             generator.dispose();
@@ -756,7 +760,7 @@ describe("PooledTextGenerator", () => {
 
     describe("并发控制精确性", () => {
         it("应该在任务完成后立即释放槽位", async () => {
-            generator = new PooledTextGenerator(2);
+            generator = new PooledTextGeneratorService(2);
             await generator.init();
 
             // 使用不同延迟的任务来验证槽位释放
@@ -772,7 +776,7 @@ describe("PooledTextGenerator", () => {
 
         it("应该正确处理并发边界情况", async () => {
             // 测试恰好等于 maxConcurrency 的任务数
-            generator = new PooledTextGenerator(3);
+            generator = new PooledTextGeneratorService(3);
             await generator.init();
 
             const inputs = ["a", "b", "c"]; // 恰好 3 个
@@ -786,7 +790,7 @@ describe("PooledTextGenerator", () => {
         });
 
         it("应该在 maxConcurrency 大于任务数时正确运行", async () => {
-            generator = new PooledTextGenerator(10);
+            generator = new PooledTextGeneratorService(10);
             await generator.init();
 
             const inputs = ["a", "b", "c"]; // 只有 3 个任务，但 maxConcurrency=10
@@ -801,7 +805,7 @@ describe("PooledTextGenerator", () => {
 
     describe("错误恢复", () => {
         it("应该在部分任务失败后继续执行其他任务", async () => {
-            generator = new PooledTextGenerator(2);
+            generator = new PooledTextGeneratorService(2);
             await generator.init();
 
             const inputs = ["ok1", "ERROR_fail", "ok2", "ERROR_fail2", "ok3"];

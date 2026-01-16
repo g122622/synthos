@@ -8,7 +8,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import { duplicateElements } from "@root/common/util/core/duplicateElements";
 import { sleep } from "@root/common/util/promisify/sleep";
-import { AI_MODEL_TOKENS } from "../../di/tokens";
+import { AI_MODEL_TOKENS } from "../../../di/tokens";
 
 /**
  * 文本生成器
@@ -16,10 +16,10 @@ import { AI_MODEL_TOKENS } from "../../di/tokens";
  */
 @injectable()
 @mustInitBeforeUse
-export class TextGenerator extends Disposable {
+export class TextGeneratorService extends Disposable {
     private models = new Map<string, ChatOpenAI>();
     private activeModel: ChatOpenAI | null = null;
-    private LOGGER = Logger.withTag("TextGenerator");
+    private LOGGER = Logger.withTag("TextGeneratorService");
 
     /**
      * 构造函数

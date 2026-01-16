@@ -22,7 +22,7 @@ export const AI_MODEL_TOKENS = {
     /** 向量数据库管理器 */
     VectorDBManager: Symbol.for("VectorDBManager"),
     /** 文本生成器 */
-    TextGenerator: Symbol.for("TextGenerator"),
+    TextGeneratorService: Symbol.for("TextGeneratorService"),
     /** RAG 上下文构建器 */
     RAGCtxBuilder: Symbol.for("RAGCtxBuilder"),
     /** RAG RPC 实现 */

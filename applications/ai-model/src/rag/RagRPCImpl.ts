@@ -11,12 +11,12 @@ import {
     TriggerReportGenerateOutput,
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
-import { VectorDBManager } from "../embedding/VectorDBManager";
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
+import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
+import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
-import { TextGenerator } from "../generators/text/TextGenerator";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import Logger from "@root/common/util/Logger";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { QueryRewriter } from "./QueryRewriter";
@@ -46,7 +46,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * @param agcDB AGC 数据库管理器
      * @param imDB IM 数据库管理器
      * @param reportDB 日报数据库管理器
-     * @param textGenerator 文本生成器
+     * @param TextGeneratorService 文本生成器
      * @param ragCtxBuilder RAG 上下文构建器
      */
     public constructor(
@@ -55,7 +55,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
         @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
         @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
-        @inject(AI_MODEL_TOKENS.TextGenerator) private textGenerator: TextGenerator,
+        @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder
     ) {
         // QueryRewriter 将在 init 方法中初始化
@@ -79,7 +79,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.defaultModelName = config.ai.defaultModelName;
 
         // 创建 QueryRewriter 实例
-        this.queryRewriter = new QueryRewriter(this.textGenerator, this.defaultModelName);
+        this.queryRewriter = new QueryRewriter(this.TextGeneratorService, this.defaultModelName);
 
         // 初始化 RAGCtxBuilder
         await this.ragCtxBuilder.init();
@@ -165,7 +165,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
-        const { content: answer } = await this.textGenerator.generateTextWithModelCandidates(
+        const { content: answer } = await this.TextGeneratorService.generateTextWithModelCandidates(
             [this.defaultModelName],
             prompt
         );

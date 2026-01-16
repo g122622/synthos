@@ -1,7 +1,7 @@
 // tests/SemanticRater.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SemanticRater } from "../misc/SemanticRater";
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
+import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {

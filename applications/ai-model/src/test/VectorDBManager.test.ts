@@ -1,6 +1,6 @@
 // tests/VectorDBManager.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { VectorDBManager } from "../embedding/VectorDBManager";
+import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
 import { join } from "path";
 import { rm, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";

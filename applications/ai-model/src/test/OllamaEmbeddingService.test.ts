@@ -1,6 +1,6 @@
 // tests/OllamaEmbeddingService.test.ts
 import { describe, it, expect, beforeEach, vi, Mock } from "vitest";
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
+import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
 import axios from "axios";
 
 // Mock axios

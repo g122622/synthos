@@ -1,8 +1,8 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { TextGenerator } from "./TextGenerator";
+import { TextGeneratorService } from "./TextGeneratorService";
 import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { getTextGenerator } from "../../di/container";
+import { getTextGeneratorService } from "../../../di/container";
 
 /**
  * 池化任务定义
@@ -35,7 +35,7 @@ export interface PooledTaskResult<TContext> {
  * 提供并发控制的文本生成能力
  */
 @mustInitBeforeUse
-export class PooledTextGenerator extends Disposable {
+export class PooledTextGeneratorService extends Disposable {
     private readonly maxConcurrency: number;
     private readonly taskQueue: Array<{
         task: () => Promise<void>;
@@ -43,10 +43,10 @@ export class PooledTextGenerator extends Disposable {
     }> = [];
 
     private runningTasks = 0;
-    private textGenerator: TextGenerator | null = null;
+    private TextGeneratorService: TextGeneratorService | null = null;
 
     private readonly semaphoreQueue: Array<() => void> = [];
-    private readonly LOGGER = Logger.withTag("PooledTextGenerator");
+    private readonly LOGGER = Logger.withTag("PooledTextGeneratorService");
 
     /**
      * 构造函数
@@ -64,8 +64,8 @@ export class PooledTextGenerator extends Disposable {
      * 初始化池化文本生成器
      */
     public async init(): Promise<void> {
-        // 从 DI 容器获取已初始化的 TextGenerator
-        this.textGenerator = getTextGenerator();
+        // 从 DI 容器获取已初始化的 TextGeneratorService
+        this.TextGeneratorService = getTextGeneratorService();
         this._registerDisposableFunction(() => {
             // 清空等待中的任务：立即 resolve 但标记为失败
             for (const { resolve } of this.taskQueue) {
@@ -154,11 +154,12 @@ export class PooledTextGenerator extends Disposable {
                     const task = async () => {
                         let result: PooledTaskResult<TContext>;
                         try {
-                            const generatedResult = await this.textGenerator!.generateTextWithModelCandidates(
-                                taskDef.modelNames,
-                                taskDef.input,
-                                taskDef.checkJsonFormat
-                            );
+                            const generatedResult =
+                                await this.TextGeneratorService!.generateTextWithModelCandidates(
+                                    taskDef.modelNames,
+                                    taskDef.input,
+                                    taskDef.checkJsonFormat
+                                );
 
                             result = {
                                 isSuccess: true,
@@ -226,7 +227,7 @@ export class PooledTextGenerator extends Disposable {
                 new Promise<void>(resolve => {
                     const task = async () => {
                         try {
-                            const result = await this.textGenerator!.generateTextWithModelCandidates(
+                            const result = await this.TextGeneratorService!.generateTextWithModelCandidates(
                                 modelNames,
                                 input
                             );

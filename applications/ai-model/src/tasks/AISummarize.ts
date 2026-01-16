@@ -5,7 +5,11 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import Logger from "@root/common/util/Logger";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { PooledTextGenerator, PooledTask, PooledTaskResult } from "../generators/text/PooledTextGenerator";
+import {
+    PooledTextGeneratorService,
+    PooledTask,
+    PooledTaskResult
+} from "../services/generators/text/PooledTextGeneratorService";
 import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
@@ -57,8 +61,8 @@ export class AISummarizeTaskHandler {
                     return;
                 }
 
-                const pooledTextGenerator = new PooledTextGenerator(config.ai.maxConcurrentRequests);
-                await pooledTextGenerator.init();
+                const pooledTextGeneratorService = new PooledTextGeneratorService(config.ai.maxConcurrentRequests);
+                await pooledTextGeneratorService.init();
                 const ctxBuilder = new IMSummaryCtxBuilder();
                 await ctxBuilder.init();
 
@@ -149,7 +153,7 @@ export class AISummarizeTaskHandler {
 
                 // 并行处理所有任务，每个任务完成时回调
                 let completedCount = 0;
-                await pooledTextGenerator.submitTasks<TaskContext>(
+                await pooledTextGeneratorService.submitTasks<TaskContext>(
                     allTasks,
                     async (result: PooledTaskResult<TaskContext>) => {
                         await job.touch(); // 保证任务存活
@@ -201,7 +205,7 @@ export class AISummarizeTaskHandler {
                     }
                 );
 
-                pooledTextGenerator.dispose();
+                pooledTextGeneratorService.dispose();
                 ctxBuilder.dispose();
 
                 this.LOGGER.success(`🥳任务完成: ${job.attrs.name}`);

@@ -4,17 +4,17 @@
  * 实现 Multi-Query 策略以提高 RAG 检索的召回率和多样性
  */
 import Logger from "@root/common/util/Logger";
-import { TextGenerator } from "../generators/text/TextGenerator";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { RagPromptStore } from "../context/prompts/RagPromptStore";
 import { sleep } from "@root/common/util/promisify/sleep";
 
 export class QueryRewriter {
     private LOGGER = Logger.withTag("QueryRewriter");
-    private textGenerator: TextGenerator;
+    private TextGeneratorService: TextGeneratorService;
     private modelName: string;
 
-    constructor(textGenerator: TextGenerator, modelName: string) {
-        this.textGenerator = textGenerator;
+    constructor(TextGeneratorService: TextGeneratorService, modelName: string) {
+        this.TextGeneratorService = TextGeneratorService;
         this.modelName = modelName;
     }
 
@@ -57,7 +57,7 @@ export class QueryRewriter {
         const prompt = (await RagPromptStore.getMultiQueryPrompt(originalQuestion)).serializeToString();
 
         // 2. 调用 LLM 生成扩展查询
-        const { content: response } = await this.textGenerator.generateTextWithModelCandidates(
+        const { content: response } = await this.TextGeneratorService.generateTextWithModelCandidates(
             [this.modelName],
             prompt
         );

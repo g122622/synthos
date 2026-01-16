@@ -8,7 +8,7 @@ import { ConfigManagerService } from "@root/common/services/config/ConfigManager
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { SemanticRater } from "../misc/SemanticRater";
-import { OllamaEmbeddingService } from "../embedding/OllamaEmbeddingService";
+import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 
