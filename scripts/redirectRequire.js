@@ -54,6 +54,8 @@ applications.forEach(app => {
                     return `${quote}${posixRelativePath}${quote}`;
                 });
 
+                // todo 新增对 "@/" 路径的处理 替换类似 require("@/util/Logger") 的语句，将其指向当前monorepo子项目的 dist 目录下的对应路径 例如 applications\ai-model\dist
+
                 if (content !== newContent) {
                     fs.writeFileSync(filePath, newContent, "utf8");
                     Logger.debug(`[Redirect] 文件路径：${filePath} 写回成功`);

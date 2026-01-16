@@ -11,7 +11,7 @@ import {
     TriggerReportGenerateOutput,
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
-import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
@@ -26,7 +26,7 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import { ReportType } from "@root/common/contracts/report/index";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { ReportEmailService } from "@/services/email/ReportEmailService";
+import { ReportEmailService } from "../services/email/ReportEmailService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
@@ -52,7 +52,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
      */
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDB: VectorDBManager,
+        @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDB: VectorDBManagerService,
         @inject(COMMON_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
         @inject(COMMON_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
         @inject(COMMON_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,

@@ -1,6 +1,6 @@
 // tests/VectorDBManager.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { join } from "path";
 import { rm, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
@@ -20,8 +20,8 @@ vi.mock("@root/common/util/Logger", () => {
     };
 });
 
-describe("VectorDBManager", () => {
-    let manager: VectorDBManager;
+describe("VectorDBManagerService", () => {
+    let manager: VectorDBManagerService;
     let tempDir: string;
     let dbPath: string;
 
@@ -41,7 +41,7 @@ describe("VectorDBManager", () => {
         tempDir = await mkdtemp(join(tmpdir(), "vectordb-test-"));
         dbPath = join(tempDir, "test-vectors.db");
 
-        manager = new VectorDBManager(dbPath, TEST_DIMENSION);
+        manager = new VectorDBManagerService(dbPath, TEST_DIMENSION);
         await manager.init();
     });
 

@@ -8,7 +8,7 @@ import { ConfigManagerService } from "@root/common/services/config/ConfigManager
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
-import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
@@ -25,7 +25,7 @@ export class GenerateEmbeddingTaskHandler {
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
         @inject(COMMON_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDBManager: VectorDBManager
+        @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDBManagerService: VectorDBManagerService
     ) {}
 
     /**
@@ -83,7 +83,7 @@ export class GenerateEmbeddingTaskHandler {
 
                 // 过滤出未生成嵌入的 topicId
                 const allTopicIds = digestResults.map(r => r.topicId);
-                const topicIdsWithoutEmbedding = this.vectorDBManager.filterWithoutEmbedding(allTopicIds);
+                const topicIdsWithoutEmbedding = this.vectorDBManagerService.filterWithoutEmbedding(allTopicIds);
                 this.LOGGER.info(`其中 ${topicIdsWithoutEmbedding.length} 条需要生成嵌入向量`);
                 if (topicIdsWithoutEmbedding.length === 0) {
                     this.LOGGER.info("没有需要生成嵌入的话题，任务完成");
@@ -122,7 +122,7 @@ export class GenerateEmbeddingTaskHandler {
                             topicId,
                             embedding: embeddings[idx]
                         }));
-                        this.vectorDBManager.storeEmbeddings(items);
+                        this.vectorDBManagerService.storeEmbeddings(items);
 
                         this.LOGGER.success(`批次处理完成，已存储 ${items.length} 条向量`);
                     } catch (error) {
@@ -132,7 +132,7 @@ export class GenerateEmbeddingTaskHandler {
                 }
 
                 this.LOGGER.success(
-                    `🥳任务完成: ${job.attrs.name}，向量数据库当前共 ${this.vectorDBManager.getCount()} 条记录`
+                    `🥳任务完成: ${job.attrs.name}，向量数据库当前共 ${this.vectorDBManagerService.getCount()} 条记录`
                 );
             },
             {

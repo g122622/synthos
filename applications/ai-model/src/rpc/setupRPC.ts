@@ -2,8 +2,8 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { startRAGRPCServer } from "./server";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
-import { RagRPCImpl } from "@/rag/RagRPCImpl";
-import { AI_MODEL_TOKENS } from "@/di/tokens";
+import { RagRPCImpl } from "../rag/RagRPCImpl";
+import { AI_MODEL_TOKENS } from "../di/tokens";
 
 /**
  * 启动 RPC Server

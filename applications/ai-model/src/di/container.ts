@@ -6,7 +6,7 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { AI_MODEL_TOKENS } from "./tokens";
 import { ReportEmailService } from "../services/email/ReportEmailService";
-import { VectorDBManager } from "../services/embedding/VectorDBManagerService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { RagRPCImpl } from "../rag/RagRPCImpl";
@@ -25,6 +25,7 @@ import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessSe
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
@@ -53,14 +54,20 @@ export async function registerAllDependencies(): Promise<void> {
     });
 
     // 4. 初始化向量数据库管理器并注册
-    const vectorDBManager = new VectorDBManager(config.ai.embedding.vectorDBPath, config.ai.embedding.dimension);
-    await vectorDBManager.init();
-    container.registerInstance(AI_MODEL_TOKENS.VectorDBManager, vectorDBManager);
+    const vectorDBManagerService = new VectorDBManagerService(
+        config.ai.embedding.vectorDBPath,
+        config.ai.embedding.dimension
+    );
+    await vectorDBManagerService.init();
+    container.registerInstance(AI_MODEL_TOKENS.VectorDBManagerService, vectorDBManagerService);
 
     // 5. 注册并初始化文本生成器
-    container.registerSingleton(AI_MODEL_TOKENS.TextGeneratorService, TextGeneratorService);
-    const textGenerator = container.resolve<TextGeneratorService>(AI_MODEL_TOKENS.TextGeneratorService);
+    // 这里要手动解析注入一下下依赖 TODO 看看有没有更优雅的方式
+    const textGenerator = new TextGeneratorService(
+        container.resolve<typeof ConfigManagerService>(COMMON_TOKENS.ConfigManagerService)
+    );
     await textGenerator.init();
+    container.registerInstance(AI_MODEL_TOKENS.TextGeneratorService, textGenerator);
 
     // 6. 注册 RAGCtxBuilder 和 RagRPCImpl
     container.registerSingleton(AI_MODEL_TOKENS.RAGCtxBuilder, RAGCtxBuilder);

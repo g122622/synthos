@@ -2,7 +2,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { TextGeneratorService } from "./TextGeneratorService";
 import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { AI_MODEL_TOKENS } from "@/di/tokens";
+import { AI_MODEL_TOKENS } from "../../../di/tokens";
 import { container } from "tsyringe";
 
 /**

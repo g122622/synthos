@@ -24,7 +24,6 @@ export class AgcDbAccessService extends Disposable {
     public async init() {
         // 从 DI 容器获取 CommonDBService 实例
         this.db = container.resolve<CommonDBService>(COMMON_TOKENS.CommonDBService);
-        this._registerDisposable(this.db);
         await this.db.init(createAGCTableSQL);
     }
 

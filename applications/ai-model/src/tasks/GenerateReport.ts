@@ -12,8 +12,8 @@ import { Report, ReportStatistics, ReportType } from "@root/common/contracts/rep
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { AI_MODEL_TOKENS } from "../di/tokens";
-import { ReportEmailService } from "@/services/email/ReportEmailService";
-import { TextGeneratorService } from "@/services/generators/text/TextGeneratorService";
+import { ReportEmailService } from "../services/email/ReportEmailService";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**

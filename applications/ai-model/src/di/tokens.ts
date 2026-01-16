@@ -8,7 +8,7 @@ export const AI_MODEL_TOKENS = {
     /** 日报邮件服务 */
     ReportEmailService: Symbol.for("ReportEmailService"),
     /** 向量数据库管理器 */
-    VectorDBManager: Symbol.for("VectorDBManager"),
+    VectorDBManagerService: Symbol.for("VectorDBManagerService"),
     /** 文本生成器 */
     TextGeneratorService: Symbol.for("TextGeneratorService"),
     /** RAG 上下文构建器 */

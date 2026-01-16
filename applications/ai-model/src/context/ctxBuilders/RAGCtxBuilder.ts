@@ -7,7 +7,7 @@ import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessSe
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { formatTimestamp } from "@root/common/util/TimeUtils";
 import { SearchOutput } from "@root/common/rpc/ai-model";
-import { AI_MODEL_TOKENS } from "../../di/tokens";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * RAG 上下文构建器
@@ -24,8 +24,8 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
      * @param imDB IM 数据库访问服务
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService
+        @inject(COMMON_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDB: ImDbAccessService
     ) {
         super();
     }

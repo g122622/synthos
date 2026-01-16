@@ -13,12 +13,11 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 
 @mustInitBeforeUse
-export class VectorDBManager extends Disposable {
+export class VectorDBManagerService extends Disposable {
     private db: Database.Database | null = null;
     private dbPath: string;
     private dimension: number;
-    private LOGGER = Logger.withTag("VectorDBManager");
-
+    private LOGGER = Logger.withTag("VectorDBManagerService");
     /**
      * @param dbPath 向量数据库文件路径
      * @param dimension 向量维度，bge-m3 为 1024
