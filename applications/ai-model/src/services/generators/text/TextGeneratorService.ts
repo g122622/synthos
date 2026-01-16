@@ -8,7 +8,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import { duplicateElements } from "@root/common/util/core/duplicateElements";
 import { sleep } from "@root/common/util/promisify/sleep";
-import { AI_MODEL_TOKENS } from "../../../di/tokens";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * 文本生成器
@@ -26,7 +26,7 @@ export class TextGeneratorService extends Disposable {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
     ) {
         super();
     }

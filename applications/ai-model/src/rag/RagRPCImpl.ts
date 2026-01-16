@@ -3,7 +3,7 @@
  * 提供语义搜索和 RAG 问答能力
  */
 import "reflect-metadata";
-import { injectable, inject } from "tsyringe";
+import { injectable, inject, container } from "tsyringe";
 import {
     RAGRPCImplementation,
     SearchOutput,
@@ -24,9 +24,10 @@ import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ReportType } from "@root/common/contracts/report/index";
-import { getReportEmailService } from "../di/container";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { ReportEmailService } from "@/services/email/ReportEmailService";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * RAG RPC 实现类
@@ -50,11 +51,11 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * @param ragCtxBuilder RAG 上下文构建器
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.VectorDBManager) private vectorDB: VectorDBManager,
-        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
-        @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
+        @inject(COMMON_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
+        @inject(COMMON_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
         @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder
     ) {
@@ -273,7 +274,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             }
 
             // 2. 调用 ReportEmailService 发送邮件（手动发送，绕过 config.report.sendEmail 开关）
-            const reportEmailService = getReportEmailService();
+            const reportEmailService = container.resolve<ReportEmailService>(AI_MODEL_TOKENS.ReportEmailService);
             const success = await reportEmailService.sendReportEmailManually(report);
 
             if (success) {

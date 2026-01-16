@@ -1,6 +1,9 @@
+import "reflect-metadata";
+import { container } from "tsyringe";
 import { startRAGRPCServer } from "./server";
-import { getRagRPCImpl } from "../di/container";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+import { RagRPCImpl } from "@/rag/RagRPCImpl";
+import { AI_MODEL_TOKENS } from "@/di/tokens";
 
 /**
  * 启动 RPC Server
@@ -10,7 +13,7 @@ export const setupRPC = async () => {
     const config = await ConfigManagerService.getCurrentConfig();
 
     // 从 DI 容器获取 RPC 实现
-    const rpcImpl = getRagRPCImpl();
+    const rpcImpl = container.resolve<RagRPCImpl>(AI_MODEL_TOKENS.RagRPCImpl);
 
     // 初始化 RPC 实现
     await rpcImpl.init();

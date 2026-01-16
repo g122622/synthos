@@ -16,7 +16,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/getRandomHash";
-import { AI_MODEL_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * AI 摘要任务处理器
@@ -26,16 +26,10 @@ import { AI_MODEL_TOKENS } from "../di/tokens";
 export class AISummarizeTaskHandler {
     private LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
 
-    /**
-     * 构造函数
-     * @param configManagerService 配置管理服务
-     * @param imDbAccessService IM 数据库访问服务
-     * @param agcDbAccessService AGC 数据库访问服务
-     */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(AI_MODEL_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
-        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
+        @inject(COMMON_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService
     ) {}
 
     /**

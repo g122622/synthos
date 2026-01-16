@@ -26,14 +26,6 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 
-/**
- * 从 DI 容器获取 RagRPCImpl 实例
- * @returns RagRPCImpl 实例
- */
-function getRagRPCImpl(): RagRPCImpl {
-    return container.resolve<RagRPCImpl>(AI_MODEL_TOKENS.RagRPCImpl);
-}
-
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
     registerConfigManagerService();
@@ -79,9 +71,4 @@ export async function registerAllDependencies(): Promise<void> {
     container.registerSingleton(AI_MODEL_TOKENS.InterestScoreTaskHandler, InterestScoreTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler, GenerateEmbeddingTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.GenerateReportTaskHandler, GenerateReportTaskHandler);
-    // 8. 注册各大任务到 Agenda 调度器
-    await container.resolve<AISummarizeTaskHandler>(AI_MODEL_TOKENS.AISummarizeTaskHandler).register();
-    await container.resolve<InterestScoreTaskHandler>(AI_MODEL_TOKENS.InterestScoreTaskHandler).register();
-    await container.resolve<GenerateEmbeddingTaskHandler>(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler).register();
-    await container.resolve<GenerateReportTaskHandler>(AI_MODEL_TOKENS.GenerateReportTaskHandler).register();
 }

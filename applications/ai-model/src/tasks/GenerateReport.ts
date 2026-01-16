@@ -3,7 +3,6 @@ import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
-import { getReportEmailService, getTextGeneratorService } from "../di/container";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
@@ -13,6 +12,9 @@ import { Report, ReportStatistics, ReportType } from "@root/common/contracts/rep
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { AI_MODEL_TOKENS } from "../di/tokens";
+import { ReportEmailService } from "@/services/email/ReportEmailService";
+import { TextGeneratorService } from "@/services/generators/text/TextGeneratorService";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * 日报生成任务处理器
@@ -22,19 +24,14 @@ import { AI_MODEL_TOKENS } from "../di/tokens";
 export class GenerateReportTaskHandler {
     private LOGGER = Logger.withTag("📰 [ai-model-root-script] [GenerateReportTask]");
 
-    /**
-     * 构造函数
-     * @param configManagerService 配置管理服务
-     * @param agcDbAccessService AGC 数据库访问服务
-     * @param reportDbAccessService 日报数据库访问服务
-     * @param interestScoreDbAccessService 兴趣度评分数据库访问服务
-     */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(AI_MODEL_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
-        @inject(AI_MODEL_TOKENS.InterestScoreDbAccessService)
-        private interestScoreDbAccessService: InterestScoreDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
+        @inject(COMMON_TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
+        @inject(COMMON_TOKENS.InterestScoreDbAccessService)
+        private interestScoreDbAccessService: InterestScoreDbAccessService,
+        @inject(AI_MODEL_TOKENS.ReportEmailService) private reportEmailService: ReportEmailService,
+        @inject(AI_MODEL_TOKENS.TextGeneratorService) private textGeneratorService: TextGeneratorService
     ) {}
 
     /**
@@ -124,8 +121,7 @@ export class GenerateReportTaskHandler {
 
                         // 发送空日报邮件
                         try {
-                            const reportEmailService = getReportEmailService();
-                            await reportEmailService.sendReportEmail(emptyReport);
+                            await this.reportEmailService.sendReportEmail(emptyReport);
                         } catch (emailError) {
                             this.LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
                         }
@@ -195,9 +191,7 @@ export class GenerateReportTaskHandler {
                         return;
                     }
 
-                    // 9. 从 DI 容器获取 TextGeneratorService
-                    const TextGeneratorService = getTextGeneratorService();
-
+                    // 9. 调用 LLM 生成综述
                     const prompt = (
                         await ReportPromptStore.getReportSummaryPrompt(
                             reportType,
@@ -206,18 +200,17 @@ export class GenerateReportTaskHandler {
                             statistics
                         )
                     ).serializeToString();
-
                     let summary = "";
                     let selectedModelName = "";
                     let summaryStatus: "success" | "failed" = "failed";
-
                     const retryCount = config.report.generation.llmRetryCount;
                     const modelCandidates = config.report.generation.aiModels;
 
                     this.LOGGER.info(`开始调用 LLM 生成日报综述，prompt长度：${prompt.length}`);
+
                     for (let attempt = 0; attempt <= retryCount; attempt++) {
                         try {
-                            const result = await TextGeneratorService.generateTextWithModelCandidates(
+                            const result = await this.textGeneratorService.generateTextWithModelCandidates(
                                 modelCandidates,
                                 prompt
                             );
@@ -234,7 +227,7 @@ export class GenerateReportTaskHandler {
                         }
                     }
 
-                    TextGeneratorService.dispose();
+                    this.textGeneratorService.dispose();
 
                     // 10. 保存日报
                     const report: Report = {
@@ -259,8 +252,7 @@ export class GenerateReportTaskHandler {
                     // 发送日报邮件（仅当综述生成成功时）
                     if (summaryStatus === "success") {
                         try {
-                            const reportEmailService = getReportEmailService();
-                            await reportEmailService.sendReportEmail(report);
+                            await this.reportEmailService.sendReportEmail(report);
                         } catch (emailError) {
                             this.LOGGER.error(`发送日报邮件失败: ${emailError}`);
                         }

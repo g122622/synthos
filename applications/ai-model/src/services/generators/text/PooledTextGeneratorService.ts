@@ -2,7 +2,8 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { TextGeneratorService } from "./TextGeneratorService";
 import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { getTextGeneratorService } from "../../../di/container";
+import { AI_MODEL_TOKENS } from "@/di/tokens";
+import { container } from "tsyringe";
 
 /**
  * 池化任务定义
@@ -65,7 +66,7 @@ export class PooledTextGeneratorService extends Disposable {
      */
     public async init(): Promise<void> {
         // 从 DI 容器获取已初始化的 TextGeneratorService
-        this.TextGeneratorService = getTextGeneratorService();
+        this.TextGeneratorService = container.resolve<TextGeneratorService>(AI_MODEL_TOKENS.TextGeneratorService);
         this._registerDisposableFunction(() => {
             // 清空等待中的任务：立即 resolve 但标记为失败
             for (const { resolve } of this.taskQueue) {

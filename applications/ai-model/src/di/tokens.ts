@@ -2,20 +2,8 @@
  * ai-model 子项目的依赖注入 Token 定义
  * 用于标识子项目特有的服务
  */
-import { COMMON_TOKENS } from "@root/common/di/tokens";
-
-// 导出共享 Token
-export { COMMON_TOKENS };
 
 export const AI_MODEL_TOKENS = {
-    // 引用共享的数据库服务 Token
-    AgcDbAccessService: COMMON_TOKENS.AgcDbAccessService,
-    ImDbAccessService: COMMON_TOKENS.ImDbAccessService,
-    InterestScoreDbAccessService: COMMON_TOKENS.InterestScoreDbAccessService,
-    ReportDbAccessService: COMMON_TOKENS.ReportDbAccessService,
-    ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
-    EmailService: COMMON_TOKENS.EmailService,
-
     // ai-model 特有的服务
     /** 日报邮件服务 */
     ReportEmailService: Symbol.for("ReportEmailService"),

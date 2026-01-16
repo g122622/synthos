@@ -7,8 +7,8 @@ import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { Report, ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { AI_MODEL_TOKENS } from "../../di/tokens";
 import { EmailService } from "@root/common/services/email/EmailService";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * 日报邮件服务
@@ -23,8 +23,8 @@ class ReportEmailService {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(AI_MODEL_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(AI_MODEL_TOKENS.EmailService) private emailService: EmailService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.EmailService) private emailService: EmailService
     ) {}
 
     /**
@@ -52,7 +52,7 @@ class ReportEmailService {
             return false;
         }
 
-        return this.doSendReportEmail(report);
+        return this._doSendReportEmail(report);
     }
 
     /**
@@ -70,7 +70,7 @@ class ReportEmailService {
             return false;
         }
 
-        return this.doSendReportEmail(report);
+        return this._doSendReportEmail(report);
     }
 
     /**
@@ -78,12 +78,12 @@ class ReportEmailService {
      * @param report 日报数据
      * @returns 是否发送成功
      */
-    private async doSendReportEmail(report: Report): Promise<boolean> {
+    private async _doSendReportEmail(report: Report): Promise<boolean> {
         // 构建邮件标题
-        const subject = this.buildEmailSubject(report);
+        const subject = this._buildEmailSubject(report);
 
         // 构建邮件内容
-        const html = this.buildEmailHtml(report);
+        const html = this._buildEmailHtml(report);
 
         // 调用通用邮件服务发送（发件人、收件人、重试逻辑由 EmailService 统一处理）
         const success = await this.emailService.sendEmail({ subject, html });
@@ -102,7 +102,7 @@ class ReportEmailService {
      * @param report 日报数据
      * @returns 邮件标题
      */
-    private buildEmailSubject(report: Report): string {
+    private _buildEmailSubject(report: Report): string {
         const startDate = new Date(report.timeStart);
         const dateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}-${String(startDate.getDate()).padStart(2, "0")}`;
 
@@ -121,7 +121,7 @@ class ReportEmailService {
      * @param report 日报数据
      * @returns HTML 格式的邮件内容
      */
-    private buildEmailHtml(report: Report): string {
+    private _buildEmailHtml(report: Report): string {
         const startDate = new Date(report.timeStart);
         const endDate = new Date(report.timeEnd);
 

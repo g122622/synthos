@@ -5,7 +5,7 @@ import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { SearchOutput } from "@root/common/rpc/ai-model";
-import { AI_MODEL_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 // 模拟依赖
 vi.mock("@root/common/database/AgcDbAccessService");
@@ -28,8 +28,8 @@ describe("RAGCtxBuilder", () => {
         } as any;
 
         // 注册模拟服务到 DI 容器
-        container.registerInstance(AI_MODEL_TOKENS.AgcDbAccessService, mockAgcDB);
-        container.registerInstance(AI_MODEL_TOKENS.ImDbAccessService, mockImDB);
+        container.registerInstance(COMMON_TOKENS.AgcDbAccessService, mockAgcDB);
+        container.registerInstance(COMMON_TOKENS.ImDbAccessService, mockImDB);
 
         // 从容器获取 RAGCtxBuilder 实例
         ragCtxBuilder = container.resolve(RAGCtxBuilder);
