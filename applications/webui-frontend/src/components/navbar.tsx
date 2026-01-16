@@ -51,7 +51,7 @@ export const Navbar = () => {
     );
 
     return (
-        <HeroUINavbar maxWidth="xl" position="sticky">
+        <HeroUINavbar maxWidth="2xl" position="sticky">
             <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
                 <NavbarBrand className="gap-3 max-w-fit">
                     <Link className="flex justify-start items-center gap-1" color="foreground" href="/">
@@ -59,7 +59,7 @@ export const Navbar = () => {
                         <p className="font-bold text-inherit">Synthos</p>
                     </Link>
                 </NavbarBrand>
-                <div className="hidden lg:flex gap-4 justify-start ml-2">
+                <div className="hidden lg:flex gap-4 justify-start ml-7">
                     {navItems.map(item => (
                         <NavbarItem key={item.href}>
                             <Link className={clsx(linkStyles({ color: "foreground" }), "data-[active=true]:text-primary data-[active=true]:font-medium")} color="foreground" href={item.href}>
