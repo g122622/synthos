@@ -16,6 +16,7 @@ import { TopicStatusController } from "../controllers/TopicStatusController";
 import { SearchController } from "../controllers/SearchController";
 import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
 import { ReportController } from "../controllers/ReportController";
+import { SystemMonitorController } from "../controllers/SystemMonitorController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -28,6 +29,7 @@ export const setupApiRoutes = (app: Express): void => {
     const searchController = container.resolve<SearchController>(TOKENS.SearchController);
     const ragChatHistoryController = container.resolve<RagChatHistoryController>(TOKENS.RagChatHistoryController);
     const reportController = container.resolve<ReportController>(TOKENS.ReportController);
+    const systemMonitorController = container.resolve<SystemMonitorController>(TOKENS.SystemMonitorController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -236,5 +238,16 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/report/send-email",
         asyncHandler((req, res) => reportController.sendReportEmail(req, res))
+    );
+
+    // ==================== 系统监控 ====================
+    app.get(
+        "/api/system/monitor/latest",
+        asyncHandler((req, res) => systemMonitorController.getLatestStats(req, res))
+    );
+
+    app.get(
+        "/api/system/monitor/history",
+        asyncHandler((req, res) => systemMonitorController.getStatsHistory(req, res))
     );
 };

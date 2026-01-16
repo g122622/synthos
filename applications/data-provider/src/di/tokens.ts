@@ -8,10 +8,6 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
 export { COMMON_TOKENS };
 
 export const DATA_PROVIDER_TOKENS = {
-    // 引用共享的数据库服务 Token
-    ImDbAccessService: COMMON_TOKENS.ImDbAccessService,
-    ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
-
     // data-provider 特有的服务
     /** 数据提供任务处理器 */
     ProvideDataTaskHandler: Symbol.for("ProvideDataTaskHandler"),

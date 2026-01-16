@@ -7,6 +7,7 @@
 
 const { spawn } = require("child_process");
 const path = require("path");
+const fs = require("fs");
 
 // 构建顺序配置（可按需调整）
 // 注意：orchestrator 需要在所有任务处理器启动后再启动，以确保任务已注册
@@ -22,6 +23,19 @@ const buildOrder = [
 
 // 项目根目录
 const rootDir = path.resolve(__dirname, "..");
+// PID 文件路径
+const pidFilePath = path.join(rootDir, "pids.json");
+// PID Map
+const pidMap = {};
+
+// 写入 PID Map 到文件
+function writePidMap() {
+    try {
+        fs.writeFileSync(pidFilePath, JSON.stringify(pidMap, null, 2));
+    } catch (err) {
+        console.error("❌ 写入 PID 文件失败:", err);
+    }
+}
 
 // 构建间隔时间（毫秒）
 const buildInterval = 3000;
@@ -42,6 +56,13 @@ function buildProject(projectName) {
             stdio: ["ignore", "inherit", "inherit"], // [stdin, stdout, stderr] - inherit stdout and stderr
             shell: true
         });
+
+        // 记录 PID
+        if (buildProcess.pid) {
+            console.log(`📌 项目 ${projectName} PID: ${buildProcess.pid}`);
+            pidMap[projectName] = buildProcess.pid;
+            writePidMap();
+        }
 
         // 明确监听输出事件并转发到当前控制台
         buildProcess.stdout?.on("data", data => {

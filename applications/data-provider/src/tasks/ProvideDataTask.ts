@@ -6,7 +6,7 @@ import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { IIMProvider } from "../providers/contracts/IIMProvider";
-import { DATA_PROVIDER_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { getQQProvider } from "../di/container";
 
@@ -24,8 +24,8 @@ export class ProvideDataTaskHandler {
      * @param imDbAccessService IM 数据库访问服务
      */
     public constructor(
-        @inject(DATA_PROVIDER_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(DATA_PROVIDER_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {}
 
     /**

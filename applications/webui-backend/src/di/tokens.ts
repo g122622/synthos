@@ -36,6 +36,7 @@ export const TOKENS = {
     ConfigService: Symbol.for("ConfigService"),
     RagChatHistoryService: Symbol.for("RagChatHistoryService"),
     ReportService: Symbol.for("ReportService"),
+    SystemMonitorService: Symbol.for("SystemMonitorService"),
     EmailService: COMMON_TOKENS.EmailService,
 
     // Controllers
@@ -48,5 +49,6 @@ export const TOKENS = {
     SearchController: Symbol.for("SearchController"),
     ConfigController: Symbol.for("ConfigController"),
     RagChatHistoryController: Symbol.for("RagChatHistoryController"),
-    ReportController: Symbol.for("ReportController")
+    ReportController: Symbol.for("ReportController"),
+    SystemMonitorController: Symbol.for("SystemMonitorController")
 } as const;

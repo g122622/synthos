@@ -16,7 +16,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import sqlite3 from "@journeyapps/sqlcipher";
 import { MsgType } from "./@types/mappers/MsgType";
-import { DATA_PROVIDER_TOKENS } from "../../di/tokens";
+import { COMMON_TOKENS } from "../../di/tokens";
 sqlite3.verbose();
 
 /**
@@ -35,7 +35,7 @@ export class QQProvider extends Disposable implements IIMProvider {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(DATA_PROVIDER_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
     ) {
         super();
     }

@@ -9,6 +9,7 @@ import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
 import RagPage from "@/pages/rag/rag";
 import ConfigPage from "@/pages/config-panel/config";
+import SystemMonitorPage from "@/pages/system-monitor";
 
 function App() {
     return (
@@ -21,6 +22,7 @@ function App() {
             <Route element={<ReportsPage />} path="/reports" />
             <Route element={<RagPage />} path="/rag" />
             <Route element={<ConfigPage />} path="/config" />
+            <Route element={<SystemMonitorPage />} path="/system-monitor" />
         </Routes>
     );
 }

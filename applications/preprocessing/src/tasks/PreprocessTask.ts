@@ -7,7 +7,7 @@ import { formatMsg } from "../formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ISplitter } from "../splitters/contracts/ISplitter";
-import { PREPROCESSING_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { getAccumulativeSplitter, getTimeoutSplitter } from "../di/container";
 
@@ -25,8 +25,8 @@ export class PreprocessTaskHandler {
      * @param imDbAccessService IM 数据库访问服务
      */
     public constructor(
-        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(PREPROCESSING_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {}
 
     /**

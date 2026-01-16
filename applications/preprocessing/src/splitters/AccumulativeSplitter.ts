@@ -10,7 +10,7 @@ import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { PREPROCESSING_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "../di/tokens";
 
 /**
  * 累积式消息分割器
@@ -26,8 +26,8 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(PREPROCESSING_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {
         super();
     }
@@ -53,6 +53,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
         if (!this.kvStore) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
+        await this.imDbAccessService.init(); // TODO : 临时解决方案，确保数据库已初始化
         const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {

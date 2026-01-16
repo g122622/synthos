@@ -6,7 +6,7 @@ import getRandomHash from "@root/common/util/getRandomHash";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { PREPROCESSING_TOKENS } from "../di/tokens";
+import { COMMON_TOKENS } from "../di/tokens";
 
 /**
  * 超时式消息分割器
@@ -20,8 +20,8 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
      * @param configManagerService 配置管理服务
      */
     public constructor(
-        @inject(PREPROCESSING_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
-        @inject(PREPROCESSING_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
+        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService
     ) {
         super();
     }
@@ -40,6 +40,7 @@ export class TimeoutSplitter extends Disposable implements ISplitter {
      * @returns 带有 sessionId 的消息列表
      */
     public async assignSessionId(groupId: string, startTimeStamp: number, endTimeStamp: number) {
+        await this.imDbAccessService.init(); // TODO : 临时解决方案，确保数据库已初始化
         const config = (await this.configManagerService.getCurrentConfig()).preprocessors.TimeoutSplitter;
 
         // 获取配置的超时阈值（单位：毫秒）

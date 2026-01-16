@@ -35,6 +35,10 @@ export const siteConfig = {
         {
             label: "🛠️配置面板",
             href: "/config"
+        },
+        {
+            label: "📊系统监控",
+            href: "/system-monitor"
         }
     ],
     navMenuItems: [
@@ -69,6 +73,10 @@ export const siteConfig = {
         {
             label: "🛠️配置面板",
             href: "/config"
+        },
+        {
+            label: "📊系统监控",
+            href: "/system-monitor"
         }
     ],
     links: {

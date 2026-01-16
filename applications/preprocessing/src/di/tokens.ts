@@ -8,10 +8,6 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
 export { COMMON_TOKENS };
 
 export const PREPROCESSING_TOKENS = {
-    // 引用共享的数据库服务 Token
-    ImDbAccessService: COMMON_TOKENS.ImDbAccessService,
-    ConfigManagerService: COMMON_TOKENS.ConfigManagerService,
-
     // preprocessing 特有的服务
     /** 预处理任务处理器 */
     PreprocessTaskHandler: Symbol.for("PreprocessTaskHandler"),
