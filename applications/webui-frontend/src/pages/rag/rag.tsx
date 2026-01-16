@@ -4,7 +4,7 @@
  * 采用现代聊天应用布局，输入框固定在底部
  */
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Button, cn } from "@heroui/react";
+import { Button, Checkbox, cn } from "@heroui/react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input, Textarea } from "@heroui/input";
 import { Chip } from "@heroui/chip";
@@ -41,6 +41,7 @@ export default function RagPage() {
     const [askResponse, setAskResponse] = useState<AskResponse | null>(null);
     const [askLoading, setAskLoading] = useState(false);
     const [topK, setTopK] = useState(100);
+    const [enableQueryRewriter, setEnableQueryRewriter] = useState(true);
     const [showTypingEffect, setShowTypingEffect] = useState(false);
 
     // 当前 Tab（ask或search）
@@ -106,14 +107,14 @@ export default function RagPage() {
         setAskLoading(true);
         setShowTypingEffect(false);
         try {
-            const response = await ask(question, topK);
+            const response = await ask(question, topK, enableQueryRewriter);
 
             if (response.success) {
                 setAskResponse(response.data);
 
                 // 保存到历史记录
                 try {
-                    await createSession(question, response.data.answer, response.data.references, topK);
+                    await createSession(question, response.data.answer, response.data.references, topK, enableQueryRewriter);
                     // 刷新侧边栏
                     setRefreshTrigger(prev => prev + 1);
                 } catch (error) {
@@ -186,6 +187,7 @@ export default function RagPage() {
                             references: session.references
                         });
                         setTopK(session.topK);
+                        setEnableQueryRewriter(session.enableQueryRewriter);
                         setShowTypingEffect(false);
                         // 切换到问答 Tab
                         setActiveTab("ask");
@@ -521,9 +523,9 @@ export default function RagPage() {
 
                                     <div className="flex w-full items-center justify-between px-3 pb-3">
                                         <div className="flex items-center gap-2">
+                                            Top-K:
                                             <Input
-                                                className="w-24"
-                                                label="Top K"
+                                                className="w-35"
                                                 max={100}
                                                 min={1}
                                                 size="sm"
@@ -532,6 +534,9 @@ export default function RagPage() {
                                                 variant="bordered"
                                                 onChange={e => setTopK(parseInt(e.target.value) || 100)}
                                             />
+                                            <Checkbox className="ml-2" isSelected={enableQueryRewriter} size="md" onValueChange={setEnableQueryRewriter}>
+                                                查询扩展
+                                            </Checkbox>
                                         </div>
 
                                         <div className="flex items-center gap-2">

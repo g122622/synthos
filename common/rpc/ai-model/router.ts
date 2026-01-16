@@ -41,7 +41,7 @@ export interface RAGRPCImplementation {
      * @param input 问答输入
      * @returns AI 回答及引用来源
      */
-    ask(input: { question: string; topK: number }): Promise<AskOutput>;
+    ask(input: { question: string; topK: number; enableQueryRewriter: boolean }): Promise<AskOutput>;
 
     /**
      * 触发生成日报
@@ -80,9 +80,10 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
 
         ask: t.procedure.input(AskInputSchema).query(async ({ input }) => {
             // Zod schema 验证后，确保类型匹配（topK 有默认值，但类型推断可能为可选）
-            const validatedInput: { question: string; topK: number } = {
+            const validatedInput: { question: string; topK: number; enableQueryRewriter: boolean } = {
                 question: input.question,
-                topK: input.topK ?? 5
+                topK: input.topK ?? 5,
+                enableQueryRewriter: input.enableQueryRewriter ?? true
             };
             return impl.ask(validatedInput);
         }),

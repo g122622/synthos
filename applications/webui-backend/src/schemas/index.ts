@@ -85,7 +85,8 @@ export const CreateRagSessionSchema = z.object({
         }),
         { message: "缺少references参数" }
     ),
-    topK: z.number({ message: "缺少topK参数" })
+    topK: z.number({ message: "缺少topK参数" }),
+    enableQueryRewriter: z.boolean().optional().default(true)
 });
 export type CreateRagSessionParams = z.infer<typeof CreateRagSessionSchema>;
 

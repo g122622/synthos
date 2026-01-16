@@ -25,6 +25,7 @@ export interface CreateSessionServiceInput {
     answer: string;
     references: ReferenceItem[];
     topK: number;
+    enableQueryRewriter: boolean;
 }
 
 /**
@@ -37,6 +38,7 @@ export interface SessionDetail {
     answer: string;
     references: ReferenceItem[];
     topK: number;
+    enableQueryRewriter: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -71,7 +73,8 @@ export class RagChatHistoryService {
             question: input.question,
             answer: input.answer,
             refs: JSON.stringify(input.references),
-            topK: input.topK
+            topK: input.topK,
+            enableQueryRewriter: input.enableQueryRewriter
         });
 
         return this.transformSession(session);
@@ -144,6 +147,7 @@ export class RagChatHistoryService {
             answer: session.answer,
             references,
             topK: session.topK,
+            enableQueryRewriter: session.enableQueryRewriter,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt
         };

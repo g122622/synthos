@@ -57,8 +57,9 @@ export const search = async (query: string, limit: number = 10): Promise<ApiResp
  * RAG 问答
  * @param question 问题
  * @param topK 参考话题数量
+ * @param enableQueryRewriter 是否启用查询重写器
  */
-export const ask = async (question: string, topK: number = 50): Promise<ApiResponse<AskResponse>> => {
+export const ask = async (question: string, topK: number = 50, enableQueryRewriter: boolean = true): Promise<ApiResponse<AskResponse>> => {
     // 如果启用了 mock，使用 mock 数据
     if (mockConfig.rag) {
         return mockAsk(question, topK);
@@ -67,7 +68,7 @@ export const ask = async (question: string, topK: number = 50): Promise<ApiRespo
     const response = await fetchWrapper(`${API_BASE_URL}/api/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, topK })
+        body: JSON.stringify({ question, topK, enableQueryRewriter })
     });
 
     return response.json();

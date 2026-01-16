@@ -39,6 +39,7 @@ export interface SessionDetail {
     answer: string;
     references: ReferenceItem[];
     topK: number;
+    enableQueryRewriter: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -57,7 +58,7 @@ export interface SessionListResponse {
 /**
  * 创建新会话
  */
-export const createSession = async (question: string, answer: string, references: ReferenceItem[], topK: number): Promise<ApiResponse<SessionDetail>> => {
+export const createSession = async (question: string, answer: string, references: ReferenceItem[], topK: number, enableQueryRewriter: boolean = true): Promise<ApiResponse<SessionDetail>> => {
     // 如果启用了 mock，使用 mock 数据
     if (mockConfig.rag) {
         return mockCreateSession(question, answer, references, topK);
@@ -66,7 +67,7 @@ export const createSession = async (question: string, answer: string, references
     const response = await fetchWrapper(`${API_BASE_URL}/api/rag/session/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer, references, topK })
+        body: JSON.stringify({ question, answer, references, topK, enableQueryRewriter })
     });
 
     return response.json();

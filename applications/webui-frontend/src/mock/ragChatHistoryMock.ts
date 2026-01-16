@@ -28,7 +28,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 7,
-        updatedAt: Date.now() - 86400000 * 7
+        updatedAt: Date.now() - 86400000 * 7,
+        enableQueryRewriter: true
     },
     {
         id: "session-002",
@@ -51,7 +52,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 6,
-        updatedAt: Date.now() - 86400000 * 6
+        updatedAt: Date.now() - 86400000 * 6,
+        enableQueryRewriter: true
     },
     {
         id: "session-003",
@@ -74,7 +76,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 5,
-        updatedAt: Date.now() - 86400000 * 5
+        updatedAt: Date.now() - 86400000 * 5,
+        enableQueryRewriter: true
     },
     {
         id: "session-004",
@@ -102,7 +105,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 4,
-        updatedAt: Date.now() - 86400000 * 4
+        updatedAt: Date.now() - 86400000 * 4,
+        enableQueryRewriter: true
     },
     {
         id: "session-005",
@@ -125,7 +129,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 3,
-        updatedAt: Date.now() - 86400000 * 3
+        updatedAt: Date.now() - 86400000 * 3,
+        enableQueryRewriter: true
     },
     {
         id: "session-006",
@@ -152,7 +157,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000 * 2,
-        updatedAt: Date.now() - 86400000 * 2
+        updatedAt: Date.now() - 86400000 * 2,
+        enableQueryRewriter: true
     },
     {
         id: "session-007",
@@ -179,7 +185,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 86400000,
-        updatedAt: Date.now() - 86400000
+        updatedAt: Date.now() - 86400000,
+        enableQueryRewriter: true
     },
     {
         id: "session-008",
@@ -207,7 +214,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 43200000,
-        updatedAt: Date.now() - 43200000
+        updatedAt: Date.now() - 43200000,
+        enableQueryRewriter: true
     },
     {
         id: "session-009",
@@ -232,7 +240,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 21600000,
-        updatedAt: Date.now() - 21600000
+        updatedAt: Date.now() - 21600000,
+        enableQueryRewriter: true
     },
     {
         id: "session-010",
@@ -260,7 +269,8 @@ let mockSessions: SessionDetail[] = [
         ],
         topK: 5,
         createdAt: Date.now() - 3600000,
-        updatedAt: Date.now() - 3600000
+        updatedAt: Date.now() - 3600000,
+        enableQueryRewriter: true
     }
 ];
 
@@ -298,7 +308,8 @@ export const mockCreateSession = async (question: string, answer: string, refere
         references,
         topK,
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+        enableQueryRewriter: true
     };
 
     // 添加到列表开头

@@ -35,16 +35,20 @@ export class SearchController {
     /**
      * RAG 问答
      * POST /api/ask
-     * Body: { question: string, topK?: number }
+     * Body: { question: string, topK?: number, enableQueryRewriter?: boolean }
      */
     async ask(req: Request, res: Response): Promise<void> {
-        const { question, topK } = req.body;
+        const { question, topK, enableQueryRewriter } = req.body;
 
         if (!question || typeof question !== "string") {
             throw new ValidationError("question 参数是必需的且必须是字符串");
         }
 
-        const result = await this.searchService.ask(question, topK || 5);
+        const result = await this.searchService.ask(
+            question,
+            topK || 5,
+            enableQueryRewriter !== undefined ? enableQueryRewriter : true
+        );
 
         res.json({
             success: true,

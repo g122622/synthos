@@ -56,7 +56,7 @@ const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, index, favorit
                 `}
                 shadow="sm"
             >
-                <CardHeader className="flex gap- pb-2">
+                <CardHeader className="flex gap-2 pb-2">
                     <Chip color="secondary" size="sm" variant="flat">
                         #{index + 1}
                     </Chip>
@@ -70,7 +70,7 @@ const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, index, favorit
                         </Link>
                     </div>
                 </CardHeader>
-                <CardBody className="gap-3">
+                <CardBody className="gap-3 flex flex-col justify-between h-full">
                     {/* 话题标题 - 支持悬停查看详情 */}
                     <TopicPopover favoriteTopics={favoriteTopics} readTopics={readTopics} topicId={reference.topicId} onMarkAsRead={onMarkAsRead} onToggleFavorite={onToggleFavorite}>
                         <div className="inline-flex items-center gap-1 cursor-help group">

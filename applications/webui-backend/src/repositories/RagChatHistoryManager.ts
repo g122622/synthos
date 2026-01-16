@@ -20,6 +20,7 @@ export interface RagChatSession {
     answer: string;
     refs: string; // JSON 字符串，存储 ReferenceItem[]
     topK: number;
+    enableQueryRewriter: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -34,6 +35,7 @@ export interface CreateSessionInput {
     answer: string;
     refs: string;
     topK: number;
+    enableQueryRewriter: boolean;
 }
 
 /**

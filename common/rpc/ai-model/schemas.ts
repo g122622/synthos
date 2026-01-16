@@ -25,7 +25,8 @@ export const SearchOutputSchema = z.array(SearchResultItemSchema);
 
 export const AskInputSchema = z.object({
     question: z.string().min(1, "问题不能为空"),
-    topK: z.number().int().positive().default(5)
+    topK: z.number().int().positive().default(5),
+    enableQueryRewriter: z.boolean().default(true)
 });
 
 export const ReferenceItemSchema = z.object({

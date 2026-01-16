@@ -104,25 +104,36 @@ export class RagRPCImpl implements RAGRPCImplementation {
     /**
      * RAG 问答
      */
-    public async ask(input: { question: string; topK: number }): Promise<AskOutput> {
-        this.LOGGER.info(`收到问答请求: "${input.question}", topK=${input.topK}`);
+    public async ask(input: { question: string; topK: number; enableQueryRewriter: boolean }): Promise<AskOutput> {
+        this.LOGGER.info(
+            `收到问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}`
+        );
 
-        // 1. 使用 Multi-Query 扩展原始问题
-        const expandedQueries = await this.queryRewriter.expandQuery(input.question);
-        this.LOGGER.info(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
+        let deduplicatedResults: SearchOutput;
 
-        // 2. 对每个扩展查询进行搜索
-        const allResults: SearchOutput = [];
-        for (const query of expandedQueries) {
-            this.LOGGER.debug(`执行查询: "${query}"`);
-            const results = await this.search({ query, limit: input.topK });
-            allResults.push(...results);
+        if (input.enableQueryRewriter) {
+            // 1. 使用 Multi-Query 扩展原始问题
+            const expandedQueries = await this.queryRewriter.expandQuery(input.question);
+            this.LOGGER.info(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
+
+            // 2. 对每个扩展查询进行搜索
+            const allResults: SearchOutput = [];
+            for (const query of expandedQueries) {
+                this.LOGGER.debug(`执行查询: "${query}"`);
+                const results = await this.search({ query, limit: input.topK });
+                allResults.push(...results);
+            }
+            this.LOGGER.info(`Multi-Query 搜索完成，共获取 ${allResults.length} 条原始结果`);
+
+            // 3. 文档去重（基于 topicId）
+            deduplicatedResults = this.deduplicateResults(allResults);
+            this.LOGGER.info(`文档去重完成，去重后剩余 ${deduplicatedResults.length} 条结果`);
+        } else {
+            // 直接搜索，不使用 Query Rewriter
+            this.LOGGER.info("Query Rewriter 已禁用，直接执行搜索");
+            deduplicatedResults = await this.search({ query: input.question, limit: input.topK });
+            this.LOGGER.info(`搜索完成，共获取 ${deduplicatedResults.length} 条结果`);
         }
-        this.LOGGER.info(`Multi-Query 搜索完成，共获取 ${allResults.length} 条原始结果`);
-
-        // 3. 文档去重（基于 topicId）
-        const deduplicatedResults = this.deduplicateResults(allResults);
-        this.LOGGER.info(`文档去重完成，去重后剩余 ${deduplicatedResults.length} 条结果`);
 
         if (deduplicatedResults.length === 0) {
             this.LOGGER.warning("未找到相关话题");

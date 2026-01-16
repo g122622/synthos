@@ -27,7 +27,8 @@ export class RagChatHistoryController {
             question: params.question,
             answer: params.answer,
             references: params.references,
-            topK: params.topK
+            topK: params.topK,
+            enableQueryRewriter: params.enableQueryRewriter
         });
         res.json({ success: true, data: session });
     }

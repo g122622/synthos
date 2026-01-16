@@ -38,13 +38,18 @@ export class SearchService {
      * RAG 问答
      * @param question 用户问题
      * @param topK 检索话题数量
+     * @param enableQueryRewriter 是否启用查询重写器
      * @returns AI 回答及引用来源
      */
-    async ask(question: string, topK: number = 5): Promise<AskOutput> {
-        this.LOGGER.info(`执行 RAG 问答: "${question}", topK=${topK}`);
+    async ask(question: string, topK: number = 5, enableQueryRewriter: boolean = true): Promise<AskOutput> {
+        this.LOGGER.info(`执行 RAG 问答: "${question}", topK=${topK}, enableQueryRewriter=${enableQueryRewriter}`);
 
         try {
-            const result = await this.ragClient.ask.query({ question, topK });
+            const result = await this.ragClient.ask.query({
+                question,
+                topK,
+                enableQueryRewriter
+            } as any);
             if (!result.answer) {
                 throw new InternalError("result.answer无效");
             }
