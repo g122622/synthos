@@ -11,7 +11,9 @@ import { dirname } from "path";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import { injectable } from "tsyringe";
 
+@injectable()
 @mustInitBeforeUse
 export class VectorDBManagerService extends Disposable {
     private db: Database.Database | null = null;

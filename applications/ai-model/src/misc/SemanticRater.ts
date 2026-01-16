@@ -1,19 +1,19 @@
 import Logger from "@root/common/util/Logger";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { UserInterest } from "@root/common/services/config/schemas/GlobalConfig";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
 
 export class SemanticRater {
-    private embeddingService: OllamaEmbeddingService;
+    private embeddingService: EmbeddingService;
     private vectorCache = new Map<string, Float32Array>();
     private LOGGER = Logger.withTag("SemanticRater");
 
     /**
      * 构造函数
-     * @param embeddingService OllamaEmbeddingService 实例
+     * @param embeddingService EmbeddingService 实例
      */
-    constructor(embeddingService: OllamaEmbeddingService) {
+    constructor(embeddingService: EmbeddingService) {
         this.embeddingService = embeddingService;
         this.LOGGER.info("SemanticRater 初始化完成");
     }

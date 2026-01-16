@@ -7,7 +7,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 import { AI_MODEL_TOKENS } from "../di/tokens";
@@ -25,7 +25,8 @@ export class GenerateEmbeddingTaskHandler {
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
         @inject(COMMON_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
-        @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDBManagerService: VectorDBManagerService
+        @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDBManagerService: VectorDBManagerService,
+        @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService
     ) {}
 
     /**
@@ -46,16 +47,10 @@ export class GenerateEmbeddingTaskHandler {
                 const attrs = job.attrs.data;
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
-                // 初始化 Ollama 嵌入服务
-                const embeddingService = new OllamaEmbeddingService(
-                    config.ai.embedding.ollamaBaseURL,
-                    config.ai.embedding.model,
-                    config.ai.embedding.dimension
-                );
                 this.LOGGER.success(`Ollama 服务初始化完成，模型: ${config.ai.embedding.model}`);
 
                 // 检查 Ollama 服务是否可用
-                if (!(await embeddingService.isAvailable())) {
+                if (!(await this.embeddingService.isAvailable())) {
                     this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
                     return;
                 }
@@ -115,8 +110,7 @@ export class GenerateEmbeddingTaskHandler {
 
                     try {
                         // 批量生成嵌入向量
-                        const embeddings = await embeddingService.embedBatch(texts);
-
+                        const embeddings = await this.embeddingService.embedBatch(texts);
                         // 批量存储
                         const items = currentBatchTopicIds.map((topicId, idx) => ({
                             topicId,

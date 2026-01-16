@@ -12,7 +12,7 @@ import {
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
@@ -37,19 +37,8 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
 export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
     private queryRewriter: QueryRewriter;
-    private embeddingService: OllamaEmbeddingService | null = null;
     private defaultModelName: string = "";
 
-    /**
-     * 构造函数
-     * @param configManagerService 配置管理服务
-     * @param vectorDB 向量数据库管理器
-     * @param agcDB AGC 数据库管理器
-     * @param imDB IM 数据库管理器
-     * @param reportDB 日报数据库管理器
-     * @param TextGeneratorService 文本生成器
-     * @param ragCtxBuilder RAG 上下文构建器
-     */
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDB: VectorDBManagerService,
@@ -57,7 +46,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(COMMON_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
         @inject(COMMON_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
         @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
-        @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder
+        @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder,
+        @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -69,19 +59,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
      */
     public async init(): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
-
-        // 初始化 Ollama 嵌入服务
-        this.embeddingService = new OllamaEmbeddingService(
-            config.ai.embedding.ollamaBaseURL,
-            config.ai.embedding.model,
-            config.ai.embedding.dimension
-        );
-
         this.defaultModelName = config.ai.defaultModelName;
-
         // 创建 QueryRewriter 实例
         this.queryRewriter = new QueryRewriter(this.TextGeneratorService, this.defaultModelName);
-
         // 初始化 RAGCtxBuilder
         await this.ragCtxBuilder.init();
     }
@@ -91,10 +71,6 @@ export class RagRPCImpl implements RAGRPCImplementation {
      */
     public async search(input: { query: string; limit: number }): Promise<SearchOutput> {
         this.LOGGER.info(`收到搜索请求: "${input.query}", limit=${input.limit}`);
-
-        if (!this.embeddingService) {
-            throw new Error("RagRPCImpl 尚未初始化，请先调用 init() 方法");
-        }
 
         // 1. 将查询转换为向量
         const queryEmbedding = await this.embeddingService.embed(

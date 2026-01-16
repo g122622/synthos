@@ -1,7 +1,7 @@
 // tests/SemanticRater.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { SemanticRater } from "../misc/SemanticRater";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
@@ -42,10 +42,10 @@ const generateMockVector = (text: string): Float32Array => {
 let embedBatchCallCount = 0;
 let embedBatchTextCount = 0;
 
-// Mock OllamaEmbeddingService
-vi.mock("../embedding/OllamaEmbeddingService", () => {
+// Mock EmbeddingService
+vi.mock("../services/embedding/EmbeddingService", () => {
     return {
-        OllamaEmbeddingService: class MockOllamaEmbeddingService {
+        EmbeddingService: class MockEmbeddingService {
             constructor(_baseUrl: string, _model: string, _dimension: number) {
                 // 构造函数不需要实际逻辑
             }
@@ -66,7 +66,7 @@ vi.mock("../embedding/OllamaEmbeddingService", () => {
 
 describe("SemanticRater", () => {
     let rater: SemanticRater;
-    let mockEmbeddingService: OllamaEmbeddingService;
+    let mockEmbeddingService: EmbeddingService;
 
     const TEST_BASE_URL = "http://localhost:11434";
     const TEST_MODEL = "bge-m3";
@@ -75,7 +75,7 @@ describe("SemanticRater", () => {
     beforeEach(() => {
         embedBatchCallCount = 0; // 重置计数器
         embedBatchTextCount = 0; // 重置文本计数
-        mockEmbeddingService = new OllamaEmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
+        mockEmbeddingService = new EmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
         rater = new SemanticRater(mockEmbeddingService);
     });
 

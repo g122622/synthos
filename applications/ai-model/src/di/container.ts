@@ -26,6 +26,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
@@ -53,13 +54,19 @@ export async function registerAllDependencies(): Promise<void> {
         reportDbAccessService
     });
 
-    // 4. 初始化向量数据库管理器并注册
+    // 4. 初始化向量数据库管理器和嵌入服务
     const vectorDBManagerService = new VectorDBManagerService(
         config.ai.embedding.vectorDBPath,
         config.ai.embedding.dimension
     );
     await vectorDBManagerService.init();
     container.registerInstance(AI_MODEL_TOKENS.VectorDBManagerService, vectorDBManagerService);
+    const embeddingService = new EmbeddingService(
+        config.ai.embedding.ollamaBaseURL,
+        config.ai.embedding.model,
+        config.ai.embedding.dimension
+    );
+    container.registerInstance(AI_MODEL_TOKENS.EmbeddingService, embeddingService);
 
     // 5. 注册并初始化文本生成器
     // 这里要手动解析注入一下下依赖 TODO 看看有没有更优雅的方式

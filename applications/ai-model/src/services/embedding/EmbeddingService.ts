@@ -1,20 +1,23 @@
 /**
- * OllamaEmbeddingService
+ * EmbeddingService
  * 封装 Ollama 的 /api/embed 接口，提供文本嵌入向量生成能力
  */
+import 'reflect-metadata';
 import axios, { AxiosInstance } from "axios";
 import Logger from "@root/common/util/Logger";
+import { injectable } from "tsyringe";
 
 interface OllamaEmbedResponse {
     model: string;
     embeddings: number[][];
 }
 
-export class OllamaEmbeddingService {
+@injectable()
+export class EmbeddingService {
     private client: AxiosInstance;
     private model: string;
     private dimension: number;
-    private LOGGER = Logger.withTag("OllamaEmbeddingService");
+    private LOGGER = Logger.withTag("EmbeddingService");
 
     /**
      * @param baseURL Ollama 服务地址，如 "http://localhost:11434"

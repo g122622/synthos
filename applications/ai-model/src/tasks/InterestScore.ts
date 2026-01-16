@@ -8,9 +8,10 @@ import { ConfigManagerService } from "@root/common/services/config/ConfigManager
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { SemanticRater } from "../misc/SemanticRater";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { AI_MODEL_TOKENS } from "../di/tokens";
 
 /**
  * 兴趣度评分任务处理器
@@ -25,7 +26,8 @@ export class InterestScoreTaskHandler {
         @inject(COMMON_TOKENS.ImDbAccessService) private imDbAccessService: ImDbAccessService,
         @inject(COMMON_TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
         @inject(COMMON_TOKENS.InterestScoreDbAccessService)
-        private interestScoreDbAccessService: InterestScoreDbAccessService
+        private interestScoreDbAccessService: InterestScoreDbAccessService,
+        @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService
     ) {}
 
     /**
@@ -46,15 +48,8 @@ export class InterestScoreTaskHandler {
                 const attrs = job.attrs.data;
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
-                // 初始化 Ollama 嵌入服务
-                const embeddingService = new OllamaEmbeddingService(
-                    config.ai.embedding.ollamaBaseURL,
-                    config.ai.embedding.model,
-                    config.ai.embedding.dimension
-                );
-
                 // 检查 Ollama 服务是否可用
-                if (!(await embeddingService.isAvailable())) {
+                if (!(await this.embeddingService.isAvailable())) {
                     this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
                     return;
                 }
@@ -94,7 +89,7 @@ export class InterestScoreTaskHandler {
                     return;
                 }
 
-                const rater = new SemanticRater(embeddingService);
+                const rater = new SemanticRater(this.embeddingService);
                 // 转换参数格式
                 const argArr = [];
                 argArr.push(

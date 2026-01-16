@@ -1,6 +1,6 @@
-// tests/OllamaEmbeddingService.test.ts
+// tests/EmbeddingService.test.ts
 import { describe, it, expect, beforeEach, vi, Mock } from "vitest";
-import { OllamaEmbeddingService } from "../services/embedding/OllamaEmbeddingService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import axios from "axios";
 
 // Mock axios
@@ -31,8 +31,8 @@ vi.mock("@root/common/util/Logger", () => {
     };
 });
 
-describe("OllamaEmbeddingService", () => {
-    let service: OllamaEmbeddingService;
+describe("EmbeddingService", () => {
+    let service: EmbeddingService;
     let mockAxiosInstance: { post: Mock; get: Mock };
 
     const TEST_BASE_URL = "http://localhost:11434";
@@ -41,7 +41,7 @@ describe("OllamaEmbeddingService", () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        service = new OllamaEmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
+        service = new EmbeddingService(TEST_BASE_URL, TEST_MODEL, TEST_DIMENSION);
         // 获取 mock 的 axios 实例
         mockAxiosInstance = (axios.create as Mock).mock.results[0].value;
     });
