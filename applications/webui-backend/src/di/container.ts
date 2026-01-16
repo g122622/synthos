@@ -35,6 +35,7 @@ import { ConfigService } from "../services/ConfigService";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
 import { ReportService } from "../services/ReportService";
 import { SystemMonitorService } from "../services/SystemMonitorService";
+import { AgentService } from "../services/AgentService";
 
 // RPC Clients
 import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
@@ -51,6 +52,7 @@ import { ConfigController } from "../controllers/ConfigController";
 import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
 import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
+import { AgentController } from "../controllers/AgentController";
 
 /**
  * 注册所有 DBManager 实例
@@ -114,6 +116,7 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.RagChatHistoryService, RagChatHistoryService);
     container.registerSingleton(TOKENS.ReportService, ReportService);
     container.registerSingleton(TOKENS.SystemMonitorService, SystemMonitorService);
+    container.registerSingleton(TOKENS.AgentService, AgentService);
     // EmailService 现在从 common 注册
     registerEmailService();
 }
@@ -133,6 +136,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.RagChatHistoryController, RagChatHistoryController);
     container.registerSingleton(TOKENS.ReportController, ReportController);
     container.registerSingleton(TOKENS.SystemMonitorController, SystemMonitorController);
+    container.registerSingleton(TOKENS.AgentController, AgentController);
 }
 
 /**

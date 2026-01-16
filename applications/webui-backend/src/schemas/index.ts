@@ -156,3 +156,27 @@ export const ReportIdsSchema = z.object({
     reportIds: z.array(z.string(), { message: "缺少reportIds参数或参数类型不正确" })
 });
 export type ReportIdsParams = z.infer<typeof ReportIdsSchema>;
+
+// ==================== Agent ====================
+
+export const AgentAskRequestSchema = z.object({
+    question: z.string({ message: "缺少question参数" }).min(1, "问题不能为空"),
+    conversationId: z.string().optional(),
+    sessionId: z.string().optional(),
+    enabledTools: z.array(z.enum(["rag_search", "sql_query", "web_search"])).optional(),
+    maxToolRounds: z.number().int().positive().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    maxTokens: z.number().int().positive().optional()
+});
+export type AgentAskRequestParams = z.infer<typeof AgentAskRequestSchema>;
+
+export const AgentGetConversationsSchema = z.object({
+    sessionId: z.string().optional(),
+    limit: z.number().int().positive().default(50)
+});
+export type AgentGetConversationsParams = z.infer<typeof AgentGetConversationsSchema>;
+
+export const AgentGetMessagesSchema = z.object({
+    conversationId: z.string({ message: "缺少conversationId参数" })
+});
+export type AgentGetMessagesParams = z.infer<typeof AgentGetMessagesSchema>;

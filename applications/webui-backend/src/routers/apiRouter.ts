@@ -17,6 +17,7 @@ import { SearchController } from "../controllers/SearchController";
 import { RagChatHistoryController } from "../controllers/RagChatHistoryController";
 import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
+import { AgentController } from "../controllers/AgentController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -30,6 +31,7 @@ export const setupApiRoutes = (app: Express): void => {
     const ragChatHistoryController = container.resolve<RagChatHistoryController>(TOKENS.RagChatHistoryController);
     const reportController = container.resolve<ReportController>(TOKENS.ReportController);
     const systemMonitorController = container.resolve<SystemMonitorController>(TOKENS.SystemMonitorController);
+    const agentController = container.resolve<AgentController>(TOKENS.AgentController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -249,5 +251,24 @@ export const setupApiRoutes = (app: Express): void => {
     app.get(
         "/api/system/monitor/history",
         asyncHandler((req, res) => systemMonitorController.getStatsHistory(req, res))
+    );
+
+    // ==================== Agent ====================
+    // Agent 问答
+    app.post(
+        "/api/agent/ask",
+        asyncHandler((req, res) => agentController.ask(req, res))
+    );
+
+    // 获取对话列表
+    app.post(
+        "/api/agent/conversations",
+        asyncHandler((req, res) => agentController.getConversations(req, res))
+    );
+
+    // 获取对话的消息列表
+    app.post(
+        "/api/agent/conversations/:id/messages",
+        asyncHandler((req, res) => agentController.getMessages(req, res))
     );
 };

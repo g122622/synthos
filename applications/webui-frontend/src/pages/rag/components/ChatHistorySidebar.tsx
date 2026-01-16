@@ -523,6 +523,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                     <Tabs aria-label="功能切换" className="w-full" selectedKey={activeTab} size="sm" variant="bordered" onSelectionChange={key => onTabChange?.(key as string)}>
                         <Tab key="ask" title="AI问答" />
                         <Tab key="search" title="语义搜索" />
+                        <Tab key="agent" title="智能Agent" />
                     </Tabs>
                     <Divider className="my-2" />
                     <Tabs aria-label="会话筛选" className="w-full" selectedKey={selectedSidebarTab} size="sm" variant="light" onSelectionChange={key => setSelectedSidebarTab(key as string)}>
