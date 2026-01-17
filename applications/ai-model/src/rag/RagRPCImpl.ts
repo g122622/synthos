@@ -11,6 +11,7 @@ import {
     TriggerReportGenerateOutput,
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
+import type { AgentGetConversationsOutput, AgentGetMessagesOutput } from "@root/common/rpc/ai-model/schemas";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
@@ -296,6 +297,48 @@ export class RagRPCImpl implements RAGRPCImplementation {
     }
 
     /**
+     * 获取 Agent 对话列表（分页）
+     */
+    public async agentGetConversations(input: {
+        sessionId?: string;
+        beforeUpdatedAt?: number;
+        limit: number;
+    }): Promise<AgentGetConversationsOutput> {
+        this.LOGGER.info(
+            `获取 Agent 对话列表: sessionId=${input.sessionId || ""}, beforeUpdatedAt=${input.beforeUpdatedAt || ""}, limit=${input.limit}`
+        );
+
+        const conversations = await this.agentDB.getConversationsPage(
+            input.sessionId,
+            input.beforeUpdatedAt,
+            input.limit
+        );
+
+        return conversations;
+    }
+
+    /**
+     * 获取 Agent 消息列表（分页）
+     */
+    public async agentGetMessages(input: {
+        conversationId: string;
+        beforeTimestamp?: number;
+        limit: number;
+    }): Promise<AgentGetMessagesOutput> {
+        this.LOGGER.info(
+            `获取 Agent 消息列表: conversationId=${input.conversationId}, beforeTimestamp=${input.beforeTimestamp || ""}, limit=${input.limit}`
+        );
+
+        const messages = await this.agentDB.getMessagesPage(
+            input.conversationId,
+            input.beforeTimestamp,
+            input.limit
+        );
+
+        return messages;
+    }
+
+    /**
      * 文档去重
      * 基于 topicId 去重。去重逻辑：在topicId相同的情况下，保留距离最小（相关性最高）的结果
      */
@@ -387,7 +430,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
         // 5. 构建工具上下文
         const toolContext: ToolContext = {
             sessionId: input.sessionId,
-            conversationId
+            conversationId,
+            userQuestion: input.question
         };
 
         // 6. 执行 Agent（流式）

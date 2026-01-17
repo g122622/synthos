@@ -63,10 +63,40 @@ export class ToolRegistry {
             };
         }
 
+        // 自动补全/归一化参数（用于模型输出不完整时的兜底）
+        const normalizedArgs = this.normalizeToolArguments(toolName, toolCall.arguments, context);
+        toolCall.arguments = normalizedArgs;
+
+        const validationError = this.validateToolArguments(tool.definition, toolCall.arguments);
+        if (validationError) {
+            this.LOGGER.warning(`工具 ${toolName} 参数校验失败: ${validationError}`);
+            return {
+                toolName,
+                toolCallId: toolCall.id,
+                success: false,
+                error: validationError
+            };
+        }
+
         try {
             this.LOGGER.debug(`执行工具: ${toolName}，参数: ${JSON.stringify(toolCall.arguments)}`);
             const result = await tool.executor(toolCall.arguments, context);
-            this.LOGGER.debug(`工具 ${toolName} 执行成功`);
+
+            const resultHasErrorField =
+                typeof result === "object" &&
+                result !== null &&
+                "error" in (result as Record<string, unknown>) &&
+                typeof (result as Record<string, unknown>).error === "string" &&
+                ((result as Record<string, unknown>).error as string).trim().length > 0;
+
+            if (resultHasErrorField) {
+                this.LOGGER.warning(
+                    `工具 ${toolName} 执行完成（返回 error 字段）: ${(result as Record<string, unknown>).error}`
+                );
+            } else {
+                this.LOGGER.debug(`工具 ${toolName} 执行完成`);
+            }
+
             return {
                 toolName,
                 toolCallId: toolCall.id,
@@ -82,6 +112,55 @@ export class ToolRegistry {
                 error: error instanceof Error ? error.message : String(error)
             };
         }
+    }
+
+    private normalizeToolArguments(
+        toolName: string,
+        args: Record<string, unknown>,
+        context: ToolContext
+    ): Record<string, unknown> {
+        if (toolName !== "web_search") {
+            return args;
+        }
+
+        const rawQuery = args.query;
+        const queryIsValid = typeof rawQuery === "string" && rawQuery.trim().length > 0;
+        if (queryIsValid) {
+            return args;
+        }
+
+        const fallback =
+            (typeof context.userQuestion === "string" && context.userQuestion.trim().length > 0
+                ? context.userQuestion
+                : undefined) ||
+            (typeof (context as any).question === "string" &&
+            ((context as any).question as string).trim().length > 0
+                ? ((context as any).question as string)
+                : undefined);
+
+        if (!fallback) {
+            return args;
+        }
+
+        this.LOGGER.info(`工具 web_search 缺少 query，已自动使用用户问题补全`);
+        return {
+            ...args,
+            query: fallback
+        };
+    }
+
+    private validateToolArguments(definition: ToolDefinition, args: Record<string, unknown>): string | null {
+        const required = definition.function.parameters.required || [];
+        for (const key of required) {
+            const value = args[key];
+            if (value === undefined || value === null) {
+                return `缺少必填参数: ${key}`;
+            }
+            if (typeof value === "string" && value.trim().length === 0) {
+                return `必填参数为空: ${key}`;
+            }
+        }
+        return null;
     }
 
     /**

@@ -7,7 +7,8 @@ import { Button, Spinner, Textarea, Card, CardBody, Chip, cn } from "@heroui/rea
 import { Send, Bot, User, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { agentAsk, AgentMessage, AgentAskRequest } from "@/api/agentApi";
+import { AgentMessage, getAgentMessages } from "@/api/agentApi";
+import { subscribeAgentAskStream } from "@/api/agentTrpcClient";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface AgentChatProps {
@@ -15,6 +16,9 @@ interface AgentChatProps {
     conversationId?: string;
     // 会话ID
     sessionId?: string;
+
+    // 当服务端创建/切换对话时通知父组件
+    onConversationIdChange?: (conversationId: string | undefined) => void;
 }
 
 /**
@@ -88,7 +92,7 @@ const AgentMessageItem: React.FC<AgentMessageItemProps> = ({ message }) => {
 /**
  * Agent 聊天主组件
  */
-export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId }) => {
+export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId, onConversationIdChange }) => {
     // 消息列表
     const [messages, setMessages] = useState<AgentMessage[]>([]);
     // 输入内容
@@ -97,6 +101,12 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId 
     const [loading, setLoading] = useState(false);
     // 当前对话ID
     const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(conversationId);
+
+    // 历史分页
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historyHasMore, setHistoryHasMore] = useState(false);
+
+    const unsubscribeRef = useRef<{ unsubscribe: () => void } | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -108,6 +118,66 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId 
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // 切换会话或对话时，加载历史消息（默认拉取最新 20 条）
+    useEffect(() => {
+        setCurrentConversationId(conversationId);
+
+        // 清理正在进行的订阅
+        if (unsubscribeRef.current) {
+            unsubscribeRef.current.unsubscribe();
+            unsubscribeRef.current = null;
+        }
+
+        if (!conversationId) {
+            setMessages([]);
+            setHistoryHasMore(false);
+
+            return;
+        }
+
+        (async () => {
+            try {
+                setHistoryLoading(true);
+                const resp = await getAgentMessages(conversationId, undefined, 20);
+
+                if (resp.success && resp.data) {
+                    setMessages(resp.data);
+                    setHistoryHasMore(resp.data.length >= 20);
+                }
+            } catch (err) {
+                console.error("加载 Agent 历史消息失败:", err);
+            } finally {
+                setHistoryLoading(false);
+            }
+        })();
+    }, [conversationId, sessionId]);
+
+    const handleLoadMoreHistory = useCallback(async () => {
+        if (!currentConversationId || historyLoading || loading || messages.length === 0) {
+            return;
+        }
+
+        try {
+            setHistoryLoading(true);
+            const oldestTimestamp = messages[0]?.timestamp;
+            const resp = await getAgentMessages(currentConversationId, oldestTimestamp, 20);
+
+            if (resp.success && resp.data) {
+                if (resp.data.length === 0) {
+                    setHistoryHasMore(false);
+
+                    return;
+                }
+                setMessages(prev => [...resp.data, ...prev]);
+                setHistoryHasMore(resp.data.length >= 20);
+            }
+        } catch (err) {
+            console.error("加载更多 Agent 历史消息失败:", err);
+        } finally {
+            setHistoryLoading(false);
+        }
+    }, [currentConversationId, historyLoading, loading, messages]);
 
     // 处理发送消息
     const handleSend = useCallback(async () => {
@@ -121,61 +191,131 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId 
         setLoading(true);
 
         // 添加用户消息
+        const userMessageId = `user_${Date.now()}`;
         const userMessage: AgentMessage = {
-            id: `user_${Date.now()}`,
+            id: userMessageId,
             conversationId: currentConversationId || "",
             role: "user",
             content: userQuestion,
             timestamp: Date.now()
         };
 
-        setMessages(prev => [...prev, userMessage]);
+        const assistantTempId = `assistant_pending_${Date.now()}`;
+        const assistantTempMessage: AgentMessage = {
+            id: assistantTempId,
+            conversationId: currentConversationId || "",
+            role: "assistant",
+            content: "",
+            timestamp: Date.now()
+        };
+
+        setMessages(prev => [...prev, userMessage, assistantTempMessage]);
 
         try {
-            // 调用 Agent API
-            const request: AgentAskRequest = {
-                question: userQuestion,
-                conversationId: currentConversationId,
-                sessionId: sessionId,
-                enabledTools: ["rag_search", "sql_query"],
-                maxToolRounds: 5,
-                temperature: 0.7,
-                maxTokens: 2048
-            };
-
-            const response = await agentAsk(request);
-
-            if (response.success && response.data) {
-                const agentResponse = response.data;
-
-                // 更新当前对话ID
-                setCurrentConversationId(agentResponse.conversationId);
-
-                // 添加 Agent 回复消息
-                const assistantMessage: AgentMessage = {
-                    id: agentResponse.messageId,
-                    conversationId: agentResponse.conversationId,
-                    role: "assistant",
-                    content: agentResponse.content,
-                    timestamp: Date.now(),
-                    toolsUsed: agentResponse.toolsUsed,
-                    toolRounds: agentResponse.toolRounds,
-                    tokenUsage: agentResponse.totalUsage
-                };
-
-                setMessages(prev => [...prev, assistantMessage]);
-            } else {
-                // 显示错误消息
-                const errorMessage: AgentMessage = {
-                    id: `error_${Date.now()}`,
-                    conversationId: currentConversationId || "",
-                    role: "assistant",
-                    content: `❌ 发生错误: ${response.message || "未知错误"}`,
-                    timestamp: Date.now()
-                };
-
-                setMessages(prev => [...prev, errorMessage]);
+            // 清理之前的订阅
+            if (unsubscribeRef.current) {
+                unsubscribeRef.current.unsubscribe();
+                unsubscribeRef.current = null;
             }
+
+            const subscription = subscribeAgentAskStream(
+                {
+                    question: userQuestion,
+                    conversationId: currentConversationId,
+                    sessionId: sessionId,
+                    enabledTools: ["rag_search", "sql_query"],
+                    maxToolRounds: 5,
+                    temperature: 0.7,
+                    maxTokens: 2048
+                },
+                chunk => {
+                    if (chunk.type === "content" && chunk.content) {
+                        setMessages(prev =>
+                            prev.map(m => {
+                                if (m.id !== assistantTempId) {
+                                    return m;
+                                }
+
+                                return {
+                                    ...m,
+                                    content: (m.content || "") + chunk.content
+                                };
+                            })
+                        );
+                    }
+
+                    if (chunk.type === "error") {
+                        setMessages(prev =>
+                            prev.map(m => {
+                                if (m.id !== assistantTempId) {
+                                    return m;
+                                }
+
+                                return {
+                                    ...m,
+                                    content: `❌ 发生错误: ${chunk.error || "未知错误"}`
+                                };
+                            })
+                        );
+                        setLoading(false);
+                    }
+
+                    if (chunk.type === "done") {
+                        if (chunk.conversationId) {
+                            setCurrentConversationId(chunk.conversationId);
+                            onConversationIdChange?.(chunk.conversationId);
+                        }
+
+                        setMessages(prev =>
+                            prev.map(m => {
+                                if (m.id === userMessageId) {
+                                    return {
+                                        ...m,
+                                        conversationId: chunk.conversationId || m.conversationId
+                                    };
+                                }
+
+                                if (m.id === assistantTempId) {
+                                    return {
+                                        ...m,
+                                        id: chunk.messageId || m.id,
+                                        conversationId: chunk.conversationId || m.conversationId,
+                                        toolsUsed: chunk.toolsUsed,
+                                        toolRounds: chunk.toolRounds,
+                                        tokenUsage: chunk.totalUsage
+                                    };
+                                }
+
+                                return m;
+                            })
+                        );
+
+                        setLoading(false);
+                    }
+                },
+                err => {
+                    console.error("Agent 流式订阅出错:", err);
+                    setMessages(prev =>
+                        prev.map(m => {
+                            if (m.id !== assistantTempId) {
+                                return m;
+                            }
+
+                            return {
+                                ...m,
+                                content: `❌ 网络错误: ${err instanceof Error ? err.message : String(err)}`
+                            };
+                        })
+                    );
+                    setLoading(false);
+                },
+                () => {
+                    // complete
+                    unsubscribeRef.current = null;
+                }
+            );
+
+            unsubscribeRef.current = subscription;
         } catch (error) {
             console.error("Agent 问答出错:", error);
 
@@ -190,7 +330,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId 
 
             setMessages(prev => [...prev, errorMessage]);
         } finally {
-            setLoading(false);
+            // loading 由订阅 done/error 关闭
         }
     }, [inputValue, loading, currentConversationId, sessionId]);
 
@@ -206,6 +346,15 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId 
         <div className="flex flex-col h-full">
             {/* 消息列表 */}
             <div className="flex-1 overflow-y-auto px-4 py-6">
+                {/* 历史分页 */}
+                {currentConversationId && messages.length > 0 && historyHasMore && (
+                    <div className="flex justify-center mb-4">
+                        <Button isLoading={historyLoading} size="sm" variant="flat" onPress={handleLoadMoreHistory}>
+                            加载更早消息
+                        </Button>
+                    </div>
+                )}
+
                 {messages.length === 0 ? (
                     <motion.div
                         animate={{ opacity: 1, filter: "blur(0px)", y: 0 }}

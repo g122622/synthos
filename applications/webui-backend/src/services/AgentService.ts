@@ -91,28 +91,70 @@ export class AgentService {
 
     /**
      * 获取对话列表（通过 RPC 调用 AgentDbAccessService）
-     * 注意：由于目前 tRPC router 未暴露对话列表接口，暂时返回空数组
-     * TODO: 在 ai-model 的 router 中添加 getConversations 和 getMessages 接口
      */
-    public async getConversations(sessionId?: string, limit: number = 50): Promise<AgentConversation[]> {
-        this.LOGGER.info(`获取 Agent 对话列表, sessionId: ${sessionId}, limit: ${limit}`);
+    public async getConversations(
+        sessionId: string | undefined,
+        beforeUpdatedAt: number | undefined,
+        limit: number
+    ): Promise<AgentConversation[]> {
+        this.LOGGER.info(
+            `获取 Agent 对话列表, sessionId: ${sessionId || ""}, beforeUpdatedAt: ${beforeUpdatedAt || ""}, limit: ${limit}`
+        );
 
-        // TODO: 等待 ai-model 暴露对话列表 RPC 接口后实现
-        // 目前返回空数组，前端暂时无法展示历史对话
-        this.LOGGER.warning("getConversations 功能尚未实现，需要在 ai-model RPC 中添加对应接口");
-        return [];
+        const conversations = await this.ragClient.agentGetConversations.query({
+            sessionId,
+            beforeUpdatedAt,
+            limit
+        });
+
+        return conversations as unknown as AgentConversation[];
     }
 
     /**
      * 获取对话的消息列表
-     * 注意：由于目前 tRPC router 未暴露消息列表接口，暂时返回空数组
-     * TODO: 在 ai-model 的 router 中添加 getMessages 接口
      */
-    public async getMessages(conversationId: string): Promise<AgentMessage[]> {
-        this.LOGGER.info(`获取 Agent 消息列表, conversationId: ${conversationId}`);
+    public async getMessages(
+        conversationId: string,
+        beforeTimestamp: number | undefined,
+        limit: number
+    ): Promise<AgentMessage[]> {
+        this.LOGGER.info(
+            `获取 Agent 消息列表, conversationId: ${conversationId}, beforeTimestamp: ${beforeTimestamp || ""}, limit: ${limit}`
+        );
 
-        // TODO: 等待 ai-model 暴露消息列表 RPC 接口后实现
-        this.LOGGER.warning("getMessages 功能尚未实现，需要在 ai-model RPC 中添加对应接口");
-        return [];
+        const messages = await this.ragClient.agentGetMessages.query({
+            conversationId,
+            beforeTimestamp,
+            limit
+        });
+
+        // 兼容前端期望的结构：toolsUsed/tokenUsage 在 DB 中是 JSON 字符串
+        return (messages as any[]).map(m => {
+            let toolsUsed: string[] | undefined;
+            let tokenUsage: any | undefined;
+
+            try {
+                toolsUsed = m.toolsUsed ? JSON.parse(m.toolsUsed) : undefined;
+            } catch {
+                toolsUsed = undefined;
+            }
+
+            try {
+                tokenUsage = m.tokenUsage ? JSON.parse(m.tokenUsage) : undefined;
+            } catch {
+                tokenUsage = undefined;
+            }
+
+            return {
+                id: m.id,
+                conversationId: m.conversationId,
+                role: m.role,
+                content: m.content,
+                timestamp: m.timestamp,
+                toolsUsed,
+                toolRounds: m.toolRounds,
+                tokenUsage
+            } as AgentMessage;
+        });
     }
 }

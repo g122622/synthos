@@ -172,11 +172,14 @@ export type AgentAskRequestParams = z.infer<typeof AgentAskRequestSchema>;
 
 export const AgentGetConversationsSchema = z.object({
     sessionId: z.string().optional(),
-    limit: z.number().int().positive().default(50)
+    beforeUpdatedAt: z.number().optional(),
+    limit: z.number().int().positive().default(20)
 });
 export type AgentGetConversationsParams = z.infer<typeof AgentGetConversationsSchema>;
 
 export const AgentGetMessagesSchema = z.object({
-    conversationId: z.string({ message: "缺少conversationId参数" })
+    conversationId: z.string({ message: "缺少conversationId参数" }),
+    beforeTimestamp: z.number().optional(),
+    limit: z.number().int().positive().default(20)
 });
 export type AgentGetMessagesParams = z.infer<typeof AgentGetMessagesSchema>;

@@ -87,11 +87,11 @@ export const agentAsk = async (request: AgentAskRequest): Promise<ApiResponse<Ag
  * @param sessionId 会话ID（可选）
  * @param limit 返回结果数量限制
  */
-export const getAgentConversations = async (sessionId?: string, limit: number = 50): Promise<ApiResponse<AgentConversation[]>> => {
+export const getAgentConversations = async (sessionId: string | undefined, beforeUpdatedAt: number | undefined, limit: number = 20): Promise<ApiResponse<AgentConversation[]>> => {
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, limit })
+        body: JSON.stringify({ sessionId, beforeUpdatedAt, limit })
     });
 
     return response.json();
@@ -101,10 +101,21 @@ export const getAgentConversations = async (sessionId?: string, limit: number = 
  * 获取对话的消息列表
  * @param conversationId 对话ID
  */
-export const getAgentMessages = async (conversationId: string): Promise<ApiResponse<AgentMessage[]>> => {
+export const getAgentConversationsPage = async (sessionId: string | undefined, beforeUpdatedAt: number | undefined, limit: number = 20): Promise<ApiResponse<AgentConversation[]>> => {
+    const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, beforeUpdatedAt, limit })
+    });
+
+    return response.json();
+};
+
+export const getAgentMessages = async (conversationId: string, beforeTimestamp: number | undefined, limit: number = 20): Promise<ApiResponse<AgentMessage[]>> => {
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations/${conversationId}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ beforeTimestamp, limit })
     });
 
     return response.json();

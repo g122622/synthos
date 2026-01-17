@@ -18,6 +18,7 @@ export class AgentPromptStore {
      * @returns 系统提示词模板
      */
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
     public static async getAgentSystemPrompt(toolRegistry: ToolRegistry): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
@@ -52,11 +53,9 @@ export class AgentPromptStore {
                 .setTitle("工具使用策略")
                 .setContentText(
                     ContentUtils.orderedList([
-                        "对于寻找特定话题或主题的问题，优先使用 rag_search 工具",
-                        "对于需要统计、计数、排序的问题，使用 sql_query 工具",
-                        "对于需要实时信息或外部知识的问题，使用 web_search 工具",
                         "可以先用一个工具获取初步信息，然后根据需要调用其他工具获取更多细节",
-                        "如果工具返回的信息不足以回答问题，可以调整参数重新调用或尝试其他工具"
+                        "如果工具返回的信息不足以回答问题，可以调整参数重新调用或尝试其他工具",
+                        "如果工具返回缺少参数等错误，必须立刻补齐参数并重试工具调用"
                     ])
                 )
         );
@@ -89,7 +88,11 @@ export class AgentPromptStore {
                         "用户问：「群里哪个人发言最多？」\n\n" +
                         '步骤 1：调用 sql_query 工具，query="SELECT senderId, senderNickname, COUNT(*) as count FROM chat_messages GROUP BY senderId ORDER BY count DESC LIMIT 10"\n' +
                         "步骤 2：分析查询结果\n" +
-                        "步骤 3：回答用户问题并提供统计数据"
+                        "步骤 3：回答用户问题并提供统计数据\n\n" +
+                        "用户问：「最近 OpenAI 有哪些新发布？」\n\n" +
+                        '步骤 1：调用 web_search 工具，query="OpenAI 最新发布", limit=5\n' +
+                        "步骤 2：阅读搜索结果摘要\n" +
+                        "步骤 3：总结并回答用户问题"
                 )
         );
 

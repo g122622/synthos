@@ -122,6 +122,40 @@ export class AgentDbAccessService extends Disposable {
     }
 
     /**
+     * 获取对话分页（按更新时间倒序）
+     * @param sessionId 可选的会话 ID 过滤
+     * @param beforeUpdatedAt 分页游标：返回 updated_at < beforeUpdatedAt 的数据
+     * @param limit 返回数量限制
+     */
+    public async getConversationsPage(
+        sessionId: string | undefined,
+        beforeUpdatedAt: number | undefined,
+        limit: number
+    ): Promise<AgentConversation[]> {
+        let sql = `SELECT * FROM agent_conversations`;
+        const params: any[] = [];
+
+        const conditions: string[] = [];
+        if (sessionId) {
+            conditions.push(`session_id = ?`);
+            params.push(sessionId);
+        }
+        if (beforeUpdatedAt !== undefined) {
+            conditions.push(`updated_at < ?`);
+            params.push(beforeUpdatedAt);
+        }
+        if (conditions.length > 0) {
+            sql += ` WHERE ` + conditions.join(" AND ");
+        }
+
+        sql += ` ORDER BY updated_at DESC LIMIT ?`;
+        params.push(limit);
+
+        const rows = await this.db.all<AgentConversation>(sql, params);
+        return rows;
+    }
+
+    /**
      * 根据 ID 获取对话
      * @param id 对话 ID
      * @returns 对话记录，不存在则返回 null
@@ -196,6 +230,33 @@ export class AgentDbAccessService extends Disposable {
             [conversationId]
         );
         return rows;
+    }
+
+    /**
+     * 获取消息分页（按时间倒序取 limit 条，再翻转为正序返回，便于前端渲染）
+     * @param conversationId 对话 ID
+     * @param beforeTimestamp 分页游标：返回 timestamp < beforeTimestamp 的数据
+     * @param limit 返回数量限制
+     */
+    public async getMessagesPage(
+        conversationId: string,
+        beforeTimestamp: number | undefined,
+        limit: number
+    ): Promise<AgentMessage[]> {
+        let sql = `SELECT * FROM agent_messages WHERE conversation_id = ?`;
+        const params: any[] = [conversationId];
+
+        if (beforeTimestamp !== undefined) {
+            sql += ` AND timestamp < ?`;
+            params.push(beforeTimestamp);
+        }
+
+        sql += ` ORDER BY timestamp DESC LIMIT ?`;
+        params.push(limit);
+
+        const rows = await this.db.all<AgentMessage>(sql, params);
+        // 返回正序，方便 UI 直接 append
+        return rows.reverse();
     }
 
     /**

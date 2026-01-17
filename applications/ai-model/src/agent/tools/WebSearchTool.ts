@@ -44,7 +44,8 @@ export class WebSearchTool {
                         },
                         limit: {
                             type: "number",
-                            description: "返回结果数量限制，默认 5",
+                            description:
+                                "返回结果数量限制，默认 5.当你调用 web_search 时，必须提供 query 参数（不能为空）",
                             default: 5
                         }
                     },

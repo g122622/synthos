@@ -12,6 +12,7 @@ import { Plus, Trash2, ChevronLeft, MessageSquare, Edit2, Check, X, Pin, PinOff,
 import { motion } from "framer-motion";
 
 import { getSessionList, deleteSession, updateSessionTitle, SessionListItem } from "@/api/ragChatHistoryApi";
+import { AgentConversation, getAgentConversations } from "@/api/agentApi";
 
 interface ChatHistorySidebarProps {
     // 当前选中的会话ID
@@ -36,6 +37,13 @@ interface ChatHistorySidebarProps {
     activeTab?: string;
     // Tab切换回调
     onTabChange?: (tab: string) => void;
+
+    // Agent：当前选中的对话
+    selectedAgentConversationId?: string;
+    // Agent：选择对话回调
+    onSelectAgentConversation?: (conversationId: string | undefined) => void;
+    // Agent：刷新触发器
+    agentRefreshTrigger?: number;
 }
 
 /**
@@ -313,7 +321,10 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     mobileDrawerOpen = false,
     onMobileDrawerChange,
     activeTab = "ask",
-    onTabChange
+    onTabChange,
+    selectedAgentConversationId,
+    onSelectAgentConversation,
+    agentRefreshTrigger = 0
 }) => {
     const [sessions, setSessions] = useState<ExtendedSessionListItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -323,8 +334,43 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     const [editingTitle, setEditingTitle] = useState("");
     const [selectedSidebarTab, setSelectedSidebarTab] = useState<string>("all");
 
+    // Agent conversations
+    const [agentConversations, setAgentConversations] = useState<AgentConversation[]>([]);
+    const [agentLoading, setAgentLoading] = useState(false);
+    const [agentHasMore, setAgentHasMore] = useState(false);
+
     const PAGE_SIZE = 20;
     const showFullSidebar = mobile || !collapsed;
+
+    const loadAgentConversations = useCallback(
+        async (append: boolean = false) => {
+            if (activeTab !== "agent") {
+                return;
+            }
+
+            setAgentLoading(true);
+            try {
+                const beforeUpdatedAt = append && agentConversations.length > 0 ? agentConversations[agentConversations.length - 1].updatedAt : undefined;
+                const response = await getAgentConversations(selectedSessionId || undefined, beforeUpdatedAt, PAGE_SIZE);
+
+                if (response.success && response.data) {
+                    const next = response.data;
+
+                    setAgentConversations(prev => (append ? [...prev, ...next] : next));
+                    setAgentHasMore(next.length >= PAGE_SIZE);
+
+                    if (!append && next.length > 0 && !selectedAgentConversationId) {
+                        onSelectAgentConversation?.(next[0].id);
+                    }
+                }
+            } catch (error) {
+                console.error("加载 Agent 对话列表失败:", error);
+            } finally {
+                setAgentLoading(false);
+            }
+        },
+        [activeTab, agentConversations, selectedSessionId, selectedAgentConversationId, onSelectAgentConversation]
+    );
 
     // 时间分组
     const groupedSessions = useMemo(() => {
@@ -392,6 +438,19 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     useEffect(() => {
         loadSessions(false);
     }, [refreshTrigger]);
+
+    // Agent: 初始加载 / 切换 session / 刷新
+    useEffect(() => {
+        if (activeTab !== "agent") {
+            return;
+        }
+
+        setAgentConversations([]);
+        setAgentHasMore(false);
+        if (selectedSessionId) {
+            loadAgentConversations(false);
+        }
+    }, [activeTab, selectedSessionId, agentRefreshTrigger]);
 
     // 删除会话
     const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
@@ -650,6 +709,60 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                                 <Button className="w-full mt-2 mb-2" isLoading={loading} size="sm" variant="flat" onPress={() => loadSessions(true)}>
                                     加载更多
                                 </Button>
+                            )}
+
+                            {/* Agent 对话列表 */}
+                            {activeTab === "agent" && (
+                                <>
+                                    <Divider className="my-3" />
+                                    <div className="px-1">
+                                        <div className="text-xs font-semibold text-default-500 uppercase mb-2">Agent 对话</div>
+
+                                        {!selectedSessionId ? (
+                                            <div className="text-center py-4 text-default-400 text-sm">请选择一个会话</div>
+                                        ) : agentLoading && agentConversations.length === 0 ? (
+                                            <div className="flex justify-center py-4">
+                                                <Spinner size="sm" />
+                                            </div>
+                                        ) : agentConversations.length === 0 ? (
+                                            <div className="text-center py-4 text-default-400 text-sm">暂无对话</div>
+                                        ) : (
+                                            <div className="space-y-0.5">
+                                                {agentConversations.map(c => (
+                                                    <div
+                                                        key={c.id}
+                                                        className={cn(
+                                                            "relative flex cursor-pointer items-center rounded-md p-2 transition-colors",
+                                                            selectedAgentConversationId === c.id ? "bg-primary-100" : "hover:bg-default-100"
+                                                        )}
+                                                        onClick={() => onSelectAgentConversation?.(c.id)}
+                                                    >
+                                                        <div
+                                                            className={cn(
+                                                                "mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full",
+                                                                selectedAgentConversationId === c.id ? "bg-primary-50" : "bg-default-200"
+                                                            )}
+                                                        >
+                                                            <MessageSquare className="w-4 h-4" />
+                                                        </div>
+                                                        <div className="flex-1 overflow-hidden">
+                                                            <div className="truncate text-sm font-medium">{c.title || "未命名对话"}</div>
+                                                            <div className="text-xs text-default-400">
+                                                                {new Date(c.updatedAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {selectedSessionId && agentHasMore && (
+                                            <Button className="w-full mt-2 mb-2" isLoading={agentLoading} size="sm" variant="flat" onPress={() => loadAgentConversations(true)}>
+                                                加载更多
+                                            </Button>
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </>
                     )}

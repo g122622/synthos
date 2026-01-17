@@ -3,6 +3,7 @@
  * 定义 tRPC router 工厂函数，供 ai-model 实现、webui-backend 调用
  */
 import { initTRPC, type AnyRootConfig, type DefaultErrorShape, type Router } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import {
     SearchInputSchema,
     SearchOutput,
@@ -13,7 +14,12 @@ import {
     SendReportEmailInputSchema,
     SendReportEmailOutput,
     AgentAskInputSchema,
-    AgentAskOutput
+    AgentAskOutput,
+    AgentStreamChunkSchema,
+    AgentGetConversationsInputSchema,
+    AgentGetMessagesInputSchema,
+    AgentGetConversationsOutput,
+    AgentGetMessagesOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -81,6 +87,24 @@ export interface RAGRPCImplementation {
         },
         onChunk: (chunk: any) => void
     ): Promise<AgentAskOutput>;
+
+    /**
+     * 获取 Agent 对话列表（分页）
+     */
+    agentGetConversations(input: {
+        sessionId?: string;
+        beforeUpdatedAt?: number;
+        limit: number;
+    }): Promise<AgentGetConversationsOutput>;
+
+    /**
+     * 获取 Agent 消息列表（分页）
+     */
+    agentGetMessages(input: {
+        conversationId: string;
+        beforeTimestamp?: number;
+        limit: number;
+    }): Promise<AgentGetMessagesOutput>;
 }
 
 /**
@@ -138,6 +162,90 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
 
             // TODO: 传递 onChunk 回调（当前版本暂不支持，需要升级到 subscription）
             return impl.agentAsk(validatedInput, () => {});
+        }),
+
+        agentGetConversations: t.procedure.input(AgentGetConversationsInputSchema).query(async ({ input }) => {
+            return impl.agentGetConversations({
+                sessionId: input.sessionId,
+                beforeUpdatedAt: input.beforeUpdatedAt,
+                limit: input.limit ?? 20
+            });
+        }),
+
+        agentGetMessages: t.procedure.input(AgentGetMessagesInputSchema).query(async ({ input }) => {
+            return impl.agentGetMessages({
+                conversationId: input.conversationId,
+                beforeTimestamp: input.beforeTimestamp,
+                limit: input.limit ?? 20
+            });
+        }),
+
+        agentAskStream: t.procedure.input(AgentAskInputSchema).subscription(({ input }) => {
+            const validatedInput = {
+                question: input.question,
+                conversationId: input.conversationId,
+                sessionId: input.sessionId,
+                enabledTools: input.enabledTools ?? ["rag_search", "sql_query"],
+                maxToolRounds: input.maxToolRounds ?? 5,
+                temperature: input.temperature ?? 0.7,
+                maxTokens: input.maxTokens ?? 2048
+            };
+
+            return observable<any>(emit => {
+                let isStopped = false;
+                let lastDoneUsage: any = undefined;
+
+                (async () => {
+                    try {
+                        const result = await impl.agentAsk(validatedInput, chunk => {
+                            if (isStopped) {
+                                return;
+                            }
+
+                            // 统一由 subscription 结尾发出 enriched done，避免重复 done
+                            if (chunk && chunk.type === "done") {
+                                lastDoneUsage = chunk.usage;
+                                return;
+                            }
+
+                            // runtime 校验（开发期兜底）
+                            try {
+                                AgentStreamChunkSchema.parse(chunk);
+                            } catch {
+                                // ignore
+                            }
+
+                            emit.next(chunk);
+                        });
+
+                        if (isStopped) {
+                            return;
+                        }
+
+                        emit.next({
+                            type: "done",
+                            isFinished: true,
+                            content: result.content,
+                            conversationId: result.conversationId,
+                            messageId: result.messageId,
+                            toolsUsed: result.toolsUsed,
+                            toolRounds: result.toolRounds,
+                            totalUsage: result.totalUsage,
+                            usage: result.totalUsage ?? lastDoneUsage
+                        });
+                        emit.complete();
+                    } catch (err) {
+                        if (isStopped) {
+                            return;
+                        }
+                        emit.error(err);
+                    }
+                })();
+
+                return () => {
+                    isStopped = true;
+                };
+            });
         })
     });
 

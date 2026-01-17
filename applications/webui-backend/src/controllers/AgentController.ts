@@ -36,7 +36,11 @@ export class AgentController {
      */
     public async getConversations(req: Request, res: Response): Promise<void> {
         const params = AgentGetConversationsSchema.parse(req.body);
-        const conversations = await this.agentService.getConversations(params.sessionId, params.limit);
+        const conversations = await this.agentService.getConversations(
+            params.sessionId,
+            params.beforeUpdatedAt,
+            params.limit
+        );
         res.json({ success: true, data: conversations });
     }
 
@@ -45,8 +49,16 @@ export class AgentController {
      * 获取对话的消息列表
      */
     public async getMessages(req: Request, res: Response): Promise<void> {
-        const params = AgentGetMessagesSchema.parse({ conversationId: req.params.id });
-        const messages = await this.agentService.getMessages(params.conversationId);
+        const params = AgentGetMessagesSchema.parse({
+            conversationId: req.params.id,
+            beforeTimestamp: req.body?.beforeTimestamp,
+            limit: req.body?.limit
+        });
+        const messages = await this.agentService.getMessages(
+            params.conversationId,
+            params.beforeTimestamp,
+            params.limit
+        );
         res.json({ success: true, data: messages });
     }
 }

@@ -57,6 +57,10 @@ export default function RagPage() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+    // Agent：当前会话下选中的对话
+    const [selectedAgentConversationId, setSelectedAgentConversationId] = useState<string | undefined>(undefined);
+    const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+
     // 移动端状态
     const [isMobile, setIsMobile] = useState(false);
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -174,6 +178,7 @@ export default function RagPage() {
     const handleSelectSession = useCallback(
         async (sessionId: string | null) => {
             setSelectedSessionId(sessionId);
+            setSelectedAgentConversationId(undefined);
 
             if (sessionId) {
                 try {
@@ -190,8 +195,10 @@ export default function RagPage() {
                         setTopK(session.topK);
                         setEnableQueryRewriter(session.enableQueryRewriter);
                         setShowTypingEffect(false);
-                        // 切换到问答 Tab
-                        setActiveTab("ask");
+                        // 仅在非 Agent 模式下切换到问答 Tab
+                        if (activeTab !== "agent") {
+                            setActiveTab("ask");
+                        }
                         // 移动端关闭抽屉
                         if (isMobile) {
                             setMobileDrawerOpen(false);
@@ -221,12 +228,13 @@ export default function RagPage() {
                 }
             }
         },
-        [isMobile]
+        [isMobile, activeTab]
     );
 
     // 新建会话
     const handleNewSession = useCallback(() => {
         setSelectedSessionId(null);
+        setSelectedAgentConversationId(undefined);
         setQuestion("");
         setAskResponse(null);
         setSearchQuery("");
@@ -467,14 +475,17 @@ export default function RagPage() {
                 {/* 历史会话侧边栏 */}
                 <ChatHistorySidebar
                     activeTab={activeTab}
+                    agentRefreshTrigger={agentRefreshTrigger}
                     collapsed={sidebarCollapsed}
                     mobile={isMobile}
                     mobileDrawerOpen={mobileDrawerOpen}
                     refreshTrigger={refreshTrigger}
+                    selectedAgentConversationId={selectedAgentConversationId}
                     selectedSessionId={selectedSessionId}
                     onCollapsedChange={setSidebarCollapsed}
                     onMobileDrawerChange={setMobileDrawerOpen}
                     onNewSession={handleNewSession}
+                    onSelectAgentConversation={setSelectedAgentConversationId}
                     onSelectSession={handleSelectSession}
                     onTabChange={setActiveTab}
                 />
@@ -483,7 +494,14 @@ export default function RagPage() {
                 <div className="flex-1 flex flex-col overflow-hidden">
                     {/* Agent 模式使用独立渲染 */}
                     {activeTab === "agent" ? (
-                        <AgentChat conversationId={undefined} sessionId={selectedSessionId || undefined} />
+                        <AgentChat
+                            conversationId={selectedAgentConversationId}
+                            sessionId={selectedSessionId || undefined}
+                            onConversationIdChange={cid => {
+                                setSelectedAgentConversationId(cid);
+                                setAgentRefreshTrigger(prev => prev + 1);
+                            }}
+                        />
                     ) : (
                         <>
                             {/* 消息显示区 */}

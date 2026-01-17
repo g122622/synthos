@@ -3,8 +3,10 @@
  * 基于 tRPC 的 HTTP 服务器
  */
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
+import { applyWSSHandler } from "@trpc/server/adapters/ws";
 import { createRAGRouter, RAGRPCImplementation } from "@root/common/rpc/ai-model/index";
 import Logger from "@root/common/util/Logger";
+import { WebSocketServer } from "ws";
 
 const LOGGER = Logger.withTag("RAGRPCServer");
 
@@ -17,12 +19,17 @@ const LOGGER = Logger.withTag("RAGRPCServer");
 export function startRAGRPCServer(impl: RAGRPCImplementation, port: number) {
     const router = createRAGRouter(impl);
 
-    const server = createHTTPServer({
+    const httpServer = createHTTPServer({
         router: router as any
     });
 
-    server.listen(port);
+    // 同端口启用 WebSocket（tRPC subscription）
+    const wss = new WebSocketServer({ server: httpServer.server });
+    applyWSSHandler({ wss, router: router as any });
+    LOGGER.success(`RAG RPC WebSocket 已启动，监听端口: ${port}`);
+
+    httpServer.listen(port);
     LOGGER.success(`RAG RPC Server 已启动，监听端口: ${port}`);
 
-    return server;
+    return httpServer;
 }

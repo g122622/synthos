@@ -86,6 +86,18 @@ export const AgentStreamChunkSchema = z.object({
     toolResult: z.unknown().optional(),
     error: z.string().optional(),
     isFinished: z.boolean().optional(),
+    // done 时可带回最终结果的关键字段，便于客户端只依赖 stream 也能完整落地
+    conversationId: z.string().optional(),
+    messageId: z.string().optional(),
+    toolsUsed: z.array(z.string()).optional(),
+    toolRounds: z.number().optional(),
+    totalUsage: z
+        .object({
+            promptTokens: z.number(),
+            completionTokens: z.number(),
+            totalTokens: z.number()
+        })
+        .optional(),
     usage: z
         .object({
             promptTokens: z.number(),
@@ -110,6 +122,42 @@ export const AgentAskOutputSchema = z.object({
         .optional()
 });
 
+// ========== Agent 历史分页接口 ==========
+
+export const AgentConversationItemSchema = z.object({
+    id: z.string(),
+    sessionId: z.string().optional(),
+    title: z.string(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+});
+
+export const AgentMessageItemSchema = z.object({
+    id: z.string(),
+    conversationId: z.string(),
+    role: z.enum(["user", "assistant", "system"]),
+    content: z.string(),
+    timestamp: z.number(),
+    toolsUsed: z.string().optional(),
+    toolRounds: z.number().optional(),
+    tokenUsage: z.string().optional()
+});
+
+export const AgentGetConversationsInputSchema = z.object({
+    sessionId: z.string().optional(),
+    beforeUpdatedAt: z.number().optional(),
+    limit: z.number().int().positive().default(20)
+});
+
+export const AgentGetMessagesInputSchema = z.object({
+    conversationId: z.string().min(1, "conversationId 不能为空"),
+    beforeTimestamp: z.number().optional(),
+    limit: z.number().int().positive().default(20)
+});
+
+export const AgentGetConversationsOutputSchema = z.array(AgentConversationItemSchema);
+export const AgentGetMessagesOutputSchema = z.array(AgentMessageItemSchema);
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -129,3 +177,10 @@ export type SendReportEmailOutput = z.infer<typeof SendReportEmailOutputSchema>;
 export type AgentAskInput = z.infer<typeof AgentAskInputSchema>;
 export type AgentStreamChunk = z.infer<typeof AgentStreamChunkSchema>;
 export type AgentAskOutput = z.infer<typeof AgentAskOutputSchema>;
+
+export type AgentConversationItem = z.infer<typeof AgentConversationItemSchema>;
+export type AgentMessageItem = z.infer<typeof AgentMessageItemSchema>;
+export type AgentGetConversationsInput = z.infer<typeof AgentGetConversationsInputSchema>;
+export type AgentGetMessagesInput = z.infer<typeof AgentGetMessagesInputSchema>;
+export type AgentGetConversationsOutput = z.infer<typeof AgentGetConversationsOutputSchema>;
+export type AgentGetMessagesOutput = z.infer<typeof AgentGetMessagesOutputSchema>;
