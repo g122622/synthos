@@ -4,7 +4,7 @@
  */
 import React from "react";
 import { Card, CardBody, CardHeader, Chip, Progress, Link } from "@heroui/react";
-import { Info } from "lucide-react";
+import { Info, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 import TopicPopover from "@/components/topic/TopicPopover";
@@ -13,6 +13,10 @@ export interface ReferenceItemData {
     topicId: string;
     topic: string;
     relevance: number;
+    // 搜索结果可选字段：话题详情摘要
+    detail?: string;
+    // 搜索结果可选字段：贡献者信息
+    contributors?: string;
 }
 
 interface ReferenceCardProps {
@@ -78,6 +82,19 @@ const ReferenceCard: React.FC<ReferenceCardProps> = ({ reference, index, favorit
                             <Info className="w-3 h-3 text-default-400 flex-shrink-0" />
                         </div>
                     </TopicPopover>
+
+                    {/* 搜索结果：详情与贡献者 */}
+                    {(reference.detail || reference.contributors) && (
+                        <div className="space-y-2">
+                            {reference.detail && <p className="text-xs text-default-600 line-clamp-3">{reference.detail}</p>}
+                            {reference.contributors && (
+                                <div className="flex items-center gap-2">
+                                    <Users className="w-3.5 h-3.5 text-default-400" />
+                                    <p className="text-xs text-default-500 line-clamp-1">{reference.contributors}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* 相关度进度条 - 始终可见 */}
                     <div className="space-y-1">

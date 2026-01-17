@@ -14,14 +14,19 @@ interface ReferenceListProps {
     readTopics: Record<string, boolean>;
     onMarkAsRead: (topicId: string) => void;
     onToggleFavorite: (topicId: string) => void;
+
+    // UI 配置
+    defaultCollapsed?: boolean;
+    title?: string;
+    icon?: React.ReactNode;
 }
 
 /**
  * 参考来源列表组件
  * 使用响应式Grid布局展示多个参考来源卡片
  */
-const ReferenceList: React.FC<ReferenceListProps> = ({ references, favoriteTopics, readTopics, onMarkAsRead, onToggleFavorite }) => {
-    const [isCollapsed, setIsCollapsed] = useState(true);
+const ReferenceList: React.FC<ReferenceListProps> = ({ references, favoriteTopics, readTopics, onMarkAsRead, onToggleFavorite, defaultCollapsed = true, title = "参考来源", icon }) => {
+    const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
     if (references.length === 0) {
         return null;
@@ -30,9 +35,9 @@ const ReferenceList: React.FC<ReferenceListProps> = ({ references, favoriteTopic
     return (
         <Card className="w-full shadow-none bg-transparent">
             <CardHeader className="flex gap-3">
-                <BookOpen className="w-6 h-6 text-secondary" />
+                {icon ?? <BookOpen className="w-6 h-6 text-secondary" />}
                 <div className="flex flex-col flex-1">
-                    <p className="text-lg font-semibold">参考来源</p>
+                    <p className="text-lg font-semibold">{title}</p>
                     <p className="text-small text-default-500">共 {references.length} 个相关话题</p>
                 </div>
                 <button className="flex items-center gap-1 text-small text-default-500 hover:text-default-700 transition-colors" onClick={() => setIsCollapsed(!isCollapsed)}>

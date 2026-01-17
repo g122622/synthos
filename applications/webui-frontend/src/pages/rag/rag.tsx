@@ -5,18 +5,14 @@
  */
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Button, Checkbox, cn } from "@heroui/react";
-import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Input, Textarea } from "@heroui/input";
-import { Chip } from "@heroui/chip";
 import { Spinner } from "@heroui/spinner";
-import { Link } from "@heroui/link";
-import { Progress } from "@heroui/react";
-import { Search, Users, Download, Menu, Send, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Download, Menu, Send, ChevronUp, ChevronDown } from "lucide-react";
 import domtoimage from "dom-to-image";
 import { motion } from "framer-motion";
 import { useTheme } from "@heroui/use-theme";
 
-import ChatHistorySidebar from "./components/ChatHistorySidebar";
+import ChatHistorySidebar from "./components/ChatHistorySidebar/ChatHistorySidebar";
 import ReferenceList from "./components/ReferenceList";
 import { AgentChat } from "./components/AgentChat";
 
@@ -24,7 +20,6 @@ import DefaultLayout from "@/layouts/default";
 import { search, ask, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
 import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
 import { createSession, getSessionDetail } from "@/api/ragChatHistoryApi";
-import TopicPopover from "@/components/topic/TopicPopover";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TypingText from "@/components/TypingText";
 
@@ -282,50 +277,6 @@ export default function RagPage() {
         }
     }, []);
 
-    // 渲染搜索结果卡片
-    const renderSearchResultCard = (item: SearchResultItem, index: number) => (
-        <motion.div key={item.topicId} animate={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} transition={{ duration: 0.3, delay: index * 0.1 }}>
-            <TopicPopover key={item.topicId} favoriteTopics={favoriteTopics} readTopics={readTopics} topicId={item.topicId} onMarkAsRead={markAsRead} onToggleFavorite={toggleFavorite}>
-                <Card className="w-full mb-4 hover:shadow-lg transition-shadow cursor-pointer">
-                    <CardHeader className="flex gap-3 pb-0">
-                        <div className="flex flex-col flex-1">
-                            <div className="flex items-center gap-2">
-                                <Chip color="primary" size="sm" variant="flat">
-                                    #{index + 1}
-                                </Chip>
-                                <p className="text-lg font-semibold">{item.topic}</p>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                                <Users className="w-4 h-4 text-default-400" />
-                                <p className="text-small text-default-500">{item.contributors}</p>
-                            </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-2">
-                            <Chip color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"} size="sm" variant="flat">
-                                {Math.round((1 - item.distance) * 100)}%
-                            </Chip>
-                        </div>
-                    </CardHeader>
-                    <CardBody>
-                        <p className="text-default-600 mb-2">{item.detail}</p>
-                        <Progress
-                            aria-label="相关度"
-                            className="max-w-full"
-                            color={item.distance < 0.3 ? "success" : item.distance < 0.5 ? "warning" : "default"}
-                            size="sm"
-                            value={Math.round((1 - item.distance) * 100)}
-                        />
-                        <div className="flex justify-end mt-2">
-                            <Link className="text-primary text-sm" href={`/ai-digest?topicId=${item.topicId}`}>
-                                查看详情 →
-                            </Link>
-                        </div>
-                    </CardBody>
-                </Card>
-            </TopicPopover>
-        </motion.div>
-    );
-
     // 渲染问答结果
     const renderAskResult = () => {
         if (!askResponse) return null;
@@ -440,13 +391,29 @@ export default function RagPage() {
             }
 
             if (searchResults.length > 0) {
+                const mapped = searchResults.map(item => {
+                    const relevance = Math.max(0, Math.min(1, 1 - item.distance));
+
+                    return {
+                        topicId: item.topicId,
+                        topic: item.topic,
+                        relevance,
+                        detail: item.detail,
+                        contributors: item.contributors
+                    };
+                });
+
                 return (
-                    <div>
-                        <motion.h3 animate={{ opacity: 1, x: 0 }} className="text-lg font-semibold mb-4" initial={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
-                            找到 {searchResults.length} 个相关话题
-                        </motion.h3>
-                        {searchResults.map((item, index) => renderSearchResultCard(item, index))}
-                    </div>
+                    <ReferenceList
+                        defaultCollapsed={false}
+                        favoriteTopics={favoriteTopics}
+                        icon={<Search className="w-6 h-6 text-secondary" />}
+                        readTopics={readTopics}
+                        references={mapped}
+                        title="搜索结果"
+                        onMarkAsRead={markAsRead}
+                        onToggleFavorite={toggleFavorite}
+                    />
                 );
             }
 
