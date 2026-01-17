@@ -10,6 +10,11 @@
     "dev": "node scripts/launchAll.cjs",
     "start": "node scripts/launchAll.cjs",
     "config": "node scripts/launchConfigPanel.cjs",
+    "dev:all": "concurrently -n orchestrator,preprocessing,ai-model,data-provider,backend,frontend \"pnpm --filter orchestrator dev\" \"pnpm --filter preprocessing dev\" \"pnpm --filter ai-model dev\" \"pnpm --filter data-provider dev\" \"pnpm --filter webui-backend dev\" \"pnpm --filter vite-template dev\"",
+    "dev:backend": "concurrently -n orchestrator,preprocessing,ai-model,data-provider,backend \"pnpm --filter orchestrator dev\" \"pnpm --filter preprocessing dev\" \"pnpm --filter ai-model dev\" \"pnpm --filter data-provider dev\" \"pnpm --filter webui-backend dev\"",
+    "dev:config": "concurrently -n backend,frontend \"pnpm --filter webui-backend dev:config-panel\" \"pnpm --filter vite-template dev\"",
+    "dev:webui": "concurrently -n ai-model,backend,frontend \"pnpm --filter ai-model dev\" \"pnpm --filter webui-backend dev\" \"pnpm --filter vite-template dev\"",
+    "dev:forwarder": "concurrently -n orchestrator,preprocessing,ai-model,data-provider,backend,frontend,forwarder \"pnpm --filter orchestrator dev\" \"pnpm --filter preprocessing dev\" \"pnpm --filter ai-model dev\" \"pnpm --filter data-provider dev\" \"pnpm --filter webui-backend dev\" \"pnpm --filter vite-template dev\" \"pnpm --filter webui-forwarder dev\"",
     "test": "vitest",
     "linecount": "node scripts/countLines.mjs",
     "prepare": "husky"
@@ -51,6 +56,8 @@
   "devDependencies": {
     "@types/nodemailer": "^6.4.17",
     "acorn": "^8.15.0",
+    "chokidar": "^4.0.3",
+    "concurrently": "^9.2.1",
     "estree-walker": "^3.0.3",
     "husky": "^9.1.7",
     "magic-string": "^0.30.21",

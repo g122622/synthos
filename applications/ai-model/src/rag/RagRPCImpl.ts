@@ -32,6 +32,7 @@ import { AgentExecutor } from "../agent/AgentExecutor";
 import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
 import { AgentDbAccessService, AgentMessage } from "@root/common/services/database/AgentDbAccessService";
 import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
+import { ToolRegistry } from "../agent/ToolRegistry";
 import { randomUUID } from "crypto";
 
 /**
@@ -54,7 +55,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder,
         @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService,
         @inject(AI_MODEL_TOKENS.AgentExecutor) private agentExecutor: AgentExecutor,
-        @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService
+        @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService,
+        @inject(AI_MODEL_TOKENS.ToolRegistry) private toolRegistry: ToolRegistry
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -379,7 +381,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         }));
 
         // 4. 构建系统提示词
-        const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt();
+        const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt(this.toolRegistry);
         const systemPrompt = systemPromptNode.serializeToString();
 
         // 5. 构建工具上下文

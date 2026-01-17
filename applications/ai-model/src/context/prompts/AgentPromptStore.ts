@@ -6,6 +6,7 @@ import { CtxTemplateNode } from "../template/CtxTemplate";
 import { ContentUtils } from "../template/ContentUtils";
 import { useMiddleware } from "../middleware/useMiddleware";
 import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
+import type { ToolRegistry } from "../../agent/ToolRegistry";
 
 /**
  * Agent 提示词存储
@@ -13,10 +14,11 @@ import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
 export class AgentPromptStore {
     /**
      * 获取 Agent 系统提示词
+     * @param toolRegistry 工具注册表，用于动态获取工具列表
      * @returns 系统提示词模板
      */
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
-    public static async getAgentSystemPrompt(): Promise<CtxTemplateNode> {
+    public static async getAgentSystemPrompt(toolRegistry: ToolRegistry): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         // 1. 角色定义
@@ -29,15 +31,17 @@ export class AgentPromptStore {
                 )
         );
 
-        // 2. 可用工具说明
+        // 2. 可用工具说明 - 从 ToolRegistry 动态获取
+        const toolDefinitions = toolRegistry.getAllToolDefinitions();
+        const toolsList = toolDefinitions
+            .map((tool, index) => `${index + 1}. ${tool.function.name}：${tool.function.description}`)
+            .join("\n");
+
         root.insertChildNodeToBack(
             new CtxTemplateNode()
                 .setTitle("可用工具")
                 .setContentText(
-                    "你可以调用以下工具：\n" +
-                        "1. rag_search：基于语义相似度搜索聊天记录中的相关话题\n" +
-                        "2. sql_query：直接查询聊天记录数据库，适用于统计分析和精确查询\n" +
-                        "3. web_search：从互联网搜索信息（当前为 Mock 实现）\n\n" +
+                    `你可以调用以下工具：\n${toolsList}\n\n` +
                         "根据用户问题的性质，选择最合适的工具或组合使用多个工具。"
                 )
         );
