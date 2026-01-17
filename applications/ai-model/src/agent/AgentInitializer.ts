@@ -31,11 +31,11 @@ export class AgentInitializer {
             return;
         }
 
-        this.LOGGER.info("开始初始化 Agent 系统...");
-        this.LOGGER.info(`ToolRegistry 实例: ${this.toolRegistry ? "已注入" : "未注入"}`);
-        this.LOGGER.info(`RagSearchTool 实例: ${this.ragSearchTool ? "已注入" : "未注入"}`);
-        this.LOGGER.info(`SQLQueryTool 实例: ${this.sqlQueryTool ? "已注入" : "未注入"}`);
-        this.LOGGER.info(`WebSearchTool 实例: ${this.webSearchTool ? "已注入" : "未注入"}`);
+        this.LOGGER.debug("开始初始化 Agent 系统...");
+        this.LOGGER.debug(`ToolRegistry 实例: ${this.toolRegistry ? "已注入" : "未注入"}`);
+        this.LOGGER.debug(`RagSearchTool 实例: ${this.ragSearchTool ? "已注入" : "未注入"}`);
+        this.LOGGER.debug(`SQLQueryTool 实例: ${this.sqlQueryTool ? "已注入" : "未注入"}`);
+        this.LOGGER.debug(`WebSearchTool 实例: ${this.webSearchTool ? "已注入" : "未注入"}`);
 
         // 注册所有工具
         this.toolRegistry.registerTool(

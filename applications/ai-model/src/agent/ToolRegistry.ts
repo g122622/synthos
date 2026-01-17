@@ -30,7 +30,7 @@ export class ToolRegistry {
             this.LOGGER.warning(`工具 ${toolName} 已存在，将被覆盖`);
         }
         this.tools.set(toolName, { definition, executor });
-        this.LOGGER.info(`工具 ${toolName} 注册成功`);
+        this.LOGGER.debug(`工具 ${toolName} 注册成功`);
     }
 
     /**
@@ -39,7 +39,7 @@ export class ToolRegistry {
      */
     public getAllToolDefinitions(): ToolDefinition[] {
         const definitions = Array.from(this.tools.values()).map(tool => tool.definition);
-        this.LOGGER.info(`获取工具定义，当前注册工具数: ${this.tools.size}`);
+        this.LOGGER.debug(`获取工具定义，当前注册工具数: ${this.tools.size}`);
         return definitions;
     }
 
@@ -64,9 +64,9 @@ export class ToolRegistry {
         }
 
         try {
-            this.LOGGER.info(`执行工具: ${toolName}，参数: ${JSON.stringify(toolCall.arguments)}`);
+            this.LOGGER.debug(`执行工具: ${toolName}，参数: ${JSON.stringify(toolCall.arguments)}`);
             const result = await tool.executor(toolCall.arguments, context);
-            this.LOGGER.info(`工具 ${toolName} 执行成功`);
+            this.LOGGER.debug(`工具 ${toolName} 执行成功`);
             return {
                 toolName,
                 toolCallId: toolCall.id,

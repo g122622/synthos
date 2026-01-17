@@ -5,6 +5,7 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { HumanMessage, AIMessage, ToolMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
+import util from "util";
 import Logger from "@root/common/util/Logger";
 import { ToolRegistry } from "./ToolRegistry";
 import { AI_MODEL_TOKENS } from "../di/tokens";
@@ -23,6 +24,152 @@ import { ToolCallParser } from "./utils/ToolCallParser";
 @injectable()
 export class AgentExecutor {
     private LOGGER = Logger.withTag("AgentExecutor");
+
+    private _formatMessagesForLog(messages: BaseMessage[]) {
+        return messages.map(m => {
+            const anyMsg = m as any;
+            const type = typeof anyMsg?._getType === "function" ? anyMsg._getType() : anyMsg?.type;
+
+            return {
+                type,
+                content: anyMsg?.content,
+                tool_calls: anyMsg?.tool_calls,
+                invalid_tool_calls: anyMsg?.invalid_tool_calls,
+                tool_call_id: anyMsg?.tool_call_id
+            };
+        });
+    }
+
+    private _estimateMessageChars(messages: BaseMessage[]) {
+        let chars = 0;
+        for (const m of messages) {
+            const anyMsg = m as any;
+            const content = anyMsg?.content;
+
+            if (typeof content === "string") {
+                chars += content.length;
+                continue;
+            }
+
+            if (Array.isArray(content)) {
+                for (const part of content) {
+                    if (typeof part === "string") {
+                        chars += part.length;
+                    } else if (part && typeof part === "object" && typeof (part as any).text === "string") {
+                        chars += (part as any).text.length;
+                    } else if (part != null) {
+                        try {
+                            chars += JSON.stringify(part).length;
+                        } catch {
+                            // ignore
+                        }
+                    }
+                }
+                continue;
+            }
+
+            if (content != null) {
+                try {
+                    chars += JSON.stringify(content).length;
+                } catch {
+                    // ignore
+                }
+            }
+        }
+        return chars;
+    }
+
+    private _extractUsage(
+        lastChunk: any,
+        messages: BaseMessage[],
+        completionText: string
+    ): TokenUsage | undefined {
+        const usageCandidates: any[] = [];
+
+        if (lastChunk?.usage_metadata)
+            usageCandidates.push({ source: "usage_metadata", value: lastChunk.usage_metadata });
+        if (lastChunk?.response_metadata?.usage_metadata)
+            usageCandidates.push({
+                source: "response_metadata.usage_metadata",
+                value: lastChunk.response_metadata.usage_metadata
+            });
+        if (lastChunk?.response_metadata?.usage)
+            usageCandidates.push({ source: "response_metadata.usage", value: lastChunk.response_metadata.usage });
+        if (lastChunk?.response_metadata?.tokenUsage)
+            usageCandidates.push({
+                source: "response_metadata.tokenUsage",
+                value: lastChunk.response_metadata.tokenUsage
+            });
+        if (lastChunk?.additional_kwargs?.usage)
+            usageCandidates.push({ source: "additional_kwargs.usage", value: lastChunk.additional_kwargs.usage });
+
+        const normalize = (u: any): TokenUsage | undefined => {
+            if (!u) return undefined;
+
+            // LangChain usage_metadata
+            if (
+                typeof u.input_tokens === "number" ||
+                typeof u.output_tokens === "number" ||
+                typeof u.total_tokens === "number"
+            ) {
+                const promptTokens = Number(u.input_tokens || 0);
+                const completionTokens = Number(u.output_tokens || 0);
+                const totalTokens = Number(u.total_tokens || promptTokens + completionTokens);
+                return { promptTokens, completionTokens, totalTokens };
+            }
+
+            // OpenAI-ish
+            const promptTokens = Number(u.prompt_tokens ?? u.promptTokens ?? 0);
+            const completionTokens = Number(u.completion_tokens ?? u.completionTokens ?? 0);
+            const totalTokensRaw = u.total_tokens ?? u.totalTokens;
+            const totalTokens = Number(totalTokensRaw ?? promptTokens + completionTokens);
+
+            if ([promptTokens, completionTokens, totalTokens].some(n => Number.isNaN(n))) return undefined;
+            if (promptTokens <= 0 && completionTokens <= 0 && totalTokens <= 0) return undefined;
+
+            return {
+                promptTokens: Math.max(0, promptTokens),
+                completionTokens: Math.max(0, completionTokens),
+                totalTokens: Math.max(0, totalTokens)
+            };
+        };
+
+        let usage: TokenUsage | undefined;
+        let pickedSource: string | undefined;
+
+        for (const c of usageCandidates) {
+            const normalized = normalize(c.value);
+            if (normalized) {
+                usage = normalized;
+                pickedSource = c.source;
+                break;
+            }
+        }
+
+        if (!usage) return undefined;
+
+        // Sanity check: provider 可能返回占位 token 数（例如 1/1/2），对较长 prompt 不可能成立
+        const promptChars = this._estimateMessageChars(messages);
+        const completionChars = completionText?.length ?? 0;
+
+        const suspiciousPrompt = promptChars > 200 && usage.promptTokens <= 5;
+        const suspiciousCompletion = completionChars > 80 && usage.completionTokens <= 5;
+        const suspiciousTotal = promptChars + completionChars > 300 && usage.totalTokens <= 10;
+
+        if (suspiciousPrompt || suspiciousCompletion || suspiciousTotal) {
+            this.LOGGER.debug(
+                `检测到可疑 token usage(可能为占位值)，忽略。source=${pickedSource}, usage=${util.inspect(usage)}`
+            );
+            return undefined;
+        }
+
+        // 补齐 totalTokens
+        if (!usage.totalTokens || usage.totalTokens <= 0) {
+            usage.totalTokens = usage.promptTokens + usage.completionTokens;
+        }
+
+        return usage;
+    }
 
     public constructor(
         @inject(AI_MODEL_TOKENS.ToolRegistry) private toolRegistry: ToolRegistry,
@@ -100,9 +247,17 @@ export class AgentExecutor {
                 // 获取工具定义（每轮都需要传递）
                 const tools = this.toolRegistry.getAllToolDefinitions();
 
-                // 调试：打印工具定义
+                // 调试：打印工具定义与 messages（避免 [Object]）
                 if (toolRounds === 1) {
-                    this.LOGGER.info(`传递给 LLM 的工具定义: ${JSON.stringify(tools, null, 2)}`);
+                    this.LOGGER.info(`传递给 LLM 的工具: ${tools.map(t => t.function.name).join(", ")}`);
+                    this.LOGGER.debug(
+                        "发送给 LLM 的 messages: " +
+                            util.inspect(this._formatMessagesForLog(messages), {
+                                depth: null,
+                                maxArrayLength: 50,
+                                maxStringLength: 2000
+                            })
+                    );
                 }
 
                 // 调用 LLM（流式）
@@ -116,9 +271,17 @@ export class AgentExecutor {
                     config.abortSignal
                 );
 
-                console.log("content:", content);
-                console.log("toolCalls:", toolCalls);
-                console.log("usage:", usage);
+                this.LOGGER.debug(
+                    "LLM本轮返回(摘要): " +
+                        util.inspect(
+                            {
+                                hasToolCalls: toolCalls.length > 0,
+                                toolCalls,
+                                usage
+                            },
+                            { depth: null, maxArrayLength: 50, maxStringLength: 2000 }
+                        )
+                );
 
                 // 累加 Token 使用量
                 if (usage) {
@@ -128,7 +291,7 @@ export class AgentExecutor {
                 }
 
                 // 如果没有工具调用，返回最终结果
-                if (!toolCalls || toolCalls.length === 0) {
+                if (toolCalls.length === 0) {
                     this.LOGGER.info("LLM 未请求工具调用，返回最终结果");
                     onChunk({
                         type: "done",
@@ -208,7 +371,7 @@ export class AgentExecutor {
         temperature?: number,
         maxTokens?: number,
         abortSignal?: AbortSignal
-    ): Promise<{ content: string; toolCalls?: ToolCall[]; usage?: TokenUsage }> {
+    ): Promise<{ content: string; toolCalls: ToolCall[]; usage?: TokenUsage }> {
         let fullContent = "";
         const toolCalls: ToolCall[] = [];
         let lastChunk: any = null;
@@ -223,15 +386,8 @@ export class AgentExecutor {
             abortSignal
         );
 
-        let chunkCount = 0;
         for await (const chunk of stream) {
             lastChunk = chunk;
-            chunkCount++;
-
-            // 调试：打印前3个 chunk 的完整结构
-            if (chunkCount <= 3) {
-                this.LOGGER.info(`Chunk #${chunkCount} 结构: ${JSON.stringify(chunk, null, 2)}`);
-            }
 
             // 检查中止信号
             if (abortSignal?.aborted) {
@@ -249,7 +405,10 @@ export class AgentExecutor {
 
             // 处理工具调用
             if (chunk.tool_calls && chunk.tool_calls.length > 0) {
-                this.LOGGER.info(`检测到工具调用: ${JSON.stringify(chunk.tool_calls)}`);
+                this.LOGGER.debug(
+                    "检测到原生工具调用: " +
+                        util.inspect(chunk.tool_calls, { depth: null, maxArrayLength: 50, maxStringLength: 2000 })
+                );
                 for (const tc of chunk.tool_calls) {
                     toolCalls.push({
                         id: tc.id || crypto.randomUUID(),
@@ -260,14 +419,8 @@ export class AgentExecutor {
             }
         }
 
-        // 提取 Token 使用量（如果可用）
-        const usage = lastChunk?.usage_metadata
-            ? {
-                  promptTokens: lastChunk.usage_metadata.input_tokens || 0,
-                  completionTokens: lastChunk.usage_metadata.output_tokens || 0,
-                  totalTokens: lastChunk.usage_metadata.total_tokens || 0
-              }
-            : undefined;
+        // 提取 Token 使用量（best-effort；遇到明显占位值会返回 undefined）
+        const usage = this._extractUsage(lastChunk, messages, fullContent);
 
         // 如果没有检测到原生工具调用，尝试解析文本中的工具调用
         if (toolCalls.length === 0 && fullContent) {
@@ -278,7 +431,7 @@ export class AgentExecutor {
             }
         }
 
-        return { content: fullContent, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage };
+        return { content: fullContent, toolCalls, usage };
     }
 
     /**
