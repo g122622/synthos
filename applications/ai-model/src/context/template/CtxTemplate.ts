@@ -140,6 +140,14 @@ export class CtxTemplateNode {
     }
 
     /**
+     * 重写 toString 方法，调用 serializeToString
+     * @returns 序列化后的字符串
+     */
+    public toString(): string {
+        return this.serializeToString();
+    }
+
+    /**
      * 将当前节点及其子树序列化为普通 JavaScript 对象（可被 JSON.stringify 序列化）
      * @returns 包含 title、contentText 和 children 的普通对象
      */

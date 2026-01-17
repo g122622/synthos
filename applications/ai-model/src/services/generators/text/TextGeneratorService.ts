@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ChatOpenAI } from "@langchain/openai";
+import { BaseMessage } from "@langchain/core/messages";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
@@ -169,5 +170,102 @@ export class TextGeneratorService extends Disposable {
             selectedModelName,
             content: resultStr
         };
+    }
+
+    /**
+     * 获取指定模型的 ChatOpenAI 实例（用于高级场景，如 Agent 的 Function Calling）
+     * @param modelName 模型名称
+     * @param temperature 温度参数（可选）
+     * @param maxTokens 最大 token 数（可选）
+     * @returns ChatOpenAI 实例
+     */
+    public async getChatModel(modelName: string, temperature?: number, maxTokens?: number): Promise<ChatOpenAI> {
+        const config = await this.configManagerService.getCurrentConfig();
+
+        // 创建新的 ChatOpenAI 实例（不缓存，因为参数可能不同）
+        const chatModel = new ChatOpenAI({
+            openAIApiKey: config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey,
+            apiKey: config.ai?.models[modelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey,
+            configuration: {
+                baseURL: config.ai?.models[modelName]?.baseURL ?? config.ai.defaultModelConfig.baseURL
+            },
+            model: modelName,
+            temperature:
+                temperature ??
+                config.ai?.models[modelName]?.temperature ??
+                config.ai.defaultModelConfig.temperature,
+            maxTokens:
+                maxTokens ?? config.ai?.models[modelName]?.maxTokens ?? config.ai.defaultModelConfig.maxTokens,
+            reasoning: {
+                effort: "minimal"
+            }
+        });
+
+        this.LOGGER.info(`为 Agent 场景创建独立的 ChatOpenAI 实例: ${modelName}`);
+        return chatModel;
+    }
+
+    /**
+     * 使用消息列表生成文本（流式，支持工具绑定）
+     * 适用于 Agent 等需要复杂消息历史和工具调用的场景
+     * @param modelName 模型名称（如果未指定或为 "default"，则使用配置中的第一个置顶模型）
+     * @param messages 消息列表
+     * @param tools 工具定义（可选）
+     * @param temperature 温度参数（可选）
+     * @param maxTokens 最大 token 数（可选）
+     * @param abortSignal 中止信号（可选）
+     * @returns 异步迭代器，产出文本片段
+     */
+    public async streamWithMessages(
+        modelName: string | undefined,
+        messages: BaseMessage[],
+        tools?: any[],
+        temperature?: number,
+        maxTokens?: number,
+        abortSignal?: AbortSignal
+    ): Promise<AsyncIterableIterator<any>> {
+        const config = await this.configManagerService.getCurrentConfig();
+
+        // 如果未指定模型或指定为 "default"，使用配置中的第一个置顶模型
+        const effectiveModelName =
+            !modelName || modelName === "default" ? config.ai.pinnedModels[0] || "gpt-4" : modelName;
+
+        this.LOGGER.info(`Agent 使用模型: ${effectiveModelName}`);
+
+        // 创建独立的模型实例
+        let chatModel = new ChatOpenAI({
+            openAIApiKey: config.ai?.models[effectiveModelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey,
+            apiKey: config.ai?.models[effectiveModelName]?.apiKey ?? config.ai.defaultModelConfig.apiKey,
+            configuration: {
+                baseURL: config.ai?.models[effectiveModelName]?.baseURL ?? config.ai.defaultModelConfig.baseURL
+            },
+            model: effectiveModelName,
+            temperature:
+                temperature ??
+                config.ai?.models[effectiveModelName]?.temperature ??
+                config.ai.defaultModelConfig.temperature,
+            maxTokens:
+                maxTokens ??
+                config.ai?.models[effectiveModelName]?.maxTokens ??
+                config.ai.defaultModelConfig.maxTokens,
+            reasoning: {
+                effort: "minimal"
+            }
+        });
+
+        // 如果提供了工具，绑定工具并返回流
+        if (tools && tools.length > 0) {
+            this.LOGGER.info(`绑定 ${tools.length} 个工具到 ChatModel`);
+            // 使用 bindTools 绑定工具，并通过 stream 的第二个参数传递 tool_choice
+            const boundModel = chatModel.bindTools(tools);
+            this.LOGGER.info(`尝试启用强制工具调用模式 (tool_choice: "auto")`);
+            return boundModel.stream(messages, {
+                signal: abortSignal
+                // 注意：部分模型可能不支持 tool_choice，需要测试
+            });
+        }
+
+        // 返回流式迭代器
+        return chatModel.stream(messages, { signal: abortSignal });
     }
 }

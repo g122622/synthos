@@ -38,7 +38,9 @@ export class ToolRegistry {
      * @returns 工具定义数组
      */
     public getAllToolDefinitions(): ToolDefinition[] {
-        return Array.from(this.tools.values()).map(tool => tool.definition);
+        const definitions = Array.from(this.tools.values()).map(tool => tool.definition);
+        this.LOGGER.info(`获取工具定义，当前注册工具数: ${this.tools.size}`);
+        return definitions;
     }
 
     /**

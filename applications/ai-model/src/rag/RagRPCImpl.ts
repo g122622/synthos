@@ -380,7 +380,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 4. 构建系统提示词
         const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt();
-        const systemPrompt = systemPromptNode.toString();
+        const systemPrompt = systemPromptNode.serializeToString();
 
         // 5. 构建工具上下文
         const toolContext: ToolContext = {

@@ -2,10 +2,11 @@
  * Agent 服务
  * 处理 Agent 问答、对话历史的业务逻辑
  */
-import { injectable } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { RAGClient } from "../rpc/aiModelClient";
 import type { AgentAskInput, AgentAskOutput } from "@root/common/rpc/ai-model/schemas";
+import { TOKENS } from "../di/tokens";
 
 /**
  * Agent 消息类型
@@ -53,7 +54,7 @@ export interface AgentAskRequest {
 export class AgentService {
     private LOGGER = Logger.withTag("AgentService");
 
-    constructor(private ragClient: RAGClient) {}
+    constructor(@inject(TOKENS.RAGClient) private ragClient: RAGClient) {}
 
     /**
      * 发起 Agent 问答

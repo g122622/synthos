@@ -4,7 +4,6 @@
  */
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
-import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, AIMessage, ToolMessage, SystemMessage, BaseMessage } from "@langchain/core/messages";
 import Logger from "@root/common/util/Logger";
 import { ToolRegistry } from "./ToolRegistry";
@@ -18,36 +17,17 @@ import {
     ToolContext,
     TokenUsage
 } from "./contracts/index";
-import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
+import { ToolCallParser } from "./utils/ToolCallParser";
 
 @injectable()
 export class AgentExecutor {
     private LOGGER = Logger.withTag("AgentExecutor");
-    private chatModel: ChatOpenAI | null = null;
 
     public constructor(
         @inject(AI_MODEL_TOKENS.ToolRegistry) private toolRegistry: ToolRegistry,
-        @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService
+        @inject(AI_MODEL_TOKENS.TextGeneratorService) private textGeneratorService: TextGeneratorService
     ) {}
-
-    /**
-     * 初始化 ChatOpenAI 模型
-     */
-    private async _initChatModel(config: AgentConfig): Promise<void> {
-        const appConfig = await this.configManagerService.getCurrentConfig();
-        const defaultModel = appConfig.ai.pinnedModels[0] || "gpt-4";
-
-        this.chatModel = new ChatOpenAI({
-            apiKey: appConfig.ai.defaultModelConfig.apiKey,
-            configuration: {
-                baseURL: appConfig.ai.defaultModelConfig.baseURL
-            },
-            model: defaultModel,
-            temperature: config.temperature ?? 0.7,
-            maxTokens: config.maxTokens ?? 2048
-        });
-    }
 
     /**
      * 执行 Agent（流式）
@@ -57,6 +37,7 @@ export class AgentExecutor {
      * @param config Agent 配置
      * @param historyMessages 历史消息
      * @param systemPrompt 系统提示词
+     * @param modelName 模型名称（可选，默认使用配置中的第一个置顶模型）
      * @returns Agent 执行结果
      */
     public async executeStream(
@@ -65,9 +46,11 @@ export class AgentExecutor {
         onChunk: (chunk: AgentStreamChunk) => void,
         config: AgentConfig = {},
         historyMessages: ChatMessage[] = [],
-        systemPrompt?: string
+        systemPrompt?: string,
+        modelName?: string
     ): Promise<AgentResult> {
-        await this._initChatModel(config);
+        // 获取模型名称（如果未指定，传入 undefined，TextGeneratorService 会自动使用配置中的默认值）
+        const effectiveModelName = modelName;
 
         const maxToolRounds = config.maxToolRounds ?? 5;
         const toolsUsed: Set<string> = new Set();
@@ -114,16 +97,28 @@ export class AgentExecutor {
             this.LOGGER.info(`开始第 ${toolRounds} 轮 LLM 调用`);
 
             try {
-                // 获取工具定义（仅第一轮传递）
-                const tools = toolRounds === 1 ? this.toolRegistry.getAllToolDefinitions() : undefined;
+                // 获取工具定义（每轮都需要传递）
+                const tools = this.toolRegistry.getAllToolDefinitions();
+
+                // 调试：打印工具定义
+                if (toolRounds === 1) {
+                    this.LOGGER.info(`传递给 LLM 的工具定义: ${JSON.stringify(tools, null, 2)}`);
+                }
 
                 // 调用 LLM（流式）
                 const { content, toolCalls, usage } = await this._callLLMStream(
+                    effectiveModelName,
                     messages,
                     tools,
                     onChunk,
+                    config.temperature,
+                    config.maxTokens,
                     config.abortSignal
                 );
+
+                console.log("content:", content);
+                console.log("toolCalls:", toolCalls);
+                console.log("usage:", usage);
 
                 // 累加 Token 使用量
                 if (usage) {
@@ -206,24 +201,38 @@ export class AgentExecutor {
      * 调用 LLM（流式）
      */
     private async _callLLMStream(
+        modelName: string | undefined,
         messages: BaseMessage[],
         tools: any[] | undefined,
         onChunk: (chunk: AgentStreamChunk) => void,
+        temperature?: number,
+        maxTokens?: number,
         abortSignal?: AbortSignal
     ): Promise<{ content: string; toolCalls?: ToolCall[]; usage?: TokenUsage }> {
         let fullContent = "";
         const toolCalls: ToolCall[] = [];
         let lastChunk: any = null;
 
-        // 绑定工具（如果提供）
-        const modelWithTools = tools && tools.length > 0 ? this.chatModel!.bind({ tools }) : this.chatModel!;
+        // 使用 TextGeneratorService 的流式方法
+        const stream = await this.textGeneratorService.streamWithMessages(
+            modelName,
+            messages,
+            tools,
+            temperature,
+            maxTokens,
+            abortSignal
+        );
 
-        const stream = await modelWithTools.stream(messages, {
-            signal: abortSignal
-        });
-
+        let chunkCount = 0;
         for await (const chunk of stream) {
             lastChunk = chunk;
+            chunkCount++;
+
+            // 调试：打印前3个 chunk 的完整结构
+            if (chunkCount <= 3) {
+                this.LOGGER.info(`Chunk #${chunkCount} 结构: ${JSON.stringify(chunk, null, 2)}`);
+            }
+
             // 检查中止信号
             if (abortSignal?.aborted) {
                 break;
@@ -240,6 +249,7 @@ export class AgentExecutor {
 
             // 处理工具调用
             if (chunk.tool_calls && chunk.tool_calls.length > 0) {
+                this.LOGGER.info(`检测到工具调用: ${JSON.stringify(chunk.tool_calls)}`);
                 for (const tc of chunk.tool_calls) {
                     toolCalls.push({
                         id: tc.id || crypto.randomUUID(),
@@ -258,6 +268,15 @@ export class AgentExecutor {
                   totalTokens: lastChunk.usage_metadata.total_tokens || 0
               }
             : undefined;
+
+        // 如果没有检测到原生工具调用，尝试解析文本中的工具调用
+        if (toolCalls.length === 0 && fullContent) {
+            const parsedToolCalls = ToolCallParser.parseToolCalls(fullContent);
+            if (parsedToolCalls.length > 0) {
+                this.LOGGER.info(`从文本中解析出 ${parsedToolCalls.length} 个工具调用`);
+                toolCalls.push(...parsedToolCalls);
+            }
+        }
 
         return { content: fullContent, toolCalls: toolCalls.length > 0 ? toolCalls : undefined, usage };
     }
