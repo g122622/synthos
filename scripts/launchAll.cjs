@@ -8,6 +8,7 @@
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
+const { runPreStartCommand, stopPreStartCommand } = require("./preStartCommand.cjs");
 
 // 构建顺序配置（可按需调整）
 // 注意：orchestrator 需要在所有任务处理器启动后再启动，以确保任务已注册
@@ -115,6 +116,9 @@ async function buildAllProjects() {
     console.log(`🏗️ 开始构建&运行所有项目，总共 ${buildOrder.length} 个`);
     console.log(`📋 构建顺序: ${buildOrder.join(" → ")}`);
 
+    // 启动全部子项目之前，先执行启动前命令（独立子进程执行，不等待其完成）
+    await runPreStartCommand(rootDir);
+
     for (let i = 0; i < buildOrder.length; i++) {
         const projectName = buildOrder[i];
 
@@ -136,6 +140,14 @@ async function buildAllProjects() {
 }
 
 // 执行构建
+process.on("SIGINT", () => {
+    stopPreStartCommand("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+    stopPreStartCommand("SIGTERM");
+});
+
 buildAllProjects().catch(error => {
     console.error("构建&运行过程发生未预期错误:", error);
     process.exit(1);

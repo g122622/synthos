@@ -7,6 +7,7 @@
 
 const { spawn } = require("child_process");
 const path = require("path");
+const { runPreStartCommand, stopPreStartCommand } = require("./preStartCommand.cjs");
 
 const rootDir = path.resolve(__dirname, "..");
 
@@ -97,6 +98,9 @@ async function launchConfigPanel() {
     console.log("");
 
     try {
+        // 启动全部子项目之前，先执行启动前命令（独立子进程执行，不等待其完成）
+        await runPreStartCommand(rootDir);
+
         await startBackend();
         await delay(buildInterval);
         await startFrontend();
@@ -113,3 +117,11 @@ async function launchConfigPanel() {
 }
 
 launchConfigPanel();
+
+process.on("SIGINT", () => {
+    stopPreStartCommand("SIGINT");
+});
+
+process.on("SIGTERM", () => {
+    stopPreStartCommand("SIGTERM");
+});

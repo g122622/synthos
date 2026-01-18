@@ -77,6 +77,7 @@ pnpm add -Dw chokidar concurrently
 ```
 
 其中：
+
 - `--name`：用于日志标识
 - `--entry`：构建产物入口（通常是 `dist/index.js`）
 - `--kill-port`：可选；在 Windows 上常见的端口占用问题可通过它在重启前释放端口
@@ -91,6 +92,29 @@ pnpm add -Dw chokidar concurrently
 - `pnpm dev:all`：启动后端 + 前端
 - `pnpm dev:config`：启动配置面板相关
 - `pnpm dev:forwarder`：启动带 forwarder 的组合
+
+### 4) 启动前命令（可选）
+
+你可以在启动上述“一次启动多个子项目”的命令之前，先执行一个自定义命令（会开独立子进程执行，**不等待其执行完成**）。
+
+在 `synthos_config.json` 增加：
+
+```json
+{
+   "preStartCommand": {
+      "enabled": true,
+      "command": "<你的命令字符串>",
+      "silent": true,
+      "detached": false
+   }
+}
+```
+
+说明：
+
+- `command`：交给系统 shell 解析执行，适合写一整串命令
+- `silent`：是否静默（不输出 stdout/stderr）
+- `detached`：是否以 detached 方式运行（父进程退出后仍继续运行）
 
 ---
 

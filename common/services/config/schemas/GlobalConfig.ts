@@ -220,7 +220,22 @@ export const GlobalConfigSchema = z.object({
 
     email: EmailConfigSchema.describe("邮件配置"),
 
-    report: ReportConfigSchema.describe("日报配置")
+    report: ReportConfigSchema.describe("日报配置"),
+
+    preStartCommand: z
+        .object({
+            enabled: z.boolean().describe("是否启用启动前命令"),
+            command: z
+                .string()
+                .describe(
+                    "启动前命令，在启动全部子项目之前执行的命令字符串（会开一个独立子进程执行，不等待其执行完成）"
+                ),
+            silent: z.boolean().describe("静默模式，是否静默启动前命令，不输出stdout/stderr"),
+            detached: z
+                .boolean()
+                .describe("detach模式，启动前命令是否以 detached 方式运行（父进程退出后仍继续运行）")
+        })
+        .describe("启动前命令")
 });
 
 /**
