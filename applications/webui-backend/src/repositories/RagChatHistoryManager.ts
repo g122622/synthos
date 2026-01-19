@@ -93,11 +93,22 @@ export class RagChatHistoryManager extends Disposable {
                     answer TEXT NOT NULL,
                     refs TEXT NOT NULL,
                     topK INTEGER NOT NULL,
+                    enableQueryRewriter INTEGER NOT NULL DEFAULT 1,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_sessions_updatedAt ON rag_sessions(updatedAt DESC);
             `);
+
+            // 兼容旧数据库：补齐 enableQueryRewriter 字段
+            const columns = (await this.db.all(`PRAGMA table_info(rag_sessions)`)) as Array<{ name?: string }>;
+            const hasEnableQueryRewriter = columns.some(col => col.name === "enableQueryRewriter");
+            if (!hasEnableQueryRewriter) {
+                await this.db.run(
+                    `ALTER TABLE rag_sessions ADD COLUMN enableQueryRewriter INTEGER NOT NULL DEFAULT 1`
+                );
+                this.LOGGER.info("已为 rag_sessions 表补齐 enableQueryRewriter 字段");
+            }
 
             this._registerDisposable(this.db);
             this.initialized = true;
@@ -131,8 +142,8 @@ export class RagChatHistoryManager extends Disposable {
         };
 
         await this.db!.run(
-            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, enableQueryRewriter, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 session.id,
                 session.title,
@@ -140,6 +151,7 @@ export class RagChatHistoryManager extends Disposable {
                 session.answer,
                 session.refs,
                 session.topK,
+                session.enableQueryRewriter ? 1 : 0,
                 session.createdAt,
                 session.updatedAt
             ]

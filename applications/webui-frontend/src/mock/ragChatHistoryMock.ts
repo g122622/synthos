@@ -294,32 +294,27 @@ const generateTitle = (question: string): string => {
 };
 
 /**
- * 模拟创建会话 API
+ * mock 专用：在 mock /api/ask 成功后，将该次问答追加进历史记录
  */
-export const mockCreateSession = async (question: string, answer: string, references: ReferenceItem[], topK: number): Promise<ApiResponse<SessionDetail>> => {
-    await delay(300 + Math.random() * 200);
-
+export const mockAppendSessionFromAsk = (input: { question: string; answer: string; references: ReferenceItem[]; topK: number; enableQueryRewriter: boolean }): string => {
     const now = Date.now();
+    const id = generateId();
     const newSession: SessionDetail = {
-        id: generateId(),
-        title: generateTitle(question),
-        question,
-        answer,
-        references,
-        topK,
+        id,
+        title: generateTitle(input.question),
+        question: input.question,
+        answer: input.answer,
+        references: input.references,
+        topK: input.topK,
         createdAt: now,
         updatedAt: now,
-        enableQueryRewriter: true
+        enableQueryRewriter: input.enableQueryRewriter
     };
 
     // 添加到列表开头
     mockSessions.unshift(newSession);
 
-    return {
-        success: true,
-        data: newSession,
-        message: ""
-    };
+    return id;
 };
 
 /**

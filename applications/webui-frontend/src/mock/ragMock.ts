@@ -4,6 +4,7 @@
  */
 
 import { SearchResultItem, AskResponse } from "@/api/ragApi";
+import { mockAppendSessionFromAsk } from "@/mock/ragChatHistoryMock";
 
 // 模拟的话题数据
 const mockTopics: SearchResultItem[] = [
@@ -196,11 +197,20 @@ export const mockAsk = async (question: string, topK: number = 5): Promise<ApiRe
     // 限制引用数量
     const limitedReferences = response.references.slice(0, topK);
 
+    const sessionId = mockAppendSessionFromAsk({
+        question,
+        answer: response.answer,
+        references: limitedReferences,
+        topK,
+        enableQueryRewriter: true
+    });
+
     return {
         success: true,
         data: {
             answer: response.answer,
-            references: limitedReferences
+            references: limitedReferences,
+            sessionId
         },
         message: ""
     };

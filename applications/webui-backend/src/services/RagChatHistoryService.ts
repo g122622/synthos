@@ -147,7 +147,8 @@ export class RagChatHistoryService {
             answer: session.answer,
             references,
             topK: session.topK,
-            enableQueryRewriter: session.enableQueryRewriter,
+            enableQueryRewriter:
+                (session as unknown as { enableQueryRewriter?: unknown }).enableQueryRewriter === 0 ? false : true,
             createdAt: session.createdAt,
             updatedAt: session.updatedAt
         };

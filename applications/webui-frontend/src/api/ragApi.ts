@@ -29,6 +29,7 @@ export interface ReferenceItem {
 export interface AskResponse {
     answer: string;
     references: ReferenceItem[];
+    sessionId?: string;
 }
 
 // ==================== API 接口 ====================

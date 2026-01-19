@@ -19,7 +19,7 @@ import { AgentChat } from "./components/AgentChat";
 import DefaultLayout from "@/layouts/default";
 import { search, ask, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
 import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
-import { createSession, getSessionDetail } from "@/api/ragChatHistoryApi";
+import { getSessionDetail } from "@/api/ragChatHistoryApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TypingText from "@/components/TypingText";
 
@@ -105,21 +105,18 @@ export default function RagPage() {
         if (!question.trim()) return;
 
         setAskLoading(true);
-        setShowTypingEffect(false);
+        setShowTypingEffect(true);
         try {
             const response = await ask(question, topK, enableQueryRewriter);
 
             if (response.success) {
                 setAskResponse(response.data);
 
-                // 保存到历史记录
-                try {
-                    await createSession(question, response.data.answer, response.data.references, topK, enableQueryRewriter);
-                    // 刷新侧边栏
-                    setRefreshTrigger(prev => prev + 1);
-                } catch (error) {
-                    console.error("保存历史记录失败:", error);
+                // 后端会自主保存到历史记录（/api/ask），前端仅刷新侧边栏并选中该会话
+                if (response.data.sessionId) {
+                    setSelectedSessionId(response.data.sessionId);
                 }
+                setRefreshTrigger(prev => prev + 1);
 
                 // 获取话题的收藏和已读状态
                 const topicIds = response.data.references.map(ref => ref.topicId);
@@ -147,7 +144,7 @@ export default function RagPage() {
         } finally {
             setAskLoading(false);
         }
-    }, [question, topK]);
+    }, [question, topK, enableQueryRewriter]);
 
     // 处理搜索
     const handleSearch = useCallback(async () => {

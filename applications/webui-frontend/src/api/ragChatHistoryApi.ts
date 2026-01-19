@@ -6,7 +6,7 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-import { mockCreateSession, mockGetSessionList, mockGetSessionDetail, mockDeleteSession, mockUpdateSessionTitle, mockClearAllSessions } from "@/mock/ragChatHistoryMock";
+import { mockGetSessionList, mockGetSessionDetail, mockDeleteSession, mockUpdateSessionTitle, mockClearAllSessions } from "@/mock/ragChatHistoryMock";
 
 // ==================== 类型定义 ====================
 
@@ -54,24 +54,6 @@ export interface SessionListResponse {
 }
 
 // ==================== API 接口 ====================
-
-/**
- * 创建新会话
- */
-export const createSession = async (question: string, answer: string, references: ReferenceItem[], topK: number, enableQueryRewriter: boolean = true): Promise<ApiResponse<SessionDetail>> => {
-    // 如果启用了 mock，使用 mock 数据
-    if (mockConfig.rag) {
-        return mockCreateSession(question, answer, references, topK);
-    }
-
-    const response = await fetchWrapper(`${API_BASE_URL}/api/rag/session/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, answer, references, topK, enableQueryRewriter })
-    });
-
-    return response.json();
-};
 
 /**
  * 获取会话列表
