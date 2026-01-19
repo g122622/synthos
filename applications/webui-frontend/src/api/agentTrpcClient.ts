@@ -45,7 +45,9 @@ function getAiModelWsUrl() {
         return "ws://localhost:7979";
     }
 
-    return "ws://" + window.location.host;
+    // In Docker Scheme B the frontend is served by nginx (e.g. :8080), while ai-model is exposed on :7979.
+    // Use hostname to avoid inheriting nginx port.
+    return `ws://${window.location.hostname}:7979`;
 }
 
 let _client: any | null = null;

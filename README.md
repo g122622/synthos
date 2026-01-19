@@ -202,6 +202,51 @@ pnpm dev:config
 pnpm dev:forwarder
 ```
 
+---
+
+## Docker 部署（WIP，暂不推荐）
+
+该方案将 `orchestrator` / `preprocessing` / `ai-model` / `webui-backend` / `webui-frontend` / `MongoDB` 容器化，
+`data-provider` 仍在宿主机运行（因为其依赖本机 QQNT 数据库与 VFS DLL）。
+
+### 1) 启动容器
+
+```bash
+docker compose up -d --build
+```
+
+可选启用 Ollama：
+
+```bash
+docker compose --profile ollama up -d --build
+```
+
+### 2) 在宿主机启动 data-provider（连接容器 Mongo）
+
+> 注意：`docker-compose.yml` 中提供了一个 `host-only` profile 下的 `data-provider` 占位服务，仅用于提示该组件需在宿主机运行，并不会真正容器化该进程。
+
+```bash
+set SYNTHOS_MONGODB_URL=mongodb://localhost:27017/synthos
+pnpm --filter data-provider dev
+```
+
+PowerShell：
+
+```powershell
+$env:SYNTHOS_MONGODB_URL="mongodb://localhost:27017/synthos"
+pnpm --filter data-provider dev
+```
+
+### 3) 访问 WebUI
+
+- 前端（nginx）：http://localhost:8080
+- 后端健康检查：http://localhost:3002/health
+- AI RPC（tRPC HTTP/WS）：http://localhost:7979 （WS 同端口）
+
+> 配置文件默认挂载为 `docker/config/synthos_config.json`（容器内路径：`/config/synthos_config.json`）。
+> 如需自定义，可直接修改该文件，或使用 `synthos_config_override.json` 进行覆盖。
+> 建议把敏感信息（如 `apiKey`/`dbKey`）放到 `synthos_config_override.json`（已被 gitignore），避免误提交。
+
 **可用的启动脚本：**
 
 | 命令 | 说明 | 包含的服务 |

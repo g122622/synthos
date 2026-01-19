@@ -135,7 +135,8 @@ export class WebUILocalServer {
         // 3. 注册 RAG RPC 客户端
         const config = await ConfigManagerService.getCurrentConfig();
         const rpcPort = config.ai.rpc.port;
-        registerRAGClient(`http://localhost:${rpcPort}`);
+        const rpcBaseUrl = (process.env.SYNTHOS_AI_RPC_BASE_URL || "").trim() || `http://localhost:${rpcPort}`;
+        registerRAGClient(rpcBaseUrl);
 
         // 4. 注册 Services
         registerServices();

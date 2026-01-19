@@ -26,6 +26,12 @@ pnpm-debug.log*
 
 synthos_config.json
 
+# Docker (Scheme B)
+docker/volumes
+docker/data
+docker/logs
+docker/config/synthos_config_override.json
+
 logs
 
 pids.json

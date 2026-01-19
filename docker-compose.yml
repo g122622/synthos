@@ -1,0 +1,128 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: synthos-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./docker/volumes/mongo:/data/db
+
+  # Optional: Ollama for local embeddings/LLM (CPU by default).
+  # Enable with: docker compose --profile ollama up -d
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:latest
+    container_name: synthos-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./docker/volumes/ollama:/root/.ollama
+
+  ai-model:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: synthos-ai-model
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      - NODE_ENV=production
+      - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
+      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
+    volumes:
+      - ./docker/config:/config:ro
+      - ./docker/data:/data
+      - ./docker/logs:/logs
+    command: ["node", "applications/ai-model/dist/index.js"]
+    ports:
+      - "7979:7979"
+
+  preprocessing:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: synthos-preprocessing
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      - NODE_ENV=production
+      - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
+      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
+    volumes:
+      - ./docker/config:/config:ro
+      - ./docker/data:/data
+      - ./docker/logs:/logs
+    command: ["node", "applications/preprocessing/dist/index.js"]
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: synthos-orchestrator
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - ai-model
+      - preprocessing
+    environment:
+      - NODE_ENV=production
+      - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
+      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
+    volumes:
+      - ./docker/config:/config:ro
+      - ./docker/data:/data
+      - ./docker/logs:/logs
+    command: ["node", "applications/orchestrator/dist/index.js"]
+
+  webui-backend:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: synthos-webui-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - ai-model
+    environment:
+      - NODE_ENV=production
+      - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
+      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
+      - SYNTHOS_AI_RPC_BASE_URL=http://ai-model:7979
+    volumes:
+      - ./docker/config:/config:ro
+      - ./docker/data:/data
+      - ./docker/logs:/logs
+    command: ["node", "applications/webui-backend/dist/index.js"]
+    ports:
+      - "3002:3002"
+
+  webui-frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+    container_name: synthos-webui-frontend
+    restart: unless-stopped
+    depends_on:
+      - webui-backend
+    ports:
+      - "8080:80"
+
+  # data-provider cannot be containerized on Linux in Scheme B because it depends on
+  # the local QQNT database + a Windows-only VFS DLL. This is a *placeholder* service
+  # to make the architecture explicit.
+  data-provider:
+    profiles: ["host-only"]
+    image: alpine:3.20
+    container_name: synthos-data-provider-placeholder
+    command:
+      - sh
+      - -c
+      - |
+        echo "[synthos] data-provider is host-only in Scheme B (Windows QQNT DB + VFS DLL).";
+        echo "Run it on your host: pnpm --filter data-provider dev";
+        echo "(and set SYNTHOS_MONGODB_URL=mongodb://localhost:27017/synthos)";
+        sleep 3600

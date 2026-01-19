@@ -19,3 +19,9 @@ tests/**/coverage/
 *.njsproj
 *.sln
 tsconfig.tsbuildinfo
+
+# Docker runtime data (Scheme B)
+docker/volumes
+docker/data
+docker/logs
+docker/config/synthos_config_override.json
