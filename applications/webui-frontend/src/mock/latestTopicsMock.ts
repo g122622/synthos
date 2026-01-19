@@ -242,6 +242,9 @@ const generateSessionIdsForGroup = (groupId: string, timeStart: number, timeEnd:
  */
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+// 摘要所使用的模型（用于展示）
+const digestModelNames = ["gpt-4", "gpt-3.5-turbo", "claude-3", "qwen-max", "glm-4", "deepseek-chat", "qwen2.5"];
+
 /**
  * 模拟根据群组ID和时间范围获取会话ID
  */
@@ -311,6 +314,8 @@ const generateTopicsForSession = (
     topic: string;
     contributors: string;
     detail: string;
+    modelName: string;
+    updateTime: number;
 }[] => {
     const seed = sessionId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const topicCount = 2 + Math.floor(seededRandom(seed) * 4); // 2-5 个话题
@@ -327,6 +332,13 @@ const generateTopicsForSession = (
 
         const topicId = `topic_${sessionId}_${i}`;
 
+        const modelIndex = Math.floor(seededRandom(seed + i + 500) * digestModelNames.length);
+        const modelName = digestModelNames[modelIndex];
+
+        // 更新时间：1分钟 ~ 24小时内的随机时间
+        const updateTimeOffsetMs = Math.floor((seededRandom(seed + i + 600) * (24 * 60 - 1) + 1) * 60 * 1000);
+        const updateTime = Date.now() - updateTimeOffsetMs;
+
         // 为新话题生成兴趣得分（80% 的话题有得分），范围为 -1 到 1
         if (seededRandom(seed + i + 200) < 0.8) {
             // 生成 -1 到 1 之间的得分，保留两位小数
@@ -338,7 +350,9 @@ const generateTopicsForSession = (
             sessionId,
             topic: template.topic,
             contributors,
-            detail: template.detail
+            detail: template.detail,
+            modelName,
+            updateTime
         });
     }
 
@@ -350,7 +364,14 @@ const generateTopicsForSession = (
  */
 export const mockGetAIDigestResultsBySessionIds = async (
     sessionIds: string[]
-): Promise<ApiResponse<{ sessionId: string; result: { topicId: string; sessionId: string; topic: string; contributors: string; detail: string }[] }[]>> => {
+): Promise<
+    ApiResponse<
+        {
+            sessionId: string;
+            result: { topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }[];
+        }[]
+    >
+> => {
     await delay(400 + Math.random() * 300);
 
     const result = sessionIds.map(sessionId => ({
@@ -361,6 +382,104 @@ export const mockGetAIDigestResultsBySessionIds = async (
     return {
         success: true,
         data: result,
+        message: ""
+    };
+};
+
+/**
+ * 模拟根据会话ID获取AI摘要结果（单会话）
+ */
+export const mockGetAIDigestResultsBySessionId = async (
+    sessionId: string
+): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }[]>> => {
+    const response = await mockGetAIDigestResultsBySessionIds([sessionId]);
+
+    if (!response.success) {
+        return {
+            success: false,
+            data: [],
+            message: response.message
+        };
+    }
+
+    const sessionResult = response.data.find(item => item.sessionId === sessionId);
+
+    return {
+        success: true,
+        data: sessionResult ? sessionResult.result : [],
+        message: ""
+    };
+};
+
+/**
+ * 模拟根据主题ID获取AI摘要结果（单 topic）
+ */
+export const mockGetAIDigestResultByTopicId = async (
+    topicId: string
+): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }>> => {
+    await delay(250 + Math.random() * 150);
+
+    // topicId 规则：topic_${sessionId}_${i}
+    const parts = topicId.split("_");
+
+    if (parts.length < 3 || parts[0] !== "topic") {
+        return {
+            success: false,
+            data: {
+                topicId,
+                sessionId: "",
+                topic: "",
+                contributors: "",
+                detail: "",
+                modelName: "",
+                updateTime: 0
+            },
+            message: "topicId格式不正确"
+        };
+    }
+
+    const indexStr = parts[parts.length - 1];
+    const sessionId = parts.slice(1, -1).join("_");
+    const idx = parseInt(indexStr, 10);
+
+    if (!sessionId || Number.isNaN(idx)) {
+        return {
+            success: false,
+            data: {
+                topicId,
+                sessionId: "",
+                topic: "",
+                contributors: "",
+                detail: "",
+                modelName: "",
+                updateTime: 0
+            },
+            message: "topicId解析失败"
+        };
+    }
+
+    const topics = generateTopicsForSession(sessionId);
+    const found = topics.find(t => t.topicId === topicId) ?? topics[idx];
+
+    if (!found) {
+        return {
+            success: false,
+            data: {
+                topicId,
+                sessionId,
+                topic: "",
+                contributors: "",
+                detail: "",
+                modelName: "",
+                updateTime: 0
+            },
+            message: "未找到对应的topic摘要"
+        };
+    }
+
+    return {
+        success: true,
+        data: found,
         message: ""
     };
 };

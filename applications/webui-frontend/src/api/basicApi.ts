@@ -3,7 +3,13 @@ import API_BASE_URL from "./constants/baseUrl";
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetGroupDetails, mockGetChatMessagesByGroupId, mockGetMessageHourlyStats } from "@/mock/groupsMock";
-import { mockGetSessionIdsByGroupIdsAndTimeRange, mockGetSessionTimeDurations, mockGetAIDigestResultsBySessionIds } from "@/mock/latestTopicsMock";
+import {
+    mockGetSessionIdsByGroupIdsAndTimeRange,
+    mockGetSessionTimeDurations,
+    mockGetAIDigestResultByTopicId,
+    mockGetAIDigestResultsBySessionId,
+    mockGetAIDigestResultsBySessionIds
+} from "@/mock/latestTopicsMock";
 
 // 健康检查接口
 export const healthCheck = async (): Promise<ApiResponse<{ message: string; timestamp: string }>> => {
@@ -133,6 +139,8 @@ interface AIDigestResult {
     topic: string;
     contributors: string;
     detail: string;
+    modelName: string; // 生成摘要所使用的AI模型名称
+    updateTime: number; // 摘要更新时间，UNIX毫秒时间戳格式
 }
 
 interface AIDigestResultResponse extends AIDigestResult {}
@@ -140,6 +148,11 @@ interface AIDigestResultResponse extends AIDigestResult {}
 interface AIDigestResultsResponse extends Array<AIDigestResult> {}
 
 export const getAIDigestResultByTopicId = async (topicId: string): Promise<ApiResponse<AIDigestResultResponse>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetAIDigestResultByTopicId(topicId);
+    }
+
     const params = new URLSearchParams({ topicId });
     const response = await fetchWrapper(`${API_BASE_URL}/api/ai-digest-result-by-topic-id?${params}`);
 
@@ -163,6 +176,11 @@ export const getAIDigestResultsBySessionIds = async (sessionIds: string[]): Prom
 };
 
 export const getAIDigestResultsBySessionId = async (sessionId: string): Promise<ApiResponse<AIDigestResultsResponse>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetAIDigestResultsBySessionId(sessionId);
+    }
+
     // 请求参数过大，使用post请求
     const response = await fetchWrapper(`${API_BASE_URL}/api/ai-digest-results-by-session-ids`, {
         method: "POST",

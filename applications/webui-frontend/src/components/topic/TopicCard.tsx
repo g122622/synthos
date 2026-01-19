@@ -11,6 +11,7 @@ import EnhancedDetail from "./EnhancedDetail";
 import QQAvatar from "@/components/QQAvatar";
 import { AIDigestResult } from "@/types/app";
 import { Notification } from "@/util/Notification";
+import { formatRelativeTime } from "@/util/format";
 
 // TopicItem 类型（来自 latest-topics）
 interface TopicItemData {
@@ -19,6 +20,8 @@ interface TopicItemData {
     topic: string;
     contributors: string;
     detail: string;
+    modelName: string;
+    updateTime: number;
     timeStart: number;
     timeEnd: number;
     groupId: string;
@@ -51,7 +54,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
 
     // 复制话题内容到剪贴板
     const handleCopy = () => {
-        let contentToCopy = `话题: ${topic.topic}\n\n参与者: ${contributorsArray.join(", ")}\n\n详情: ${topic.detail}`;
+        let contentToCopy = `话题: ${topic.topic}\n\n参与者: ${contributorsArray.join(", ")}\n\n模型: ${topic.modelName}\n更新时间: ${new Date(topic.updateTime).toLocaleString("zh-CN")}\n\n详情: ${topic.detail}`;
 
         // 如果有时间和群信息，则添加
         if (hasTimeAndGroup) {
@@ -132,6 +135,11 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 minute: "2-digit"
                             })}
                         </Chip>
+                        <Tooltip content={new Date(topic.updateTime).toLocaleString("zh-CN")} placement="top">
+                            <Chip className="ml-2" size="sm" variant="flat">
+                                {formatRelativeTime(topic.updateTime)}
+                            </Chip>
+                        </Tooltip>
                     </div>
                 )}
             </CardHeader>
@@ -142,7 +150,10 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                     <div className="absolute bottom-3 left-3 flex items-center gap-2">
                         <QQAvatar qqId={topic.groupId} type="group" />
                         <Chip size="sm" variant="flat">
-                            群ID: {topic.groupId}
+                            {topic.groupId}
+                        </Chip>
+                        <Chip className="" size="sm" variant="flat">
+                            {topic.modelName}
                         </Chip>
                     </div>
                 )}
@@ -160,6 +171,8 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 { key: "participants", label: "参与者" },
                                 { key: "topicId", label: "话题ID" },
                                 { key: "sessionId", label: "会话ID" },
+                                { key: "modelName", label: "模型" },
+                                { key: "updateTime", label: "更新时间" },
                                 ...(hasTimeAndGroup ? [{ key: "groupId", label: "群ID" }] : [])
                             ]}
                         >
@@ -205,6 +218,26 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                             <div className="flex flex-col gap-1">
                                                 <p className="font-medium">会话ID</p>
                                                 <p className="text-sm">{topic.sessionId}</p>
+                                            </div>
+                                        </DropdownItem>
+                                    );
+                                }
+                                if (item.key === "modelName") {
+                                    return (
+                                        <DropdownItem key="modelName" textValue="模型">
+                                            <div className="flex flex-col gap-1">
+                                                <p className="font-medium">模型</p>
+                                                <p className="text-sm">{topic.modelName}</p>
+                                            </div>
+                                        </DropdownItem>
+                                    );
+                                }
+                                if (item.key === "updateTime") {
+                                    return (
+                                        <DropdownItem key="updateTime" textValue="更新时间">
+                                            <div className="flex flex-col gap-1">
+                                                <p className="font-medium">更新时间</p>
+                                                <p className="text-sm">{new Date(topic.updateTime).toLocaleString("zh-CN")}</p>
                                             </div>
                                         </DropdownItem>
                                     );

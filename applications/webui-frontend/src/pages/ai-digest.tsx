@@ -12,6 +12,7 @@ import { getAIDigestResultsBySessionId, getAIDigestResultByTopicId, isSessionSum
 import { AIDigestResult } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
+import { formatRelativeTime } from "@/util/format";
 
 export default function AIDigestPage() {
     const [sessionId, setSessionId] = useState<string>("");
@@ -146,6 +147,8 @@ export default function AIDigestPage() {
                                         <TableHeader>
                                             <TableColumn>主题</TableColumn>
                                             <TableColumn>参与者</TableColumn>
+                                            <TableColumn>模型</TableColumn>
+                                            <TableColumn>更新时间</TableColumn>
                                             <TableColumn>详情</TableColumn>
                                         </TableHeader>
                                         <TableBody emptyContent={"未找到相关摘要结果"}>
@@ -153,6 +156,10 @@ export default function AIDigestPage() {
                                                 <TableRow key={digest.topicId}>
                                                     <TableCell className="font-semibold">{digest.topic}</TableCell>
                                                     <TableCell>{digest.contributors}</TableCell>
+                                                    <TableCell>{digest.modelName}</TableCell>
+                                                    <TableCell>
+                                                        <span title={new Date(digest.updateTime).toLocaleString("zh-CN")}>{formatRelativeTime(digest.updateTime)}</span>
+                                                    </TableCell>
                                                     <TableCell>
                                                         <div className="max-w-md truncate" title={digest.detail}>
                                                             {digest.detail}
@@ -201,6 +208,13 @@ export default function AIDigestPage() {
                                                 </div>
                                                 <div>
                                                     <span className="font-semibold">参与者:</span> {topicDigest.contributors}
+                                                </div>
+                                                <div>
+                                                    <span className="font-semibold">模型:</span> {topicDigest.modelName}
+                                                </div>
+                                                <div>
+                                                    <span className="font-semibold">更新时间:</span>{" "}
+                                                    <span title={new Date(topicDigest.updateTime).toLocaleString("zh-CN")}>{formatRelativeTime(topicDigest.updateTime)}</span>
                                                 </div>
                                             </div>
                                         </AccordionItem>

@@ -34,4 +34,6 @@ export interface AIDigestResult {
     topic: string;
     contributors: string;
     detail: string;
+    modelName: string;
+    updateTime: number; // UNIX毫秒级时间戳
 }
