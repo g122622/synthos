@@ -165,7 +165,7 @@ class OrchestratorApplication {
             }
         );
 
-        await sleep(30 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
+        await sleep(10 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
 
         // 读取配置，设置定时执行 Pipeline
         const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
