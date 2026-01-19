@@ -84,7 +84,8 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 ### 核心技术栈
 
 - **🧑‍💻语言**：纯 TypeScript + Node
-- **🎯项目管理**：Pnpm + Monorepo  
+- **🎯项目管理**：Pnpm + Monorepo
+- **🐳容器化/部署（WIP）**：Docker Compose + Nginx（前端静态托管 & /api 反代）
 - **💬RPC库**：tRPC
 - **💉依赖注入框架**：TSyringe
 - **🕗任务调度与编排框架**：Agenda
