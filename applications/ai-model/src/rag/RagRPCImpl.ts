@@ -8,6 +8,7 @@ import {
     RAGRPCImplementation,
     SearchOutput,
     AskOutput,
+    AskStreamChunk,
     TriggerReportGenerateOutput,
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
@@ -180,6 +181,83 @@ export class RagRPCImpl implements RAGRPCImplementation {
             answer,
             references
         };
+    }
+
+    /**
+     * RAG 问答（流式）
+     */
+    public async askStream(
+        input: { question: string; topK: number; enableQueryRewriter: boolean },
+        onChunk: (chunk: AskStreamChunk) => void
+    ): Promise<void> {
+        this.LOGGER.info(
+            `收到流式问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}`
+        );
+
+        try {
+            let deduplicatedResults: SearchOutput;
+
+            if (input.enableQueryRewriter) {
+                // 1. 使用 Multi-Query 扩展原始问题
+                const expandedQueries = await this.queryRewriter.expandQuery(input.question);
+                this.LOGGER.debug(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
+
+                // 2. 对每个扩展查询进行搜索
+                const allResults: SearchOutput = [];
+                for (const query of expandedQueries) {
+                    const results = await this.search({ query, limit: input.topK });
+                    allResults.push(...results);
+                }
+
+                // 3. 文档去重
+                deduplicatedResults = this.deduplicateResults(allResults);
+            } else {
+                this.LOGGER.debug("Query Rewriter 已禁用，直接执行搜索");
+                deduplicatedResults = await this.search({ query: input.question, limit: input.topK });
+            }
+
+            if (deduplicatedResults.length === 0) {
+                this.LOGGER.warning("未找到相关话题");
+                onChunk({ type: "content", content: "抱歉，没有找到与您问题相关的话题内容。" });
+                onChunk({ type: "references", references: [] });
+                return;
+            }
+
+            // 4. 按相关性排序，取 topK 条
+            const topResults = deduplicatedResults
+                .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+                .slice(0, input.topK);
+
+            // 5. 构建 RAG prompt
+            const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults);
+            this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);
+
+            // 6. 构建引用列表并发送
+            const references = topResults.map(r => ({
+                topicId: r.topicId,
+                topic: r.topic,
+                relevance: Math.max(0, 1 - (r.distance ?? 1))
+            }));
+            onChunk({ type: "references", references });
+
+            // 7. 调用 LLM 生成回答（流式）
+            await this.TextGeneratorService.generateTextStreamWithModelCandidates(
+                [this.defaultModelName],
+                prompt,
+                chunk => {
+                    onChunk({ type: "content", content: chunk });
+                }
+            );
+
+            this.LOGGER.success(`流式问答完成`);
+        } catch (error) {
+            this.LOGGER.error(`流式问答发生错误: ${error}`);
+            onChunk({
+                type: "error",
+                error: error instanceof Error ? error.message : String(error)
+            });
+            // 不抛出错误，以免中断 observable（虽然 router 里 catch 了）
+        }
     }
 
     /**

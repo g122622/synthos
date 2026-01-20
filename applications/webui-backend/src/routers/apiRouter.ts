@@ -147,6 +147,12 @@ export const setupApiRoutes = (app: Express): void => {
     );
 
     // ==================== RAG 聊天历史 ====================
+    // 创建会话
+    app.post(
+        "/api/rag/session/create",
+        asyncHandler((req, res) => ragChatHistoryController.createSession(req, res))
+    );
+
     // 获取会话列表
     app.post(
         "/api/rag/session/list",

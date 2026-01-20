@@ -40,6 +40,13 @@ export const AskOutputSchema = z.object({
     references: z.array(ReferenceItemSchema)
 });
 
+export const AskStreamChunkSchema = z.object({
+    type: z.enum(["content", "references", "done", "error"]),
+    content: z.string().optional(),
+    references: z.array(ReferenceItemSchema).optional(),
+    error: z.string().optional()
+});
+
 // ========== 触发日报生成接口 ==========
 
 export const TriggerReportGenerateInputSchema = z.object({
@@ -167,6 +174,7 @@ export type SearchOutput = z.infer<typeof SearchOutputSchema>;
 export type AskInput = z.infer<typeof AskInputSchema>;
 export type ReferenceItem = z.infer<typeof ReferenceItemSchema>;
 export type AskOutput = z.infer<typeof AskOutputSchema>;
+export type AskStreamChunk = z.infer<typeof AskStreamChunkSchema>;
 
 export type TriggerReportGenerateInput = z.infer<typeof TriggerReportGenerateInputSchema>;
 export type TriggerReportGenerateOutput = z.infer<typeof TriggerReportGenerateOutputSchema>;

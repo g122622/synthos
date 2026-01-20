@@ -99,6 +99,21 @@ export const UpdateRagSessionTitleSchema = z.object({
 });
 export type UpdateRagSessionTitleParams = z.infer<typeof UpdateRagSessionTitleSchema>;
 
+export const CreateRagSessionSchema = z.object({
+    question: z.string().min(1),
+    answer: z.string(),
+    references: z.array(
+        z.object({
+            topicId: z.string(),
+            topic: z.string(),
+            relevance: z.number()
+        })
+    ),
+    topK: z.number().int().positive(),
+    enableQueryRewriter: z.boolean()
+});
+export type CreateRagSessionParams = z.infer<typeof CreateRagSessionSchema>;
+
 // ==================== RAG Ask ====================
 
 export const RagAskSchema = z.object({

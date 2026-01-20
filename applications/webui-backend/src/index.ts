@@ -44,6 +44,12 @@ import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitializatio
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { setupConfigPanelRoutes } from "./routers/configPanelRouter";
 
+// WebSocket & HTTP Server
+import { applyWSSHandler } from "@trpc/server/adapters/ws";
+import { WebSocketServer } from "ws";
+import { createServer } from "http";
+import { appRouter } from "./rpc/router";
+
 const LOGGER = Logger.withTag("WebUI-Backend");
 
 @bootstrap
@@ -165,8 +171,15 @@ export class WebUILocalServer {
         // 6. 获取端口配置
         this.port = (await ConfigManagerService.getCurrentConfig()).webUI_Backend.port;
 
-        // 7. 启动服务
-        this.app.listen(this.port, () => {
+        // 7. 启动服务 (HTTP + WebSocket)
+        const httpServer = createServer(this.app);
+
+        // 设置 WebSocket 服务，用于 tRPC subscription 转发
+        const wss = new WebSocketServer({ server: httpServer, path: "/trpc" });
+        applyWSSHandler({ wss, router: appRouter });
+        LOGGER.info(`Backend WebSocket Server (Forwarder) initialized`);
+
+        httpServer.listen(this.port, () => {
             LOGGER.success(`WebUI后端服务启动成功，端口: ${this.port}`);
             LOGGER.info(`健康检查地址: http://localhost:${this.port}/health`);
         });

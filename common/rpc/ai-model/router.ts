@@ -9,6 +9,8 @@ import {
     SearchOutput,
     AskInputSchema,
     AskOutput,
+    AskStreamChunkSchema,
+    AskStreamChunk,
     TriggerReportGenerateInputSchema,
     TriggerReportGenerateOutput,
     SendReportEmailInputSchema,
@@ -50,6 +52,16 @@ export interface RAGRPCImplementation {
      * @returns AI 回答及引用来源
      */
     ask(input: { question: string; topK: number; enableQueryRewriter: boolean }): Promise<AskOutput>;
+
+    /**
+     * RAG 问答（流式）
+     * @param input 问答输入
+     * @param onChunk 流式 chunk 回调
+     */
+    askStream(
+        input: { question: string; topK: number; enableQueryRewriter: boolean },
+        onChunk: (chunk: AskStreamChunk) => void
+    ): Promise<void>;
 
     /**
      * 触发生成日报
@@ -131,6 +143,47 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 enableQueryRewriter: input.enableQueryRewriter ?? true
             };
             return impl.ask(validatedInput);
+        }),
+
+        askStream: t.procedure.input(AskInputSchema).subscription(({ input }) => {
+            const validatedInput = {
+                question: input.question,
+                topK: input.topK ?? 5,
+                enableQueryRewriter: input.enableQueryRewriter ?? true
+            };
+
+            return observable<AskStreamChunk>(emit => {
+                let isStopped = false;
+
+                (async () => {
+                    try {
+                        await impl.askStream(validatedInput, chunk => {
+                            if (isStopped) {
+                                return;
+                            }
+                            // Runtime check
+                            try {
+                                AskStreamChunkSchema.parse(chunk);
+                            } catch {
+                                // ignore
+                            }
+                            emit.next(chunk);
+                        });
+
+                        if (!isStopped) {
+                            emit.complete();
+                        }
+                    } catch (err) {
+                        if (!isStopped) {
+                            emit.error(err);
+                        }
+                    }
+                })();
+
+                return () => {
+                    isStopped = true;
+                };
+            });
         }),
 
         triggerReportGenerate: t.procedure.input(TriggerReportGenerateInputSchema).mutation(async ({ input }) => {

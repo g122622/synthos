@@ -97,6 +97,21 @@ export class TextGeneratorService extends Disposable {
      * @returns 生成的文本流
      */
     private async doGenerateTextStream(modelName: string, input: string): Promise<string> {
+        let fullContent = "";
+        await this.doStreamText(modelName, input, chunk => {
+            fullContent += chunk;
+        });
+        return fullContent;
+    }
+
+    /**
+     * 执行底层的流式生成
+     */
+    private async doStreamText(
+        modelName: string,
+        input: string,
+        onChunk: (chunk: string) => void
+    ): Promise<string> {
         try {
             await this.useModel(modelName);
             if (!this.activeModel) {
@@ -110,6 +125,7 @@ export class TextGeneratorService extends Disposable {
                 // chunk 是 AIMessageChunk，其 content 是字符串片段
                 if (typeof chunk.content === "string") {
                     fullContent += chunk.content;
+                    onChunk(chunk.content);
                 }
             }
 
@@ -119,6 +135,57 @@ export class TextGeneratorService extends Disposable {
             console.error(error);
             throw error;
         }
+    }
+
+    /**
+     * 无状态的、带重试机制的、带候选机制的流式文本生成方法
+     * @param modelNames 模型候选列表
+     * @param input 输入文本
+     * @param onChunk 流式回调
+     */
+    public async generateTextStreamWithModelCandidates(
+        modelNames: string[],
+        input: string,
+        onChunk: (chunk: string) => void
+    ): Promise<{
+        selectedModelName: string;
+        content: string;
+    }> {
+        const config = await this.configManagerService.getCurrentConfig();
+        const modelCandidates = [...duplicateElements(config.ai.pinnedModels, 2), ...modelNames];
+
+        let resultStr = "";
+        let selectedModelName = "";
+
+        for (const modelName of modelCandidates) {
+            try {
+                // 重置当前模型的累积结果
+                let currentModelContent = "";
+
+                await this.doStreamText(modelName, input, chunk => {
+                    currentModelContent += chunk;
+                    onChunk(chunk);
+                });
+
+                resultStr = currentModelContent;
+                if (resultStr) {
+                    selectedModelName = modelName;
+                    break;
+                }
+            } catch (error) {
+                this.LOGGER.warn(`Model ${modelName} stream failed, trying next... Error: ${error}`);
+                // 继续尝试下一个模型
+            }
+        }
+
+        if (!resultStr) {
+            throw ErrorReasons.ALL_MODELS_FAILED;
+        }
+
+        return {
+            selectedModelName,
+            content: resultStr
+        };
     }
 
     /**

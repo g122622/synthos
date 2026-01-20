@@ -49,15 +49,14 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     const showFullSidebar = mobile || !collapsed;
 
     const loadAgentConversations = useCallback(
-        async (append: boolean = false) => {
+        async (append: boolean = false, beforeUpdatedAt?: number) => {
             if (activeTab !== "agent") {
                 return;
             }
 
             setAgentLoading(true);
             try {
-                const beforeUpdatedAt = append && agentConversations.length > 0 ? agentConversations[agentConversations.length - 1].updatedAt : undefined;
-                const response = await getAgentConversations(selectedSessionId || undefined, beforeUpdatedAt, PAGE_SIZE);
+                const response = await getAgentConversations(selectedSessionId || undefined, append ? beforeUpdatedAt : undefined, PAGE_SIZE);
 
                 if (response.success && response.data) {
                     const next = response.data;
@@ -75,7 +74,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 setAgentLoading(false);
             }
         },
-        [activeTab, agentConversations, selectedSessionId, selectedAgentConversationId, onSelectAgentConversation]
+        [activeTab, selectedSessionId, selectedAgentConversationId, onSelectAgentConversation]
     );
 
     // 时间分组
@@ -314,7 +313,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                             agentHasMore={agentHasMore}
                             agentLoading={agentLoading}
                             selectedAgentConversationId={selectedAgentConversationId}
-                            onLoadMore={() => loadAgentConversations(true)}
+                            onLoadMore={() => loadAgentConversations(true, agentConversations[agentConversations.length - 1]?.updatedAt)}
                             onSelectAgentConversation={onSelectAgentConversation}
                         />
                     ) : loading && sessions.length === 0 ? (

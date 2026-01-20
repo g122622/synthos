@@ -163,6 +163,9 @@ class Logger {
             this.yellow(message);
         }
     }
+    public warn(message: string) {
+        this.warning(message);
+    }
     public error(message: string) {
         if (["debug", "info", "success", "warning", "error"].includes(this.logLevel)) {
             this.red(message);

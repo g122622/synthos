@@ -17,9 +17,10 @@ import ReferenceList from "./components/ReferenceList";
 import { AgentChat } from "./components/AgentChat";
 
 import DefaultLayout from "@/layouts/default";
-import { search, ask, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
+import { search, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
 import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
-import { getSessionDetail } from "@/api/ragChatHistoryApi";
+import { getSessionDetail, createSession } from "@/api/ragChatHistoryApi";
+import { subscribeAskStream } from "@/api/agentTrpcClient";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TypingText from "@/components/TypingText";
 
@@ -76,6 +77,9 @@ export default function RagPage() {
     const answerCardRef = useRef<HTMLDivElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const mainContentRef = useRef<HTMLDivElement>(null);
+    const askUnsubscribeRef = useRef<{ unsubscribe: () => void } | null>(null);
+    const currentAnswerRef = useRef("");
+    const currentReferencesRef = useRef<ReferenceItem[]>([]);
 
     // 自动滚动到底部
     const scrollToBottom = () => {
@@ -105,43 +109,103 @@ export default function RagPage() {
         if (!question.trim()) return;
 
         setAskLoading(true);
-        setShowTypingEffect(true);
+        setShowTypingEffect(false); // 启用流式输出，禁用打字机效果
+
+        // 重置状态
+        setAskResponse({ answer: "", references: [] });
+        currentAnswerRef.current = "";
+        currentReferencesRef.current = [];
+
+        // 清理旧订阅
+        if (askUnsubscribeRef.current) {
+            askUnsubscribeRef.current.unsubscribe();
+            askUnsubscribeRef.current = null;
+        }
+
         try {
-            const response = await ask(question, topK, enableQueryRewriter);
+            const subscription = subscribeAskStream(
+                {
+                    question,
+                    topK,
+                    enableQueryRewriter
+                },
+                chunk => {
+                    // 处理流式数据
+                    if (chunk.type === "content" && chunk.content) {
+                        const content = chunk.content;
 
-            if (response.success) {
-                setAskResponse(response.data);
+                        currentAnswerRef.current += content;
+                        setAskResponse(prev => {
+                            if (!prev) return { answer: content, references: [] };
 
-                // 后端会自主保存到历史记录（/api/ask），前端仅刷新侧边栏并选中该会话
-                if (response.data.sessionId) {
-                    setSelectedSessionId(response.data.sessionId);
-                }
-                setRefreshTrigger(prev => prev + 1);
+                            return { ...prev, answer: prev.answer + content };
+                        });
+                    } else if (chunk.type === "references" && chunk.references) {
+                        const refs = chunk.references;
 
-                // 获取话题的收藏和已读状态
-                const topicIds = response.data.references.map(ref => ref.topicId);
+                        currentReferencesRef.current = refs;
+                        setAskResponse(prev => {
+                            if (!prev) return { answer: "", references: refs };
 
-                if (topicIds.length > 0) {
-                    try {
-                        const [favoriteRes, readRes] = await Promise.all([getTopicsFavoriteStatus(topicIds), getTopicsReadStatus(topicIds)]);
+                            return { ...prev, references: refs };
+                        });
 
-                        if (favoriteRes.success && favoriteRes.data) {
-                            setFavoriteTopics(prev => ({ ...prev, ...favoriteRes.data }));
+                        // 获取话题状态（异步，不阻塞流）
+                        const topicIds = refs.map(ref => ref.topicId);
+
+                        if (topicIds.length > 0) {
+                            Promise.all([getTopicsFavoriteStatus(topicIds), getTopicsReadStatus(topicIds)])
+                                .then(([favoriteRes, readRes]) => {
+                                    if (favoriteRes.success && favoriteRes.data) {
+                                        setFavoriteTopics(prev => ({ ...prev, ...favoriteRes.data }));
+                                    }
+                                    if (readRes.success && readRes.data) {
+                                        setReadTopics(prev => ({ ...prev, ...readRes.data }));
+                                    }
+                                })
+                                .catch(err => console.error("获取话题状态失败:", err));
                         }
+                    } else if (chunk.type === "error") {
+                        console.error("Ask stream error:", chunk.error);
+                        // Append error to answer
+                        setAskResponse(prev => (prev ? { ...prev, answer: prev.answer + `\n\n[Error: ${chunk.error}]` } : null));
+                    }
+                },
+                err => {
+                    console.error("Ask subscription error:", err);
+                    setAskLoading(false);
+                },
+                async () => {
+                    // 完成
+                    setAskLoading(false);
+                    askUnsubscribeRef.current = null;
 
-                        if (readRes.success && readRes.data) {
-                            setReadTopics(prev => ({ ...prev, ...readRes.data }));
+                    // 保存会话
+                    // 确保有内容才保存
+                    if (currentAnswerRef.current) {
+                        try {
+                            const createRes = await createSession({
+                                question,
+                                answer: currentAnswerRef.current,
+                                references: currentReferencesRef.current,
+                                topK,
+                                enableQueryRewriter
+                            });
+
+                            if (createRes.success && createRes.data?.sessionId) {
+                                setSelectedSessionId(createRes.data.sessionId);
+                                setRefreshTrigger(prev => prev + 1);
+                            }
+                        } catch (saveErr) {
+                            console.error("保存会话失败:", saveErr);
                         }
-                    } catch (error) {
-                        console.error("获取话题状态失败:", error);
                     }
                 }
-            } else {
-                console.error("问答失败:", response.message);
-            }
+            );
+
+            askUnsubscribeRef.current = subscription;
         } catch (error) {
             console.error("问答出错:", error);
-        } finally {
             setAskLoading(false);
         }
     }, [question, topK, enableQueryRewriter]);
@@ -282,6 +346,13 @@ export default function RagPage() {
             <motion.div animate={{ opacity: 1, y: 0 }} className="space-y-4" initial={{ opacity: 0, y: 20 }} transition={{ duration: 0.4 }}>
                 {/* AI 回答 */}
 
+                {askLoading && (
+                    <div className="flex items-center gap-2 text-default-500 text-sm">
+                        <Spinner color="primary" size="sm" />
+                        <span>流式输出中...</span>
+                    </div>
+                )}
+
                 {showTypingEffect ? (
                     <div className="prose prose-sm max-w-none dark:prose-invert">
                         <TypingText enabled={showTypingEffect} speed={20} text={askResponse.answer} onComplete={() => setShowTypingEffect(false)} />
@@ -359,6 +430,10 @@ export default function RagPage() {
     // 渲染主内容区
     const renderMainContent = () => {
         if (activeTab === "ask") {
+            if (askResponse) {
+                return renderAskResult();
+            }
+
             if (askLoading) {
                 return (
                     <motion.div animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-12 gap-4" initial={{ opacity: 0 }} transition={{ duration: 0.3 }}>
@@ -366,10 +441,6 @@ export default function RagPage() {
                         <p className="text-default-500">AI 正在思考中...</p>
                     </motion.div>
                 );
-            }
-
-            if (askResponse) {
-                return renderAskResult();
             }
 
             return renderEmptyState();

@@ -18,6 +18,13 @@ export default defineConfig({
                 target: "http://localhost:3002",
                 changeOrigin: true,
                 secure: false // 忽略 HTTPS 证书验证（开发用）
+            },
+            // tRPC WebSocket (subscriptions)
+            "/trpc": {
+                target: "http://localhost:3002",
+                ws: true,
+                changeOrigin: true,
+                secure: false
             }
         }
     }

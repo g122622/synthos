@@ -40,14 +40,39 @@ export interface AgentAskStreamInput {
     maxTokens?: number;
 }
 
+export interface AskStreamChunk {
+    type: "content" | "references" | "done" | "error";
+    content?: string;
+    references?: Array<{
+        topicId: string;
+        topic: string;
+        relevance: number;
+    }>;
+    error?: string;
+}
+
+export interface AskStreamInput {
+    question: string;
+    topK?: number;
+    enableQueryRewriter?: boolean;
+}
+
 function getAiModelWsUrl() {
-    if (window.location.hostname === "localhost") {
-        return "ws://localhost:7979";
+    const isHttps = window.location.protocol === "https:";
+    const protocol = isHttps ? "wss:" : "ws:";
+
+    // Allow overriding the WS endpoint (useful for advanced deployments).
+    const overrideUrl = (import.meta.env.VITE_TRPC_WS_URL || "").trim();
+
+    if (overrideUrl) {
+        return overrideUrl;
     }
 
-    // In Docker Scheme B the frontend is served by nginx (e.g. :8080), while ai-model is exposed on :7979.
-    // Use hostname to avoid inheriting nginx port.
-    return `ws://${window.location.hostname}:7979`;
+    // Default: same-origin WebSocket.
+    // - Dev (Vite): wss://<host>:5173/trpc, then Vite proxies to http://localhost:3002
+    // - Docker (nginx): wss://<host>/trpc, then nginx proxies to http://webui-backend:3002
+    // - Direct backend access: ws://localhost:3002/trpc also works when you open UI from that origin
+    return `${protocol}//${window.location.host}/trpc`;
 }
 
 let _client: any | null = null;
@@ -78,6 +103,19 @@ export function subscribeAgentAskStream(input: AgentAskStreamInput, onData: (chu
     return client.agentAskStream.subscribe(input, {
         onData,
         onError,
+        onComplete
+    });
+}
+
+export function subscribeAskStream(input: AskStreamInput, onData: (chunk: AskStreamChunk) => void, onError: (err: unknown) => void, onComplete: () => void) {
+    const client = getAgentTrpcClient();
+
+    return client.askStream.subscribe(input, {
+        onData,
+        onError: (err: any) => {
+            console.error("[RAG] WebSocket/TRPC Error:", err);
+            onError(err);
+        },
         onComplete
     });
 }
