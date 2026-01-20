@@ -127,7 +127,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, showCopyBu
             }
 
             const reference = topicReferenceOptions.references[t.refIndex - 1];
-            const chipClassName = "underline decoration-dotted underline-offset-2 cursor-pointer";
+            const chipClassName = "underline decoration-dotted underline-offset-2 cursor-pointer ml-1";
 
             if (!reference) {
                 return (
@@ -161,7 +161,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, showCopyBu
                     onToggleFavorite={topicReferenceOptions.onToggleFavorite}
                 >
                     <span className="inline-flex">
-                        <Chip className={chipClassName} color="secondary" size="sm" variant="flat">
+                        <Chip className={chipClassName} color="primary" size="sm" variant="flat">
                             {t.raw}
                         </Chip>
                     </span>

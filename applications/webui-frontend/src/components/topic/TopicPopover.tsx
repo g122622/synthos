@@ -51,7 +51,7 @@ const TopicPopover: React.FC<TopicPopoverProps> = ({ children, favoriteTopics = 
     return (
         <Popover isOpen={isOpen} placement="bottom" shouldBlockScroll={false} onOpenChange={handleOpenChange}>
             <PopoverTrigger>{children}</PopoverTrigger>
-            <PopoverContent className="w-[500px] max-h-[80vh] overflow-y-auto">
+            <PopoverContent className={isLoading ? "w-[400px] max-h-[80vh] overflow-y-auto" : "w-[400px] max-h-[80vh] overflow-y-auto bg-transparent border-0 shadow-none"}>
                 <div className="py-2">
                     {isLoading ? (
                         <div className="flex justify-center py-8">

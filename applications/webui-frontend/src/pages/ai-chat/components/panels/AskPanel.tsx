@@ -45,6 +45,8 @@ export default function AskPanel({
         }
 
         try {
+            answerCardRef.current.style.padding = "20px"; // 增加内边距，提升观感
+
             const dataUrl = await domtoimage.toPng(answerCardRef.current, {
                 quality: 1.0,
                 bgcolor: theme === "dark" ? "#1e1e1e" : "#ffffff"
@@ -57,6 +59,10 @@ export default function AskPanel({
             link.click();
         } catch (error) {
             console.error("保存图片失败:", error);
+        } finally {
+            if (answerCardRef.current) {
+                answerCardRef.current.style.padding = ""; // 恢复原始内边距
+            }
         }
     };
 

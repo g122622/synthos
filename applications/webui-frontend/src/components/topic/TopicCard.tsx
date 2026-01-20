@@ -82,6 +82,30 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
             });
     };
 
+    const handleCopyField = (fieldLabel: string, text: string) => {
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+                Notification.success({
+                    title: "复制成功",
+                    description: `${fieldLabel} 已复制`
+                });
+            })
+            .catch(err => {
+                console.error(`复制 ${fieldLabel} 失败:`, err);
+                Notification.error({
+                    title: "复制失败",
+                    description: `${fieldLabel} 无法复制`
+                });
+            });
+    };
+
+    const CopyIconButton: React.FC<{ label: string; text: string }> = ({ label, text }) => (
+        <HeroUIButton isIconOnly aria-label={`复制${label}`} className="shrink-0" size="sm" variant="light" onPress={() => handleCopyField(label, text)}>
+            <Copy size={16} />
+        </HeroUIButton>
+    );
+
     return (
         <Card className="border border-default-200">
             <CardHeader className="flex flex-col gap-2 relative">
@@ -183,26 +207,31 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                         >
                             {item => {
                                 if (item.key === "participants") {
+                                    const participantsText = contributorsArray.join(", ");
+
                                     return (
                                         <DropdownItem key="participants" textValue="参与者">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">参与者</p>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {contributorsArray.map((contributor, idx) => (
-                                                        <Chip
-                                                            key={idx}
-                                                            size="sm"
-                                                            style={{
-                                                                backgroundColor: generateColorFromName(contributor),
-                                                                color: generateColorFromName(contributor, false),
-                                                                fontWeight: "bold"
-                                                            }}
-                                                            variant="flat"
-                                                        >
-                                                            {contributor}
-                                                        </Chip>
-                                                    ))}
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">参与者</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {contributorsArray.map((contributor, idx) => (
+                                                            <Chip
+                                                                key={idx}
+                                                                size="sm"
+                                                                style={{
+                                                                    backgroundColor: generateColorFromName(contributor),
+                                                                    color: generateColorFromName(contributor, false),
+                                                                    fontWeight: "bold"
+                                                                }}
+                                                                variant="flat"
+                                                            >
+                                                                {contributor}
+                                                            </Chip>
+                                                        ))}
+                                                    </div>
                                                 </div>
+                                                <CopyIconButton label="参与者" text={participantsText} />
                                             </div>
                                         </DropdownItem>
                                     );
@@ -210,9 +239,12 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 if (item.key === "topicId") {
                                     return (
                                         <DropdownItem key="topicId" textValue="话题ID">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">话题ID</p>
-                                                <p className="text-sm">{topic.topicId}</p>
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">话题ID</p>
+                                                    <p className="text-sm">{topic.topicId}</p>
+                                                </div>
+                                                <CopyIconButton label="话题ID" text={topic.topicId} />
                                             </div>
                                         </DropdownItem>
                                     );
@@ -220,9 +252,12 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 if (item.key === "sessionId") {
                                     return (
                                         <DropdownItem key="sessionId" textValue="会话ID">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">会话ID</p>
-                                                <p className="text-sm">{topic.sessionId}</p>
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">会话ID</p>
+                                                    <p className="text-sm">{topic.sessionId}</p>
+                                                </div>
+                                                <CopyIconButton label="会话ID" text={topic.sessionId} />
                                             </div>
                                         </DropdownItem>
                                     );
@@ -230,19 +265,27 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 if (item.key === "modelName") {
                                     return (
                                         <DropdownItem key="modelName" textValue="模型">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">模型</p>
-                                                <p className="text-sm">{topic.modelName}</p>
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">模型</p>
+                                                    <p className="text-sm">{topic.modelName}</p>
+                                                </div>
+                                                <CopyIconButton label="模型" text={topic.modelName} />
                                             </div>
                                         </DropdownItem>
                                     );
                                 }
                                 if (item.key === "updateTime") {
+                                    const updateTimeText = new Date(topic.updateTime).toLocaleString("zh-CN");
+
                                     return (
                                         <DropdownItem key="updateTime" textValue="更新时间">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">更新时间</p>
-                                                <p className="text-sm">{new Date(topic.updateTime).toLocaleString("zh-CN")}</p>
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">更新时间</p>
+                                                    <p className="text-sm">{updateTimeText}</p>
+                                                </div>
+                                                <CopyIconButton label="更新时间" text={updateTimeText} />
                                             </div>
                                         </DropdownItem>
                                     );
@@ -250,9 +293,12 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 if (item.key === "groupId" && hasGroup) {
                                     return (
                                         <DropdownItem key="groupId" textValue="群ID">
-                                            <div className="flex flex-col gap-1">
-                                                <p className="font-medium">群ID</p>
-                                                <p className="text-sm">{topic.groupId}</p>
+                                            <div className="flex w-full items-start justify-between gap-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <p className="font-medium">群ID</p>
+                                                    <p className="text-sm">{topic.groupId}</p>
+                                                </div>
+                                                <CopyIconButton label="群ID" text={topic.groupId} />
                                             </div>
                                         </DropdownItem>
                                     );
