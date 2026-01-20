@@ -49,6 +49,11 @@ export interface AskStreamChunk {
         relevance: number;
     }>;
     error?: string;
+
+    // Provided by webui-backend when it saves the session.
+    sessionId?: string;
+    isFailed?: boolean;
+    failReason?: string;
 }
 
 export interface AskStreamInput {

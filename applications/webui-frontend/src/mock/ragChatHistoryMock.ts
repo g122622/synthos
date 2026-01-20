@@ -308,7 +308,9 @@ export const mockAppendSessionFromAsk = (input: { question: string; answer: stri
         topK: input.topK,
         createdAt: now,
         updatedAt: now,
-        enableQueryRewriter: input.enableQueryRewriter
+        enableQueryRewriter: input.enableQueryRewriter,
+        isFailed: false,
+        failReason: ""
     };
 
     // 添加到列表开头
@@ -330,7 +332,8 @@ export const mockGetSessionList = async (limit: number, offset: number): Promise
         id: session.id,
         title: session.title,
         createdAt: session.createdAt,
-        updatedAt: session.updatedAt
+        updatedAt: session.updatedAt,
+        isFailed: !!session.isFailed
     }));
 
     return {

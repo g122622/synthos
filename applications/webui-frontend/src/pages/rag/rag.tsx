@@ -19,7 +19,7 @@ import { AgentChat } from "./components/AgentChat";
 import DefaultLayout from "@/layouts/default";
 import { search, SearchResultItem, AskResponse, ReferenceItem } from "@/api/ragApi";
 import { getTopicsFavoriteStatus, getTopicsReadStatus } from "@/api/readAndFavApi";
-import { getSessionDetail, createSession } from "@/api/ragChatHistoryApi";
+import { getSessionDetail } from "@/api/ragChatHistoryApi";
 import { subscribeAskStream } from "@/api/agentTrpcClient";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import TypingText from "@/components/TypingText";
@@ -40,6 +40,10 @@ export default function RagPage() {
     const [topK, setTopK] = useState(100);
     const [enableQueryRewriter, setEnableQueryRewriter] = useState(true);
     const [showTypingEffect, setShowTypingEffect] = useState(false);
+
+    // 当前会话失败状态（用于详情区醒目展示）
+    const [currentSessionIsFailed, setCurrentSessionIsFailed] = useState(false);
+    const [currentSessionFailReason, setCurrentSessionFailReason] = useState("");
 
     // 当前 Tab（ask、search 或 agent）
     const [activeTab, setActiveTab] = useState("ask");
@@ -110,6 +114,8 @@ export default function RagPage() {
 
         setAskLoading(true);
         setShowTypingEffect(false); // 启用流式输出，禁用打字机效果
+        setCurrentSessionIsFailed(false);
+        setCurrentSessionFailReason("");
 
         // 重置状态
         setAskResponse({ answer: "", references: [] });
@@ -167,8 +173,22 @@ export default function RagPage() {
                         }
                     } else if (chunk.type === "error") {
                         console.error("Ask stream error:", chunk.error);
+                        setCurrentSessionIsFailed(true);
+                        setCurrentSessionFailReason(chunk.error || "");
                         // Append error to answer
                         setAskResponse(prev => (prev ? { ...prev, answer: prev.answer + `\n\n[Error: ${chunk.error}]` } : null));
+                    } else if (chunk.type === "done") {
+                        // 后端落库完成后会回传 sessionId（连接仍存在时）
+                        if (chunk.sessionId) {
+                            setSelectedSessionId(chunk.sessionId);
+                            setRefreshTrigger(prev => prev + 1);
+                        }
+
+                        if (chunk.isFailed) {
+                            console.error("Ask stream finished as failed:", chunk.failReason);
+                            setCurrentSessionIsFailed(true);
+                            setCurrentSessionFailReason(chunk.failReason || "");
+                        }
                     }
                 },
                 err => {
@@ -179,27 +199,6 @@ export default function RagPage() {
                     // 完成
                     setAskLoading(false);
                     askUnsubscribeRef.current = null;
-
-                    // 保存会话
-                    // 确保有内容才保存
-                    if (currentAnswerRef.current) {
-                        try {
-                            const createRes = await createSession({
-                                question,
-                                answer: currentAnswerRef.current,
-                                references: currentReferencesRef.current,
-                                topK,
-                                enableQueryRewriter
-                            });
-
-                            if (createRes.success && createRes.data?.sessionId) {
-                                setSelectedSessionId(createRes.data.sessionId);
-                                setRefreshTrigger(prev => prev + 1);
-                            }
-                        } catch (saveErr) {
-                            console.error("保存会话失败:", saveErr);
-                        }
-                    }
                 }
             );
 
@@ -248,6 +247,8 @@ export default function RagPage() {
                             answer: session.answer,
                             references: session.references
                         });
+                        setCurrentSessionIsFailed(!!session.isFailed);
+                        setCurrentSessionFailReason(session.failReason || "");
                         setTopK(session.topK);
                         setEnableQueryRewriter(session.enableQueryRewriter);
                         setShowTypingEffect(false);
@@ -293,6 +294,8 @@ export default function RagPage() {
         setSelectedAgentConversationId(undefined);
         setQuestion("");
         setAskResponse(null);
+        setCurrentSessionIsFailed(false);
+        setCurrentSessionFailReason("");
         setSearchQuery("");
         setSearchResults([]);
         setShowTypingEffect(false);
@@ -345,6 +348,13 @@ export default function RagPage() {
         return (
             <motion.div animate={{ opacity: 1, y: 0 }} className="space-y-4" initial={{ opacity: 0, y: 20 }} transition={{ duration: 0.4 }}>
                 {/* AI 回答 */}
+
+                {currentSessionIsFailed && (
+                    <div className="rounded-md border border-danger-200 bg-danger-50 px-3 py-2 text-sm text-danger">
+                        <div className="font-medium">该会话生成失败（已保存部分内容）</div>
+                        {currentSessionFailReason && <div className="mt-1 text-xs opacity-90">失败原因：{currentSessionFailReason}</div>}
+                    </div>
+                )}
 
                 {askLoading && (
                     <div className="flex items-center gap-2 text-default-500 text-sm">

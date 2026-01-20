@@ -26,6 +26,10 @@ export interface CreateSessionServiceInput {
     references: ReferenceItem[];
     topK: number;
     enableQueryRewriter: boolean;
+
+    // 可选：失败标记（用于断线续跑/后台落库场景）
+    isFailed?: boolean;
+    failReason?: string;
 }
 
 /**
@@ -39,6 +43,8 @@ export interface SessionDetail {
     references: ReferenceItem[];
     topK: number;
     enableQueryRewriter: boolean;
+    isFailed: boolean;
+    failReason: string;
     createdAt: number;
     updatedAt: number;
 }
@@ -65,7 +71,9 @@ export class RagChatHistoryService {
     async createSession(input: CreateSessionServiceInput): Promise<SessionDetail> {
         const id = getRandomHash(32);
         // 使用问题的前30个字符作为标题
-        const title = input.question.length > 30 ? input.question.substring(0, 30) + "..." : input.question;
+        const baseTitle = input.question.length > 30 ? input.question.substring(0, 30) + "..." : input.question;
+        const isFailed = !!input.isFailed;
+        const title = isFailed ? `【失败】${baseTitle}` : baseTitle;
 
         const session = await this.ragChatHistoryManager.createSession({
             id,
@@ -74,7 +82,9 @@ export class RagChatHistoryService {
             answer: input.answer,
             refs: JSON.stringify(input.references),
             topK: input.topK,
-            enableQueryRewriter: input.enableQueryRewriter
+            enableQueryRewriter: input.enableQueryRewriter,
+            isFailed,
+            failReason: input.failReason || ""
         });
 
         return this.transformSession(session);
@@ -134,13 +144,15 @@ export class RagChatHistoryService {
     private transformSession(session: RagChatSession): SessionDetail {
         let references: ReferenceItem[] = [];
         try {
-            references = JSON.parse(session.refs);
+            references = JSON.parse(session.refs) as ReferenceItem[];
         } catch (e) {
             this.LOGGER.warning(`会话 ${session.id} 的引用项解析失败，将使用空数组。错误：${e}`);
             references = [];
         }
 
         return {
+            isFailed: !!session.isFailed,
+            failReason: session.failReason || "",
             id: session.id,
             title: session.title,
             question: session.question,

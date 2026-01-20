@@ -27,6 +27,9 @@ export interface SessionListItem {
     title: string;
     createdAt: number;
     updatedAt: number;
+
+    // 失败标记（后端生成失败但已保存部分内容时为 true）
+    isFailed?: boolean;
 }
 
 /**
@@ -40,6 +43,8 @@ export interface SessionDetail {
     references: ReferenceItem[];
     topK: number;
     enableQueryRewriter: boolean;
+    isFailed?: boolean;
+    failReason?: string;
     createdAt: number;
     updatedAt: number;
 }
@@ -54,29 +59,6 @@ export interface SessionListResponse {
 }
 
 // ==================== API 接口 ====================
-
-/**
- * 创建会话（用于保存历史）
- */
-export const createSession = async (input: {
-    question: string;
-    answer: string;
-    references: ReferenceItem[];
-    topK: number;
-    enableQueryRewriter: boolean;
-}): Promise<ApiResponse<{ sessionId: string }>> => {
-    if (mockConfig.rag) {
-        return { success: true, message: "Mock saved", data: { sessionId: "mock_" + Date.now() } };
-    }
-
-    const response = await fetchWrapper(`${API_BASE_URL}/api/rag/session/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input)
-    });
-
-    return response.json();
-};
 
 /**
  * 获取会话列表

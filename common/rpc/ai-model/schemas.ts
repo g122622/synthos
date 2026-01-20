@@ -44,7 +44,14 @@ export const AskStreamChunkSchema = z.object({
     type: z.enum(["content", "references", "done", "error"]),
     content: z.string().optional(),
     references: z.array(ReferenceItemSchema).optional(),
-    error: z.string().optional()
+    error: z.string().optional(),
+
+    // 由 WebUI-Backend 在流式结束后落库并回传，前端可据此自动选中新会话
+    sessionId: z.string().optional(),
+
+    // 失败标记：用于“保存部分内容并标记失败”场景
+    isFailed: z.boolean().optional(),
+    failReason: z.string().optional()
 });
 
 // ========== 触发日报生成接口 ==========

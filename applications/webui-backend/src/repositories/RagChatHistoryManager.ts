@@ -21,6 +21,8 @@ export interface RagChatSession {
     refs: string; // JSON 字符串，存储 ReferenceItem[]
     topK: number;
     enableQueryRewriter: boolean;
+    isFailed: boolean;
+    failReason: string;
     createdAt: number;
     updatedAt: number;
 }
@@ -36,6 +38,8 @@ export interface CreateSessionInput {
     refs: string;
     topK: number;
     enableQueryRewriter: boolean;
+    isFailed: boolean;
+    failReason: string;
 }
 
 /**
@@ -44,6 +48,7 @@ export interface CreateSessionInput {
 export interface SessionListItem {
     id: string;
     title: string;
+    isFailed: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -94,6 +99,8 @@ export class RagChatHistoryManager extends Disposable {
                     refs TEXT NOT NULL,
                     topK INTEGER NOT NULL,
                     enableQueryRewriter INTEGER NOT NULL DEFAULT 1,
+                    isFailed INTEGER NOT NULL DEFAULT 0,
+                    failReason TEXT NOT NULL DEFAULT '',
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
                 );
@@ -108,6 +115,19 @@ export class RagChatHistoryManager extends Disposable {
                     `ALTER TABLE rag_sessions ADD COLUMN enableQueryRewriter INTEGER NOT NULL DEFAULT 1`
                 );
                 this.LOGGER.info("已为 rag_sessions 表补齐 enableQueryRewriter 字段");
+            }
+
+            // 兼容旧数据库：补齐 isFailed / failReason 字段
+            const hasIsFailed = columns.some(col => col.name === "isFailed");
+            if (!hasIsFailed) {
+                await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN isFailed INTEGER NOT NULL DEFAULT 0`);
+                this.LOGGER.info("已为 rag_sessions 表补齐 isFailed 字段");
+            }
+
+            const hasFailReason = columns.some(col => col.name === "failReason");
+            if (!hasFailReason) {
+                await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN failReason TEXT NOT NULL DEFAULT ''`);
+                this.LOGGER.info("已为 rag_sessions 表补齐 failReason 字段");
             }
 
             this._registerDisposable(this.db);
@@ -142,8 +162,8 @@ export class RagChatHistoryManager extends Disposable {
         };
 
         await this.db!.run(
-            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, enableQueryRewriter, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, enableQueryRewriter, isFailed, failReason, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 session.id,
                 session.title,
@@ -152,6 +172,8 @@ export class RagChatHistoryManager extends Disposable {
                 session.refs,
                 session.topK,
                 session.enableQueryRewriter ? 1 : 0,
+                session.isFailed ? 1 : 0,
+                session.failReason,
                 session.createdAt,
                 session.updatedAt
             ]
@@ -181,11 +203,17 @@ export class RagChatHistoryManager extends Disposable {
         this.ensureInitialized();
 
         const results = (await this.db!.all(
-            `SELECT id, title, createdAt, updatedAt FROM rag_sessions ORDER BY updatedAt DESC LIMIT ? OFFSET ?`,
+            `SELECT id, title, isFailed, createdAt, updatedAt FROM rag_sessions ORDER BY updatedAt DESC LIMIT ? OFFSET ?`,
             [limit, offset]
-        )) as SessionListItem[];
+        )) as Array<{ id: string; title: string; isFailed: number; createdAt: number; updatedAt: number }>;
 
-        return results;
+        return results.map(r => ({
+            id: r.id,
+            title: r.title,
+            isFailed: !!r.isFailed,
+            createdAt: r.createdAt,
+            updatedAt: r.updatedAt
+        }));
     }
 
     /**

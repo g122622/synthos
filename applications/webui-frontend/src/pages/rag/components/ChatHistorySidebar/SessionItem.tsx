@@ -64,7 +64,12 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     return (
         <div className="group relative mb-1">
             <div className={cn("relative flex cursor-pointer items-center rounded-md p-2 transition-colors", isActive ? "bg-primary-100" : "hover:bg-default-100")} onClick={onSelect}>
-                <div className={cn("mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full", isActive ? "bg-primary-50" : "bg-default-200")}>
+                <div
+                    className={cn(
+                        "mr-3 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full",
+                        session.isFailed ? "bg-danger-100 text-danger" : isActive ? "bg-primary-50" : "bg-default-200"
+                    )}
+                >
                     <MessageSquare className="w-4 h-4" />
                 </div>
                 <div className="flex-1 overflow-hidden">
@@ -104,10 +109,13 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                     ) : (
                         <>
                             <div className="flex items-center justify-between">
-                                <p className="truncate text-sm font-medium pr-8">{session.title}</p>
+                                <p className={cn("truncate text-sm font-medium pr-8", session.isFailed ? "text-danger" : undefined)}>{session.title}</p>
                                 {session.pinned && <Pin className="w-3 h-3 text-primary absolute right-2 top-2" />}
                             </div>
-                            <p className="truncate text-xs text-default-500 mt-0.5">{formatTime(session.updatedAt)}</p>
+                            <p className="truncate text-xs text-default-500 mt-0.5 flex items-center gap-2">
+                                <span>{formatTime(session.updatedAt)}</span>
+                                {session.isFailed && <span className="rounded bg-danger-50 px-1.5 py-0.5 text-[10px] leading-none text-danger">失败</span>}
+                            </p>
                         </>
                     )}
                 </div>

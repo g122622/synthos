@@ -348,42 +348,15 @@ Body：
 {
   answer: string;
   references: { topicId: string; topic: string; relevance: number }[];
+  sessionId?: string;
 }
 ```
 
 ---
 
-## 11. RAG 问答历史（WebUI 本地存储）
+## 11. RAG 问答历史（WebUI-Backend 持久化）
 
-### POST /api/rag/session/create
-
-Body：
-
-```ts
-{
-  question: string;
-  answer: string;
-  references: { topicId: string; topic: string; relevance: number }[];
-  topK: number;
-  enableQueryRewriter?: boolean; // 默认为 true
-}
-```
-
-响应 `data`（会话详情）：
-
-```ts
-{
-  id: string;
-  title: string;
-  question: string;
-  answer: string;
-  references: { topicId: string; topic: string; relevance: number }[];
-  topK: number;
-  enableQueryRewriter: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-```
+说明：会话创建由 WebUI-Backend 在 tRPC `askStream` 结束后自动落库；前端通过以下接口查询/管理历史。
 
 ### POST /api/rag/session/list
 
@@ -393,7 +366,7 @@ Body：`{ "limit": number; "offset": number }`
 
 ```ts
 {
-  sessions: { id: string; title: string; createdAt: number; updatedAt: number }[];
+  sessions: { id: string; title: string; createdAt: number; updatedAt: number; isFailed?: boolean }[];
   total: number;
   hasMore: boolean;
 }
@@ -407,6 +380,15 @@ Body：`{ "sessionId": string }`
 
 - 存在：`{ success: true, data: SessionDetail }`
 - 不存在：`{ success: false, message: "会话不存在" }`（HTTP 仍为 200）
+
+其中 `SessionDetail` 额外包含：
+
+```ts
+{
+  isFailed?: boolean;
+  failReason?: string;
+}
+```
 
 ### POST /api/rag/session/delete
 

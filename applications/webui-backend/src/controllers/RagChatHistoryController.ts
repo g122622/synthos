@@ -6,32 +6,11 @@ import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
-import {
-    GetRagSessionListSchema,
-    RagSessionIdSchema,
-    UpdateRagSessionTitleSchema,
-    CreateRagSessionSchema
-} from "../schemas/index";
+import { GetRagSessionListSchema, RagSessionIdSchema, UpdateRagSessionTitleSchema } from "../schemas/index";
 
 @injectable()
 export class RagChatHistoryController {
     constructor(@inject(TOKENS.RagChatHistoryService) private ragChatHistoryService: RagChatHistoryService) {}
-
-    /**
-     * POST /api/rag/session/create
-     * 创建会话（用于流式响应后保存历史）
-     */
-    async createSession(req: Request, res: Response): Promise<void> {
-        const params = CreateRagSessionSchema.parse(req.body);
-        const session = await this.ragChatHistoryService.createSession({
-            question: params.question,
-            answer: params.answer,
-            references: params.references,
-            topK: params.topK,
-            enableQueryRewriter: params.enableQueryRewriter
-        });
-        res.json({ success: true, data: { sessionId: session.id } });
-    }
 
     /**
      * POST /api/rag/session/list
