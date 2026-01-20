@@ -1,5 +1,5 @@
 /**
- * RAG 聊天历史侧边栏组件
+ * AI 聊天历史侧边栏组件
  * 显示历史会话列表，支持新建、选择、删除会话
  * 支持时间分组（置顶、今天、昨天等）、Tab切换和多种操作
  */
@@ -257,7 +257,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             {/* Logo 和折叠按钮 */}
             <div className="flex w-full items-center justify-between gap-2 px-4 py-3">
                 <motion.h1 animate={showFullSidebar ? { opacity: 1, x: 0 } : { opacity: 0, x: -20 }} className="text-lg font-semibold" transition={{ duration: 0.2 }}>
-                    {showFullSidebar && "RAG 问答"}
+                    {showFullSidebar && "AI Chat"}
                 </motion.h1>
                 {showFullSidebar && <div />}
                 <motion.div animate={{ rotate: showFullSidebar ? 0 : 180 }} transition={{ duration: 0.3 }}>

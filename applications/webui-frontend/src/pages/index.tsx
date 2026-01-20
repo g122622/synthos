@@ -52,7 +52,7 @@ export default function IndexPage() {
                             <p className="text-default-500">基于群聊记录的语义搜索和AI问答，快速查找相关话题</p>
                         </CardBody>
                         <CardFooter>
-                            <Button as={Link} color="secondary" href="/rag" variant="shadow">
+                            <Button as={Link} color="secondary" href="/ai-chat" variant="shadow">
                                 开始问答
                             </Button>
                         </CardFooter>

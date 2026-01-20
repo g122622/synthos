@@ -26,7 +26,7 @@ export const siteConfig = {
         },
         {
             label: "🔍智能问答",
-            href: "/rag"
+            href: "/ai-chat"
         },
         {
             label: "⚙️群组管理",
@@ -64,7 +64,7 @@ export const siteConfig = {
         },
         {
             label: "🔍智能问答",
-            href: "/rag"
+            href: "/ai-chat"
         },
         {
             label: "⚙️群组管理",
