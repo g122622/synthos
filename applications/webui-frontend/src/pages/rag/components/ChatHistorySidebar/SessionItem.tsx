@@ -16,14 +16,14 @@ interface SessionItemProps {
     isEditing: boolean;
     editingTitle: string;
     onSelect: () => void;
-    onStartEdit: (e: React.MouseEvent) => void;
-    onSaveEdit: (e: React.MouseEvent) => void;
+    onStartEdit: () => void;
+    onSaveEdit: () => void;
     onCancelEdit: () => void;
     onEditingTitleChange: (value: string) => void;
-    onTogglePin: (e: React.MouseEvent) => void;
-    onShare: (e: React.MouseEvent) => void;
-    onExport: (e: React.MouseEvent) => void;
-    onDelete: (e: React.MouseEvent) => void;
+    onTogglePin: () => void;
+    onShare: () => void;
+    onExport: () => void;
+    onDelete: () => void;
 }
 
 export const SessionItem: React.FC<SessionItemProps> = ({
@@ -42,6 +42,10 @@ export const SessionItem: React.FC<SessionItemProps> = ({
     onDelete
 }) => {
     const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
+    const _stopPropagation: React.MouseEventHandler = e => {
+        e.stopPropagation();
+    };
 
     // 格式化时间
     const formatTime = (timestamp: number) => {
@@ -74,7 +78,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                 </div>
                 <div className="flex-1 overflow-hidden">
                     {isEditing ? (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1" onClick={_stopPropagation}>
                             <Input
                                 autoFocus
                                 className="flex-1"
@@ -83,8 +87,10 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 onChange={e => onEditingTitleChange(e.target.value)}
                                 onKeyDown={e => {
                                     if (e.key === "Enter") {
-                                        onSaveEdit(e as unknown as React.MouseEvent);
+                                        e.stopPropagation();
+                                        onSaveEdit();
                                     } else if (e.key === "Escape") {
+                                        e.stopPropagation();
                                         onCancelEdit();
                                     }
                                 }}
@@ -95,9 +101,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 size="sm"
                                 variant="light"
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onSaveEdit(fakeEvent);
+                                    onSaveEdit();
                                 }}
                             >
                                 <Check className="w-3 h-3" />
@@ -130,20 +134,19 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                             className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
                             size="sm"
                             variant="light"
+                            onClick={_stopPropagation}
                             onPress={() => setIsPopoverOpen(!isPopoverOpen)}
                         >
                             <MoreVertical className="w-4 h-4" />
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-1">
+                    <PopoverContent className="p-1" onClick={_stopPropagation}>
                         <Listbox aria-label="会话操作">
                             <ListboxItem
                                 key="pin"
                                 startContent={session.pinned ? <PinOff className="w-4 h-4" /> : <Pin className="w-4 h-4" />}
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onTogglePin(fakeEvent);
+                                    onTogglePin();
                                     setIsPopoverOpen(false);
                                 }}
                             >
@@ -153,9 +156,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 key="edit"
                                 startContent={<Edit2 className="w-4 h-4" />}
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onStartEdit(fakeEvent);
+                                    onStartEdit();
                                     setIsPopoverOpen(false);
                                 }}
                             >
@@ -165,9 +166,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 key="share"
                                 startContent={<Share2 className="w-4 h-4" />}
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onShare(fakeEvent);
+                                    onShare();
                                     setIsPopoverOpen(false);
                                 }}
                             >
@@ -177,9 +176,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 key="export"
                                 startContent={<Download className="w-4 h-4" />}
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onExport(fakeEvent);
+                                    onExport();
                                     setIsPopoverOpen(false);
                                 }}
                             >
@@ -191,9 +188,7 @@ export const SessionItem: React.FC<SessionItemProps> = ({
                                 color="danger"
                                 startContent={<Trash2 className="w-4 h-4" />}
                                 onPress={() => {
-                                    const fakeEvent = {} as React.MouseEvent;
-
-                                    onDelete(fakeEvent);
+                                    onDelete();
                                     setIsPopoverOpen(false);
                                 }}
                             >

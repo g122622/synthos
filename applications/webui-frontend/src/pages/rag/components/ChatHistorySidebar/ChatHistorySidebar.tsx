@@ -156,8 +156,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     }, [activeTab, selectedSessionId, agentRefreshTrigger, loadAgentConversations]);
 
     // 删除会话
-    const handleDelete = async (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
+    const handleDelete = async (sessionId: string) => {
         try {
             const response = await deleteSession(sessionId);
 
@@ -174,15 +173,13 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     };
 
     // 开始编辑标题
-    const handleStartEdit = (e: React.MouseEvent, session: ExtendedSessionListItem) => {
-        e.stopPropagation();
+    const handleStartEdit = (session: ExtendedSessionListItem) => {
         setEditingId(session.id);
         setEditingTitle(session.title);
     };
 
     // 保存标题
-    const handleSaveTitle = async (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
+    const handleSaveTitle = async (sessionId: string) => {
         if (!editingTitle.trim()) {
             return;
         }
@@ -208,8 +205,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     };
 
     // 切换置顶状态
-    const handleTogglePin = async (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
+    const handleTogglePin = async (sessionId: string) => {
         try {
             const session = sessions.find(s => s.id === sessionId);
 
@@ -228,15 +224,13 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     };
 
     // 分享会话
-    const handleShare = async (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
+    const handleShare = async (sessionId: string) => {
         // TODO: 实现分享功能
         console.log("分享会话:", sessionId);
     };
 
     // 导出会话
-    const handleExport = async (e: React.MouseEvent, sessionId: string) => {
-        e.stopPropagation();
+    const handleExport = async (sessionId: string) => {
         // TODO: 实现导出功能
         console.log("导出会话:", sessionId);
     };

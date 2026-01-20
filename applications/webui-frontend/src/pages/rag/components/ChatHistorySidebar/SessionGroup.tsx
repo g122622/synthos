@@ -14,14 +14,14 @@ interface SessionGroupProps {
     editingId: string | null;
     editingTitle: string;
     onSelectSession: (id: string) => void;
-    onStartEdit: (e: React.MouseEvent, session: ExtendedSessionListItem) => void;
-    onSaveEdit: (e: React.MouseEvent, id: string) => void;
+    onStartEdit: (session: ExtendedSessionListItem) => void;
+    onSaveEdit: (id: string) => void;
     onCancelEdit: () => void;
     onEditingTitleChange: (value: string) => void;
-    onTogglePin: (e: React.MouseEvent, id: string) => void;
-    onShare: (e: React.MouseEvent, id: string) => void;
-    onExport: (e: React.MouseEvent, id: string) => void;
-    onDelete: (e: React.MouseEvent, id: string) => void;
+    onTogglePin: (id: string) => void;
+    onShare: (id: string) => void;
+    onExport: (id: string) => void;
+    onDelete: (id: string) => void;
 }
 
 export const SessionGroup: React.FC<SessionGroupProps> = ({
@@ -56,14 +56,14 @@ export const SessionGroup: React.FC<SessionGroupProps> = ({
                         isEditing={editingId === session.id}
                         session={session}
                         onCancelEdit={onCancelEdit}
-                        onDelete={e => onDelete(e, session.id)}
+                        onDelete={() => onDelete(session.id)}
                         onEditingTitleChange={onEditingTitleChange}
-                        onExport={e => onExport(e, session.id)}
-                        onSaveEdit={e => onSaveEdit(e, session.id)}
+                        onExport={() => onExport(session.id)}
+                        onSaveEdit={() => onSaveEdit(session.id)}
                         onSelect={() => onSelectSession(session.id)}
-                        onShare={e => onShare(e, session.id)}
-                        onStartEdit={e => onStartEdit(e, session)}
-                        onTogglePin={e => onTogglePin(e, session.id)}
+                        onShare={() => onShare(session.id)}
+                        onStartEdit={() => onStartEdit(session)}
+                        onTogglePin={() => onTogglePin(session.id)}
                     />
                 ))}
             </div>
