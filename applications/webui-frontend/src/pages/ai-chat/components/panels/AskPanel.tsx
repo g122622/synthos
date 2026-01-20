@@ -76,7 +76,17 @@ export default function AskPanel({
                 </div>
             )}
 
-            <MarkdownRenderer content={askResponse.answer} showCopyButton={false} />
+            <MarkdownRenderer
+                content={askResponse.answer}
+                showCopyButton={false}
+                topicReferenceOptions={{
+                    references: askResponse.references,
+                    favoriteTopics,
+                    readTopics,
+                    onMarkAsRead,
+                    onToggleFavorite
+                }}
+            />
 
             <div className="flex gap-2 mt-4">
                 <Button color="primary" size="sm" startContent={<Download className="w-4 h-4" />} variant="flat" onClick={handleSaveAsImage}>
