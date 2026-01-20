@@ -26,8 +26,8 @@ export class ReportController {
      */
     public async getReportById(req: Request, res: Response): Promise<void> {
         const params = GetReportByIdSchema.parse(req.params);
-        const report = await this.reportService.getReportById(params.reportId);
-        res.json({ success: true, data: report });
+        const detail = await this.reportService.getReportDetailById(params.reportId);
+        res.json({ success: true, data: detail });
     }
 
     /**

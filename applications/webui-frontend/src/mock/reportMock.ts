@@ -3,7 +3,7 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
-import { Report, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/api/reportApi";
+import { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/api/reportApi";
 
 // 当前时间戳
 const now = Date.now();
@@ -327,22 +327,31 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 /**
  * 模拟获取单个日报
  */
-export const mockGetReportById = async (reportId: string): Promise<ApiResponse<Report>> => {
+export const mockGetReportById = async (reportId: string): Promise<ApiResponse<ReportDetail>> => {
     await delay(300 + Math.random() * 200);
 
     const report = mockReports.find(r => r.reportId === reportId);
 
     if (report) {
+        const references = report.topicIds.map((topicId, idx) => ({
+            topicId,
+            topic: `话题 ${idx + 1}`,
+            relevance: (report.topicIds.length - idx) / report.topicIds.length
+        }));
+
         return {
             success: true,
-            data: report,
+            data: {
+                report,
+                references
+            } as ReportDetail,
             message: ""
         };
     }
 
     return {
         success: false,
-        data: null as unknown as Report,
+        data: null as unknown as ReportDetail,
         message: "日报不存在"
     };
 };

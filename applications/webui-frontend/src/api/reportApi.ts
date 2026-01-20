@@ -1,3 +1,5 @@
+import type { TopicReferenceItem } from "@/types/topicReference";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
@@ -42,6 +44,11 @@ export interface Report {
     updatedAt: number;
 }
 
+export interface ReportDetail {
+    report: Report;
+    references: TopicReferenceItem[];
+}
+
 // 分页结果
 export interface ReportsPaginatedResponse {
     reports: Report[];
@@ -53,7 +60,7 @@ export interface ReportsPaginatedResponse {
 /**
  * 获取单个日报详情
  */
-export const getReportById = async (reportId: string): Promise<ApiResponse<Report>> => {
+export const getReportById = async (reportId: string): Promise<ApiResponse<ReportDetail>> => {
     // 如果启用了 mock，使用 mock 数据
     if (mockConfig.report) {
         return mockGetReportById(reportId);

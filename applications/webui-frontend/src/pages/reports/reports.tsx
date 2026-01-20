@@ -1,3 +1,5 @@
+import type { TopicReferenceItem } from "@/types/topicReference";
+
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
@@ -11,6 +13,7 @@ import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 
 import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
+import { useTopicStatus } from "./hooks/useTopicStatus";
 
 import { Report, ReportType, getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus, sendReportEmail } from "@/api/reportApi";
 import { getCurrentConfig } from "@/api/configApi";
@@ -36,7 +39,10 @@ export default function ReportsPage() {
 
     // 详情弹窗
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    const [selectedReferences, setSelectedReferences] = useState<TopicReferenceItem[]>([]);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
+    const { favoriteTopics, readTopics, loadStatuses, onMarkAsRead: onMarkTopicAsRead, onToggleFavorite: onToggleTopicFavorite } = useTopicStatus();
 
     // 视图模式: list(列表) | calendar(日历)
     const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
@@ -102,7 +108,9 @@ export default function ReportsPage() {
                     const response = await getReportById(urlReportId);
 
                     if (response.success) {
-                        setSelectedReport(response.data);
+                        setSelectedReport(response.data.report);
+                        setSelectedReferences(response.data.references);
+                        await loadStatuses(response.data.report.topicIds);
                         setIsModalOpen(true);
                     } else {
                         Notification.error({
@@ -298,16 +306,39 @@ export default function ReportsPage() {
         initDateReadStatus();
     }, [dateReports]);
 
-    // 打开详情弹窗
-    const openReportDetail = (report: Report) => {
+    // 打开详情弹窗（拉取 detail + references 用于高亮与 cardlist）
+    const openReportDetail = async (report: Report) => {
         setSelectedReport(report);
+        setSelectedReferences([]);
         setIsModalOpen(true);
+
+        try {
+            const response = await getReportById(report.reportId);
+
+            if (response.success) {
+                setSelectedReport(response.data.report);
+                setSelectedReferences(response.data.references);
+                await loadStatuses(response.data.report.topicIds);
+            } else {
+                Notification.error({
+                    title: "加载失败",
+                    description: `无法加载报告 "${report.reportId}"`
+                });
+            }
+        } catch (error) {
+            console.error("获取报告详情失败:", error);
+            Notification.error({
+                title: "加载失败",
+                description: `无法加载报告 "${report.reportId}"`
+            });
+        }
     };
 
     // 关闭详情弹窗
     const closeReportDetail = () => {
         setIsModalOpen(false);
         setSelectedReport(null);
+        setSelectedReferences([]);
     };
 
     // 计算总页数
@@ -521,7 +552,7 @@ export default function ReportsPage() {
                                                     readReports={readReports}
                                                     report={report}
                                                     sendingEmailReportId={sendingEmailReportId}
-                                                    onClick={() => openReportDetail(report)}
+                                                    onClick={() => void openReportDetail(report)}
                                                     onMarkAsRead={handleMarkAsRead}
                                                     onSendEmail={handleSendEmail}
                                                 />
@@ -574,7 +605,7 @@ export default function ReportsPage() {
                                                     readReports={readReports}
                                                     report={report}
                                                     sendingEmailReportId={sendingEmailReportId}
-                                                    onClick={() => openReportDetail(report)}
+                                                    onClick={() => void openReportDetail(report)}
                                                     onMarkAsRead={handleMarkAsRead}
                                                     onSendEmail={handleSendEmail}
                                                 />
@@ -595,13 +626,18 @@ export default function ReportsPage() {
             {/* 日报详情弹窗 */}
             <ReportDetailModal
                 emailEnabled={emailEnabled}
+                favoriteTopics={favoriteTopics}
                 isOpen={isModalOpen}
                 isSendingEmail={sendingEmailReportId === selectedReport?.reportId}
                 readReports={readReports}
+                readTopics={readTopics}
                 report={selectedReport}
+                topicReferences={selectedReferences}
                 onClose={closeReportDetail}
-                onMarkAsRead={handleMarkAsRead}
+                onMarkReportAsRead={handleMarkAsRead}
+                onMarkTopicAsRead={onMarkTopicAsRead}
                 onSendEmail={handleSendEmail}
+                onToggleTopicFavorite={onToggleTopicFavorite}
             />
         </DefaultLayout>
     );

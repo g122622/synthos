@@ -3,16 +3,19 @@
  */
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
+import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { Report, ReportType } from "@root/common/contracts/report/index";
 import { NotFoundError } from "../errors/AppError";
 import { RAGClient } from "../rpc/aiModelClient";
 import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager";
+import type { ReferenceItem } from "@root/common/rpc/ai-model";
 
 @injectable()
 export class ReportService {
     constructor(
         @inject(TOKENS.ReportDbAccessService) private reportDbAccessService: ReportDbAccessService,
+        @inject(TOKENS.AgcDbAccessService) private agcDbAccessService: AgcDbAccessService,
         @inject(TOKENS.RAGClient) private ragClient: RAGClient,
         @inject(TOKENS.ReportReadStatusManager) private readStatusManager: ReportReadStatusManager
     ) {}
@@ -26,6 +29,42 @@ export class ReportService {
             throw new NotFoundError("未找到对应的日报");
         }
         return report;
+    }
+
+    /**
+     * 获取日报详情（包含 references）
+     * references 的顺序与 report.topicIds 保持一致，从而与 AI 输出的 [话题N] 标注序号对齐。
+     */
+    public async getReportDetailById(reportId: string): Promise<{ report: Report; references: ReferenceItem[] }> {
+        const report = await this.getReportById(reportId);
+
+        const topicIds = report.topicIds;
+        if (topicIds.length === 0) {
+            return { report, references: [] };
+        }
+
+        const references: ReferenceItem[] = [];
+
+        for (let i = 0; i < topicIds.length; i += 1) {
+            const topicId = topicIds[i];
+            const digest = await this.agcDbAccessService.getAIDigestResultByTopicId(topicId);
+
+            if (!digest) {
+                throw new NotFoundError(`未找到对应的话题摘要：${topicId}`);
+            }
+
+            // report 的 topicIds 已按“价值/兴趣度”排序，relevance 用序位做一个 0~1 的衰减映射。
+            // 仅用于 UI 展示，并不参与检索。
+            const relevance = (topicIds.length - i) / topicIds.length;
+
+            references.push({
+                topicId,
+                topic: digest.topic,
+                relevance
+            });
+        }
+
+        return { report, references };
     }
 
     /**

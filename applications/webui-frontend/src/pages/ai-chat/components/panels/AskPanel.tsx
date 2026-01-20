@@ -10,8 +10,7 @@ import { Download } from "lucide-react";
 import domtoimage from "dom-to-image";
 import { motion } from "framer-motion";
 
-import ReferenceList from "../ReferenceList";
-
+import ReferenceList from "@/components/topic-reference/ReferenceList";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface AskPanelProps {

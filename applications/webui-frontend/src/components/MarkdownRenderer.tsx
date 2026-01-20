@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
-import type { ReferenceItem } from "@/api/ragApi";
+import type { TopicReferenceItem } from "@/types/topicReference";
 
 import React from "react";
 import ReactMarkdown from "react-markdown";
@@ -22,7 +22,7 @@ interface MarkdownRendererProps {
      * 约定：数字 N 为 1-based，映射到 references[N-1]。
      */
     topicReferenceOptions?: {
-        references: ReferenceItem[];
+        references: TopicReferenceItem[];
         favoriteTopics: Record<string, boolean>;
         readTopics: Record<string, boolean>;
         onToggleFavorite: (topicId: string) => void;

@@ -1,8 +1,11 @@
+import type { TopicReferenceItem } from "@/types/topicReference";
+
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Chip, Divider, Card, CardBody, Link } from "@heroui/react";
-import { FileText, Clock, Users, TrendingUp, Calendar, Bot, ExternalLink, Check, Mail, X } from "lucide-react";
+import { FileText, Clock, Users, TrendingUp, Calendar, Bot, Check, Mail, X, ExternalLink } from "lucide-react";
 
 import { Report, ReportType } from "@/api/reportApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
+import ReferenceList from "@/components/topic-reference/ReferenceList";
 
 interface ReportDetailModalProps {
     /** 日报数据 */
@@ -13,17 +16,38 @@ interface ReportDetailModalProps {
     onClose: () => void;
     /** 已读状态映射表 */
     readReports?: Record<string, boolean>;
-    /** 标记为已读的回调 */
-    onMarkAsRead?: (reportId: string) => Promise<void>;
+    /** 标记日报为已读的回调 */
+    onMarkReportAsRead?: (reportId: string) => Promise<void>;
     /** 发送邮件的回调 */
     onSendEmail?: (reportId: string) => Promise<void>;
     /** 邮件功能是否启用 */
     emailEnabled?: boolean;
     /** 是否正在发送邮件 */
     isSendingEmail?: boolean;
+
+    /** 话题引用列表（用于 cardlist + [话题N] 高亮） */
+    topicReferences?: TopicReferenceItem[];
+    favoriteTopics?: Record<string, boolean>;
+    readTopics?: Record<string, boolean>;
+    onMarkTopicAsRead?: (topicId: string) => void;
+    onToggleTopicFavorite?: (topicId: string) => void;
 }
 
-export default function ReportDetailModal({ report, isOpen, onClose, readReports = {}, onMarkAsRead, onSendEmail, emailEnabled = false, isSendingEmail = false }: ReportDetailModalProps) {
+export default function ReportDetailModal({
+    report,
+    isOpen,
+    onClose,
+    readReports = {},
+    onMarkReportAsRead,
+    onSendEmail,
+    emailEnabled = false,
+    isSendingEmail = false,
+    topicReferences = [],
+    favoriteTopics = {},
+    readTopics = {},
+    onMarkTopicAsRead,
+    onToggleTopicFavorite
+}: ReportDetailModalProps) {
     if (!report) return null;
 
     // 格式化时间
@@ -127,7 +151,21 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
                         ) : report.summaryStatus === "success" && report.summary ? (
                             <Card className="p-2">
                                 <CardBody>
-                                    <MarkdownRenderer content={report.summary} showCopyButton={false} />
+                                    <MarkdownRenderer
+                                        content={report.summary}
+                                        showCopyButton={false}
+                                        topicReferenceOptions={
+                                            onMarkTopicAsRead && onToggleTopicFavorite
+                                                ? {
+                                                      references: topicReferences,
+                                                      favoriteTopics,
+                                                      readTopics,
+                                                      onMarkAsRead: onMarkTopicAsRead,
+                                                      onToggleFavorite: onToggleTopicFavorite
+                                                  }
+                                                : undefined
+                                        }
+                                    />
                                 </CardBody>
                             </Card>
                         ) : report.summaryStatus === "pending" ? (
@@ -144,8 +182,20 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
 
                     <Divider className="my-4" />
 
-                    {/* 关联话题 */}
-                    {report.topicIds.length > 0 && (
+                    {/* 关联话题（cardlist） */}
+                    {topicReferences.length > 0 && onMarkTopicAsRead && onToggleTopicFavorite ? (
+                        <div>
+                            <ReferenceList
+                                defaultCollapsed={false}
+                                favoriteTopics={favoriteTopics}
+                                readTopics={readTopics}
+                                references={topicReferences}
+                                title="关联话题"
+                                onMarkAsRead={onMarkTopicAsRead}
+                                onToggleFavorite={onToggleTopicFavorite}
+                            />
+                        </div>
+                    ) : report.topicIds.length > 0 ? (
                         <div>
                             <h3 className="text-md font-semibold mb-3 flex items-center gap-2">
                                 <FileText size={18} />
@@ -154,13 +204,13 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
                                     {report.topicIds.length} 个
                                 </Chip>
                             </h3>
-                            <p className="text-sm text-default-500 mb-3">点击下方链接查看话题详情</p>
+                            <p className="text-sm text-default-500 mb-3">暂未加载引用卡片列表，可前往话题页查看</p>
                             <Link className="text-primary" href="/latest-topics">
                                 <ExternalLink className="inline mr-1" size={14} />
                                 前往最新话题页面查看
                             </Link>
                         </div>
-                    )}
+                    ) : null}
 
                     {/* 元信息 */}
                     <div className="mt-4 pt-4 border-t border-default-200">
@@ -191,13 +241,13 @@ export default function ReportDetailModal({ report, isOpen, onClose, readReports
                             发送邮件
                         </Button>
                     )}
-                    {onMarkAsRead && !readReports[report.reportId] && (
+                    {onMarkReportAsRead && !readReports[report.reportId] && (
                         <Button
                             color="primary"
                             startContent={<Check size={16} />}
                             variant="flat"
                             onPress={async () => {
-                                await onMarkAsRead(report.reportId);
+                                await onMarkReportAsRead(report.reportId);
                                 onClose();
                             }}
                         >
