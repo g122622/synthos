@@ -51,6 +51,8 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
 
     // 判断是否包含扩展字段
     const hasTimeAndGroup = isTopicItemData(topic);
+    const hasTime = "timeStart" in topic && "timeEnd" in topic;
+    const hasGroup = "groupId" in topic;
 
     // 复制话题内容到剪贴板
     const handleCopy = () => {
@@ -114,7 +116,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                     </Tooltip>
                 </div>
                 {/* 时间范围（仅当有时间信息时显示） */}
-                {hasTimeAndGroup && (
+                {hasTime && (
                     <div className="text-default-500 text-sm">
                         <Chip className="mr-1" size="sm" variant="flat">
                             🕗
@@ -146,17 +148,20 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
             <CardBody className="relative pb-9">
                 <EnhancedDetail contributors={contributorsArray} detail={topic.detail} />
                 {/* 群ID和群头像（仅当有群信息时显示） */}
-                {hasTimeAndGroup && (
-                    <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                        <QQAvatar qqId={topic.groupId} type="group" />
-                        <Chip size="sm" variant="flat">
-                            {topic.groupId}
-                        </Chip>
-                        <Chip className="" size="sm" variant="flat">
-                            {topic.modelName}
-                        </Chip>
-                    </div>
-                )}
+                <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                    {hasGroup && (
+                        <>
+                            <QQAvatar qqId={topic.groupId} type="group" />
+                            <Chip size="sm" variant="flat">
+                                {topic.groupId}
+                            </Chip>
+                        </>
+                    )}
+                    <Chip className="" size="sm" variant="flat">
+                        {topic.modelName}
+                    </Chip>
+                </div>
+
                 {/* 右下角的更多选项、收藏按钮和已读按钮 */}
                 <div className="absolute bottom-3 right-3 flex gap-1">
                     <Dropdown>
@@ -173,7 +178,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                 { key: "sessionId", label: "会话ID" },
                                 { key: "modelName", label: "模型" },
                                 { key: "updateTime", label: "更新时间" },
-                                ...(hasTimeAndGroup ? [{ key: "groupId", label: "群ID" }] : [])
+                                ...(hasGroup ? [{ key: "groupId", label: "群ID" }] : [])
                             ]}
                         >
                             {item => {
@@ -242,7 +247,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                         </DropdownItem>
                                     );
                                 }
-                                if (item.key === "groupId" && hasTimeAndGroup) {
+                                if (item.key === "groupId" && hasGroup) {
                                     return (
                                         <DropdownItem key="groupId" textValue="群ID">
                                             <div className="flex flex-col gap-1">
