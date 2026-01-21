@@ -5,7 +5,7 @@
  */
 import type { ChatHistorySidebarProps, ExtendedSessionListItem } from "./types";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, Drawer, DrawerContent, Divider, ScrollShadow, Spinner, Tabs, Tab, cn } from "@heroui/react";
 import { ChevronLeft, MessageSquare, Plus } from "lucide-react";
 import { motion } from "framer-motion";
@@ -139,6 +139,52 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
         [sessions.length]
     );
 
+    const autoLoadLockRef = useRef(false);
+    const autoLoadAgentLockRef = useRef(false);
+
+    const tryAutoLoadMoreSessions = useCallback(() => {
+        if (activeTab === "agent") {
+            return;
+        }
+        if (!hasMore || loading) {
+            return;
+        }
+        if (autoLoadLockRef.current) {
+            return;
+        }
+
+        autoLoadLockRef.current = true;
+        void loadSessions(true).finally(() => {
+            autoLoadLockRef.current = false;
+        });
+    }, [activeTab, hasMore, loading, loadSessions]);
+
+    const handleSessionListScroll = useCallback(
+        (event: React.UIEvent<HTMLElement>) => {
+            const el = event.currentTarget;
+            const thresholdPx = 80;
+            const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+
+            if (distanceToBottom <= thresholdPx) {
+                if (activeTab === "agent") {
+                    if (agentLoading || !agentHasMore || autoLoadAgentLockRef.current) {
+                        return;
+                    }
+
+                    autoLoadAgentLockRef.current = true;
+                    const beforeUpdatedAt = agentConversations[agentConversations.length - 1]?.updatedAt;
+
+                    void loadAgentConversations(true, beforeUpdatedAt).finally(() => {
+                        autoLoadAgentLockRef.current = false;
+                    });
+                } else {
+                    tryAutoLoadMoreSessions();
+                }
+            }
+        },
+        [activeTab, agentConversations, agentHasMore, agentLoading, loadAgentConversations, tryAutoLoadMoreSessions]
+    );
+
     // 初始加载和刷新
     useEffect(() => {
         loadSessions(false);
@@ -251,8 +297,8 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
         }
     };
 
-    // 侧边栏内容组件
-    const SidebarContent = () => (
+    // 侧边栏内容（注意：不要用组件形式定义在函数内部，否则每次 render 都会生成新组件类型，导致滚动容器卸载重挂载）
+    const sidebarContent = (
         <div className={cn("flex h-full flex-col overflow-hidden border-r border-divider transition-[width] duration-300 ease-in-out", showFullSidebar ? "w-72" : "w-16 items-center")}>
             {/* Logo 和折叠按钮 */}
             <div className="flex w-full items-center justify-between gap-2 px-4 py-3">
@@ -299,7 +345,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
 
             {/* 会话列表 */}
             {showFullSidebar && (
-                <ScrollShadow className="flex-1 overflow-y-auto px-2">
+                <ScrollShadow className="flex-1 overflow-y-auto px-2" onScroll={handleSessionListScroll}>
                     {activeTab === "agent" ? (
                         <AgentConversationList
                             activeTab={activeTab}
@@ -439,15 +485,13 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
     if (mobile) {
         return (
             <Drawer isOpen={mobileDrawerOpen} placement="left" onOpenChange={onMobileDrawerChange}>
-                <DrawerContent>
-                    <SidebarContent />
-                </DrawerContent>
+                <DrawerContent>{sidebarContent}</DrawerContent>
             </Drawer>
         );
     }
 
     // 桌面端：直接渲染侧边栏
-    return <SidebarContent />;
+    return sidebarContent;
 };
 
 export default ChatHistorySidebar;
