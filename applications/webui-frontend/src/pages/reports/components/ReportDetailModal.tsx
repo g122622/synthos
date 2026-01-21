@@ -6,6 +6,7 @@ import { FileText, Clock, Users, TrendingUp, Calendar, Bot, Check, Mail, X, Exte
 import { Report, ReportType } from "@/api/reportApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ReferenceList from "@/components/topic-reference/ReferenceList";
+import TopicReferenceHeatmap from "@/components/topic-reference/TopicReferenceHeatmap";
 
 interface ReportDetailModalProps {
     /** 日报数据 */
@@ -166,6 +167,8 @@ export default function ReportDetailModal({
                                                 : undefined
                                         }
                                     />
+
+                                    <TopicReferenceHeatmap className="mt-4" content={report.summary} references={topicReferences} />
                                 </CardBody>
                             </Card>
                         ) : report.summaryStatus === "pending" ? (

@@ -11,6 +11,7 @@ import { Copy } from "lucide-react";
 
 import { Notification } from "@/util/Notification";
 import TopicPopover from "@/components/topic/TopicPopover";
+import { splitTopicReferenceTokens } from "@/util/topicReferenceParser";
 
 interface MarkdownRendererProps {
     content: string;
@@ -29,67 +30,6 @@ interface MarkdownRendererProps {
         onMarkAsRead: (topicId: string) => void;
     };
 }
-
-type TopicReferenceToken = { kind: "text"; text: string } | { kind: "topicRef"; refIndex: number; raw: string };
-
-const _isDigit = (code: number) => code >= 48 && code <= 57;
-
-const _splitTopicReferenceTokens = (text: string): TopicReferenceToken[] => {
-    const tokens: TopicReferenceToken[] = [];
-    const prefix = "[话题";
-
-    let cursor = 0;
-
-    while (cursor < text.length) {
-        const start = text.indexOf(prefix, cursor);
-
-        if (start === -1) {
-            const rest = text.slice(cursor);
-
-            if (rest.length > 0) {
-                tokens.push({ kind: "text", text: rest });
-            }
-            break;
-        }
-
-        if (start > cursor) {
-            tokens.push({ kind: "text", text: text.slice(cursor, start) });
-        }
-
-        let i = start + prefix.length;
-        const digitsStart = i;
-
-        while (i < text.length && _isDigit(text.charCodeAt(i))) {
-            i += 1;
-        }
-
-        if (digitsStart === i) {
-            // 不是 [话题N]，降级为普通文本（避免死循环，cursor 前进 1）
-            tokens.push({ kind: "text", text: text.slice(start, start + 1) });
-            cursor = start + 1;
-            continue;
-        }
-
-        if (i >= text.length || text.charAt(i) !== "]") {
-            tokens.push({ kind: "text", text: text.slice(start, start + 1) });
-            cursor = start + 1;
-            continue;
-        }
-
-        const refIndex = Number.parseInt(text.slice(digitsStart, i), 10);
-        const raw = text.slice(start, i + 1);
-
-        if (Number.isFinite(refIndex) && refIndex > 0) {
-            tokens.push({ kind: "topicRef", refIndex, raw });
-        } else {
-            tokens.push({ kind: "text", text: raw });
-        }
-
-        cursor = i + 1;
-    }
-
-    return tokens;
-};
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, showCopyButton = true, className = "", topicReferenceOptions }) => {
     const handleCopyContent = () => {
@@ -115,7 +55,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, showCopyBu
             return text;
         }
 
-        const tokens = _splitTopicReferenceTokens(text);
+        const tokens = splitTopicReferenceTokens(text);
 
         if (tokens.length <= 1) {
             return text;

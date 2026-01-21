@@ -11,6 +11,7 @@ import domtoimage from "dom-to-image";
 import { motion } from "framer-motion";
 
 import ReferenceList from "@/components/topic-reference/ReferenceList";
+import TopicReferenceHeatmap from "@/components/topic-reference/TopicReferenceHeatmap";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface AskPanelProps {
@@ -92,6 +93,8 @@ export default function AskPanel({
                     onToggleFavorite
                 }}
             />
+
+            <TopicReferenceHeatmap content={askResponse.answer} references={askResponse.references} />
 
             <div className="flex gap-2 mt-4">
                 <Button color="primary" size="sm" startContent={<Download className="w-4 h-4" />} variant="flat" onClick={handleSaveAsImage}>
