@@ -34,6 +34,13 @@ import { RagSearchTool } from "../agent/tools/RagSearchTool";
 import { SQLQueryTool } from "../agent/tools/SQLQueryTool";
 import { WebSearchTool } from "../agent/tools/WebSearchTool";
 import { AgentInitializer } from "../agent/AgentInitializer";
+import { VariableSpaceService } from "../agent/services/VariableSpaceService";
+import { VarSetTool } from "../agent/tools/VarSetTool";
+import { VarGetTool } from "../agent/tools/VarGetTool";
+import { VarListTool } from "../agent/tools/VarListTool";
+import { VarDeleteTool } from "../agent/tools/VarDeleteTool";
+import { DeepResearchOrchestrator } from "../agent/services/DeepResearchOrchestrator";
+import { DeepResearchTool } from "../agent/tools/DeepResearchTool";
 
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
@@ -101,10 +108,21 @@ export async function registerAllDependencies(): Promise<void> {
     container.registerSingleton(AI_MODEL_TOKENS.RagSearchTool, RagSearchTool);
     container.registerSingleton(AI_MODEL_TOKENS.SQLQueryTool, SQLQueryTool);
     container.registerSingleton(AI_MODEL_TOKENS.WebSearchTool, WebSearchTool);
+    container.registerSingleton(AI_MODEL_TOKENS.VariableSpaceService, VariableSpaceService);
+    container.registerSingleton(AI_MODEL_TOKENS.VarSetTool, VarSetTool);
+    container.registerSingleton(AI_MODEL_TOKENS.VarGetTool, VarGetTool);
+    container.registerSingleton(AI_MODEL_TOKENS.VarListTool, VarListTool);
+    container.registerSingleton(AI_MODEL_TOKENS.VarDeleteTool, VarDeleteTool);
+    container.registerSingleton(AI_MODEL_TOKENS.DeepResearchOrchestrator, DeepResearchOrchestrator);
+    container.registerSingleton(AI_MODEL_TOKENS.DeepResearchTool, DeepResearchTool);
     container.registerSingleton(AI_MODEL_TOKENS.AgentExecutor, AgentExecutor);
     container.registerSingleton(AI_MODEL_TOKENS.AgentInitializer, AgentInitializer);
 
-    // 9. 初始化 Agent 系统
+    // 9. 初始化变量空间（供 Agent 使用）
+    const variableSpaceService = container.resolve<VariableSpaceService>(AI_MODEL_TOKENS.VariableSpaceService);
+    await variableSpaceService.init();
+
+    // 10. 初始化 Agent 系统
     const agentInitializer = container.resolve<AgentInitializer>(AI_MODEL_TOKENS.AgentInitializer);
     await agentInitializer.init();
 }

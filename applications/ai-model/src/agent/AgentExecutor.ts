@@ -20,10 +20,77 @@ import {
 } from "./contracts/index";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { ToolCallParser } from "./utils/ToolCallParser";
+import { VariableSpaceService } from "./services/VariableSpaceService";
 
 @injectable()
 export class AgentExecutor {
     private LOGGER = Logger.withTag("AgentExecutor");
+
+    private _getSessionIdFromContext(context: ToolContext): string | null {
+        const sid = context.sessionId;
+        if (typeof sid !== "string") return null;
+        const trimmed = sid.trim();
+        return trimmed.length > 0 ? trimmed : null;
+    }
+
+    private _shouldRequireEvidenceRef(context: ToolContext): boolean {
+        return (context as any)?.__requireEvidenceRef === true;
+    }
+
+    private _decorateToolOutputWithRef(toolOutput: unknown, archivedRef: string | undefined): unknown {
+        if (!archivedRef) {
+            return toolOutput;
+        }
+
+        // 尽量保持原始结构：对象则注入字段；非对象则包装
+        if (toolOutput && typeof toolOutput === "object" && !Array.isArray(toolOutput)) {
+            const obj = toolOutput as Record<string, unknown>;
+            if ("__ref" in obj) {
+                // 避免覆盖用户/工具已有字段
+                return {
+                    ...obj,
+                    __archivedRef: archivedRef
+                };
+            }
+            return {
+                ...obj,
+                __ref: archivedRef
+            };
+        }
+
+        return {
+            result: toolOutput,
+            __ref: archivedRef
+        };
+    }
+
+    private async _archiveToolExecution(
+        toolCall: ToolCall,
+        context: ToolContext,
+        execution: { success: boolean; result?: unknown; error?: string }
+    ): Promise<string | undefined> {
+        const sessionId = this._getSessionIdFromContext(context);
+        if (!sessionId) {
+            return undefined;
+        }
+
+        const archivedKey = `evidence.tool_call.${toolCall.id}`;
+        const now = Date.now();
+
+        const payload = {
+            toolName: toolCall.name,
+            toolCallId: toolCall.id,
+            toolArgs: toolCall.arguments,
+            success: execution.success,
+            result: execution.success ? execution.result : undefined,
+            error: execution.success ? undefined : execution.error,
+            archivedAt: now
+        };
+
+        const summary = `工具证据归档: ${toolCall.name} (${execution.success ? "success" : "error"})`;
+        await this.variableSpaceService.set(sessionId, archivedKey, payload, summary);
+        return archivedKey;
+    }
 
     private _formatMessagesForLog(messages: BaseMessage[]) {
         return messages.map(m => {
@@ -173,7 +240,8 @@ export class AgentExecutor {
 
     public constructor(
         @inject(AI_MODEL_TOKENS.ToolRegistry) private toolRegistry: ToolRegistry,
-        @inject(AI_MODEL_TOKENS.TextGeneratorService) private textGeneratorService: TextGeneratorService
+        @inject(AI_MODEL_TOKENS.TextGeneratorService) private textGeneratorService: TextGeneratorService,
+        @inject(AI_MODEL_TOKENS.VariableSpaceService) private variableSpaceService: VariableSpaceService
     ) {}
 
     /**
@@ -211,9 +279,18 @@ export class AgentExecutor {
         // 构建初始消息列表
         const messages: BaseMessage[] = [];
 
+        // 变量空间目录 message 的位置（用于每轮替换，避免 messages 膨胀）
+        let variableDirectoryMessageIndex: number | null = null;
+
         // 添加系统提示词
         if (systemPrompt) {
             messages.push(new SystemMessage(systemPrompt));
+        }
+
+        // 预留一个“变量空间目录”系统消息位（仅在存在 sessionId 时启用）
+        if (typeof context.sessionId === "string" && context.sessionId.trim().length > 0) {
+            variableDirectoryMessageIndex = messages.length;
+            messages.push(new SystemMessage("变量空间目录初始化中..."));
         }
 
         // 添加历史消息
@@ -244,6 +321,22 @@ export class AgentExecutor {
             this.LOGGER.info(`开始第 ${toolRounds} 轮 LLM 调用`);
 
             try {
+                // 在每轮 LLM 调用前刷新变量空间目录（只展示 key+summary，避免泄露大对象进 prompt）
+                if (variableDirectoryMessageIndex !== null) {
+                    const sessionId = context.sessionId as string;
+                    const directoryText = await this.variableSpaceService.buildDirectoryForPrompt(sessionId, 30);
+                    const directoryMessage = new SystemMessage(
+                        "【统一变量空间（CAVM）】\n" +
+                            directoryText +
+                            "\n\n提示：\n" +
+                            "1) 需要复用中间结果时请 var_set(key,value,summary)\n" +
+                            "2) 需要读取具体内容时请 var_get(key)\n" +
+                            "3) 需要查看目录时请 var_list(prefix,limit)\n" +
+                            "4) 不再需要的临时变量可 var_delete(key)"
+                    );
+                    messages[variableDirectoryMessageIndex] = directoryMessage;
+                }
+
                 // 获取工具定义（每轮都需要传递）
                 const tools = this.toolRegistry.getAllToolDefinitions();
 
@@ -327,9 +420,13 @@ export class AgentExecutor {
                 );
 
                 for (const result of toolResults) {
+                    const toolOutputForLLM = this._decorateToolOutputWithRef(
+                        result.success ? result.result : { error: result.error },
+                        result.archivedRef
+                    );
                     messages.push(
                         new ToolMessage({
-                            content: JSON.stringify(result.success ? result.result : { error: result.error }),
+                            content: JSON.stringify(toolOutputForLLM),
                             tool_call_id: result.toolCallId
                         })
                     );
@@ -460,13 +557,36 @@ export class AgentExecutor {
 
             // 执行工具
             const result = await this.toolRegistry.executeToolCall(toolCall, context);
+
+            // 自动归档工具输出（用于 evidence.ref 可追溯）
+            try {
+                const archivedRef = await this._archiveToolExecution(toolCall, context, {
+                    success: result.success,
+                    result: result.result,
+                    error: result.error
+                });
+                if (archivedRef) {
+                    result.archivedRef = archivedRef;
+                }
+            } catch (error) {
+                const require = this._shouldRequireEvidenceRef(context);
+                this.LOGGER.error(`工具输出归档失败(tool=${toolCall.name}, require=${require}): ${error}`);
+                if (require) {
+                    throw error;
+                }
+            }
+
             results.push(result);
 
             // 发送工具结果事件
+            const toolOutputForEvent = this._decorateToolOutputWithRef(
+                result.success ? result.result : { error: result.error },
+                result.archivedRef
+            );
             onChunk({
                 type: "tool_result",
                 toolName: toolCall.name,
-                toolResult: result.success ? result.result : { error: result.error }
+                toolResult: toolOutputForEvent
             });
         }
 

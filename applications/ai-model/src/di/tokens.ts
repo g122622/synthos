@@ -32,6 +32,24 @@ export const AI_MODEL_TOKENS = {
     /** Agent 初始化器 */
     AgentInitializer: Symbol.for("AgentInitializer"),
 
+    // Agent 变量空间
+    /** 变量空间服务 */
+    VariableSpaceService: Symbol.for("VariableSpaceService"),
+    /** var_set 工具 */
+    VarSetTool: Symbol.for("VarSetTool"),
+    /** var_get 工具 */
+    VarGetTool: Symbol.for("VarGetTool"),
+    /** var_list 工具 */
+    VarListTool: Symbol.for("VarListTool"),
+    /** var_delete 工具 */
+    VarDeleteTool: Symbol.for("VarDeleteTool"),
+
+    // 深度研究（Planner + 并行分析）
+    /** 深度研究编排器 */
+    DeepResearchOrchestrator: Symbol.for("DeepResearchOrchestrator"),
+    /** 深度研究工具 */
+    DeepResearchTool: Symbol.for("DeepResearchTool"),
+
     // 任务处理器
     /** AI 摘要任务处理器 */
     AISummarizeTaskHandler: Symbol.for("AISummarizeTaskHandler"),

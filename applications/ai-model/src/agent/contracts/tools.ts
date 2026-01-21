@@ -72,6 +72,13 @@ export interface ToolExecutionResult {
     toolCallId: string;
     /** 执行是否成功 */
     success: boolean;
+    /**
+     * 工具结果归档引用（写入变量空间后的 key）。
+     *
+     * 约定：当存在 sessionId 时，AgentExecutor 会自动把每次工具调用的输出归档到变量空间并生成该 ref。
+     * LLM 侧可将其用于 evidence.ref（可追溯证据）。
+     */
+    archivedRef?: string;
     /** 执行结果（JSON 可序列化） */
     result?: unknown;
     /** 错误信息（如果失败） */
