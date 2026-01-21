@@ -67,11 +67,11 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             .map((r, i) => {
                 const index = i + 1;
                 const indexStr = String(index);
-                let topicStr = `【话题${index}:${r.topic}】\n【参与者:${r.contributors}】`;
+                let topicStr = `【话题${index}:${r.topic}】`;
 
-                // 如果有日期信息，添加起止时间
+                // 如果有日期信息，那么添加时间
                 if (topicDates[indexStr] && topicDates[indexStr].startTime && topicDates[indexStr].endTime) {
-                    topicStr += `\n【起止时间:${topicDates[indexStr].startTime}至${topicDates[indexStr].endTime}】`;
+                    topicStr += `\n【时间:${topicDates[indexStr].startTime}】`;
                 }
 
                 topicStr += `\n${r.detail}`;
