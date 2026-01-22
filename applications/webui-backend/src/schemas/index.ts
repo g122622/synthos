@@ -103,7 +103,7 @@ export type UpdateRagSessionTitleParams = z.infer<typeof UpdateRagSessionTitleSc
 
 export const RagAskSchema = z.object({
     question: z.string({ message: "缺少question参数" }).min(1, "问题不能为空"),
-    topK: z.number().int().positive().max(100).optional().default(5),
+    topK: z.number().int().positive().max(200).optional().default(200),
     enableQueryRewriter: z.boolean().optional().default(true)
 });
 export type RagAskParams = z.infer<typeof RagAskSchema>;

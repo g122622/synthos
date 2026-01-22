@@ -48,7 +48,7 @@ export default function AskInputBar({ question, topK, enableQueryRewriter, askLo
             <div className="flex w-full items-center justify-between px-3 pb-3">
                 <div className="flex items-center gap-2">
                     Top-K:
-                    <Input className="w-35" max={100} min={1} size="sm" type="number" value={topK.toString()} variant="bordered" onChange={e => onTopKChange(parseInt(e.target.value) || 100)} />
+                    <Input className="w-35" max={200} min={1} size="sm" type="number" value={topK.toString()} variant="bordered" onChange={e => onTopKChange(parseInt(e.target.value) || 200)} />
                     <Checkbox className="ml-2" isSelected={enableQueryRewriter} size="md" onValueChange={onEnableQueryRewriterChange}>
                         查询扩展
                     </Checkbox>

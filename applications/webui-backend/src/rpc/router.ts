@@ -36,7 +36,7 @@ export const appRouter = t.router({
             // 重新 parse 一次以获得 zod default 的输出类型（避免 tRPC 这里推导为 input 类型导致的可选字段）
             const normalizedInput = AskInputSchema.parse(input);
             const question = normalizedInput.question ?? input.question ?? "";
-            const topK = normalizedInput.topK ?? input.topK ?? 5;
+            const topK = normalizedInput.topK ?? input.topK ?? 0;
             const enableQueryRewriter = normalizedInput.enableQueryRewriter ?? input.enableQueryRewriter ?? true;
 
             // 断线续跑：客户端断开后仍继续消费 ai-model 的 stream 并在结束后落库。

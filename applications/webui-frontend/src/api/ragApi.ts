@@ -60,7 +60,7 @@ export const search = async (query: string, limit: number = 10): Promise<ApiResp
  * @param topK 参考话题数量
  * @param enableQueryRewriter 是否启用查询重写器
  */
-export const ask = async (question: string, topK: number = 50, enableQueryRewriter: boolean = true): Promise<ApiResponse<AskResponse>> => {
+export const ask = async (question: string, topK: number, enableQueryRewriter: boolean = true): Promise<ApiResponse<AskResponse>> => {
     // 如果启用了 mock，使用 mock 数据
     if (mockConfig.rag) {
         return mockAsk(question, topK);

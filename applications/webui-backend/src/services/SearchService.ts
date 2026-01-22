@@ -41,7 +41,7 @@ export class SearchService {
      * @param enableQueryRewriter 是否启用查询重写器
      * @returns AI 回答及引用来源
      */
-    async ask(question: string, topK: number = 5, enableQueryRewriter: boolean = true): Promise<AskOutput> {
+    async ask(question: string, topK: number, enableQueryRewriter: boolean = true): Promise<AskOutput> {
         this.LOGGER.info(`执行 RAG 问答: "${question}", topK=${topK}, enableQueryRewriter=${enableQueryRewriter}`);
 
         try {
