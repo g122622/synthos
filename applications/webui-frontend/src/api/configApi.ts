@@ -5,6 +5,8 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { mockConfig } from "@/config/mock";
+import { mockGetConfigSchema, mockGetCurrentConfig, mockGetBaseConfig, mockGetOverrideConfig, mockSaveOverrideConfig, mockSaveBaseConfig, mockValidateConfig } from "@/mock/configMock";
 
 // ==================== 类型定义 ====================
 
@@ -60,6 +62,10 @@ export interface ConfigValidationResult {
  * 获取配置的 JSON Schema
  */
 export const getConfigSchema = async (): Promise<ApiResponse<JsonSchema>> => {
+    if (mockConfig.configPanel) {
+        return mockGetConfigSchema();
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/schema`);
 
     return response.json();
@@ -69,6 +75,10 @@ export const getConfigSchema = async (): Promise<ApiResponse<JsonSchema>> => {
  * 获取当前合并后的配置
  */
 export const getCurrentConfig = async (): Promise<ApiResponse<Record<string, unknown>>> => {
+    if (mockConfig.configPanel) {
+        return mockGetCurrentConfig();
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/current`);
 
     return response.json();
@@ -78,6 +88,10 @@ export const getCurrentConfig = async (): Promise<ApiResponse<Record<string, unk
  * 获取基础配置
  */
 export const getBaseConfig = async (): Promise<ApiResponse<Record<string, unknown>>> => {
+    if (mockConfig.configPanel) {
+        return mockGetBaseConfig();
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/base`);
 
     return response.json();
@@ -87,6 +101,10 @@ export const getBaseConfig = async (): Promise<ApiResponse<Record<string, unknow
  * 获取 override 配置
  */
 export const getOverrideConfig = async (): Promise<ApiResponse<Record<string, unknown>>> => {
+    if (mockConfig.configPanel) {
+        return mockGetOverrideConfig();
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/override`);
 
     return response.json();
@@ -96,6 +114,10 @@ export const getOverrideConfig = async (): Promise<ApiResponse<Record<string, un
  * 保存 override 配置
  */
 export const saveOverrideConfig = async (config: Record<string, unknown>): Promise<ApiResponse<{ message: string }>> => {
+    if (mockConfig.configPanel) {
+        return mockSaveOverrideConfig(config);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/override`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -109,6 +131,10 @@ export const saveOverrideConfig = async (config: Record<string, unknown>): Promi
  * 保存基础配置
  */
 export const saveBaseConfig = async (config: Record<string, unknown>): Promise<ApiResponse<{ message: string }>> => {
+    if (mockConfig.configPanel) {
+        return mockSaveBaseConfig(config);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/base`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,6 +148,10 @@ export const saveBaseConfig = async (config: Record<string, unknown>): Promise<A
  * 验证配置
  */
 export const validateConfig = async (config: Record<string, unknown>, partial: boolean): Promise<ApiResponse<ConfigValidationResult>> => {
+    if (mockConfig.configPanel) {
+        return mockValidateConfig(config, partial);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/config/validate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -171,6 +171,50 @@ export const mockGetChatMessagesByGroupId = async (groupId: string, timeStart: n
 };
 
 /**
+ * 模拟 Chat Messages FTS 搜索
+ */
+export const mockChatMessagesFtsSearch = async (params: {
+    query: string;
+    groupIds?: string[];
+    timeStart?: number;
+    timeEnd?: number;
+    page: number;
+    pageSize: number;
+}): Promise<
+    ApiResponse<{
+        total: number;
+        page: number;
+        pageSize: number;
+        groups: Array<{ groupId: string; count: number; hits: Array<{ msgId: string; timestamp: number; snippet: string }> }>;
+    }>
+> => {
+    await delay(220 + Math.random() * 150);
+
+    void params;
+
+    return {
+        success: true,
+        data: { total: 0, page: params.page, pageSize: params.pageSize, groups: [] },
+        message: ""
+    };
+};
+
+/**
+ * 模拟 FTS 上下文
+ */
+export const mockGetChatMessagesFtsContext = async (params: { groupId: string; msgId: string; before: number; after: number }): Promise<ApiResponse<ChatMessage[]>> => {
+    await delay(200 + Math.random() * 120);
+
+    void params;
+
+    return {
+        success: true,
+        data: [],
+        message: ""
+    };
+};
+
+/**
  * 生成整点对齐的时间戳数组
  * @param periodStart 周期开始时间戳
  * @returns 24个整点时间戳数组

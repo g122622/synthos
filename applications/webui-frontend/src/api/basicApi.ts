@@ -1,8 +1,8 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
-import { mockConfig } from "@/config/mock";
-import { mockGetGroupDetails, mockGetChatMessagesByGroupId, mockGetMessageHourlyStats } from "@/mock/groupsMock";
+import { MOCK_ENABLED, mockConfig } from "@/config/mock";
+import { mockGetGroupDetails, mockGetChatMessagesByGroupId, mockGetMessageHourlyStats, mockChatMessagesFtsSearch, mockGetChatMessagesFtsContext } from "@/mock/groupsMock";
 import {
     mockGetSessionIdsByGroupIdsAndTimeRange,
     mockGetSessionTimeDurations,
@@ -13,6 +13,14 @@ import {
 
 // 健康检查接口
 export const healthCheck = async (): Promise<ApiResponse<{ message: string; timestamp: string }>> => {
+    if (MOCK_ENABLED) {
+        return {
+            success: true,
+            data: { message: "ok", timestamp: new Date().toISOString() },
+            message: ""
+        };
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/health`);
 
     return response.json();
@@ -92,10 +100,7 @@ export const chatMessagesFtsSearch = async (params: {
     }>
 > => {
     if (mockConfig.groups) {
-        return {
-            success: true,
-            data: { total: 0, page: params.page, pageSize: params.pageSize, groups: [] }
-        } as any;
+        return mockChatMessagesFtsSearch(params);
     }
 
     const response = await fetchWrapper(`${API_BASE_URL}/api/chat-messages-fts-search`, {
@@ -109,7 +114,7 @@ export const chatMessagesFtsSearch = async (params: {
 
 export const getChatMessagesFtsContext = async (params: { groupId: string; msgId: string; before: number; after: number }): Promise<ApiResponse<ChatMessagesResponse>> => {
     if (mockConfig.groups) {
-        return { success: true, data: [] } as any;
+        return mockGetChatMessagesFtsContext(params);
     }
 
     const response = await fetchWrapper(`${API_BASE_URL}/api/chat-messages-fts-context`, {

@@ -16,5 +16,11 @@ export const mockConfig = {
     // Groups 模块 mock 开关
     groups: import.meta.env.VITE_MOCK_GROUPS === "true" || MOCK_ENABLED,
     // Latest Topics 模块 mock 开关
-    latestTopics: import.meta.env.VITE_MOCK_LATEST_TOPICS === "true" || MOCK_ENABLED
+    latestTopics: import.meta.env.VITE_MOCK_LATEST_TOPICS === "true" || MOCK_ENABLED,
+    // Agent 模块 mock 开关
+    agent: import.meta.env.VITE_MOCK_AGENT === "true" || MOCK_ENABLED,
+    // Config Panel 模块 mock 开关
+    configPanel: import.meta.env.VITE_MOCK_CONFIG_PANEL === "true" || MOCK_ENABLED,
+    // System Monitor 模块 mock 开关
+    systemMonitor: import.meta.env.VITE_MOCK_SYSTEM_MONITOR === "true" || MOCK_ENABLED
 };

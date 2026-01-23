@@ -5,6 +5,8 @@
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { mockConfig } from "@/config/mock";
+import { mockAgentAsk, mockGetAgentConversations, mockGetAgentMessages } from "@/mock/agentMock";
 
 // ==================== 类型定义 ====================
 
@@ -73,6 +75,10 @@ export interface AgentAskResponse {
  * @param request 问答请求参数
  */
 export const agentAsk = async (request: AgentAskRequest): Promise<ApiResponse<AgentAskResponse>> => {
+    if (mockConfig.agent) {
+        return mockAgentAsk(request);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/ask`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,6 +94,10 @@ export const agentAsk = async (request: AgentAskRequest): Promise<ApiResponse<Ag
  * @param limit 返回结果数量限制
  */
 export const getAgentConversations = async (sessionId: string | undefined, beforeUpdatedAt: number | undefined, limit: number = 20): Promise<ApiResponse<AgentConversation[]>> => {
+    if (mockConfig.agent) {
+        return mockGetAgentConversations(sessionId, beforeUpdatedAt, limit);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -102,6 +112,10 @@ export const getAgentConversations = async (sessionId: string | undefined, befor
  * @param conversationId 对话ID
  */
 export const getAgentConversationsPage = async (sessionId: string | undefined, beforeUpdatedAt: number | undefined, limit: number = 20): Promise<ApiResponse<AgentConversation[]>> => {
+    if (mockConfig.agent) {
+        return mockGetAgentConversations(sessionId, beforeUpdatedAt, limit);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,6 +126,10 @@ export const getAgentConversationsPage = async (sessionId: string | undefined, b
 };
 
 export const getAgentMessages = async (conversationId: string, beforeTimestamp: number | undefined, limit: number = 20): Promise<ApiResponse<AgentMessage[]>> => {
+    if (mockConfig.agent) {
+        return mockGetAgentMessages(conversationId, beforeTimestamp, limit);
+    }
+
     const response = await fetchWrapper(`${API_BASE_URL}/api/agent/conversations/${conversationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
