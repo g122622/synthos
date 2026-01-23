@@ -5,6 +5,13 @@ import { ExecSQL } from "./ExecSQL";
 import { PrintCurrentConfig } from "./PrintCurrentConfig";
 import { MigrateDB } from "./MigrateDB";
 import { SeekQQNumber } from "./SeekQQNumber";
+import { BuildImMessageFtsIndex } from "./BuildImMessageFtsIndex";
 
 // 全部导出
-export const applications: IApplicationClass[] = [ExecSQL, PrintCurrentConfig, MigrateDB, SeekQQNumber];
+export const applications: IApplicationClass[] = [
+    ExecSQL,
+    PrintCurrentConfig,
+    MigrateDB,
+    SeekQQNumber,
+    BuildImMessageFtsIndex
+];

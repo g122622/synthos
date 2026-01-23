@@ -9,6 +9,7 @@ import { asyncHandler } from "../errors/errorHandler";
 // Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
+import { ChatMessageFtsController } from "../controllers/ChatMessageFtsController";
 import { GroupConfigController } from "../controllers/GroupConfigController";
 import { InterestScoreController } from "../controllers/InterestScoreController";
 import { MiscController } from "../controllers/MiscController";
@@ -23,6 +24,7 @@ export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
     const aiDigestController = container.resolve<AIDigestController>(TOKENS.AIDigestController);
     const chatMessageController = container.resolve<ChatMessageController>(TOKENS.ChatMessageController);
+    const chatMessageFtsController = container.resolve<ChatMessageFtsController>(TOKENS.ChatMessageFtsController);
     const groupConfigController = container.resolve<GroupConfigController>(TOKENS.GroupConfigController);
     const interestScoreController = container.resolve<InterestScoreController>(TOKENS.InterestScoreController);
     const miscController = container.resolve<MiscController>(TOKENS.MiscController);
@@ -45,6 +47,18 @@ export const setupApiRoutes = (app: Express): void => {
     app.get(
         "/api/chat-messages-by-group-id",
         asyncHandler((req, res) => chatMessageController.getChatMessagesByGroupId(req, res))
+    );
+
+    // 聊天消息全文检索（FTS）
+    app.post(
+        "/api/chat-messages-fts-search",
+        asyncHandler((req, res) => chatMessageFtsController.search(req, res))
+    );
+
+    // 命中消息上下文（前后 N 条）
+    app.post(
+        "/api/chat-messages-fts-context",
+        asyncHandler((req, res) => chatMessageFtsController.getContext(req, res))
     );
 
     // 获取会话ID

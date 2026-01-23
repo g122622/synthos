@@ -8,6 +8,7 @@ import * as path from "path";
 // 基础设施
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
@@ -60,6 +61,7 @@ export class WebUILocalServer {
     private imDbAccessService: ImDbAccessService | null = null;
     private interestScoreDbAccessService: InterestScoreDbAccessService | null = null;
     private reportDbAccessService: ReportDbAccessService | null = null;
+    private imDbFtsService: ImDbFtsService | null = null;
 
     constructor() {
         this.app = express();
@@ -86,16 +88,23 @@ export class WebUILocalServer {
         await closeDatabases(
             this.agcDbAccessService,
             this.imDbAccessService,
+            this.imDbFtsService,
             this.interestScoreDbAccessService,
             this.reportDbAccessService
         );
     }
 
     private async initializeDatabases(): Promise<void> {
-        const { agcDbAccessService, imDbAccessService, interestScoreDbAccessService, reportDbAccessService } =
-            await initializeDatabases();
+        const {
+            agcDbAccessService,
+            imDbAccessService,
+            imDbFtsService,
+            interestScoreDbAccessService,
+            reportDbAccessService
+        } = await initializeDatabases();
         this.agcDbAccessService = agcDbAccessService;
         this.imDbAccessService = imDbAccessService;
+        this.imDbFtsService = imDbFtsService;
         this.interestScoreDbAccessService = interestScoreDbAccessService;
         this.reportDbAccessService = reportDbAccessService;
     }

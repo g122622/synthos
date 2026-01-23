@@ -3,6 +3,27 @@
  */
 import { z } from "zod";
 
+const UnixMsSchema = z.preprocess(value => {
+    if (value === undefined || value === null) {
+        return value;
+    }
+
+    if (typeof value === "number") {
+        return value;
+    }
+
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+            return value;
+        }
+
+        return parseInt(trimmed, 10);
+    }
+
+    return value;
+}, z.number().int().min(0));
+
 // ==================== Chat Message ====================
 
 export const GetChatMessagesByGroupIdSchema = z.object({
@@ -14,8 +35,8 @@ export type GetChatMessagesByGroupIdParams = z.infer<typeof GetChatMessagesByGro
 
 export const GetSessionIdsByGroupIdsAndTimeRangeSchema = z.object({
     groupIds: z.array(z.string(), { message: "缺少必要的参数: groupIds" }),
-    timeStart: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeStart" }),
-    timeEnd: z.union([z.string(), z.number()], { message: "缺少必要的参数: timeEnd" })
+    timeStart: UnixMsSchema,
+    timeEnd: UnixMsSchema
 });
 export type GetSessionIdsByGroupIdsAndTimeRangeParams = z.infer<typeof GetSessionIdsByGroupIdsAndTimeRangeSchema>;
 
@@ -28,6 +49,24 @@ export const GetMessageHourlyStatsSchema = z.object({
     groupIds: z.array(z.string(), { message: "缺少必要的参数: groupIds" })
 });
 export type GetMessageHourlyStatsParams = z.infer<typeof GetMessageHourlyStatsSchema>;
+
+export const ChatMessageFtsSearchSchema = z.object({
+    query: z.string({ message: "缺少query参数" }).min(1, "query不能为空"),
+    groupIds: z.array(z.string()).optional(),
+    timeStart: UnixMsSchema.optional(),
+    timeEnd: UnixMsSchema.optional(),
+    page: z.number({ message: "缺少page参数" }).int().positive(),
+    pageSize: z.number({ message: "缺少pageSize参数" }).int().positive().max(100)
+});
+export type ChatMessageFtsSearchParams = z.infer<typeof ChatMessageFtsSearchSchema>;
+
+export const ChatMessageFtsContextSchema = z.object({
+    groupId: z.string({ message: "缺少groupId参数" }),
+    msgId: z.string({ message: "缺少msgId参数" }),
+    before: z.number().int().min(0).max(200).optional().default(20),
+    after: z.number().int().min(0).max(200).optional().default(20)
+});
+export type ChatMessageFtsContextParams = z.infer<typeof ChatMessageFtsContextSchema>;
 
 // ==================== RAG Search ====================
 

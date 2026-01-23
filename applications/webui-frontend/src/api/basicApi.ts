@@ -74,6 +74,53 @@ export const getChatMessagesByGroupId = async (groupId: string, timeStart: numbe
     return response.json();
 };
 
+// ==================== Chat Messages FTS ====================
+
+export const chatMessagesFtsSearch = async (params: {
+    query: string;
+    groupIds?: string[];
+    timeStart?: number;
+    timeEnd?: number;
+    page: number;
+    pageSize: number;
+}): Promise<
+    ApiResponse<{
+        total: number;
+        page: number;
+        pageSize: number;
+        groups: Array<{ groupId: string; count: number; hits: Array<{ msgId: string; timestamp: number; snippet: string }> }>;
+    }>
+> => {
+    if (mockConfig.groups) {
+        return {
+            success: true,
+            data: { total: 0, page: params.page, pageSize: params.pageSize, groups: [] }
+        } as any;
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/chat-messages-fts-search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params)
+    });
+
+    return response.json();
+};
+
+export const getChatMessagesFtsContext = async (params: { groupId: string; msgId: string; before: number; after: number }): Promise<ApiResponse<ChatMessagesResponse>> => {
+    if (mockConfig.groups) {
+        return { success: true, data: [] } as any;
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/chat-messages-fts-context`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params)
+    });
+
+    return response.json();
+};
+
 // 消息每小时统计响应类型
 interface MessageHourlyStatsResponse {
     data: Record<string, { current: number[]; previous: number[] }>;

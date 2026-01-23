@@ -91,6 +91,14 @@ const mockMainConfig = {
         },
         defaultModelName: "gpt-4",
         pinnedModels: [],
+        maxConcurrentRequests: 5,
+        context: {
+            backgroundKnowledge: {
+                enabled: false,
+                maxKnowledgeEntries: 10,
+                knowledgeBase: []
+            }
+        },
         interestScore: {
             UserInterestsPositiveKeywords: ["tech", "coding"],
             UserInterestsNegativeKeywords: ["spam"]
@@ -120,7 +128,10 @@ const mockMainConfig = {
     },
     commonDatabase: {
         dbBasePath: "/path/to/commondb",
-        maxDBDuration: 30
+        maxDBDuration: 30,
+        ftsDatabase: {
+            imMessageDBPath: "/path/to/fts/im_messages_fts.db"
+        }
     },
     logger: {
         logLevel: "info" as const,
@@ -156,6 +167,12 @@ const mockMainConfig = {
             llmRetryCount: 3,
             aiModels: ["gpt-4"]
         }
+    },
+    preStartCommand: {
+        enabled: false,
+        command: "",
+        silent: true,
+        detached: false
     }
 };
 
@@ -395,7 +412,7 @@ describe("ConfigManagerService", () => {
 
             expect(mockWriteFile).toHaveBeenCalledWith(
                 expectedOverridePath,
-                JSON.stringify(mockOverrideConfig, null, 2),
+                JSON.stringify(mockOverrideConfig, null, 4),
                 "utf8"
             );
         });

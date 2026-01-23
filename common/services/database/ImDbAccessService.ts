@@ -221,6 +221,49 @@ export class ImDbAccessService extends Disposable {
         return result;
     }
 
+    /**
+     * 获取某条消息前后上下文（同群内按时间排序）
+     * @param groupId 群组ID
+     * @param msgId 目标消息ID
+     * @param before 目标消息之前的条数
+     * @param after 目标消息之后的条数
+     */
+    public async getProcessedChatMessagesContextByGroupIdAndMsgId(
+        groupId: string,
+        msgId: string,
+        before: number,
+        after: number
+    ): Promise<ProcessedChatMessageWithRawMessage[]> {
+        const resolvedBefore = Math.max(0, Math.min(200, Math.floor(before)));
+        const resolvedAfter = Math.max(0, Math.min(200, Math.floor(after)));
+
+        const target = await this.db.get<ProcessedChatMessageWithRawMessage>(
+            `SELECT * FROM chat_messages WHERE msgId = ? AND groupId = ?`,
+            [msgId, groupId]
+        );
+        if (!target) {
+            return [];
+        }
+
+        const [beforeRows, afterRows] = await Promise.all([
+            resolvedBefore === 0
+                ? Promise.resolve([])
+                : this.db.all<ProcessedChatMessageWithRawMessage>(
+                      `SELECT * FROM chat_messages WHERE groupId = ? AND timestamp < ? ORDER BY timestamp DESC LIMIT ?`,
+                      [groupId, target.timestamp, resolvedBefore]
+                  ),
+            resolvedAfter === 0
+                ? Promise.resolve([])
+                : this.db.all<ProcessedChatMessageWithRawMessage>(
+                      `SELECT * FROM chat_messages WHERE groupId = ? AND timestamp > ? ORDER BY timestamp ASC LIMIT ?`,
+                      [groupId, target.timestamp, resolvedAfter]
+                  )
+        ]);
+
+        const combined = [...beforeRows.reverse(), target, ...afterRows];
+        return combined;
+    }
+
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
         const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);

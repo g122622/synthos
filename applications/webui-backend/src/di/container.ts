@@ -26,6 +26,7 @@ import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager
 // Services
 import { AIDigestService } from "../services/AIDigestService";
 import { ChatMessageService } from "../services/ChatMessageService";
+import { ChatMessageFtsService } from "../services/ChatMessageFtsService";
 import { GroupConfigService } from "../services/GroupConfigService";
 import { InterestScoreService } from "../services/InterestScoreService";
 import { MiscService } from "../services/MiscService";
@@ -43,6 +44,7 @@ import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
 // Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
+import { ChatMessageFtsController } from "../controllers/ChatMessageFtsController";
 import { GroupConfigController } from "../controllers/GroupConfigController";
 import { InterestScoreController } from "../controllers/InterestScoreController";
 import { MiscController } from "../controllers/MiscController";
@@ -107,6 +109,7 @@ export function registerRAGClient(rpcBaseUrl: string): void {
 export function registerServices(): void {
     container.registerSingleton(TOKENS.AIDigestService, AIDigestService);
     container.registerSingleton(TOKENS.ChatMessageService, ChatMessageService);
+    container.registerSingleton(TOKENS.ChatMessageFtsService, ChatMessageFtsService);
     container.registerSingleton(TOKENS.GroupConfigService, GroupConfigService);
     container.registerSingleton(TOKENS.InterestScoreService, InterestScoreService);
     container.registerSingleton(TOKENS.MiscService, MiscService);
@@ -127,6 +130,7 @@ export function registerServices(): void {
 export function registerControllers(): void {
     container.registerSingleton(TOKENS.AIDigestController, AIDigestController);
     container.registerSingleton(TOKENS.ChatMessageController, ChatMessageController);
+    container.registerSingleton(TOKENS.ChatMessageFtsController, ChatMessageFtsController);
     container.registerSingleton(TOKENS.GroupConfigController, GroupConfigController);
     container.registerSingleton(TOKENS.InterestScoreController, InterestScoreController);
     container.registerSingleton(TOKENS.MiscController, MiscController);

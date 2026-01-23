@@ -13,6 +13,7 @@ export const TOKENS = {
     // DBManagers (作为 Repository 层) - 使用共享 Token
     AgcDbAccessService: COMMON_TOKENS.AgcDbAccessService,
     ImDbAccessService: COMMON_TOKENS.ImDbAccessService,
+    ImDbFtsService: COMMON_TOKENS.ImDbFtsService,
     InterestScoreDbAccessService: COMMON_TOKENS.InterestScoreDbAccessService,
     ReportDbAccessService: COMMON_TOKENS.ReportDbAccessService,
 
@@ -28,6 +29,7 @@ export const TOKENS = {
     // Services
     AIDigestService: Symbol.for("AIDigestService"),
     ChatMessageService: Symbol.for("ChatMessageService"),
+    ChatMessageFtsService: Symbol.for("ChatMessageFtsService"),
     GroupConfigService: Symbol.for("GroupConfigService"),
     InterestScoreService: Symbol.for("InterestScoreService"),
     MiscService: Symbol.for("MiscService"),
@@ -43,6 +45,7 @@ export const TOKENS = {
     // Controllers
     AIDigestController: Symbol.for("AIDigestController"),
     ChatMessageController: Symbol.for("ChatMessageController"),
+    ChatMessageFtsController: Symbol.for("ChatMessageFtsController"),
     GroupConfigController: Symbol.for("GroupConfigController"),
     InterestScoreController: Symbol.for("InterestScoreController"),
     MiscController: Symbol.for("MiscController"),

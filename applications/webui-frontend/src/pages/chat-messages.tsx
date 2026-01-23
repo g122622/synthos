@@ -8,6 +8,7 @@ import { Select, SelectItem } from "@heroui/select";
 import { DatePicker, Chip, Input, Autocomplete, AutocompleteItem } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 import { ScrollShadow } from "@heroui/scroll-shadow";
+import { Tabs, Tab } from "@heroui/tabs";
 import { useAsyncList } from "@react-stately/data";
 import { now, getLocalTimeZone } from "@internationalized/date";
 import { MessageSquare, RefreshCw, Search } from "lucide-react";
@@ -18,6 +19,7 @@ import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import QQAvatar from "@/components/QQAvatar";
+import { ChatMessageFtsPanel } from "@/pages/chat-messages/components/ChatMessageFtsPanel";
 
 export default function ChatMessagesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -39,6 +41,8 @@ export default function ChatMessagesPage() {
     });
     // 标记是否已从URL初始化
     const [isInitializedFromUrl, setIsInitializedFromUrl] = useState<boolean>(false);
+
+    const [activeTab, setActiveTab] = useState<"list" | "fts">("list");
 
     // 获取群组信息
     useEffect(() => {
@@ -259,6 +263,9 @@ export default function ChatMessagesPage() {
     // 计算总页数
     const totalPages = Math.ceil(filteredAndSortedItems.length / pageSize);
 
+    const startTimeMs = startDate.toDate().getTime();
+    const endTimeMs = endDate.toDate().getTime();
+
     return (
         <DefaultLayout>
             <section className="flex flex-col gap-4 py-0 md:py-10">
@@ -281,109 +288,122 @@ export default function ChatMessagesPage() {
                                     <MessageSquare className="inline-block mr-2" size={20} />
                                     聊天记录
                                 </h2>
-                                <Chip color="primary" size="sm" variant="flat">
-                                    共 {filteredAndSortedItems.length} 条{(searchKeyword || selectedSessionId) && ` (筛选自 ${list.items.length} 条)`}
-                                </Chip>
+                                {activeTab === "list" ? (
+                                    <Chip color="primary" size="sm" variant="flat">
+                                        共 {filteredAndSortedItems.length} 条{(searchKeyword || selectedSessionId) && ` (筛选自 ${list.items.length} 条)`}
+                                    </Chip>
+                                ) : null}
                             </div>
 
-                            {/* 刷新按钮 */}
-                            <Button color="primary" isLoading={isLoading} size="sm" startContent={<RefreshCw size={16} />} variant="flat" onPress={() => list.reload()}>
-                                刷新
-                            </Button>
+                            {/* 刷新按钮（仅列表模式） */}
+                            {activeTab === "list" ? (
+                                <Button color="primary" isLoading={isLoading} size="sm" startContent={<RefreshCw size={16} />} variant="flat" onPress={() => list.reload()}>
+                                    刷新
+                                </Button>
+                            ) : null}
                         </div>
 
-                        {/* 筛选区域 */}
-                        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center w-full flex-wrap">
-                            {/* 群组选择 */}
-                            <Select
-                                className="w-full md:w-56"
-                                label="选择群组"
-                                placeholder="请选择群组"
-                                selectedKeys={[selectedGroup]}
-                                size="sm"
-                                onSelectionChange={keys => {
-                                    if (keys !== "all") {
-                                        const selectedKey = Array.from(keys)[0] as string;
+                        <Tabs aria-label="视图切换" selectedKey={activeTab} size="sm" variant="bordered" onSelectionChange={key => setActiveTab(key as "list" | "fts")}>
+                            <Tab key="list" title="列表查看" />
+                            <Tab key="fts" title="全文搜索" />
+                        </Tabs>
 
-                                        handleGroupChange(selectedKey);
-                                    }
-                                }}
-                            >
-                                {Object.keys(groups).map(groupId => (
-                                    <SelectItem key={groupId}>
-                                        {groupId} - {groups[groupId].groupIntroduction}
-                                    </SelectItem>
-                                ))}
-                            </Select>
+                        {/* 筛选区域（列表模式） */}
+                        {activeTab === "list" ? (
+                            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center w-full flex-wrap">
+                                {/* 群组选择 */}
+                                <Select
+                                    className="w-full md:w-56"
+                                    label="选择群组"
+                                    placeholder="请选择群组"
+                                    selectedKeys={[selectedGroup]}
+                                    size="sm"
+                                    onSelectionChange={keys => {
+                                        if (keys !== "all") {
+                                            const selectedKey = Array.from(keys)[0] as string;
 
-                            {/* 会话ID选择（带自动补全） */}
-                            <Autocomplete
-                                allowsCustomValue
-                                isClearable
-                                className="w-full md:w-56"
-                                inputValue={selectedSessionId}
-                                label="会话ID"
-                                placeholder="输入或选择会话ID"
-                                size="sm"
-                                onInputChange={setSelectedSessionId}
-                                onSelectionChange={key => {
-                                    if (key !== null) {
-                                        setSelectedSessionId(String(key));
-                                    }
-                                }}
-                            >
-                                {availableSessionIds.map(sessionId => (
-                                    <AutocompleteItem key={sessionId}>{sessionId}</AutocompleteItem>
-                                ))}
-                            </Autocomplete>
+                                            handleGroupChange(selectedKey);
+                                        }
+                                    }}
+                                >
+                                    {Object.keys(groups).map(groupId => (
+                                        <SelectItem key={groupId}>
+                                            {groupId} - {groups[groupId].groupIntroduction}
+                                        </SelectItem>
+                                    ))}
+                                </Select>
 
-                            {/* 开始时间选择 */}
-                            <DatePicker
-                                hideTimeZone
-                                showMonthAndYearPickers
-                                className="w-full md:w-56"
-                                granularity="minute"
-                                label="开始时间"
-                                size="sm"
-                                value={startDate}
-                                onChange={date => {
-                                    if (date) {
-                                        setStartDate(date);
-                                    }
-                                }}
-                            />
+                                {/* 会话ID选择（带自动补全） */}
+                                <Autocomplete
+                                    allowsCustomValue
+                                    isClearable
+                                    className="w-full md:w-56"
+                                    inputValue={selectedSessionId}
+                                    label="会话ID"
+                                    placeholder="输入或选择会话ID"
+                                    size="sm"
+                                    onInputChange={setSelectedSessionId}
+                                    onSelectionChange={key => {
+                                        if (key !== null) {
+                                            setSelectedSessionId(String(key));
+                                        }
+                                    }}
+                                >
+                                    {availableSessionIds.map(sessionId => (
+                                        <AutocompleteItem key={sessionId}>{sessionId}</AutocompleteItem>
+                                    ))}
+                                </Autocomplete>
 
-                            {/* 结束时间选择 */}
-                            <DatePicker
-                                hideTimeZone
-                                showMonthAndYearPickers
-                                className="w-full md:w-56"
-                                granularity="minute"
-                                label="结束时间"
-                                size="sm"
-                                value={endDate}
-                                onChange={date => {
-                                    if (date) {
-                                        setEndDate(date);
-                                    }
-                                }}
-                            />
+                                {/* 开始时间选择 */}
+                                <DatePicker
+                                    hideTimeZone
+                                    showMonthAndYearPickers
+                                    className="w-full md:w-56"
+                                    granularity="minute"
+                                    label="开始时间"
+                                    size="sm"
+                                    value={startDate}
+                                    onChange={date => {
+                                        if (date) {
+                                            setStartDate(date);
+                                        }
+                                    }}
+                                />
 
-                            {/* 搜索输入框 */}
-                            <Input
-                                isClearable
-                                className="w-full md:w-64"
-                                placeholder="搜索发送者或消息内容..."
-                                size="sm"
-                                startContent={<Search className="text-default-400" size={16} />}
-                                value={searchKeyword}
-                                onClear={() => setSearchKeyword("")}
-                                onValueChange={setSearchKeyword}
-                            />
-                        </div>
+                                {/* 结束时间选择 */}
+                                <DatePicker
+                                    hideTimeZone
+                                    showMonthAndYearPickers
+                                    className="w-full md:w-56"
+                                    granularity="minute"
+                                    label="结束时间"
+                                    size="sm"
+                                    value={endDate}
+                                    onChange={date => {
+                                        if (date) {
+                                            setEndDate(date);
+                                        }
+                                    }}
+                                />
+
+                                {/* 搜索输入框 */}
+                                <Input
+                                    isClearable
+                                    className="w-full md:w-64"
+                                    placeholder="搜索发送者或消息内容..."
+                                    size="sm"
+                                    startContent={<Search className="text-default-400" size={16} />}
+                                    value={searchKeyword}
+                                    onClear={() => setSearchKeyword("")}
+                                    onValueChange={setSearchKeyword}
+                                />
+                            </div>
+                        ) : null}
                     </CardHeader>
                     <CardBody>
-                        {isLoading ? (
+                        {activeTab === "fts" ? (
+                            <ChatMessageFtsPanel endTimeMs={endTimeMs} groupNameResolver={groupId => groups[groupId]?.groupIntroduction} selectedGroupId={selectedGroup} startTimeMs={startTimeMs} />
+                        ) : isLoading ? (
                             <div className="flex justify-center items-center h-64">
                                 <Spinner size="lg" />
                             </div>

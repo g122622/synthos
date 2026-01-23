@@ -16,7 +16,8 @@
 ### 2.2 时间戳
 
 - 全部使用 **UNIX 毫秒时间戳**。
-- `GET /api/chat-messages-by-group-id` 的 `timeStart/timeEnd` 来自 query string，后端会 `parseInt`，因此请传字符串形式的数字。
+- 对于 POST JSON body：请直接传 number。
+- `GET /api/chat-messages-by-group-id` 的 `timeStart/timeEnd` 来自 query string，只能是字符串；请传“字符串形式的数字”，后端会 `parseInt`。
 
 ### 2.3 通用响应格式（大多数接口）
 
@@ -161,6 +162,59 @@ Body：
 
 响应 `data`：
 
+
+---
+
+### POST /api/chat-messages-fts-search
+
+说明：聊天消息“全文检索（FTS）”查询接口。该接口查询的是独立的 FTS 数据库文件（由 db-cli 手动构建索引）。
+
+Body：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| query | string | 是 | 搜索文本（纯文本，不暴露 FTS 语法） |
+| groupIds | string[] | 否 | 群组过滤；不传则全库 |
+| timeStart | number | 否 | 起始时间戳（毫秒） |
+| timeEnd | number | 否 | 结束时间戳（毫秒） |
+| page | number | 是 | 从 1 开始 |
+| pageSize | number | 是 | 1~100 |
+
+响应 `data`：
+
+```ts
+{
+  groups: {
+    groupId: string;
+    count: number; // 该群组命中总数
+    hits: {
+      msgId: string;
+      timestamp: number;
+      snippet: string; // 片段（高亮由前端完成）
+    }[];
+  }[];
+  total: number; // 全库命中总数（groupIds/time 过滤后）
+  page: number;
+  pageSize: number;
+}
+```
+
+备注：群组之间按命中数降序，群内默认按相关性（FTS bm25）优先、再按时间。
+
+### POST /api/chat-messages-fts-context
+
+说明：根据命中消息获取前后 N 条上下文（用于点击命中后展开）。
+
+Body：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| groupId | string | 是 | 群组ID |
+| msgId | string | 是 | 目标消息ID |
+| before | number | 否 | 取前 N 条，默认 20，0~200 |
+| after | number | 否 | 取后 N 条，默认 20，0~200 |
+
+响应 `data`：`ProcessedChatMessageWithRawMessage[]`
 ```ts
 {
   data: Record<string, { current: number[]; previous: number[] }>;
@@ -527,6 +581,7 @@ type SystemStats = {
   timestamp: number;
   storage: {
     chatRecordDB: { count: number; size: number };
+    imMessageFtsDB: { count: number; size: number };
     aiDialogueDB: { count: number; size: number };
     vectorDB: { count: number; size: number };
     kvStoreBackend: { count: number; size: number };

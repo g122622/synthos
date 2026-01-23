@@ -129,6 +129,13 @@ const SystemMonitorPage: React.FC = () => {
                             title="聊天记录数据库"
                         />
                         <StorageCard
+                            desc="IM 消息全文检索索引（独立 FTS 数据库文件）"
+                            icon={<CircleIcon color="#22c55e" />}
+                            iconColor="#22c55e" // Green-500
+                            stats={stats?.storage.imMessageFtsDB}
+                            title="聊天消息 FTS 数据库"
+                        />
+                        <StorageCard
                             desc="AI 对话历史与配置"
                             icon={<CircleIcon color="#a78bfa" />}
                             iconColor="#a78bfa" // Purple

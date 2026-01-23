@@ -10,6 +10,7 @@ import { EmailService } from "../services/email/EmailService";
 import { CommonDBService } from "../services/database/infra/CommonDBService";
 import { AgcDbAccessService } from "../services/database/AgcDbAccessService";
 import { ImDbAccessService } from "../services/database/ImDbAccessService";
+import { ImDbFtsService } from "../services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "../services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "../services/database/AgentDbAccessService";
@@ -71,11 +72,27 @@ export function registerImDbAccessService(instance: ImDbAccessService): void {
 }
 
 /**
+ * 注册 ImDbFtsService 实例到 DI 容器
+ * @param instance 已初始化的 ImDbFtsService 实例
+ */
+export function registerImDbFtsService(instance: ImDbFtsService): void {
+    container.registerInstance(COMMON_TOKENS.ImDbFtsService, instance);
+}
+
+/**
  * 从 DI 容器获取 ImDbAccessService 实例
  * @returns ImDbAccessService 实例
  */
 export function getImDbAccessService(): ImDbAccessService {
     return container.resolve<ImDbAccessService>(COMMON_TOKENS.ImDbAccessService);
+}
+
+/**
+ * 从 DI 容器获取 ImDbFtsService 实例
+ * @returns ImDbFtsService 实例
+ */
+export function getImDbFtsService(): ImDbFtsService {
+    return container.resolve<ImDbFtsService>(COMMON_TOKENS.ImDbFtsService);
 }
 
 /**

@@ -13,6 +13,7 @@ export interface SystemStats {
     timestamp: number;
     storage: {
         chatRecordDB: { count: number; size: number };
+        imMessageFtsDB: { count: number; size: number };
         aiDialogueDB: { count: number; size: number };
         vectorDB: { count: number; size: number };
         kvStoreBackend: { count: number; size: number };
@@ -64,6 +65,7 @@ export class SystemMonitorService {
         // 1. 收集存储统计信息
         const storageStats = {
             chatRecordDB: await this.getDirStats(config.commonDatabase.dbBasePath),
+            imMessageFtsDB: await this.getDirStats(config.commonDatabase.ftsDatabase.imMessageDBPath),
             aiDialogueDB: await this.getDirStats(config.webUI_Backend.dbBasePath),
             vectorDB: await this.getDirStats(config.ai.embedding.vectorDBPath),
             kvStoreBackend: await this.getDirStats(config.webUI_Backend.kvStoreBasePath),
@@ -76,6 +78,7 @@ export class SystemMonitorService {
 
         storageStats.totalSize =
             storageStats.chatRecordDB.size +
+            storageStats.imMessageFtsDB.size +
             storageStats.aiDialogueDB.size +
             storageStats.vectorDB.size +
             storageStats.kvStoreBackend.size +

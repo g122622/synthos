@@ -205,7 +205,12 @@ export const GlobalConfigSchema = z.object({
     commonDatabase: z
         .object({
             dbBasePath: z.string().describe("数据库基础路径"),
-            maxDBDuration: z.number().positive().int().describe("最大数据库持续时间（天）")
+            maxDBDuration: z.number().positive().int().describe("最大数据库持续时间（天）"),
+            ftsDatabase: z
+                .object({
+                    imMessageDBPath: z.string().describe("IM 消息全文检索（FTS）数据库路径")
+                })
+                .describe("FTS 数据库配置")
         })
         .describe("公共数据库配置"),
 
