@@ -10,6 +10,7 @@ import GroupsPage from "@/pages/groups";
 import AiChatPage from "@/pages/ai-chat/ai-chat";
 import ConfigPage from "@/pages/config-panel/config";
 import SystemMonitorPage from "@/pages/system-monitor";
+import SystemLogsPage from "@/pages/system-monitor/logs";
 
 function App() {
     return (
@@ -24,6 +25,7 @@ function App() {
             <Route element={<Navigate replace to="/ai-chat" />} path="/rag" />
             <Route element={<ConfigPage />} path="/config" />
             <Route element={<SystemMonitorPage />} path="/system-monitor" />
+            <Route element={<SystemLogsPage />} path="/system-monitor/logs" />
         </Routes>
     );
 }

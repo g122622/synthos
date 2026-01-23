@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardBody, Button } from "@heroui/react";
 import ReactECharts from "echarts-for-react";
 import { FolderOpen } from "lucide-react";
@@ -46,13 +47,14 @@ const ModuleChart: React.FC<{ history: SystemStats[]; moduleName: string; title:
     return <ReactECharts option={option} style={{ height: "200px", width: "100%" }} />;
 };
 
-const StorageCard: React.FC<{ title: string; desc: string; stats: { count: number; size: number } | undefined; iconColor: string; icon: React.ReactNode }> = ({
-    title,
-    desc,
-    stats,
-    iconColor,
-    icon
-}) => (
+const StorageCard: React.FC<{
+    title: string;
+    desc: string;
+    stats: { count: number; size: number } | undefined;
+    iconColor: string;
+    icon: React.ReactNode;
+    onOpen?: () => void;
+}> = ({ title, desc, stats, iconColor, icon, onOpen }) => (
     <Card className="w-full border-none mb-4">
         <CardBody className="flex flex-row items-center justify-between p-4">
             <div className="flex flex-row items-center gap-4">
@@ -66,7 +68,7 @@ const StorageCard: React.FC<{ title: string; desc: string; stats: { count: numbe
                 </div>
             </div>
             <div className="flex gap-2">
-                <Button color="primary" size="sm" startContent={<FolderOpen size={16} />} variant="flat">
+                <Button color="primary" isDisabled={!onOpen} size="sm" startContent={<FolderOpen size={16} />} variant="flat" onClick={onOpen}>
                     打开
                 </Button>
             </div>
@@ -75,6 +77,7 @@ const StorageCard: React.FC<{ title: string; desc: string; stats: { count: numbe
 );
 
 const SystemMonitorPage: React.FC = () => {
+    const navigate = useNavigate();
     const [stats, setStats] = useState<SystemStats | null>(null);
     const [history, setHistory] = useState<SystemStats[]>([]);
 
@@ -169,6 +172,7 @@ const SystemMonitorPage: React.FC = () => {
                             iconColor="#60a5fa" // Blue
                             stats={stats?.storage.logs}
                             title="日志文件"
+                            onOpen={() => navigate("/system-monitor/logs")}
                         />
 
                         {/* 警告区域 */}

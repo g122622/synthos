@@ -24,6 +24,19 @@ const UnixMsSchema = z.preprocess(value => {
     return value;
 }, z.number().int().min(0));
 
+// ==================== Logs ====================
+
+export const LogLevelSchema = z.enum(["debug", "info", "success", "warning", "error"]);
+
+export const QueryLogsSchema = z.object({
+    limit: z.number().int().positive().max(100).optional().default(100),
+    before: UnixMsSchema.optional(),
+    startTime: UnixMsSchema.optional(),
+    endTime: UnixMsSchema.optional(),
+    levels: z.array(LogLevelSchema).optional()
+});
+export type QueryLogsParams = z.infer<typeof QueryLogsSchema>;
+
 // ==================== Chat Message ====================
 
 export const GetChatMessagesByGroupIdSchema = z.object({

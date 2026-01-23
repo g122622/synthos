@@ -19,6 +19,7 @@ import { RagChatHistoryController } from "../controllers/RagChatHistoryControlle
 import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
+import { LogsController } from "../controllers/LogsController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -34,6 +35,7 @@ export const setupApiRoutes = (app: Express): void => {
     const reportController = container.resolve<ReportController>(TOKENS.ReportController);
     const systemMonitorController = container.resolve<SystemMonitorController>(TOKENS.SystemMonitorController);
     const agentController = container.resolve<AgentController>(TOKENS.AgentController);
+    const logsController = container.resolve<LogsController>(TOKENS.LogsController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -254,6 +256,12 @@ export const setupApiRoutes = (app: Express): void => {
     app.get(
         "/api/system/monitor/latest",
         asyncHandler((req, res) => systemMonitorController.getLatestStats(req, res))
+    );
+
+    // ==================== 日志 ====================
+    app.post(
+        "/api/logs/query",
+        asyncHandler((req, res) => logsController.queryLogs(req, res))
     );
 
     app.get(

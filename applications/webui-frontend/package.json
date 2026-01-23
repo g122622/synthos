@@ -41,6 +41,7 @@
     "@react-types/shared": "3.32.1",
     "@tailwindcss/postcss": "4.1.11",
     "@tailwindcss/vite": "4.1.11",
+    "@tanstack/react-virtual": "^3.13.12",
     "clsx": "2.1.1",
     "echarts": "^6.0.0",
     "echarts-for-react": "^3.0.5",
