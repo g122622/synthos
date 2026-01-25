@@ -7,8 +7,8 @@
         "build": "tsc --build",
         "dev": "node ../../scripts/devRunner.cjs --name webui-backend --entry dist/index.js --watch src --kill-port 3002",
         "dev:config-panel": "node ../../scripts/devRunner.cjs --name webui-backend-config --entry dist/configPanelIndex.js --watch src --kill-port 3002",
-        "dev:build": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js",
-        "dev:config-panel:build": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/configPanelIndex.js"
+        "dev:build": "rimraf tsconfig.tsbuildinfo && pnpm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js",
+        "dev:config-panel:build": "rimraf tsconfig.tsbuildinfo && pnpm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/configPanelIndex.js"
     },
     "keywords": [],
     "author": "",
@@ -19,7 +19,7 @@
         "express": "^5.1.0",
         "pidusage": "^4.0.1",
         "ws": "^8.18.0",
-        "zod": "^4.1.13"
+        "zod": "^3.25.76"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",

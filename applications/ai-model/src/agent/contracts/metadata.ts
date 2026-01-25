@@ -28,6 +28,8 @@ export interface AgentResult {
  * Agent 配置选项
  */
 export interface AgentConfig {
+    /** 启用的工具列表（未启用工具对模型不可见/不可调用） */
+    enabledTools?: string[];
     /** 最大工具调用轮数（防止无限循环） */
     maxToolRounds?: number;
     /** LLM 温度参数 */

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --build",
     "dev": "node ../../scripts/devRunner.cjs --name ai-model --entry dist/index.js --watch src --kill-port 7979",
-    "dev:build": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js"
+    "dev:build": "rimraf tsconfig.tsbuildinfo && pnpm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js"
   },
   "keywords": [],
   "author": "",
@@ -14,14 +14,17 @@
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
     "@journeyapps/sqlcipher": "^5.3.1",
-    "@langchain/core": "1.0.0-alpha.6",
-    "@langchain/openai": "0.6.16-rc.0",
+    "@langchain/core": "^1.1.17",
+    "@langchain/langgraph": "^1.1.2",
+    "@langchain/langgraph-checkpoint-sqlite": "^1.0.0",
+    "@langchain/openai": "^1.2.3",
     "axios": "^1.12.2",
     "better-sqlite3": "^11.0.0",
-    "langchain": "1.0.0-alpha.8",
+    "langchain": "^1.2.13",
     "protobufjs": "^7.5.4",
     "sqlite-vec": "^0.1.6",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",

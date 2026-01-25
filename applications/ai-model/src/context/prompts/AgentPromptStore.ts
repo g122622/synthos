@@ -6,7 +6,7 @@ import { CtxTemplateNode } from "../template/CtxTemplate";
 import { ContentUtils } from "../template/ContentUtils";
 import { useMiddleware } from "../middleware/useMiddleware";
 import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
-import type { ToolRegistry } from "../../agent/ToolRegistry";
+import type { ToolDefinition } from "../../agent/contracts/index";
 
 /**
  * Agent 提示词存储
@@ -14,12 +14,12 @@ import type { ToolRegistry } from "../../agent/ToolRegistry";
 export class AgentPromptStore {
     /**
      * 获取 Agent 系统提示词
-     * @param toolRegistry 工具注册表，用于动态获取工具列表
+     * @param toolDefinitions 工具定义列表（通常应为 enabledTools 过滤后的结果）
      * @returns 系统提示词模板
      */
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
-    public static async getAgentSystemPrompt(toolRegistry: ToolRegistry): Promise<CtxTemplateNode> {
+    public static async getAgentSystemPrompt(toolDefinitions: ToolDefinition[]): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
 
         // 1. 角色定义
@@ -32,8 +32,7 @@ export class AgentPromptStore {
                 )
         );
 
-        // 2. 可用工具说明 - 从 ToolRegistry 动态获取
-        const toolDefinitions = toolRegistry.getAllToolDefinitions();
+        // 2. 可用工具说明 - 从调用方传入（通常已按 enabledTools 过滤）
         const toolsList = toolDefinitions
             .map((tool, index) => `${index + 1}. ${tool.function.name}：${tool.function.description}`)
             .join("\n");

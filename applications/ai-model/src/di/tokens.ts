@@ -19,18 +19,18 @@ export const AI_MODEL_TOKENS = {
     RagRPCImpl: Symbol.for("RagRPCImpl"),
 
     // Agent 相关服务
-    /** Agent 执行器 */
-    AgentExecutor: Symbol.for("AgentExecutor"),
-    /** 工具注册表 */
-    ToolRegistry: Symbol.for("ToolRegistry"),
+    /** LangGraph Agent 执行器 */
+    LangGraphAgentExecutor: Symbol.for("LangGraphAgentExecutor"),
+    /** Agent 工具目录（用于 enabledTools 过滤） */
+    AgentToolCatalog: Symbol.for("AgentToolCatalog"),
+    /** LangGraph Checkpointer 服务（SQLite） */
+    LangGraphCheckpointerService: Symbol.for("LangGraphCheckpointerService"),
     /** RAG 搜索工具 */
     RagSearchTool: Symbol.for("RagSearchTool"),
     /** SQL 查询工具 */
     SQLQueryTool: Symbol.for("SQLQueryTool"),
     /** Web 搜索工具 */
     WebSearchTool: Symbol.for("WebSearchTool"),
-    /** Agent 初始化器 */
-    AgentInitializer: Symbol.for("AgentInitializer"),
 
     // 任务处理器
     /** AI 摘要任务处理器 */

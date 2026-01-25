@@ -30,11 +30,11 @@ import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ReportEmailService } from "../services/email/ReportEmailService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
-import { AgentExecutor } from "../agent/AgentExecutor";
 import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
 import { AgentDbAccessService, AgentMessage } from "@root/common/services/database/AgentDbAccessService";
 import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
-import { ToolRegistry } from "../agent/ToolRegistry";
+import { LangGraphAgentExecutor } from "../agent-langgraph/LangGraphAgentExecutor";
+import { AgentToolCatalog } from "../agent-langgraph/AgentToolCatalog";
 import { randomUUID } from "crypto";
 
 /**
@@ -56,9 +56,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder,
         @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService,
-        @inject(AI_MODEL_TOKENS.AgentExecutor) private agentExecutor: AgentExecutor,
+        @inject(AI_MODEL_TOKENS.LangGraphAgentExecutor) private agentExecutor: LangGraphAgentExecutor,
         @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService,
-        @inject(AI_MODEL_TOKENS.ToolRegistry) private toolRegistry: ToolRegistry
+        @inject(AI_MODEL_TOKENS.AgentToolCatalog) private agentToolCatalog: AgentToolCatalog
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -501,8 +501,10 @@ export class RagRPCImpl implements RAGRPCImplementation {
             content: msg.content
         }));
 
-        // 4. 构建系统提示词
-        const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt(this.toolRegistry);
+        // 4. 构建系统提示词（只暴露启用的工具，避免模型乱用/误用）
+        const effectiveEnabledTools = input.enabledTools || ["rag_search", "sql_query"];
+        const enabledToolDefinitions = this.agentToolCatalog.getEnabledToolDefinitions(effectiveEnabledTools);
+        const systemPromptNode = await AgentPromptStore.getAgentSystemPrompt(enabledToolDefinitions);
         const systemPrompt = systemPromptNode.serializeToString();
 
         // 5. 构建工具上下文
@@ -518,6 +520,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             toolContext,
             onChunk,
             {
+                enabledTools: effectiveEnabledTools,
                 maxToolRounds: input.maxToolRounds,
                 temperature: input.temperature,
                 maxTokens: input.maxTokens
