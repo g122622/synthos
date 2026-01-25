@@ -276,6 +276,24 @@ export const setupApiRoutes = (app: Express): void => {
         asyncHandler((req, res) => agentController.ask(req, res))
     );
 
+    // Agent 问答（SSE 流式）
+    app.post(
+        "/api/agent/ask/stream",
+        asyncHandler((req, res) => agentController.askStream(req, res))
+    );
+
+    // LangGraph state history（time-travel）
+    app.post(
+        "/api/agent/state/history",
+        asyncHandler((req, res) => agentController.getStateHistory(req, res))
+    );
+
+    // LangGraph fork from checkpoint（time-travel）
+    app.post(
+        "/api/agent/state/fork",
+        asyncHandler((req, res) => agentController.forkFromCheckpoint(req, res))
+    );
+
     // 获取对话列表
     app.post(
         "/api/agent/conversations",

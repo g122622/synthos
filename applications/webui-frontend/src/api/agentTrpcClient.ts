@@ -1,44 +1,9 @@
 /**
  * Agent tRPC (WebSocket subscription) 客户端
- * 仅用于流式订阅 agentAskStream
+ * 当前仅用于 RAG Ask 的流式订阅（askStream）
  */
 import { createTRPCProxyClient, wsLink } from "@trpc/client";
 import { createWSClient } from "@trpc/client/links/wsLink";
-
-export interface AgentStreamChunk {
-    type: "content" | "tool_start" | "tool_result" | "done" | "error";
-    content?: string;
-    toolName?: string;
-    toolParams?: Record<string, unknown>;
-    toolResult?: unknown;
-    error?: string;
-    isFinished?: boolean;
-
-    conversationId?: string;
-    messageId?: string;
-    toolsUsed?: string[];
-    toolRounds?: number;
-    totalUsage?: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-    };
-    usage?: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-    };
-}
-
-export interface AgentAskStreamInput {
-    question: string;
-    conversationId?: string;
-    sessionId?: string;
-    enabledTools?: Array<"rag_search" | "sql_query" | "web_search">;
-    maxToolRounds?: number;
-    temperature?: number;
-    maxTokens?: number;
-}
 
 export interface AskStreamChunk {
     type: "content" | "references" | "done" | "error";
@@ -100,16 +65,6 @@ export function getAgentTrpcClient() {
     });
 
     return _client;
-}
-
-export function subscribeAgentAskStream(input: AgentAskStreamInput, onData: (chunk: AgentStreamChunk) => void, onError: (err: unknown) => void, onComplete: () => void) {
-    const client = getAgentTrpcClient();
-
-    return client.agentAskStream.subscribe(input, {
-        onData,
-        onError,
-        onComplete
-    });
 }
 
 export function subscribeAskStream(input: AskStreamInput, onData: (chunk: AskStreamChunk) => void, onError: (err: unknown) => void, onComplete: () => void) {

@@ -3,9 +3,34 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
-import type { AgentAskRequest, AgentAskResponse, AgentConversation, AgentMessage } from "@/api/agentApi";
+import type { AgentAskRequest, AgentAskResponse, AgentConversation, AgentEvent, AgentMessage } from "@/api/agentApi";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const delayWithAbort = async (ms: number, signal: AbortSignal): Promise<void> => {
+    if (signal.aborted) {
+        return;
+    }
+
+    await new Promise<void>(resolve => {
+        const timer = setTimeout(() => {
+            cleanup();
+            resolve();
+        }, ms);
+
+        const cleanup = () => {
+            clearTimeout(timer);
+            signal.removeEventListener("abort", onAbort);
+        };
+
+        const onAbort = () => {
+            cleanup();
+            resolve();
+        };
+
+        signal.addEventListener("abort", onAbort, { once: true });
+    });
+};
 
 const createId = (prefix: string) => {
     return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
@@ -157,6 +182,140 @@ export const mockAgentAsk = async (request: AgentAskRequest): Promise<ApiRespons
         },
         message: ""
     };
+};
+
+/**
+ * 模拟 Agent SSE 流式问答
+ * 用于前端 Mock 模式下展示新事件协议（token/tool_call/tool_result/done/error）。
+ */
+export const mockAgentAskStream = async (
+    request: AgentAskRequest,
+    options: {
+        signal: AbortSignal;
+        onEvent: (evt: AgentEvent) => void;
+    }
+): Promise<void> => {
+    const conversationId = request.conversationId || createId("conv");
+
+    ensureConversation(conversationId, request.sessionId);
+
+    const userMessage: AgentMessage = {
+        id: createId("msg_user"),
+        conversationId,
+        role: "user",
+        content: request.question,
+        timestamp: now()
+    };
+
+    appendMessage(userMessage);
+
+    const answer = buildAssistantAnswer(request.question);
+    const assistantMessageId = createId("msg_assistant");
+
+    const emit = (evt: AgentEvent) => {
+        if (options.signal.aborted) {
+            return;
+        }
+        options.onEvent(evt);
+    };
+
+    // 先模拟一次工具调用（如果允许）
+    const enabled = request.enabledTools || ["rag_search", "sql_query"];
+    const firstTool = enabled[0];
+
+    if (firstTool) {
+        const toolCallId = createId("tool_call");
+
+        emit({
+            type: "tool_call",
+            ts: now(),
+            conversationId,
+            toolCallId,
+            toolName: firstTool,
+            toolArgs: { query: request.question }
+        });
+        await delayWithAbort(300, options.signal);
+        emit({
+            type: "tool_result",
+            ts: now(),
+            conversationId,
+            toolCallId,
+            toolName: firstTool,
+            result: {
+                mock: true,
+                note: "这是 Mock 工具结果，仅用于 UI 展示",
+                items: [
+                    { title: "示例条目 A", score: 0.81 },
+                    { title: "示例条目 B", score: 0.67 }
+                ]
+            }
+        });
+        await delayWithAbort(200, options.signal);
+    }
+
+    // token 流式输出
+    const chunks = answer.content.split(/(\s+)/).filter(Boolean);
+    let content = "";
+
+    for (const part of chunks) {
+        if (options.signal.aborted) {
+            return;
+        }
+        await delayWithAbort(40 + Math.random() * 40, options.signal);
+        content += part;
+        emit({
+            type: "token",
+            ts: now(),
+            conversationId,
+            content: part
+        });
+    }
+
+    const tokenUsage = {
+        promptTokens: Math.floor(80 + Math.random() * 120),
+        completionTokens: Math.floor(120 + content.length / 2),
+        totalTokens: 0
+    };
+
+    tokenUsage.totalTokens = tokenUsage.promptTokens + tokenUsage.completionTokens;
+
+    const assistantMessage: AgentMessage = {
+        id: assistantMessageId,
+        conversationId,
+        role: "assistant",
+        content,
+        timestamp: now(),
+        toolsUsed: answer.toolsUsed,
+        toolRounds: answer.toolRounds,
+        tokenUsage
+    };
+
+    appendMessage(assistantMessage);
+
+    // 标题：用第一条问题做摘要
+    const convIdx = mockConversations.findIndex(c => c.id === conversationId);
+
+    if (convIdx >= 0) {
+        const title = request.question.trim().slice(0, 20) || "新的对话";
+
+        mockConversations[convIdx] = { ...mockConversations[convIdx], title };
+        mockConversations.sort((a, b) => b.updatedAt - a.updatedAt);
+    }
+
+    emit({
+        type: "done",
+        ts: now(),
+        conversationId,
+        messageId: assistantMessageId,
+        content,
+        toolsUsed: answer.toolsUsed,
+        toolRounds: answer.toolRounds,
+        totalUsage: {
+            promptTokens: tokenUsage.promptTokens,
+            completionTokens: tokenUsage.completionTokens,
+            totalTokens: tokenUsage.totalTokens
+        }
+    });
 };
 
 /**

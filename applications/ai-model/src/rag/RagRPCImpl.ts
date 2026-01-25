@@ -543,6 +543,18 @@ export class RagRPCImpl implements RAGRPCImplementation {
         };
         await this.agentDB.addMessage(assistantMessage);
 
+        // 8. done 事件：由落库后统一发出（确保 messageId 可用）
+        onChunk({
+            type: "done",
+            ts: Date.now(),
+            conversationId,
+            messageId: assistantMessageId,
+            content: result.content,
+            toolsUsed: result.toolsUsed,
+            toolRounds: result.toolRounds,
+            totalUsage: result.totalUsage
+        });
+
         this.LOGGER.success(`Agent 问答完成: ${conversationId}`);
 
         return {
@@ -553,5 +565,40 @@ export class RagRPCImpl implements RAGRPCImplementation {
             toolRounds: result.toolRounds,
             totalUsage: result.totalUsage
         };
+    }
+
+    /**
+     * 获取 LangGraph checkpoint 历史（分页）
+     */
+    public async agentGetStateHistory(input: {
+        conversationId: string;
+        limit: number;
+        beforeCheckpointId?: string;
+    }): Promise<any> {
+        return this.agentExecutor.getStateHistory({
+            conversationId: input.conversationId,
+            limit: input.limit,
+            beforeCheckpointId: input.beforeCheckpointId
+        });
+    }
+
+    /**
+     * 从指定 checkpoint fork 新 thread
+     */
+    public async agentForkFromCheckpoint(input: {
+        conversationId: string;
+        checkpointId: string;
+        newConversationId?: string;
+    }): Promise<any> {
+        const forked = await this.agentExecutor.forkFromCheckpoint({
+            conversationId: input.conversationId,
+            checkpointId: input.checkpointId,
+            newConversationId: input.newConversationId
+        });
+
+        // 为了让前端历史列表可见，这里同时创建一条新的 conversation 记录（不复制消息）。
+        await this.agentDB.createConversation(forked.conversationId, `Fork of ${input.conversationId}`, undefined);
+
+        return forked;
     }
 }

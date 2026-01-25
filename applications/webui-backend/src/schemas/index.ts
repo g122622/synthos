@@ -223,6 +223,26 @@ export const AgentAskRequestSchema = z.object({
 });
 export type AgentAskRequestParams = z.infer<typeof AgentAskRequestSchema>;
 
+// SSE：Agent 问答（流式事件）
+export const AgentAskStreamRequestSchema = AgentAskRequestSchema;
+export type AgentAskStreamRequestParams = z.infer<typeof AgentAskStreamRequestSchema>;
+
+// LangGraph checkpoint history
+export const AgentGetStateHistoryRequestSchema = z.object({
+    conversationId: z.string({ message: "缺少conversationId参数" }).min(1, "conversationId不能为空"),
+    limit: z.number().int().positive().max(100).default(20),
+    beforeCheckpointId: z.string().optional()
+});
+export type AgentGetStateHistoryRequestParams = z.infer<typeof AgentGetStateHistoryRequestSchema>;
+
+// Fork from checkpoint
+export const AgentForkFromCheckpointRequestSchema = z.object({
+    conversationId: z.string({ message: "缺少conversationId参数" }).min(1, "conversationId不能为空"),
+    checkpointId: z.string({ message: "缺少checkpointId参数" }).min(1, "checkpointId不能为空"),
+    newConversationId: z.string().optional()
+});
+export type AgentForkFromCheckpointRequestParams = z.infer<typeof AgentForkFromCheckpointRequestSchema>;
+
 export const AgentGetConversationsSchema = z.object({
     sessionId: z.string().optional(),
     beforeUpdatedAt: z.number().optional(),

@@ -9,6 +9,14 @@ export default defineConfig({
     server: {
         allowedHosts: ["intimiste-patriotically-addyson.ngrok-free.dev"],
         proxy: {
+            // SSE 长连接：禁用超时，避免首 token 慢或长时间无事件导致 504
+            "/api/agent/ask/stream": {
+                target: "http://localhost:3002",
+                changeOrigin: true,
+                secure: false,
+                timeout: 0,
+                proxyTimeout: 0
+            },
             "/api": {
                 target: "http://localhost:3002",
                 changeOrigin: true,

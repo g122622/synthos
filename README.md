@@ -51,6 +51,14 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 - **日报自动生成**：每日汇总高价值讨论内容
 - **多群组管理**：灵活配置不同群组的分析策略
 
+### Agent 对话（流式）
+
+- WebUI 对外提供 Agent 问答能力，并支持 **REST SSE（`POST /api/agent/ask/stream`）** 全流式输出。
+- 事件协议为稳定业务事件：`token` / `tool_call` / `tool_result` / `done` / `error`（用于前端展示 token 与工具调用过程）。
+- 单实例并发保护：同一 `conversationId` 不允许并发双发（冲突时返回 HTTP `409`）。
+
+接口细节（请求参数、事件格式、time-travel 接口等）见：[docs/接口文档/API文档.md](./docs/接口文档/API文档.md)
+
 > **TODO愿望单**  
 >
 > - [TODO] 转发聊天记录跟随  

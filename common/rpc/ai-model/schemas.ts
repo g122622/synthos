@@ -92,34 +92,61 @@ export const AgentAskInputSchema = z.object({
     maxTokens: z.number().int().positive().default(2048)
 });
 
-export const AgentStreamChunkSchema = z.object({
-    type: z.enum(["content", "tool_start", "tool_result", "done", "error"]),
-    content: z.string().optional(),
-    toolName: z.string().optional(),
-    toolParams: z.record(z.unknown()).optional(),
-    toolResult: z.unknown().optional(),
-    error: z.string().optional(),
-    isFinished: z.boolean().optional(),
-    // done 时可带回最终结果的关键字段，便于客户端只依赖 stream 也能完整落地
-    conversationId: z.string().optional(),
+// ==================== Agent SSE 事件协议（稳定业务事件）====================
+
+export const AgentTokenUsageSchema = z.object({
+    promptTokens: z.number(),
+    completionTokens: z.number(),
+    totalTokens: z.number()
+});
+
+export const AgentEventBaseSchema = z.object({
+    // 统一使用 UNIX 毫秒级时间戳
+    ts: z.number(),
+    // conversationId 对应 LangGraph thread_id
+    conversationId: z.string()
+});
+
+export const AgentTokenEventSchema = AgentEventBaseSchema.extend({
+    type: z.literal("token"),
+    content: z.string()
+});
+
+export const AgentToolCallEventSchema = AgentEventBaseSchema.extend({
+    type: z.literal("tool_call"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    toolArgs: z.unknown()
+});
+
+export const AgentToolResultEventSchema = AgentEventBaseSchema.extend({
+    type: z.literal("tool_result"),
+    toolCallId: z.string(),
+    toolName: z.string(),
+    result: z.unknown()
+});
+
+export const AgentDoneEventSchema = AgentEventBaseSchema.extend({
+    type: z.literal("done"),
     messageId: z.string().optional(),
+    content: z.string().optional(),
     toolsUsed: z.array(z.string()).optional(),
     toolRounds: z.number().optional(),
-    totalUsage: z
-        .object({
-            promptTokens: z.number(),
-            completionTokens: z.number(),
-            totalTokens: z.number()
-        })
-        .optional(),
-    usage: z
-        .object({
-            promptTokens: z.number(),
-            completionTokens: z.number(),
-            totalTokens: z.number()
-        })
-        .optional()
+    totalUsage: AgentTokenUsageSchema.optional()
 });
+
+export const AgentErrorEventSchema = AgentEventBaseSchema.extend({
+    type: z.literal("error"),
+    error: z.string()
+});
+
+export const AgentEventSchema = z.discriminatedUnion("type", [
+    AgentTokenEventSchema,
+    AgentToolCallEventSchema,
+    AgentToolResultEventSchema,
+    AgentDoneEventSchema,
+    AgentErrorEventSchema
+]);
 
 export const AgentAskOutputSchema = z.object({
     conversationId: z.string(),
@@ -134,6 +161,36 @@ export const AgentAskOutputSchema = z.object({
             totalTokens: z.number()
         })
         .optional()
+});
+
+// ==================== Agent time-travel / state history ====================
+
+export const AgentGetStateHistoryInputSchema = z.object({
+    conversationId: z.string().min(1, "conversationId 不能为空"),
+    limit: z.number().int().positive().max(100).default(20),
+    beforeCheckpointId: z.string().optional()
+});
+
+export const AgentStateHistoryItemSchema = z.object({
+    checkpointId: z.string(),
+    createdAt: z.number(),
+    next: z.array(z.string()),
+    metadata: z.unknown().optional()
+});
+
+export const AgentGetStateHistoryOutputSchema = z.object({
+    items: z.array(AgentStateHistoryItemSchema),
+    nextCursor: z.string().optional()
+});
+
+export const AgentForkFromCheckpointInputSchema = z.object({
+    conversationId: z.string().min(1, "conversationId 不能为空"),
+    checkpointId: z.string().min(1, "checkpointId 不能为空"),
+    newConversationId: z.string().optional()
+});
+
+export const AgentForkFromCheckpointOutputSchema = z.object({
+    conversationId: z.string()
 });
 
 // ========== Agent 历史分页接口 ==========
@@ -190,8 +247,15 @@ export type SendReportEmailInput = z.infer<typeof SendReportEmailInputSchema>;
 export type SendReportEmailOutput = z.infer<typeof SendReportEmailOutputSchema>;
 
 export type AgentAskInput = z.infer<typeof AgentAskInputSchema>;
-export type AgentStreamChunk = z.infer<typeof AgentStreamChunkSchema>;
+export type AgentTokenUsage = z.infer<typeof AgentTokenUsageSchema>;
+export type AgentEvent = z.infer<typeof AgentEventSchema>;
 export type AgentAskOutput = z.infer<typeof AgentAskOutputSchema>;
+
+export type AgentGetStateHistoryInput = z.infer<typeof AgentGetStateHistoryInputSchema>;
+export type AgentStateHistoryItem = z.infer<typeof AgentStateHistoryItemSchema>;
+export type AgentGetStateHistoryOutput = z.infer<typeof AgentGetStateHistoryOutputSchema>;
+export type AgentForkFromCheckpointInput = z.infer<typeof AgentForkFromCheckpointInputSchema>;
+export type AgentForkFromCheckpointOutput = z.infer<typeof AgentForkFromCheckpointOutputSchema>;
 
 export type AgentConversationItem = z.infer<typeof AgentConversationItemSchema>;
 export type AgentMessageItem = z.infer<typeof AgentMessageItemSchema>;

@@ -7,7 +7,7 @@ import type { RagChatHistoryService, ReferenceItem as RagReferenceItem } from ".
 import {
     AgentAskInputSchema,
     AskInputSchema,
-    AgentStreamChunk,
+    AgentEvent,
     AskStreamChunk
 } from "@root/common/rpc/ai-model/schemas";
 
@@ -15,7 +15,7 @@ const t = initTRPC.create();
 
 export const appRouter = t.router({
     agentAskStream: t.procedure.input(AgentAskInputSchema).subscription(({ input }) => {
-        return observable<AgentStreamChunk>(emit => {
+        return observable<AgentEvent>(emit => {
             const client = container.resolve<RAGClient>(TOKENS.RAGClient);
 
             // 重要：需要处理类型匹配，因为 RPC Client 和 Subscription 类型定义虽然相同，但 TS 可能会报错

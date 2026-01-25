@@ -7,8 +7,7 @@ import { Button, Spinner, Textarea, Card, CardBody, Chip, cn } from "@heroui/rea
 import { Send, Bot, User, Wrench } from "lucide-react";
 import { motion } from "framer-motion";
 
-import { AgentMessage, getAgentMessages } from "@/api/agentApi";
-import { subscribeAgentAskStream } from "@/api/agentTrpcClient";
+import { AgentEvent, AgentMessage, agentAskStream, getAgentMessages } from "@/api/agentApi";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 interface AgentChatProps {
@@ -106,7 +105,18 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
     const [historyLoading, setHistoryLoading] = useState(false);
     const [historyHasMore, setHistoryHasMore] = useState(false);
 
-    const unsubscribeRef = useRef<{ unsubscribe: () => void } | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
+
+    type ToolTrace = {
+        toolCallId: string;
+        toolName: string;
+        toolArgs: unknown;
+        result?: unknown;
+        startedAt: number;
+        finishedAt?: number;
+    };
+
+    const [toolTraces, setToolTraces] = useState<ToolTrace[]>([]);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -123,10 +133,12 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
     useEffect(() => {
         setCurrentConversationId(conversationId);
 
-        // 清理正在进行的订阅
-        if (unsubscribeRef.current) {
-            unsubscribeRef.current.unsubscribe();
-            unsubscribeRef.current = null;
+        setToolTraces([]);
+
+        // 清理正在进行的 SSE
+        if (abortRef.current) {
+            abortRef.current.abort();
+            abortRef.current = null;
         }
 
         if (!conversationId) {
@@ -212,13 +224,126 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
         setMessages(prev => [...prev, userMessage, assistantTempMessage]);
 
         try {
-            // 清理之前的订阅
-            if (unsubscribeRef.current) {
-                unsubscribeRef.current.unsubscribe();
-                unsubscribeRef.current = null;
+            // 清理之前的 SSE
+            if (abortRef.current) {
+                abortRef.current.abort();
+                abortRef.current = null;
             }
 
-            const subscription = subscribeAgentAskStream(
+            setToolTraces([]);
+
+            const abortController = new AbortController();
+
+            abortRef.current = abortController;
+
+            const handleEvent = (evt: AgentEvent) => {
+                if (evt.type === "token") {
+                    setMessages(prev =>
+                        prev.map(m => {
+                            if (m.id !== assistantTempId) {
+                                return m;
+                            }
+
+                            return {
+                                ...m,
+                                content: (m.content || "") + evt.content
+                            };
+                        })
+                    );
+
+                    return;
+                }
+
+                if (evt.type === "tool_call") {
+                    setToolTraces(prev => {
+                        if (prev.some(t => t.toolCallId === evt.toolCallId)) {
+                            return prev;
+                        }
+
+                        return [
+                            ...prev,
+                            {
+                                toolCallId: evt.toolCallId,
+                                toolName: evt.toolName,
+                                toolArgs: evt.toolArgs,
+                                startedAt: evt.ts
+                            }
+                        ];
+                    });
+
+                    return;
+                }
+
+                if (evt.type === "tool_result") {
+                    setToolTraces(prev =>
+                        prev.map(t => {
+                            if (t.toolCallId !== evt.toolCallId) {
+                                return t;
+                            }
+
+                            return {
+                                ...t,
+                                result: evt.result,
+                                finishedAt: evt.ts
+                            };
+                        })
+                    );
+
+                    return;
+                }
+
+                if (evt.type === "error") {
+                    setMessages(prev =>
+                        prev.map(m => {
+                            if (m.id !== assistantTempId) {
+                                return m;
+                            }
+
+                            return {
+                                ...m,
+                                content: `发生错误: ${evt.error || "未知错误"}`
+                            };
+                        })
+                    );
+                    setLoading(false);
+
+                    return;
+                }
+
+                if (evt.type === "done") {
+                    setCurrentConversationId(evt.conversationId);
+                    onConversationIdChange?.(evt.conversationId);
+
+                    setMessages(prev =>
+                        prev.map(m => {
+                            if (m.id === userMessageId) {
+                                return {
+                                    ...m,
+                                    conversationId: evt.conversationId
+                                };
+                            }
+
+                            if (m.id === assistantTempId) {
+                                return {
+                                    ...m,
+                                    id: evt.messageId || m.id,
+                                    conversationId: evt.conversationId,
+                                    toolsUsed: evt.toolsUsed,
+                                    toolRounds: evt.toolRounds,
+                                    tokenUsage: evt.totalUsage,
+                                    content: evt.content ?? m.content
+                                };
+                            }
+
+                            return m;
+                        })
+                    );
+
+                    setLoading(false);
+                }
+            };
+
+            void agentAskStream(
                 {
                     question: userQuestion,
                     conversationId: currentConversationId,
@@ -228,94 +353,26 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
                     temperature: 0.7,
                     maxTokens: 2048
                 },
-                chunk => {
-                    if (chunk.type === "content" && chunk.content) {
-                        setMessages(prev =>
-                            prev.map(m => {
-                                if (m.id !== assistantTempId) {
-                                    return m;
-                                }
-
-                                return {
-                                    ...m,
-                                    content: (m.content || "") + chunk.content
-                                };
-                            })
-                        );
-                    }
-
-                    if (chunk.type === "error") {
-                        setMessages(prev =>
-                            prev.map(m => {
-                                if (m.id !== assistantTempId) {
-                                    return m;
-                                }
-
-                                return {
-                                    ...m,
-                                    content: `❌ 发生错误: ${chunk.error || "未知错误"}`
-                                };
-                            })
-                        );
-                        setLoading(false);
-                    }
-
-                    if (chunk.type === "done") {
-                        if (chunk.conversationId) {
-                            setCurrentConversationId(chunk.conversationId);
-                            onConversationIdChange?.(chunk.conversationId);
+                {
+                    signal: abortController.signal,
+                    onEvent: handleEvent
+                }
+            ).catch(err => {
+                console.error("Agent SSE 出错:", err);
+                setMessages(prev =>
+                    prev.map(m => {
+                        if (m.id !== assistantTempId) {
+                            return m;
                         }
 
-                        setMessages(prev =>
-                            prev.map(m => {
-                                if (m.id === userMessageId) {
-                                    return {
-                                        ...m,
-                                        conversationId: chunk.conversationId || m.conversationId
-                                    };
-                                }
-
-                                if (m.id === assistantTempId) {
-                                    return {
-                                        ...m,
-                                        id: chunk.messageId || m.id,
-                                        conversationId: chunk.conversationId || m.conversationId,
-                                        toolsUsed: chunk.toolsUsed,
-                                        toolRounds: chunk.toolRounds,
-                                        tokenUsage: chunk.totalUsage
-                                    };
-                                }
-
-                                return m;
-                            })
-                        );
-
-                        setLoading(false);
-                    }
-                },
-                err => {
-                    console.error("Agent 流式订阅出错:", err);
-                    setMessages(prev =>
-                        prev.map(m => {
-                            if (m.id !== assistantTempId) {
-                                return m;
-                            }
-
-                            return {
-                                ...m,
-                                content: `❌ 网络错误: ${err instanceof Error ? err.message : String(err)}`
-                            };
-                        })
-                    );
-                    setLoading(false);
-                },
-                () => {
-                    // complete
-                    unsubscribeRef.current = null;
-                }
-            );
-
-            unsubscribeRef.current = subscription;
+                        return {
+                            ...m,
+                            content: `网络错误: ${err instanceof Error ? err.message : String(err)}`
+                        };
+                    })
+                );
+                setLoading(false);
+            });
         } catch (error) {
             console.error("Agent 问答出错:", error);
 
@@ -383,6 +440,48 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
                         {messages.map(msg => (
                             <AgentMessageItem key={msg.id} message={msg} />
                         ))}
+
+                        {/* 工具调用审阅展示：只展示，不中断 */}
+                        {loading && toolTraces.length > 0 && (
+                            <div className="mb-6">
+                                <Card className="bg-default-50 shadow-sm">
+                                    <CardBody className="p-4">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Wrench className="w-4 h-4 text-default-500" />
+                                            <span className="text-xs text-default-500">工具调用过程（审阅）</span>
+                                        </div>
+
+                                        <div className="flex flex-col gap-3">
+                                            {toolTraces.map(t => (
+                                                <div key={t.toolCallId} className="border border-default-200 rounded-lg p-3">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="text-sm font-medium text-default-700 break-words">{t.toolName}</div>
+                                                        <div className="text-xs text-default-400 flex-shrink-0">{t.finishedAt ? "已完成" : "执行中"}</div>
+                                                    </div>
+
+                                                    <div className="mt-2">
+                                                        <div className="text-xs text-default-500 mb-1">args</div>
+                                                        <pre className="text-xs whitespace-pre-wrap break-words bg-default-100 rounded-md p-2 overflow-x-auto">
+                                                            {JSON.stringify(t.toolArgs, null, 2)}
+                                                        </pre>
+                                                    </div>
+
+                                                    {t.finishedAt !== undefined && (
+                                                        <div className="mt-2">
+                                                            <div className="text-xs text-default-500 mb-1">result</div>
+                                                            <pre className="text-xs whitespace-pre-wrap break-words bg-default-100 rounded-md p-2 overflow-x-auto">
+                                                                {JSON.stringify(t.result, null, 2)}
+                                                            </pre>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </CardBody>
+                                </Card>
+                            </div>
+                        )}
+
                         <div ref={messagesEndRef} />
                     </>
                 )}

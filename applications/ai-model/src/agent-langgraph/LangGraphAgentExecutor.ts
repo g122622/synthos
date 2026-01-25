@@ -6,8 +6,11 @@ import "reflect-metadata";
 import util from "util";
 import { injectable, inject } from "tsyringe";
 import { Annotation, StateGraph, messagesStateReducer, START, END } from "@langchain/langgraph";
+import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
+import { DynamicStructuredTool } from "@langchain/core/tools";
 import Logger from "@root/common/util/Logger";
+import { z } from "zod";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import type {
     AgentConfig,
@@ -235,6 +238,7 @@ export class LangGraphAgentExecutor {
         messages: BaseMessage[];
         tools: any[];
         enabledTools: string[];
+        conversationId: string;
         onChunk: (chunk: AgentStreamChunk) => void;
         temperature: number | undefined;
         maxTokens: number | undefined;
@@ -243,6 +247,10 @@ export class LangGraphAgentExecutor {
         let fullContent = "";
         const toolCalls: ToolCall[] = [];
         let lastChunk: any = null;
+
+        const emittedToolCallKeys = new Set<string>();
+        const seenToolCallIds = new Set<string>();
+        const seenToolCallNoIdKeys = new Set<string>();
 
         const stream = await this.textGeneratorService.streamWithMessages(
             undefined,
@@ -262,15 +270,63 @@ export class LangGraphAgentExecutor {
 
             if (typeof chunk.content === "string" && chunk.content) {
                 fullContent += chunk.content;
-                args.onChunk({ type: "content", content: chunk.content });
+                args.onChunk({
+                    type: "token",
+                    ts: Date.now(),
+                    conversationId: args.conversationId,
+                    content: chunk.content
+                });
             }
 
             if (chunk.tool_calls && chunk.tool_calls.length > 0) {
                 for (const tc of chunk.tool_calls) {
+                    const toolCallId = tc.id || crypto.randomUUID();
+                    const toolArgs = (tc.args || {}) as Record<string, unknown>;
+
+                    if (tc.id) {
+                        if (seenToolCallIds.has(tc.id)) {
+                            continue;
+                        }
+                        seenToolCallIds.add(tc.id);
+                    } else {
+                        // 仅在缺失 id 时用 name+args 去重，避免流式增量导致重复执行
+                        let callKey = "";
+                        try {
+                            callKey = `${tc.name}::${JSON.stringify(toolArgs)}`;
+                        } catch {
+                            callKey = `${tc.name}`;
+                        }
+
+                        if (seenToolCallNoIdKeys.has(callKey)) {
+                            continue;
+                        }
+                        seenToolCallNoIdKeys.add(callKey);
+                    }
+
+                    // 注意：stream 过程中 tool_calls 可能重复上报，这里做一次去重
+                    let key = "";
+                    try {
+                        key = `${tc.name}::${JSON.stringify(toolArgs)}::${toolCallId}`;
+                    } catch {
+                        key = `${tc.name}::${toolCallId}`;
+                    }
+
+                    if (!emittedToolCallKeys.has(key)) {
+                        emittedToolCallKeys.add(key);
+                        args.onChunk({
+                            type: "tool_call",
+                            ts: Date.now(),
+                            conversationId: args.conversationId,
+                            toolCallId,
+                            toolName: tc.name,
+                            toolArgs
+                        });
+                    }
+
                     toolCalls.push({
-                        id: tc.id || crypto.randomUUID(),
+                        id: toolCallId,
                         name: tc.name,
-                        arguments: tc.args as Record<string, unknown>
+                        arguments: toolArgs
                     });
                 }
             }
@@ -285,6 +341,18 @@ export class LangGraphAgentExecutor {
                 const filtered = parsed.filter(tc => args.enabledTools.includes(tc.name));
                 if (filtered.length > 0) {
                     this.LOGGER.info(`从文本中解析到 ${filtered.length} 个工具调用(已按 enabledTools 过滤)`);
+
+                    for (const tc of filtered) {
+                        args.onChunk({
+                            type: "tool_call",
+                            ts: Date.now(),
+                            conversationId: args.conversationId,
+                            toolCallId: tc.id,
+                            toolName: tc.name,
+                            toolArgs: tc.arguments
+                        });
+                    }
+
                     toolCalls.push(...filtered);
                 }
             }
@@ -311,6 +379,9 @@ export class LangGraphAgentExecutor {
 
         const maxToolRounds = config.maxToolRounds ?? 5;
         const enabledTools = config.enabledTools ?? [];
+
+        // thread_id 必须稳定：优先使用 conversationId。RagRPCImpl 会保证 conversationId 已存在。
+        const conversationId = String((context as any).conversationId || crypto.randomUUID());
 
         const initialUsage: TokenUsage = this._createEmptyUsage();
 
@@ -357,6 +428,7 @@ export class LangGraphAgentExecutor {
                 messages: promptMessages,
                 tools,
                 enabledTools: state.enabledTools,
+                conversationId,
                 onChunk,
                 temperature: config.temperature,
                 maxTokens: config.maxTokens,
@@ -379,7 +451,34 @@ export class LangGraphAgentExecutor {
             };
         };
 
-        const toolNode = async (state: AgentGraphState): Promise<Partial<AgentGraphState>> => {
+        // 使用 LangGraph 官方 ToolNode 执行工具，避免自造轮子。
+        const enabledToolDefinitions = this.agentToolCatalog.getEnabledToolDefinitions(enabledTools);
+        const langChainTools = enabledToolDefinitions.map(def => {
+            const toolName = def.function.name;
+
+            return new DynamicStructuredTool({
+                name: toolName,
+                description: def.function.description,
+                // 这里不做强校验：具体参数校验由各 tool 自己处理/或由 SQL/搜索层兜底报错。
+                schema: z.object({}).passthrough(),
+                func: async (input: Record<string, unknown>) => {
+                    if (config.abortSignal?.aborted) {
+                        throw new Error("执行被用户中止");
+                    }
+
+                    try {
+                        return await this.agentToolCatalog.executeTool(toolName, input, context, enabledTools);
+                    } catch (e) {
+                        const errorMessage = e instanceof Error ? e.message : String(e);
+                        return { error: errorMessage };
+                    }
+                }
+            });
+        });
+
+        const lgToolNode = new ToolNode(langChainTools);
+
+        const toolsNode = async (state: AgentGraphState): Promise<Partial<AgentGraphState>> => {
             const lastMessage = state.messages.at(-1);
             if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
                 return {};
@@ -390,50 +489,50 @@ export class LangGraphAgentExecutor {
                 return {};
             }
 
-            const toolMessages: ToolMessage[] = [];
-            let toolsUsed = state.runToolsUsed;
-
+            const toolCallIdToName = new Map<string, string>();
             for (const tc of toolCalls) {
-                if (config.abortSignal?.aborted) {
-                    throw new Error("执行被用户中止");
+                if (tc?.id && tc?.name) {
+                    toolCallIdToName.set(String(tc.id), String(tc.name));
+                }
+            }
+
+            // 审阅展示：tool_call 事件已由 LLM streaming 发出。这里补齐 toolsUsed 统计。
+            let toolsUsed = state.runToolsUsed;
+            for (const tc of toolCalls) {
+                toolsUsed = this._addUnique(toolsUsed, tc.name);
+            }
+
+            const output = (await lgToolNode.invoke({ messages: state.messages })) as any;
+            const produced = Array.isArray(output) ? output : output?.messages;
+            const toolMessages = (produced || []).filter((m: any) => ToolMessage.isInstance(m)) as ToolMessage[];
+
+            // 将 ToolNode 的执行结果转换为稳定业务事件 tool_result（用于前端审阅展示）
+            for (const tm of toolMessages) {
+                const anyMsg = tm as any;
+                const toolCallId = String(anyMsg?.tool_call_id || "");
+                if (!toolCallId) {
+                    continue;
                 }
 
-                const toolName = tc.name;
-                const toolArgs = (tc.args || {}) as Record<string, unknown>;
-                const toolCallId = tc.id || crypto.randomUUID();
+                const toolName = toolCallIdToName.get(toolCallId) || String(anyMsg?.name || "");
 
-                // tool_start
-                onChunk({ type: "tool_start", toolName, toolParams: toolArgs });
-
-                try {
-                    const result = await this.agentToolCatalog.executeTool(
-                        toolName,
-                        toolArgs,
-                        state.toolContext,
-                        state.enabledTools
-                    );
-
-                    toolsUsed = this._addUnique(toolsUsed, toolName);
-
-                    toolMessages.push(
-                        new ToolMessage({
-                            content: JSON.stringify(result),
-                            tool_call_id: toolCallId
-                        })
-                    );
-
-                    // tool_result
-                    onChunk({ type: "tool_result", toolName, toolResult: result });
-                } catch (e) {
-                    const errorMessage = e instanceof Error ? e.message : String(e);
-                    toolMessages.push(
-                        new ToolMessage({
-                            content: JSON.stringify({ error: errorMessage }),
-                            tool_call_id: toolCallId
-                        })
-                    );
-                    onChunk({ type: "tool_result", toolName, toolResult: { error: errorMessage } });
+                let result: unknown = anyMsg?.content;
+                if (typeof result === "string") {
+                    try {
+                        result = JSON.parse(result);
+                    } catch {
+                        // keep raw string
+                    }
                 }
+
+                onChunk({
+                    type: "tool_result",
+                    ts: Date.now(),
+                    conversationId,
+                    toolCallId,
+                    toolName,
+                    result
+                });
             }
 
             return {
@@ -467,18 +566,15 @@ export class LangGraphAgentExecutor {
 
         const workflow = new StateGraph(AgentState)
             .addNode("llmCall", llmCall as any)
-            .addNode("toolNode", toolNode as any)
+            .addNode("tools", toolsNode as any)
             .addNode("maxRounds", maxRoundsNode as any)
             .addEdge(START, "llmCall")
-            .addConditionalEdges("llmCall", shouldContinue as any, ["toolNode", "maxRounds", END])
-            .addEdge("toolNode", "llmCall")
+            .addConditionalEdges("llmCall", shouldContinue as any, ["tools", "maxRounds", END])
+            .addEdge("tools", "llmCall")
             .addEdge("maxRounds", END);
 
         const checkpointer = await this.checkpointerService.getCheckpointer();
         const graph = workflow.compile({ checkpointer });
-
-        // 使用 conversationId 作为 thread_id（LangGraph 的持久化主键）
-        const threadId = String(context.conversationId || context.sessionId || crypto.randomUUID());
 
         try {
             const resultState = (await graph.invoke(
@@ -494,15 +590,13 @@ export class LangGraphAgentExecutor {
                 },
                 {
                     configurable: {
-                        thread_id: threadId
+                        thread_id: conversationId
                     }
                 }
             )) as AgentGraphState;
 
             const last = resultState.messages.at(-1);
             const finalContent = last && AIMessage.isInstance(last) ? String((last as any).content || "") : "";
-
-            onChunk({ type: "done", isFinished: true, usage: resultState.runTotalUsage });
 
             return {
                 content: finalContent,
@@ -513,8 +607,144 @@ export class LangGraphAgentExecutor {
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
             this.LOGGER.error(`Agent 执行出错: ${msg}`);
-            onChunk({ type: "error", error: msg });
+            onChunk({ type: "error", ts: Date.now(), conversationId, error: msg });
             throw error;
         }
+    }
+
+    /**
+     * 获取 checkpoint 历史（用于 time-travel / 调试）
+     */
+    public async getStateHistory(params: {
+        conversationId: string;
+        limit: number;
+        beforeCheckpointId?: string;
+    }): Promise<{
+        items: Array<{ checkpointId: string; createdAt: number; next: string[]; metadata?: unknown }>;
+        nextCursor?: string;
+    }> {
+        const checkpointer = await this.checkpointerService.getCheckpointer();
+
+        // 复用同一套 workflow 结构（无需绑定实际工具，仅用于读取 checkpoint）
+        const AgentState = Annotation.Root({
+            messages: Annotation<BaseMessage[]>({
+                reducer: messagesStateReducer,
+                default: () => []
+            }),
+            systemPrompt: Annotation<string>,
+            enabledTools: Annotation<string[]>,
+            maxToolRounds: Annotation<number>,
+            toolContext: Annotation<ToolContext>,
+            runToolRounds: Annotation<number>,
+            runToolsUsed: Annotation<string[]>,
+            runTotalUsage: Annotation<TokenUsage>
+        });
+
+        const workflow = new StateGraph(AgentState)
+            .addNode("noop", async () => ({}))
+            .addEdge(START, "noop")
+            .addEdge("noop", END);
+
+        const graph = workflow.compile({ checkpointer });
+
+        const baseConfig: any = {
+            configurable: {
+                thread_id: params.conversationId
+            }
+        };
+
+        const options: any = {
+            limit: params.limit
+        };
+
+        if (params.beforeCheckpointId) {
+            options.before = {
+                configurable: {
+                    thread_id: params.conversationId,
+                    checkpoint_id: params.beforeCheckpointId
+                }
+            };
+        }
+
+        const items: Array<{ checkpointId: string; createdAt: number; next: string[]; metadata?: unknown }> = [];
+        let nextCursor: string | undefined;
+
+        for await (const snapshot of graph.getStateHistory(baseConfig, options)) {
+            const cfg: any = snapshot.config as any;
+            const checkpointId = String(cfg?.configurable?.checkpoint_id || "");
+            if (!checkpointId) {
+                continue;
+            }
+
+            const createdAtMs = snapshot.createdAt ? Date.parse(snapshot.createdAt) : Date.now();
+            items.push({
+                checkpointId,
+                createdAt: Number.isNaN(createdAtMs) ? Date.now() : createdAtMs,
+                next: snapshot.next || [],
+                metadata: snapshot.metadata
+            });
+            nextCursor = checkpointId;
+        }
+
+        return {
+            items,
+            nextCursor
+        };
+    }
+
+    /**
+     * 从指定 checkpoint fork 新 thread
+     */
+    public async forkFromCheckpoint(params: {
+        conversationId: string;
+        checkpointId: string;
+        newConversationId?: string;
+    }): Promise<{ conversationId: string }> {
+        const checkpointer = await this.checkpointerService.getCheckpointer();
+
+        const AgentState = Annotation.Root({
+            messages: Annotation<BaseMessage[]>({
+                reducer: messagesStateReducer,
+                default: () => []
+            }),
+            systemPrompt: Annotation<string>,
+            enabledTools: Annotation<string[]>,
+            maxToolRounds: Annotation<number>,
+            toolContext: Annotation<ToolContext>,
+            runToolRounds: Annotation<number>,
+            runToolsUsed: Annotation<string[]>,
+            runTotalUsage: Annotation<TokenUsage>
+        });
+
+        const workflow = new StateGraph(AgentState)
+            .addNode("noop", async () => ({}))
+            .addEdge(START, "noop")
+            .addEdge("noop", END);
+
+        const graph = workflow.compile({ checkpointer });
+
+        const sourceConfig: any = {
+            configurable: {
+                thread_id: params.conversationId,
+                checkpoint_id: params.checkpointId
+            }
+        };
+
+        const snapshot = await graph.getState(sourceConfig);
+        const newConversationId = params.newConversationId || crypto.randomUUID();
+
+        await graph.updateState(
+            {
+                configurable: {
+                    thread_id: newConversationId
+                }
+            } as any,
+            snapshot.values,
+            "fork"
+        );
+
+        return {
+            conversationId: newConversationId
+        };
     }
 }

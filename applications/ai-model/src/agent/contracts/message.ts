@@ -2,25 +2,47 @@ import { TokenUsage } from "./metadata";
 import { ToolCall } from "./tools";
 
 /**
- * Agent 流式响应 chunk 类型
+ * Agent 流式响应事件（稳定业务事件）
  */
 export interface AgentStreamChunk {
-    /** Chunk 类型 */
-    type: "content" | "tool_start" | "tool_result" | "done" | "error";
-    /** 文本内容（type="content" 时） */
+    /** 事件类型 */
+    type: "token" | "tool_call" | "tool_result" | "done" | "error";
+
+    /** 事件发生时间（UNIX 毫秒时间戳） */
+    ts: number;
+
+    /** 对话 ID（对应 LangGraph thread_id） */
+    conversationId: string;
+
+    /** token 文本（type="token" 时） */
     content?: string;
-    /** 工具名称（type="tool_start" 或 "tool_result" 时） */
+
+    /** 工具调用 ID（type="tool_call" / "tool_result" 时） */
+    toolCallId?: string;
+
+    /** 工具名称（type="tool_call" / "tool_result" 时） */
     toolName?: string;
-    /** 工具参数（type="tool_start" 时） */
-    toolParams?: Record<string, unknown>;
-    /** 工具结果（type="tool_result" 时） */
-    toolResult?: unknown;
+
+    /** 工具参数（type="tool_call" 时，任意 JSON） */
+    toolArgs?: unknown;
+
+    /** 工具结果（type="tool_result" 时，任意 JSON） */
+    result?: unknown;
+
+    /** done 时回传的 messageId（如果已落库） */
+    messageId?: string;
+
+    /** done 时回传的工具列表 */
+    toolsUsed?: string[];
+
+    /** done 时回传的工具轮次 */
+    toolRounds?: number;
+
+    /** done 时回传的 token usage */
+    totalUsage?: TokenUsage;
+
     /** 错误信息（type="error" 时） */
     error?: string;
-    /** 是否完成（type="done" 时） */
-    isFinished?: boolean;
-    /** Token 使用量（type="done" 时） */
-    usage?: TokenUsage;
 }
 
 /**

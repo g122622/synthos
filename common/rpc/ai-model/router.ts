@@ -17,7 +17,12 @@ import {
     SendReportEmailOutput,
     AgentAskInputSchema,
     AgentAskOutput,
-    AgentStreamChunkSchema,
+    AgentEventSchema,
+    AgentEvent,
+    AgentGetStateHistoryInputSchema,
+    AgentGetStateHistoryOutput,
+    AgentForkFromCheckpointInputSchema,
+    AgentForkFromCheckpointOutput,
     AgentGetConversationsInputSchema,
     AgentGetMessagesInputSchema,
     AgentGetConversationsOutput,
@@ -117,6 +122,24 @@ export interface RAGRPCImplementation {
         beforeTimestamp?: number;
         limit: number;
     }): Promise<AgentGetMessagesOutput>;
+
+    /**
+     * 获取 LangGraph thread 的 checkpoint 历史（分页）
+     */
+    agentGetStateHistory(input: {
+        conversationId: string;
+        limit: number;
+        beforeCheckpointId?: string;
+    }): Promise<AgentGetStateHistoryOutput>;
+
+    /**
+     * 从某个 checkpoint fork 新 thread
+     */
+    agentForkFromCheckpoint(input: {
+        conversationId: string;
+        checkpointId: string;
+        newConversationId?: string;
+    }): Promise<AgentForkFromCheckpointOutput>;
 }
 
 /**
@@ -201,8 +224,8 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
         }),
 
         agentAsk: t.procedure.input(AgentAskInputSchema).mutation(async ({ input }) => {
-            // 注意：这是一个简化实现，不支持真正的流式传输
-            // 未来可以升级为 tRPC subscription 或使用 SSE
+            // 注意：该接口为非流式（一次性返回）。
+            // 流式能力请使用 agentAskStream（tRPC subscription），对外则由 webui-backend 提供 REST SSE 转发。
             const validatedInput = {
                 question: input.question,
                 conversationId: input.conversationId,
@@ -213,7 +236,6 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 maxTokens: input.maxTokens ?? 2048
             };
 
-            // TODO: 传递 onChunk 回调（当前版本暂不支持，需要升级到 subscription）
             return impl.agentAsk(validatedInput, () => {});
         }),
 
@@ -244,9 +266,9 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 maxTokens: input.maxTokens ?? 2048
             };
 
-            return observable<any>(emit => {
+            return observable<AgentEvent>(emit => {
                 let isStopped = false;
-                let lastDoneUsage: any = undefined;
+                let hasDoneEvent = false;
 
                 (async () => {
                     try {
@@ -255,37 +277,37 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                                 return;
                             }
 
-                            // 统一由 subscription 结尾发出 enriched done，避免重复 done
-                            if (chunk && chunk.type === "done") {
-                                lastDoneUsage = chunk.usage;
-                                return;
-                            }
-
                             // runtime 校验（开发期兜底）
                             try {
-                                AgentStreamChunkSchema.parse(chunk);
+                                AgentEventSchema.parse(chunk);
                             } catch {
                                 // ignore
                             }
 
-                            emit.next(chunk);
+                            emit.next(chunk as AgentEvent);
+
+                            if ((chunk as any)?.type === "done") {
+                                hasDoneEvent = true;
+                            }
                         });
 
                         if (isStopped) {
                             return;
                         }
 
-                        emit.next({
-                            type: "done",
-                            isFinished: true,
-                            content: result.content,
-                            conversationId: result.conversationId,
-                            messageId: result.messageId,
-                            toolsUsed: result.toolsUsed,
-                            toolRounds: result.toolRounds,
-                            totalUsage: result.totalUsage,
-                            usage: result.totalUsage ?? lastDoneUsage
-                        });
+                        // done 事件通常由 ai-model 侧发送；这里仅在未观察到 done 时兜底补齐
+                        if (!hasDoneEvent) {
+                            emit.next({
+                                type: "done",
+                                ts: Date.now(),
+                                conversationId: result.conversationId,
+                                messageId: result.messageId,
+                                content: result.content,
+                                toolsUsed: result.toolsUsed,
+                                toolRounds: result.toolRounds,
+                                totalUsage: result.totalUsage
+                            } as AgentEvent);
+                        }
                         emit.complete();
                     } catch (err) {
                         if (isStopped) {
@@ -299,7 +321,25 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                     isStopped = true;
                 };
             });
-        })
+        }),
+
+        agentGetStateHistory: t.procedure.input(AgentGetStateHistoryInputSchema).query(async ({ input }) => {
+            return impl.agentGetStateHistory({
+                conversationId: input.conversationId,
+                limit: input.limit ?? 20,
+                beforeCheckpointId: input.beforeCheckpointId
+            });
+        }),
+
+        agentForkFromCheckpoint: t.procedure
+            .input(AgentForkFromCheckpointInputSchema)
+            .mutation(async ({ input }) => {
+                return impl.agentForkFromCheckpoint({
+                    conversationId: input.conversationId,
+                    checkpointId: input.checkpointId,
+                    newConversationId: input.newConversationId
+                });
+            })
     });
 
     // 将 _config 放宽到 AnyRootConfig，便于跨包消费（如 webui-backend 客户端）

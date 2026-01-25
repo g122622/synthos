@@ -5,8 +5,14 @@
 import { inject, injectable } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { RAGClient } from "../rpc/aiModelClient";
-import type { AgentAskInput, AgentAskOutput } from "@root/common/rpc/ai-model/schemas";
+import type {
+    AgentAskOutput,
+    AgentEvent,
+    AgentForkFromCheckpointOutput,
+    AgentGetStateHistoryOutput
+} from "@root/common/rpc/ai-model/schemas";
 import { TOKENS } from "../di/tokens";
+import { randomUUID } from "crypto";
 
 /**
  * Agent 消息类型
@@ -54,7 +60,22 @@ export interface AgentAskRequest {
 export class AgentService {
     private LOGGER = Logger.withTag("AgentService");
 
+    // 单实例内存锁：按 conversationId 拒绝并发 run
+    private runningConversationIds = new Set<string>();
+
     constructor(@inject(TOKENS.RAGClient) private ragClient: RAGClient) {}
+
+    public tryAcquireConversationLock(conversationId: string): boolean {
+        if (this.runningConversationIds.has(conversationId)) {
+            return false;
+        }
+        this.runningConversationIds.add(conversationId);
+        return true;
+    }
+
+    public releaseConversationLock(conversationId: string): void {
+        this.runningConversationIds.delete(conversationId);
+    }
 
     /**
      * 发起 Agent 问答
@@ -87,6 +108,110 @@ export class AgentService {
             this.LOGGER.error(`Agent 问答失败: ${error instanceof Error ? error.message : String(error)}`);
             throw new Error(`Agent 问答失败: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+
+    /**
+     * 发起 Agent 问答（流式事件）
+     * 用于 webui-backend REST SSE 转发
+     */
+    public async askAgentStream(
+        request: AgentAskRequest,
+        options: {
+            abortSignal: AbortSignal;
+            onEvent: (evt: AgentEvent) => void;
+        }
+    ): Promise<void> {
+        const conversationId = request.conversationId || randomUUID();
+
+        this.LOGGER.info(
+            `Agent SSE 问答: ${request.question.substring(0, 50)}... conversationId=${conversationId}`
+        );
+
+        return new Promise((resolve, reject) => {
+            let finished = false;
+
+            const safeResolve = () => {
+                if (finished) {
+                    return;
+                }
+                finished = true;
+                resolve();
+            };
+
+            const safeReject = (err: unknown) => {
+                if (finished) {
+                    return;
+                }
+                finished = true;
+                reject(err);
+            };
+
+            const sub = this.ragClient.agentAskStream.subscribe(
+                {
+                    question: request.question,
+                    conversationId,
+                    sessionId: request.sessionId,
+                    enabledTools: request.enabledTools || ["rag_search", "sql_query"],
+                    maxToolRounds: request.maxToolRounds || 5,
+                    temperature: request.temperature || 0.7,
+                    maxTokens: request.maxTokens || 2048
+                },
+                {
+                    onData: (evt: AgentEvent) => {
+                        options.onEvent(evt);
+                        if (evt.type === "done" || evt.type === "error") {
+                            safeResolve();
+                        }
+                    },
+                    onError: err => {
+                        safeReject(err);
+                    },
+                    onComplete: () => {
+                        safeResolve();
+                    }
+                }
+            );
+
+            const handleAbort = () => {
+                try {
+                    sub.unsubscribe();
+                } catch {
+                    // ignore
+                }
+                safeResolve();
+            };
+
+            if (options.abortSignal.aborted) {
+                handleAbort();
+                return;
+            }
+
+            options.abortSignal.addEventListener("abort", handleAbort, { once: true });
+        });
+    }
+
+    public async getStateHistory(input: {
+        conversationId: string;
+        limit: number;
+        beforeCheckpointId?: string;
+    }): Promise<AgentGetStateHistoryOutput> {
+        return this.ragClient.agentGetStateHistory.query({
+            conversationId: input.conversationId,
+            limit: input.limit,
+            beforeCheckpointId: input.beforeCheckpointId
+        });
+    }
+
+    public async forkFromCheckpoint(input: {
+        conversationId: string;
+        checkpointId: string;
+        newConversationId?: string;
+    }): Promise<AgentForkFromCheckpointOutput> {
+        return this.ragClient.agentForkFromCheckpoint.mutate({
+            conversationId: input.conversationId,
+            checkpointId: input.checkpointId,
+            newConversationId: input.newConversationId
+        });
     }
 
     /**

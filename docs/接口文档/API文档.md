@@ -603,6 +603,8 @@ type SystemStats = {
 
 ### POST /api/agent/ask
 
+说明：该接口为**非流式**（一次性返回）。如果需要流式输出（token/工具调用过程），请使用 `POST /api/agent/ask/stream`（SSE）。
+
 Body：
 
 ```ts
@@ -628,6 +630,134 @@ Body：
   toolRounds: number;
   totalUsage?: { promptTokens: number; completionTokens: number; totalTokens: number };
 }
+
+### POST /api/agent/ask/stream（SSE）
+
+说明：Agent 流式问答接口，使用 **SSE（`text/event-stream`）** 按稳定业务事件协议推送。
+
+- 请求方式：`POST`
+- 响应头：`Content-Type: text/event-stream`
+- 连接关闭：服务端在收到 `done` 或 `error` 事件后会结束连接
+- 并发限制：同一个 `conversationId` **不允许并行跑**（单实例内存锁）；若并行请求会返回 HTTP `409`
+
+Body：与 `/api/agent/ask` 相同：
+
+```ts
+{
+  question: string;
+  conversationId?: string;
+  sessionId?: string;
+  enabledTools?: ("rag_search" | "sql_query" | "web_search")[];
+  maxToolRounds?: number;
+  temperature?: number;
+  maxTokens?: number;
+}
+```
+
+SSE 事件格式：每个事件由 `event:` + `data:`（JSON）组成，例如：
+
+```text
+event: token
+data: {"type":"token","ts":1737777777000,"conversationId":"<id>","content":"你好"}
+
+```
+
+事件 `data`（稳定业务事件协议）：
+
+```ts
+type AgentEvent =
+  | {
+      type: "token";
+      ts: number; // UNIX ms
+      conversationId: string;
+      content: string;
+    }
+  | {
+      type: "tool_call";
+      ts: number;
+      conversationId: string;
+      toolCallId: string;
+      toolName: string;
+      toolArgs: unknown;
+    }
+  | {
+      type: "tool_result";
+      ts: number;
+      conversationId: string;
+      toolCallId: string;
+      toolName: string;
+      result: unknown;
+    }
+  | {
+      type: "done";
+      ts: number;
+      conversationId: string;
+      messageId?: string;
+      content?: string;
+      toolsUsed?: string[];
+      toolRounds?: number;
+      totalUsage?: { promptTokens: number; completionTokens: number; totalTokens: number };
+    }
+  | {
+      type: "error";
+      ts: number;
+      conversationId: string;
+      error: string;
+    };
+```
+
+错误响应：
+
+- 并发冲突：HTTP `409`，JSON：`{ success: false, error: string }`
+- 其他错误：通常通过 SSE `error` 事件返回（随后连接关闭）
+
+### POST /api/agent/state/history
+
+说明：获取指定 `conversationId`（对应 LangGraph `thread_id`）的 checkpoint 历史，用于 time-travel / 调试。
+
+Body：
+
+```ts
+{
+  conversationId: string;
+  limit?: number; // 默认 20，最大 100
+  beforeCheckpointId?: string;
+}
+```
+
+响应 `data`：
+
+```ts
+{
+  items: Array<{
+    checkpointId: string;
+    createdAt: number; // UNIX ms
+    next: string[];
+    metadata?: unknown;
+  }>;
+  nextCursor?: string;
+}
+```
+
+### POST /api/agent/state/fork
+
+说明：从某个 checkpoint fork 出一个新的 thread（新的 `conversationId`），用于“从历史分叉继续对话”。
+
+Body：
+
+```ts
+{
+  conversationId: string;
+  checkpointId: string;
+  newConversationId?: string;
+}
+```
+
+响应 `data`：
+
+```ts
+{ conversationId: string }
+```
 ```
 
 ### POST /api/agent/conversations
