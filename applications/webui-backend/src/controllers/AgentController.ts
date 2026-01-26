@@ -59,10 +59,13 @@ export class AgentController {
 
         // SSE headers
         res.status(200);
-        res.setHeader("Content-Type", "text/event-stream");
+        res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
         // no-transform: 避免中间层对 event-stream 做压缩/转换
         res.setHeader("Cache-Control", "no-cache, no-transform");
-        res.setHeader("Connection", "keep-alive");
+        // HTTP/2 禁止 Connection 头；仅在 HTTP/1.x 下设置
+        if (req.httpVersionMajor < 2) {
+            res.setHeader("Connection", "keep-alive");
+        }
         // nginx 等反代场景下禁用缓冲（开发环境也无害）
         res.setHeader("X-Accel-Buffering", "no");
         (res as any).flushHeaders?.();
