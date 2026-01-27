@@ -22,7 +22,7 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
  */
 @injectable()
 export class GenerateReportTaskHandler {
-    private LOGGER = Logger.withTag("📰 [ai-model-root-script] [GenerateReportTask]");
+    private LOGGER = Logger.withTag("📰 GenerateReportTask");
 
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,

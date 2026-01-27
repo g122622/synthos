@@ -19,7 +19,7 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
  */
 @injectable()
 export class GenerateEmbeddingTaskHandler {
-    private LOGGER = Logger.withTag("🤖 [ai-model-root-script] [GenerateEmbeddingTask]");
+    private LOGGER = Logger.withTag("🤖 GenerateEmbeddingTask");
 
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,

@@ -16,7 +16,7 @@ import { getQQProvider } from "../di/container";
  */
 @injectable()
 export class ProvideDataTaskHandler {
-    private LOGGER = Logger.withTag("🌏 [data-provider-root-script] [ProvideDataTask]");
+    private LOGGER = Logger.withTag("🌏 ProvideDataTask");
 
     /**
      * 构造函数

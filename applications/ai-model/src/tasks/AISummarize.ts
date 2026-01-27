@@ -24,7 +24,7 @@ import { COMMON_TOKENS } from "@root/common/di/tokens";
  */
 @injectable()
 export class AISummarizeTaskHandler {
-    private LOGGER = Logger.withTag("🤖 [ai-model-root-script] [AISummarizeTask]");
+    private LOGGER = Logger.withTag("🤖 AISummarizeTask");
 
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,

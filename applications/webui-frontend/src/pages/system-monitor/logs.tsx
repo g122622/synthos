@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button, Card, Chip, Input, Spinner, Select, SelectItem } from "@heroui/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { RefreshCw, Filter, Trash2, Zap, ZapOff } from "lucide-react";
+import { RefreshCw, Filter, Trash2, Zap, ZapOff, Box, FunctionSquare, Bug, Info, CircleCheck, TriangleAlert, CircleX } from "lucide-react";
 
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
@@ -85,6 +85,121 @@ function levelChipColor(level: LogLevel): "default" | "primary" | "secondary" | 
     if (level === "warning") return "warning";
 
     return "danger";
+}
+
+type ParsedStructuredLog = {
+    timeText?: string;
+    className?: string;
+    methodName?: string;
+    message: string;
+};
+
+function parseStructuredLog(raw: string): ParsedStructuredLog {
+    // 去除掉开头的两个字符
+    raw = raw.slice(2);
+
+    const isSpace = (ch: string | undefined): boolean => {
+        return ch === " " || ch === "\t";
+    };
+
+    const skipSpaces = (s: string, start: number): number => {
+        let i = start;
+
+        while (i < s.length && isSpace(s[i])) {
+            i += 1;
+        }
+
+        return i;
+    };
+
+    const readBracketGroup = (s: string, start: number): { value: string; next: number } | null => {
+        const i = skipSpaces(s, start);
+
+        if (s[i] !== "[") {
+            return null;
+        }
+
+        const close = s.indexOf("]", i + 1);
+
+        if (close < 0) {
+            return null;
+        }
+
+        const value = s.slice(i + 1, close).trim();
+
+        return {
+            value,
+            next: close + 1
+        };
+    };
+
+    let cursor = 0;
+
+    cursor = skipSpaces(raw, cursor);
+
+    const timeGroup = readBracketGroup(raw, cursor);
+
+    if (!timeGroup) {
+        return { message: raw };
+    }
+    cursor = timeGroup.next;
+
+    const levelGroup = readBracketGroup(raw, cursor);
+
+    if (!levelGroup) {
+        return { timeText: timeGroup.value || undefined, message: raw.slice(cursor).trimStart() };
+    }
+    cursor = levelGroup.next;
+
+    const classGroup = readBracketGroup(raw, cursor);
+
+    if (!classGroup) {
+        return {
+            timeText: timeGroup.value || undefined,
+            message: raw.slice(cursor).trimStart()
+        };
+    }
+    cursor = classGroup.next;
+
+    const methodGroup = readBracketGroup(raw, cursor);
+
+    if (!methodGroup) {
+        return {
+            timeText: timeGroup.value || undefined,
+            className: classGroup.value || undefined,
+            message: raw.slice(cursor).trimStart()
+        };
+    }
+    cursor = methodGroup.next;
+
+    const res = {
+        timeText: timeGroup.value || undefined,
+        className: classGroup.value || undefined,
+        methodName: methodGroup.value || undefined,
+        message: raw.slice(cursor).trimStart()
+    };
+
+    return res;
+}
+
+function levelIcon(level: LogLevel): JSX.Element {
+    if (level === "debug") {
+        return <Bug className="text-gray-400" size={14} />;
+    }
+
+    if (level === "info") {
+        return <Info className="text-blue-400" size={14} />;
+    }
+
+    if (level === "success") {
+        return <CircleCheck className="text-green-400" size={14} />;
+    }
+
+    if (level === "warning") {
+        return <TriangleAlert className="text-yellow-400" size={14} />;
+    }
+
+    return <CircleX className="text-red-400" size={14} />;
 }
 
 export default function SystemLogsPage() {
@@ -553,6 +668,7 @@ export default function SystemLogsPage() {
                             >
                                 {rowVirtualizer.getVirtualItems().map(virtualRow => {
                                     const item = items[virtualRow.index];
+                                    const parsed = parseStructuredLog(item.raw);
 
                                     return (
                                         <div
@@ -564,24 +680,46 @@ export default function SystemLogsPage() {
                                                 transform: `translateY(${virtualRow.start}px)`
                                             }}
                                         >
-                                            <div className="shrink-0 pt-0.5 select-none opacity-80">
-                                                <span
-                                                    className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
-                                                        item.level === "error"
-                                                            ? "bg-red-500/20 text-red-400"
-                                                            : item.level === "warning"
-                                                              ? "bg-yellow-500/20 text-yellow-400"
-                                                              : item.level === "info"
-                                                                ? "bg-blue-500/20 text-blue-400"
-                                                                : item.level === "success"
-                                                                  ? "bg-green-500/20 text-green-400"
-                                                                  : "bg-gray-500/20 text-gray-400"
-                                                    }`}
-                                                >
-                                                    {item.level.substring(0, 1).toUpperCase()}
-                                                </span>
+                                            <span
+                                                className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
+                                                    item.level === "error"
+                                                        ? "bg-red-500/20 text-red-400"
+                                                        : item.level === "warning"
+                                                          ? "bg-yellow-500/20 text-yellow-400"
+                                                          : item.level === "info"
+                                                            ? "bg-blue-500/20 text-blue-400"
+                                                            : item.level === "success"
+                                                              ? "bg-green-500/20 text-green-400"
+                                                              : "bg-gray-500/20 text-gray-400"
+                                                }`}
+                                            >
+                                                {levelIcon(item.level)}
+                                            </span>
+                                            <div className="flex-1 min-w-0 break-all whitespace-pre-wrap leading-relaxed opacity-90 font-mono">
+                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                    {parsed.timeText && (
+                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-gray-400 select-none">
+                                                            {parsed.timeText}
+                                                        </span>
+                                                    )}
+
+                                                    {parsed.className && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-violet-300 select-none">
+                                                            <Box className="text-violet-300/80" size={12} />
+                                                            <span>{parsed.className}</span>
+                                                        </span>
+                                                    )}
+
+                                                    {parsed.methodName && (
+                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-sky-300 select-none">
+                                                            <FunctionSquare className="text-sky-300/80" size={12} />
+                                                            <span>{parsed.methodName}</span>
+                                                        </span>
+                                                    )}
+
+                                                    <span className="text-gray-200">{parsed.message}</span>
+                                                </div>
                                             </div>
-                                            <div className="flex-1 break-all whitespace-pre-wrap leading-relaxed opacity-90 font-mono">{item.raw}</div>
                                         </div>
                                     );
                                 })}

@@ -17,7 +17,7 @@ import { getAccumulativeSplitter, getTimeoutSplitter } from "../di/container";
  */
 @injectable()
 export class PreprocessTaskHandler {
-    private LOGGER = Logger.withTag("🏭 [preprocessor-root-script] [PreprocessTask]");
+    private LOGGER = Logger.withTag("🏭 PreprocessTask");
 
     /**
      * 构造函数

@@ -19,7 +19,7 @@ import { AI_MODEL_TOKENS } from "../di/tokens";
  */
 @injectable()
 export class InterestScoreTaskHandler {
-    private LOGGER = Logger.withTag("🤖 [ai-model-root-script] [InterestScoreTask]");
+    private LOGGER = Logger.withTag("🤖 InterestScoreTask");
 
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
