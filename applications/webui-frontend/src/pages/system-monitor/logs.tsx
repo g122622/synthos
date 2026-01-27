@@ -677,7 +677,8 @@ export default function SystemLogsPage() {
                                             className="absolute top-0 left-0 w-full px-2 py-1 hover:bg-white/5 border-b border-white/5 flex items-start gap-2 transition-colors group text-xs"
                                             data-index={virtualRow.index}
                                             style={{
-                                                transform: `translateY(${virtualRow.start}px)`
+                                                transform: `translateY(${virtualRow.start}px)`,
+                                                borderRadius: "7px"
                                             }}
                                         >
                                             <span
