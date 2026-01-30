@@ -3,6 +3,7 @@ import { TaskHandlerTypes, TaskParamsMap } from "./@types/Tasks";
 import { sleep } from "../util/promisify/sleep";
 import Logger from "../util/Logger";
 import { ObjectId } from "bson";
+import { retryAsync } from "../util/retryAsync";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
 
@@ -197,53 +198,62 @@ export async function scheduleAndWaitForJob<T extends TaskHandlerTypes>(
  * @param taskNames - 可选，指定要清理的任务名称列表；不传则清理所有任务
  */
 export async function cleanupStaleJobs(taskNames?: TaskHandlerTypes[]): Promise<void> {
-    LOGGER.info("🧹 开始清理启动前残留的任务...");
+    await retryAsync(
+        async () => {
+            LOGGER.info("🧹 开始清理启动前残留的任务...");
 
-    const query: Record<string, unknown> = {};
-    if (taskNames && taskNames.length > 0) {
-        query.name = { $in: taskNames };
-    }
+            const query: Record<string, unknown> = {};
+            if (taskNames && taskNames.length > 0) {
+                query.name = { $in: taskNames };
+            }
 
-    // 1. 查找所有被锁定的任务（上次运行中断）
-    const lockedJobs = await agendaInstance.jobs({
-        ...query,
-        lockedAt: { $ne: null }
-    });
+            // 1. 查找所有被锁定的任务（上次运行中断）
+            const lockedJobs = await agendaInstance.jobs({
+                ...query,
+                lockedAt: { $ne: null }
+            });
 
-    if (lockedJobs.length > 0) {
-        LOGGER.warning(`发现 ${lockedJobs.length} 个被锁定的残留任务，正在取消...`);
-        for (const job of lockedJobs) {
-            LOGGER.debug(`  - 取消任务: ${job.attrs.name} (锁定于 ${job.attrs.lockedAt})`);
-            // 解除锁定并标记为失败
-            job.attrs.lockedAt = undefined;
-            job.attrs.failedAt = new Date();
-            job.attrs.failReason = "任务在启动前被清理（上次运行可能异常中断）";
-            await job.save();
+            if (lockedJobs.length > 0) {
+                LOGGER.warning(`发现 ${lockedJobs.length} 个被锁定的残留任务，正在取消...`);
+                for (const job of lockedJobs) {
+                    LOGGER.debug(`  - 取消任务: ${job.attrs.name} (锁定于 ${job.attrs.lockedAt})`);
+                    // 解除锁定并标记为失败
+                    job.attrs.lockedAt = undefined;
+                    job.attrs.failedAt = new Date();
+                    job.attrs.failReason = "任务在启动前被清理（上次运行可能异常中断）";
+                    await job.save();
+                }
+                LOGGER.success(`已取消 ${lockedJobs.length} 个被锁定的任务`);
+            }
+
+            // 2. 查找所有一次性调度的待执行任务（repeatInterval 为空表示非定时任务）
+            // 这些任务是通过 agenda.now() 或 agenda.schedule() 创建的一次性任务
+            const pendingOneTimeJobs = await agendaInstance.jobs({
+                ...query,
+                nextRunAt: { $ne: null },
+                repeatInterval: null, // 非定时任务
+                lockedAt: null // 未被锁定
+            });
+
+            if (pendingOneTimeJobs.length > 0) {
+                LOGGER.warning(`发现 ${pendingOneTimeJobs.length} 个待执行的一次性任务，正在移除...`);
+                for (const job of pendingOneTimeJobs) {
+                    LOGGER.debug(`  - 移除任务: ${job.attrs.name} (计划执行于 ${job.attrs.nextRunAt})`);
+                    await job.remove();
+                }
+                LOGGER.success(`已移除 ${pendingOneTimeJobs.length} 个待执行的一次性任务`);
+            }
+
+            if (lockedJobs.length === 0 && pendingOneTimeJobs.length === 0) {
+                LOGGER.info("没有发现需要清理的残留任务");
+            }
+
+            LOGGER.success("🧹 残留任务清理完成");
+        },
+        {
+            maxRetries: 3,
+            retryDelayMs: 1000,
+            taskName: "清理残留任务"
         }
-        LOGGER.success(`已取消 ${lockedJobs.length} 个被锁定的任务`);
-    }
-
-    // 2. 查找所有一次性调度的待执行任务（repeatInterval 为空表示非定时任务）
-    // 这些任务是通过 agenda.now() 或 agenda.schedule() 创建的一次性任务
-    const pendingOneTimeJobs = await agendaInstance.jobs({
-        ...query,
-        nextRunAt: { $ne: null },
-        repeatInterval: null, // 非定时任务
-        lockedAt: null // 未被锁定
-    });
-
-    if (pendingOneTimeJobs.length > 0) {
-        LOGGER.warning(`发现 ${pendingOneTimeJobs.length} 个待执行的一次性任务，正在移除...`);
-        for (const job of pendingOneTimeJobs) {
-            LOGGER.debug(`  - 移除任务: ${job.attrs.name} (计划执行于 ${job.attrs.nextRunAt})`);
-            await job.remove();
-        }
-        LOGGER.success(`已移除 ${pendingOneTimeJobs.length} 个待执行的一次性任务`);
-    }
-
-    if (lockedJobs.length === 0 && pendingOneTimeJobs.length === 0) {
-        LOGGER.info("没有发现需要清理的残留任务");
-    }
-
-    LOGGER.success("🧹 残留任务清理完成");
+    );
 }
