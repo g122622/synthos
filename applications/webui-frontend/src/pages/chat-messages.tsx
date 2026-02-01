@@ -1,3 +1,6 @@
+import type { ChatMessage } from "@/types/chat";
+import type { GroupDetailsRecord } from "@/types/group";
+
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
@@ -14,7 +17,6 @@ import { now, getLocalTimeZone } from "@internationalized/date";
 import { MessageSquare, RefreshCw, Search } from "lucide-react";
 
 import { getChatMessagesByGroupId, getGroupDetails } from "@/api/basicApi";
-import { ChatMessage, GroupDetailsRecord } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";

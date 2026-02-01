@@ -1,10 +1,11 @@
+import type { AIDigestResult } from "@/types/topic";
+
 import React, { cloneElement, isValidElement, useCallback, useEffect, useState } from "react";
 import { Drawer, DrawerBody, DrawerContent, DrawerHeader, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import { Spinner } from "@heroui/spinner";
 
 import TopicCard from "./TopicCard";
 
-import { AIDigestResult } from "@/types/app";
 import { getAIDigestResultByTopicId } from "@/api/basicApi";
 
 function useMediaQuery(query: string): boolean {

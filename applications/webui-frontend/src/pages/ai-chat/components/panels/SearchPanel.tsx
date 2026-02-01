@@ -7,8 +7,9 @@ import { Spinner } from "@heroui/spinner";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
 
-import ReferenceList from "../ReferenceList";
 import EmptyState from "../EmptyState";
+
+import ReferenceList from "@/components/topic-reference/ReferenceList";
 
 interface SearchPanelProps {
     searchLoading: boolean;

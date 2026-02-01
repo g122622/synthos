@@ -1,4 +1,5 @@
 import type { TopicItem } from "@/types/topic";
+import type { GroupDetailsRecord } from "@/types/group";
 
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
@@ -22,7 +23,6 @@ import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import ResponsivePopover from "@/components/ResponsivePopover";
 import throttle from "@/util/throttle";
-import { GroupDetailsRecord } from "@/types/app";
 
 export default function LatestTopicsPage() {
     const [searchParams, setSearchParams] = useSearchParams();

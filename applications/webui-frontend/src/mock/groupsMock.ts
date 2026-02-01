@@ -4,8 +4,8 @@
  */
 
 import type { ApiResponse } from "@/types/api";
-
-import { GroupDetailsRecord, ChatMessage } from "@/types/app";
+import type { GroupDetailsRecord } from "@/types/group";
+import type { ChatMessage } from "@/types/chat";
 
 // 平台类型
 const platforms = ["QQ", "微信", "飞书", "钉钉", "Telegram"];

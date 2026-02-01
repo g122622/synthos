@@ -1,3 +1,5 @@
+import type { AIDigestResult } from "@/types/topic";
+
 import { useState } from "react";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
@@ -9,7 +11,6 @@ import { Spinner } from "@heroui/spinner";
 import { useAsyncList } from "@react-stately/data";
 
 import { getAIDigestResultsBySessionId, getAIDigestResultByTopicId, isSessionSummarized } from "@/api/basicApi";
-import { AIDigestResult } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { formatRelativeTime } from "@/util/format";

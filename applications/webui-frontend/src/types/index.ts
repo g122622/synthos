@@ -7,7 +7,6 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 // 导出所有业务类型
 export * from "./agent";
 export * from "./api";
-export * from "./app";
 export * from "./chat";
 export * from "./config";
 export * from "./group";
