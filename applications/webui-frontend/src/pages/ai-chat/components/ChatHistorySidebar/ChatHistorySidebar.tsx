@@ -13,7 +13,7 @@ import { motion } from "framer-motion";
 import { AgentConversationList } from "./AgentConversationList";
 import { SessionGroup } from "./SessionGroup";
 
-import { deleteSession, getSessionList, updateSessionTitle } from "@/api/ragChatHistoryApi";
+import { deleteSession, getSessionList, updateSessionTitle, toggleSessionPin } from "@/api/ragChatHistoryApi";
 import { getAgentConversations, AgentConversation } from "@/api/agentApi";
 
 const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
@@ -259,13 +259,27 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
                 return;
             }
 
-            // 更新本地状态
-            setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, pinned: !s.pinned } : s)));
+            const newPinnedState = !session.pinned;
 
-            // TODO: 调用后端API更新置顶状态
-            // await toggleSessionPin(sessionId, !session.pinned);
+            // 先更新本地状态（乐观更新）
+            setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, pinned: newPinnedState } : s)));
+
+            // 调用后端API更新置顶状态
+            const response = await toggleSessionPin(sessionId, newPinnedState);
+
+            if (!response.success) {
+                // 如果后端更新失败，回滚本地状态
+                setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, pinned: !newPinnedState } : s)));
+                console.error("切换置顶状态失败:", response.message);
+            }
         } catch (error) {
             console.error("切换置顶状态失败:", error);
+            // 发生异常时回滚本地状态
+            const session = sessions.find(s => s.id === sessionId);
+
+            if (session) {
+                setSessions(prev => prev.map(s => (s.id === sessionId ? { ...s, pinned: session.pinned } : s)));
+            }
         }
     };
 
@@ -316,7 +330,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             </div>
 
             {/* 新建会话按钮 */}
-            <div className="px-4 pb-2">
+            <div className="pl-2 pr-10 pb-2">
                 <Button className={cn("min-w-10 transition-all", showFullSidebar ? "w-full" : "w-10 p-1")} color="primary" onPress={handleNewChat}>
                     <Plus className="w-5 h-5" />
                     {showFullSidebar && <span className="ml-2">新建会话</span>}

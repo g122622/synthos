@@ -151,6 +151,12 @@ export const UpdateRagSessionTitleSchema = z.object({
 });
 export type UpdateRagSessionTitleParams = z.infer<typeof UpdateRagSessionTitleSchema>;
 
+export const ToggleSessionPinSchema = z.object({
+    sessionId: z.string({ message: "缺少sessionId参数" }),
+    pinned: z.boolean({ message: "缺少pinned参数" })
+});
+export type ToggleSessionPinParams = z.infer<typeof ToggleSessionPinSchema>;
+
 // ==================== RAG Ask ====================
 
 export const RagAskSchema = z.object({

@@ -4,8 +4,8 @@
 
 - 默认本地地址：`http://localhost:3002`
 - 端口来源：
-  - 正常模式：取配置 `webUI_Backend.port`
-  - 配置面板模式：取环境变量 `CONFIG_PANEL_PORT`（默认 3002）
+    - 正常模式：取配置 `webUI_Backend.port`
+    - 配置面板模式：取环境变量 `CONFIG_PANEL_PORT`（默认 3002）
 
 ## 2. 通用约定
 
@@ -162,7 +162,6 @@ Body：
 
 响应 `data`：
 
-
 ---
 
 ### POST /api/chat-messages-fts-search
@@ -215,6 +214,7 @@ Body：
 | after | number | 否 | 取后 N 条，默认 20，0~200 |
 
 响应 `data`：`ProcessedChatMessageWithRawMessage[]`
+
 ```ts
 {
   data: Record<string, { current: number[]; previous: number[] }>;
@@ -459,6 +459,14 @@ Body：`{ "sessionId": string; "title": string }`
 ### POST /api/rag/session/clear-all
 
 响应：`{ "success": true, "message": "所有会话已清空" }`
+
+### POST /api/rag/session/toggle-pin
+
+切换会话的置顶状态。
+
+Body：`{ "sessionId": string; "pinned": boolean }`
+
+响应：`{ "success": true, "message": "会话已置顶" | "会话已取消置顶" }`
 
 ---
 
@@ -758,6 +766,7 @@ Body：
 ```ts
 { conversationId: string }
 ```
+
 ```
 
 ### POST /api/agent/conversations

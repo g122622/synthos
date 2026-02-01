@@ -193,6 +193,12 @@ export const setupApiRoutes = (app: Express): void => {
         asyncHandler((req, res) => ragChatHistoryController.clearAllSessions(req, res))
     );
 
+    // 切换会话置顶状态
+    app.post(
+        "/api/rag/session/toggle-pin",
+        asyncHandler((req, res) => ragChatHistoryController.toggleSessionPin(req, res))
+    );
+
     // ==================== 日报 ====================
     // 获取单个日报详情
     app.get(

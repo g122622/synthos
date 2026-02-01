@@ -23,6 +23,7 @@ export interface RagChatSession {
     enableQueryRewriter: boolean;
     isFailed: boolean;
     failReason: string;
+    pinned: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -40,6 +41,7 @@ export interface CreateSessionInput {
     enableQueryRewriter: boolean;
     isFailed: boolean;
     failReason: string;
+    pinned: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export interface SessionListItem {
     id: string;
     title: string;
     isFailed: boolean;
+    pinned: boolean;
     createdAt: number;
     updatedAt: number;
 }
@@ -101,14 +104,16 @@ export class RagChatHistoryManager extends Disposable {
                     enableQueryRewriter INTEGER NOT NULL DEFAULT 1,
                     isFailed INTEGER NOT NULL DEFAULT 0,
                     failReason TEXT NOT NULL DEFAULT '',
+                    pinned INTEGER NOT NULL DEFAULT 0,
                     createdAt INTEGER NOT NULL,
                     updatedAt INTEGER NOT NULL
                 );
                 CREATE INDEX IF NOT EXISTS idx_sessions_updatedAt ON rag_sessions(updatedAt DESC);
             `);
 
-            // 兼容旧数据库：补齐 enableQueryRewriter 字段
+            // 兼容旧数据库：补齐字段
             const columns = (await this.db.all(`PRAGMA table_info(rag_sessions)`)) as Array<{ name?: string }>;
+
             const hasEnableQueryRewriter = columns.some(col => col.name === "enableQueryRewriter");
             if (!hasEnableQueryRewriter) {
                 await this.db.run(
@@ -117,7 +122,6 @@ export class RagChatHistoryManager extends Disposable {
                 this.LOGGER.info("已为 rag_sessions 表补齐 enableQueryRewriter 字段");
             }
 
-            // 兼容旧数据库：补齐 isFailed / failReason 字段
             const hasIsFailed = columns.some(col => col.name === "isFailed");
             if (!hasIsFailed) {
                 await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN isFailed INTEGER NOT NULL DEFAULT 0`);
@@ -129,6 +133,17 @@ export class RagChatHistoryManager extends Disposable {
                 await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN failReason TEXT NOT NULL DEFAULT ''`);
                 this.LOGGER.info("已为 rag_sessions 表补齐 failReason 字段");
             }
+
+            const hasPinned = columns.some(col => col.name === "pinned");
+            if (!hasPinned) {
+                await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
+                this.LOGGER.info("已为 rag_sessions 表补齐 pinned 字段");
+            }
+
+            // 创建 pinned 相关的索引（在字段迁移之后）
+            await this.db.exec(`
+                CREATE INDEX IF NOT EXISTS idx_sessions_pinned_updatedAt ON rag_sessions(pinned DESC, updatedAt DESC);
+            `);
 
             this._registerDisposable(this.db);
             this.initialized = true;
@@ -162,8 +177,8 @@ export class RagChatHistoryManager extends Disposable {
         };
 
         await this.db!.run(
-            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, enableQueryRewriter, isFailed, failReason, createdAt, updatedAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO rag_sessions (id, title, question, answer, refs, topK, enableQueryRewriter, isFailed, failReason, pinned, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 session.id,
                 session.title,
@@ -174,6 +189,7 @@ export class RagChatHistoryManager extends Disposable {
                 session.enableQueryRewriter ? 1 : 0,
                 session.isFailed ? 1 : 0,
                 session.failReason,
+                session.pinned ? 1 : 0,
                 session.createdAt,
                 session.updatedAt
             ]
@@ -197,20 +213,28 @@ export class RagChatHistoryManager extends Disposable {
     }
 
     /**
-     * 获取会话列表（按更新时间倒序）
+     * 获取会话列表（按置顶状态和更新时间倒序）
      */
     async getSessionList(limit: number, offset: number): Promise<SessionListItem[]> {
         this.ensureInitialized();
 
         const results = (await this.db!.all(
-            `SELECT id, title, isFailed, createdAt, updatedAt FROM rag_sessions ORDER BY updatedAt DESC LIMIT ? OFFSET ?`,
+            `SELECT id, title, isFailed, pinned, createdAt, updatedAt FROM rag_sessions ORDER BY pinned DESC, updatedAt DESC LIMIT ? OFFSET ?`,
             [limit, offset]
-        )) as Array<{ id: string; title: string; isFailed: number; createdAt: number; updatedAt: number }>;
+        )) as Array<{
+            id: string;
+            title: string;
+            isFailed: number;
+            pinned: number;
+            createdAt: number;
+            updatedAt: number;
+        }>;
 
         return results.map(r => ({
             id: r.id,
             title: r.title,
             isFailed: !!r.isFailed,
+            pinned: !!r.pinned,
             createdAt: r.createdAt,
             updatedAt: r.updatedAt
         }));
@@ -262,6 +286,23 @@ export class RagChatHistoryManager extends Disposable {
 
         await this.db!.run(`DELETE FROM rag_sessions`);
         this.LOGGER.info("清空所有会话");
+    }
+
+    /**
+     * 切换会话的置顶状态
+     */
+    async toggleSessionPin(id: string, pinned: boolean): Promise<boolean> {
+        this.ensureInitialized();
+
+        const now = Date.now();
+        await this.db!.run(`UPDATE rag_sessions SET pinned = ?, updatedAt = ? WHERE id = ?`, [
+            pinned ? 1 : 0,
+            now,
+            id
+        ]);
+
+        this.LOGGER.info(`${pinned ? "置顶" : "取消置顶"}会话: ${id}`);
+        return true;
     }
 }
 

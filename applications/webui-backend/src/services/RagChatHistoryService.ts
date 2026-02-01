@@ -84,7 +84,8 @@ export class RagChatHistoryService {
             topK: input.topK,
             enableQueryRewriter: input.enableQueryRewriter,
             isFailed,
-            failReason: input.failReason || ""
+            failReason: input.failReason || "",
+            pinned: false
         });
 
         return this.transformSession(session);
@@ -136,6 +137,13 @@ export class RagChatHistoryService {
      */
     async clearAllSessions(): Promise<void> {
         return this.ragChatHistoryManager.clearAllSessions();
+    }
+
+    /**
+     * 切换会话的置顶状态
+     */
+    async toggleSessionPin(sessionId: string, pinned: boolean): Promise<boolean> {
+        return this.ragChatHistoryManager.toggleSessionPin(sessionId, pinned);
     }
 
     /**

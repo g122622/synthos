@@ -6,7 +6,12 @@ import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
 import { TOKENS } from "../di/tokens";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
-import { GetRagSessionListSchema, RagSessionIdSchema, UpdateRagSessionTitleSchema } from "../schemas/index";
+import {
+    GetRagSessionListSchema,
+    RagSessionIdSchema,
+    UpdateRagSessionTitleSchema,
+    ToggleSessionPinSchema
+} from "../schemas/index";
 
 @injectable()
 export class RagChatHistoryController {
@@ -63,5 +68,15 @@ export class RagChatHistoryController {
     async clearAllSessions(req: Request, res: Response): Promise<void> {
         await this.ragChatHistoryService.clearAllSessions();
         res.json({ success: true, message: "所有会话已清空" });
+    }
+
+    /**
+     * POST /api/rag/session/toggle-pin
+     * 切换会话的置顶状态
+     */
+    async toggleSessionPin(req: Request, res: Response): Promise<void> {
+        const params = ToggleSessionPinSchema.parse(req.body);
+        await this.ragChatHistoryService.toggleSessionPin(params.sessionId, params.pinned);
+        res.json({ success: true, message: params.pinned ? "会话已置顶" : "会话已取消置顶" });
     }
 }

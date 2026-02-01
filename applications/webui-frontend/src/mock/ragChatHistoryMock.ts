@@ -437,3 +437,29 @@ export const mockClearAllSessions = async (): Promise<ApiResponse<void>> => {
         message: ""
     };
 };
+
+/**
+ * 模拟切换会话置顶状态 API
+ */
+export const mockToggleSessionPin = async (sessionId: string, pinned: boolean): Promise<ApiResponse<void>> => {
+    await delay(200 + Math.random() * 200);
+
+    const session = mockSessions.find(s => s.id === sessionId);
+
+    if (!session) {
+        return {
+            success: false,
+            data: undefined as unknown as void,
+            message: "会话不存在"
+        };
+    }
+
+    session.pinned = pinned;
+    session.updatedAt = Date.now();
+
+    return {
+        success: true,
+        data: undefined as unknown as void,
+        message: pinned ? "会话已置顶" : "会话已取消置顶"
+    };
+};

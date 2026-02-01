@@ -9,7 +9,7 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-import { mockGetSessionList, mockGetSessionDetail, mockDeleteSession, mockUpdateSessionTitle, mockClearAllSessions } from "@/mock/ragChatHistoryMock";
+import { mockGetSessionList, mockGetSessionDetail, mockDeleteSession, mockUpdateSessionTitle, mockClearAllSessions, mockToggleSessionPin } from "@/mock/ragChatHistoryMock";
 
 // 导出ReferenceItem、SessionListItem、SessionDetail和SessionListResponse供mock使用
 export type { ReferenceItem, SessionListItem, SessionDetail, SessionListResponse } from "@/types/rag";
@@ -100,6 +100,24 @@ export const clearAllSessions = async (): Promise<ApiResponse<void>> => {
     const response = await fetchWrapper(`${API_BASE_URL}/api/rag/session/clear-all`, {
         method: "POST",
         headers: { "Content-Type": "application/json" }
+    });
+
+    return response.json();
+};
+
+/**
+ * 切换会话置顶状态
+ */
+export const toggleSessionPin = async (sessionId: string, pinned: boolean): Promise<ApiResponse<void>> => {
+    // 如果启用了 mock，使用 mock 数据
+    if (mockConfig.rag) {
+        return mockToggleSessionPin(sessionId, pinned);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/rag/session/toggle-pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, pinned })
     });
 
     return response.json();

@@ -45,6 +45,7 @@ export interface SessionListItem {
     createdAt: number;
     updatedAt: number;
     isFailed?: boolean;
+    pinned?: boolean;
 }
 
 /**
@@ -60,6 +61,7 @@ export interface SessionDetail {
     enableQueryRewriter: boolean;
     isFailed?: boolean;
     failReason?: string;
+    pinned?: boolean;
     createdAt: number;
     updatedAt: number;
 }
