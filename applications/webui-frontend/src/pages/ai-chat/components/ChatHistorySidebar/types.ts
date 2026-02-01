@@ -1,5 +1,5 @@
 import type React from "react";
-import type { SessionListItem } from "@/api/ragChatHistoryApi";
+import type { SessionListItem, ExtendedSessionListItem as BaseExtendedSessionListItem } from "@/types/rag";
 
 export interface ChatHistorySidebarProps {
     // 当前选中的会话ID
@@ -33,11 +33,10 @@ export interface ChatHistorySidebarProps {
     agentRefreshTrigger?: number;
 }
 
-/**
- * 扩展的会话项，添加置顶标记
- */
-export interface ExtendedSessionListItem extends SessionListItem {
-    pinned?: boolean;
-}
-
 export type MouseEventHandler = (e: React.MouseEvent) => void;
+
+// 导出扩展的会话类型
+export type ExtendedSessionListItem = BaseExtendedSessionListItem;
+
+// 导出会话类型供其他模块使用
+export type { SessionListItem };

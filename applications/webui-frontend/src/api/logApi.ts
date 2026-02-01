@@ -1,38 +1,11 @@
+import type { LogLevel, LogItem, QueryLogsRequest, QueryLogsResponse, QueryLogsErrorResponse } from "@/types/log";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 
-export type LogLevel = "debug" | "info" | "success" | "warning" | "error";
-
-export interface LogItem {
-    timestamp: number;
-    level: LogLevel;
-    raw: string;
-    sourceFile: string;
-}
-
-export interface QueryLogsRequest {
-    limit: number;
-    before?: number;
-    startTime?: number;
-    endTime?: number;
-    levels?: LogLevel[];
-}
-
-export interface QueryLogsResponse {
-    success: true;
-    data: {
-        items: LogItem[];
-        nextBefore: number | null;
-        hasMore: boolean;
-    };
-}
-
-export interface QueryLogsErrorResponse {
-    success: false;
-    message?: string;
-    error?: string;
-}
+// 导出类型供其他模块使用
+export type { LogLevel, LogItem, QueryLogsRequest, QueryLogsResponse, QueryLogsErrorResponse };
 
 export async function queryLogs(params: QueryLogsRequest): Promise<QueryLogsResponse | QueryLogsErrorResponse> {
     const response = await fetchWrapper(`${API_BASE_URL}/api/logs/query`, {

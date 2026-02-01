@@ -2,59 +2,17 @@
  * 配置面板 API 接口
  * 用于与后端配置管理服务通信
  */
+import type { JsonSchema, ConfigValidationResult } from "@/types/config";
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetConfigSchema, mockGetCurrentConfig, mockGetBaseConfig, mockGetOverrideConfig, mockSaveOverrideConfig, mockSaveBaseConfig, mockValidateConfig } from "@/mock/configMock";
 
-// ==================== 类型定义 ====================
-
-/**
- * JSON Schema 类型（简化版）
- */
-export interface JsonSchema {
-    $ref?: string;
-    $schema?: string;
-
-    /**
-     * zod-to-json-schema 默认会把根 schema 放在 definitions 里，并用 $ref 指向它。
-     */
-    definitions?: Record<string, JsonSchema>;
-
-    type?: string;
-    title?: string;
-    description?: string;
-    format?: string;
-
-    properties?: Record<string, JsonSchema>;
-    required?: string[];
-
-    /** 数组项的 schema，可以是单个 schema 或 schema 数组（用于 tuple） */
-    items?: JsonSchema | JsonSchema[];
-    /** 数组最小长度（用于 tuple 类型） */
-    minItems?: number;
-    /** 数组最大长度（用于 tuple 类型） */
-    maxItems?: number;
-    enum?: string[];
-
-    minimum?: number;
-    maximum?: number;
-    default?: unknown;
-
-    additionalProperties?: boolean | JsonSchema;
-
-    anyOf?: JsonSchema[];
-    oneOf?: JsonSchema[];
-}
-
-/**
- * 配置验证结果
- */
-export interface ConfigValidationResult {
-    valid: boolean;
-    errors?: Array<{ path: string; message: string }> | string[];
-}
+// 导出类型供其他模块使用
+export type { JsonSchema, ConfigValidationResult };
 
 // ==================== API 接口 ====================
 

@@ -1,3 +1,5 @@
+import type { TopicItem } from "@/types/topic";
+
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/button";
@@ -8,8 +10,6 @@ import { ScrollShadow } from "@heroui/scroll-shadow";
 import { DateRangePicker, Tooltip, Input, Checkbox, Select, SelectItem } from "@heroui/react";
 import { Check, Search } from "lucide-react";
 import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
-
-import TopicItem from "./types/TopicItem";
 
 import TopicCard from "@/components/topic/TopicCard";
 import { parseContributors } from "@/components/topic/utils";

@@ -4,6 +4,7 @@
  */
 
 import type { ConfigValidationResult, JsonSchema } from "@/api/configApi";
+import type { ApiResponse } from "@/types/api";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

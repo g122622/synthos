@@ -3,7 +3,10 @@
  * 提供语义搜索、RAG 问答、Agent 对话等能力，支持历史会话记录
  * 采用现代聊天应用布局，输入框固定在底部
  */
+import type { AiChatTab } from "@/types/agent";
+
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@heroui/react";
 import { Menu } from "lucide-react";
 import { useTheme } from "@heroui/use-theme";
@@ -21,30 +24,33 @@ import { useMobileLayout } from "./components/hooks/useMobileLayout";
 import { useSemanticSearch } from "./components/hooks/useSemanticSearch";
 import { useSessionActions } from "./components/hooks/useSessionActions";
 import { useTopicStatus } from "./components/hooks/useTopicStatus";
+import { DEFAULT_ACTIVE_TAB, DEFAULT_TOP_K, DEFAULT_ENABLE_QUERY_REWRITER, DEFAULT_SEARCH_LIMIT, DEFAULT_SIDEBAR_COLLAPSED } from "./constants/constants";
 
 import DefaultLayout from "@/layouts/default";
 
-type AiChatTab = "ask" | "search" | "agent";
-
 export default function AiChatPage() {
     const { theme } = useTheme();
+    const [searchParams, setSearchParams] = useSearchParams();
 
     // 当前 Tab（ask、search 或 agent）
-    const [activeTab, setActiveTab] = useState<AiChatTab>("ask");
+    const [activeTab, setActiveTab] = useState<AiChatTab>(DEFAULT_ACTIVE_TAB as AiChatTab);
 
     // 问答参数
     const [question, setQuestion] = useState("");
-    const [topK, setTopK] = useState(100);
-    const [enableQueryRewriter, setEnableQueryRewriter] = useState(true);
+    const [topK, setTopK] = useState(DEFAULT_TOP_K);
+    const [enableQueryRewriter, setEnableQueryRewriter] = useState(DEFAULT_ENABLE_QUERY_REWRITER);
 
     // 历史会话状态
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(DEFAULT_SIDEBAR_COLLAPSED);
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     // Agent：当前会话下选中的对话
     const [selectedAgentConversationId, setSelectedAgentConversationId] = useState<string | undefined>(undefined);
     const [agentRefreshTrigger, setAgentRefreshTrigger] = useState(0);
+
+    // 标记是否已从URL初始化
+    const [isInitializedFromUrl, setIsInitializedFromUrl] = useState(false);
 
     // 移动端状态
     const { isMobile, mobileDrawerOpen, setMobileDrawerOpen } = useMobileLayout();
@@ -112,6 +118,132 @@ export default function AiChatPage() {
         setTopK,
         stopAsk
     });
+
+    // 从URL参数初始化状态
+    useEffect(() => {
+        const initFromUrl = async () => {
+            // 读取URL参数
+            const urlTab = searchParams.get("tab");
+            const urlSessionId = searchParams.get("sessionId");
+            const urlConversationId = searchParams.get("conversationId");
+            const urlQuestion = searchParams.get("question");
+            const urlTopK = searchParams.get("topK");
+            const urlEnableQueryRewriter = searchParams.get("enableQueryRewriter");
+            const urlSearchQuery = searchParams.get("searchQuery");
+            const urlSearchLimit = searchParams.get("searchLimit");
+            const urlSidebarCollapsed = searchParams.get("sidebarCollapsed");
+
+            // 恢复tab
+            if (urlTab && (urlTab === "ask" || urlTab === "search" || urlTab === "agent")) {
+                setActiveTab(urlTab as AiChatTab);
+            }
+
+            // 恢复侧边栏状态
+            if (urlSidebarCollapsed !== null) {
+                setSidebarCollapsed(urlSidebarCollapsed === "true");
+            }
+
+            // 恢复问答参数
+            if (urlQuestion) {
+                setQuestion(decodeURIComponent(urlQuestion));
+            }
+            if (urlTopK) {
+                const topKNum = parseInt(urlTopK, 10);
+
+                if (!isNaN(topKNum) && topKNum > 0) {
+                    setTopK(topKNum);
+                }
+            }
+            if (urlEnableQueryRewriter !== null) {
+                setEnableQueryRewriter(urlEnableQueryRewriter === "true");
+            }
+
+            // 恢复搜索参数
+            if (urlSearchQuery) {
+                setSearchQuery(decodeURIComponent(urlSearchQuery));
+            }
+            if (urlSearchLimit) {
+                const limitNum = parseInt(urlSearchLimit, 10);
+
+                if (!isNaN(limitNum) && limitNum > 0) {
+                    setSearchLimit(limitNum);
+                }
+            }
+
+            // 恢复Agent对话ID
+            if (urlConversationId) {
+                setSelectedAgentConversationId(urlConversationId);
+            }
+
+            // 恢复会话ID并加载详情
+            if (urlSessionId) {
+                setSelectedSessionId(urlSessionId);
+                // 自动加载会话详情
+                await handleSelectSession(urlSessionId);
+            }
+
+            setIsInitializedFromUrl(true);
+        };
+
+        initFromUrl();
+    }, [handleSelectSession]);
+
+    // 同步状态到URL
+    useEffect(() => {
+        // 只有在初始化完成后才同步URL
+        if (!isInitializedFromUrl) {
+            return;
+        }
+
+        const newParams = new URLSearchParams();
+
+        // tab：只有非默认值才写入
+        if (activeTab !== DEFAULT_ACTIVE_TAB) {
+            newParams.set("tab", activeTab);
+        }
+
+        // sessionId
+        if (selectedSessionId) {
+            newParams.set("sessionId", selectedSessionId);
+        }
+
+        // conversationId (Agent模式)
+        if (selectedAgentConversationId) {
+            newParams.set("conversationId", selectedAgentConversationId);
+        }
+
+        // question
+        if (question) {
+            newParams.set("question", encodeURIComponent(question));
+        }
+
+        // topK：只有非默认值才写入
+        if (topK !== DEFAULT_TOP_K) {
+            newParams.set("topK", String(topK));
+        }
+
+        // enableQueryRewriter：只有非默认值才写入
+        if (enableQueryRewriter !== DEFAULT_ENABLE_QUERY_REWRITER) {
+            newParams.set("enableQueryRewriter", String(enableQueryRewriter));
+        }
+
+        // searchQuery
+        if (searchQuery) {
+            newParams.set("searchQuery", encodeURIComponent(searchQuery));
+        }
+
+        // searchLimit：只有非默认值才写入
+        if (searchLimit !== DEFAULT_SEARCH_LIMIT) {
+            newParams.set("searchLimit", String(searchLimit));
+        }
+
+        // sidebarCollapsed：只有非默认值才写入
+        if (sidebarCollapsed !== DEFAULT_SIDEBAR_COLLAPSED) {
+            newParams.set("sidebarCollapsed", String(sidebarCollapsed));
+        }
+
+        setSearchParams(newParams, { replace: true });
+    }, [activeTab, selectedSessionId, selectedAgentConversationId, question, topK, enableQueryRewriter, searchQuery, searchLimit, sidebarCollapsed, isInitializedFromUrl, setSearchParams]);
 
     const renderMainContent = () => {
         if (activeTab === "ask") {

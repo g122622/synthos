@@ -1,3 +1,6 @@
+import type { GroupDetailsRecord, ChatMessage, MessageHourlyStatsData, AIDigestResult } from "@/types/index";
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
@@ -27,18 +30,8 @@ export const healthCheck = async (): Promise<ApiResponse<{ message: string; time
 };
 
 // 群组相关接口
-interface GroupDetail {
-    IM: string;
-    splitStrategy: string;
-    groupIntroduction: string;
-    aiModel: string;
-}
 
-interface GroupDetailsResponse {
-    [groupId: string]: GroupDetail;
-}
-
-export const getGroupDetails = async (): Promise<ApiResponse<GroupDetailsResponse>> => {
+export const getGroupDetails = async (): Promise<ApiResponse<GroupDetailsRecord>> => {
     // 使用 mock 数据
     if (mockConfig.groups) {
         return mockGetGroupDetails();
@@ -50,20 +43,8 @@ export const getGroupDetails = async (): Promise<ApiResponse<GroupDetailsRespons
 };
 
 // 聊天消息相关接口
-interface ChatMessage {
-    msgId: string;
-    messageContent: string;
-    groupId: string;
-    timestamp: number;
-    senderId: string;
-    senderGroupNickname: string;
-    senderNickname: string;
-    quotedMsgId: string;
-    sessionId: string;
-    preProcessedContent: string;
-}
 
-interface ChatMessagesResponse extends Array<ChatMessage> {}
+type ChatMessagesResponse = ChatMessage[];
 
 export const getChatMessagesByGroupId = async (groupId: string, timeStart: number, timeEnd: number): Promise<ApiResponse<ChatMessagesResponse>> => {
     // 使用 mock 数据
@@ -127,13 +108,8 @@ export const getChatMessagesFtsContext = async (params: { groupId: string; msgId
 };
 
 // 消息每小时统计响应类型
-interface MessageHourlyStatsResponse {
-    data: Record<string, { current: number[]; previous: number[] }>;
-    timestamps: { current: number[]; previous: number[] };
-    totalCounts: { current: number; previous: number };
-}
 
-export const getMessageHourlyStats = async (groupIds: string[]): Promise<ApiResponse<MessageHourlyStatsResponse>> => {
+export const getMessageHourlyStats = async (groupIds: string[]): Promise<ApiResponse<MessageHourlyStatsData>> => {
     // 使用 mock 数据
     if (mockConfig.groups) {
         return mockGetMessageHourlyStats(groupIds);
@@ -185,19 +161,9 @@ export const getSessionTimeDurations = async (sessionIds: string[]): Promise<Api
 };
 
 // AI摘要相关接口
-interface AIDigestResult {
-    topicId: string;
-    sessionId: string;
-    topic: string;
-    contributors: string;
-    detail: string;
-    modelName: string; // 生成摘要所使用的AI模型名称
-    updateTime: number; // 摘要更新时间，UNIX毫秒时间戳格式
-}
 
-interface AIDigestResultResponse extends AIDigestResult {}
-
-interface AIDigestResultsResponse extends Array<AIDigestResult> {}
+type AIDigestResultResponse = AIDigestResult;
+type AIDigestResultsResponse = AIDigestResult[];
 
 export const getAIDigestResultByTopicId = async (topicId: string): Promise<ApiResponse<AIDigestResultResponse>> => {
     // 使用 mock 数据
@@ -251,7 +217,7 @@ export const isSessionSummarized = async (sessionId: string): Promise<ApiRespons
 };
 
 // 其他接口
-interface QQAvatarResponse {
+export interface QQAvatarResponse {
     avatarBase64: string;
 }
 

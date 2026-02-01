@@ -1,38 +1,16 @@
+import type { SearchResponse, AskResponse } from "@/types/rag";
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockSearch, mockAsk } from "@/mock/ragMock";
 
-// ==================== 类型定义 ====================
+// 导出ReferenceItem、SearchResultItem、AskResponse供mock和组件使用
+export type { ReferenceItem, SearchResultItem, AskResponse } from "@/types/rag";
 
-// 搜索结果项
-export interface SearchResultItem {
-    topicId: string;
-    topic: string;
-    detail: string;
-    distance: number;
-    contributors: string;
-}
-
-// 搜索响应
-export type SearchResponse = SearchResultItem[];
-
-// 引用项
-export interface ReferenceItem {
-    topicId: string;
-    topic: string;
-    relevance: number;
-}
-
-// 问答响应
-export interface AskResponse {
-    answer: string;
-    references: ReferenceItem[];
-    sessionId?: string;
-}
-
-// ==================== API 接口 ====================
+// ==================== API 接口 ===================="
 
 /**
  * 语义搜索

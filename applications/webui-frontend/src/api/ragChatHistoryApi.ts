@@ -2,63 +2,19 @@
  * RAG 聊天历史 API 接口
  * 用于管理 RAG 问答历史记录
  */
+import type { SessionDetail, SessionListResponse } from "@/types/rag";
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetSessionList, mockGetSessionDetail, mockDeleteSession, mockUpdateSessionTitle, mockClearAllSessions } from "@/mock/ragChatHistoryMock";
 
-// ==================== 类型定义 ====================
+// 导出ReferenceItem、SessionListItem、SessionDetail和SessionListResponse供mock使用
+export type { ReferenceItem, SessionListItem, SessionDetail, SessionListResponse } from "@/types/rag";
 
-/**
- * 引用项
- */
-export interface ReferenceItem {
-    topicId: string;
-    topic: string;
-    relevance: number;
-}
-
-/**
- * 会话列表项
- */
-export interface SessionListItem {
-    id: string;
-    title: string;
-    createdAt: number;
-    updatedAt: number;
-
-    // 失败标记（后端生成失败但已保存部分内容时为 true）
-    isFailed?: boolean;
-}
-
-/**
- * 会话详情
- */
-export interface SessionDetail {
-    id: string;
-    title: string;
-    question: string;
-    answer: string;
-    references: ReferenceItem[];
-    topK: number;
-    enableQueryRewriter: boolean;
-    isFailed?: boolean;
-    failReason?: string;
-    createdAt: number;
-    updatedAt: number;
-}
-
-/**
- * 会话列表响应
- */
-export interface SessionListResponse {
-    sessions: SessionListItem[];
-    total: number;
-    hasMore: boolean;
-}
-
-// ==================== API 接口 ====================
+// ==================== API 接口 ===================="
 
 /**
  * 获取会话列表

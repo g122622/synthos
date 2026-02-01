@@ -123,9 +123,9 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
 
                 if (response.success) {
                     if (append) {
-                        setSessions(prev => [...prev, ...response.data.sessions]);
+                        setSessions(prev => [...prev, ...response.data.sessions.map(s => ({ ...s }))]);
                     } else {
-                        setSessions(response.data.sessions);
+                        setSessions(response.data.sessions.map(s => ({ ...s })));
                     }
                     setHasMore(response.data.hasMore);
                     setTotal(response.data.total);

@@ -3,6 +3,8 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
+import type { ApiResponse } from "@/types/api";
+
 // 技术话题模板 - 提供具体的技术内容
 const topicTemplates = [
     {

@@ -1,3 +1,5 @@
+import type { GroupDetailsRecord, GroupListItem, MessageHourlyStatsData } from "@/types/index";
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
@@ -9,24 +11,8 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import * as echarts from "echarts";
 
 import { getGroupDetails, getMessageHourlyStats } from "@/api/basicApi";
-import { GroupDetailsRecord, GroupDetail } from "@/types/app";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
-
-// 群组列表项类型，包含群号和消息计数
-interface GroupListItem {
-    groupId: string;
-    groupDetail: GroupDetail;
-    messageCount: number;
-    previousMessageCount: number;
-}
-
-// 每小时统计数据类型
-interface HourlyStatsData {
-    data: Record<string, { current: number[]; previous: number[] }>;
-    timestamps: { current: number[]; previous: number[] };
-    totalCounts: { current: number; previous: number };
-}
 
 export default function GroupsPage() {
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
@@ -34,7 +20,7 @@ export default function GroupsPage() {
     const [previousMessageCounts, setPreviousMessageCounts] = useState<Record<string, number>>({});
     const [totalRecentMessageCount, setTotalRecentMessageCount] = useState<number>(0);
     const [totalPreviousMessageCount, setTotalPreviousMessageCount] = useState<number>(0);
-    const [, setHourlyStats] = useState<HourlyStatsData | null>(null);
+    const [, setHourlyStats] = useState<MessageHourlyStatsData | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
         column: "messageCount",

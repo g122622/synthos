@@ -4,6 +4,7 @@
  */
 
 import type { AgentAskRequest, AgentAskResponse, AgentConversation, AgentEvent, AgentMessage } from "@/api/agentApi";
+import type { ApiResponse } from "@/types/api";
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 

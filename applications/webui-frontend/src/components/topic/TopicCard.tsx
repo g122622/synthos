@@ -1,4 +1,5 @@
 import type React from "react";
+import type { AIDigestResult, TopicItem } from "@/types/topic";
 
 import { useRef } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
@@ -13,29 +14,14 @@ import { generateColorFromName, generateColorFromInterestScore, parseContributor
 import EnhancedDetail from "./EnhancedDetail";
 
 import QQAvatar from "@/components/QQAvatar";
-import { AIDigestResult } from "@/types/app";
 import { Notification } from "@/util/Notification";
 import { formatRelativeTime } from "@/util/format";
 
-// TopicItem 类型（来自 latest-topics）
-interface TopicItemData {
-    topicId: string;
-    sessionId: string;
-    topic: string;
-    contributors: string;
-    detail: string;
-    modelName: string;
-    updateTime: number;
-    timeStart: number;
-    timeEnd: number;
-    groupId: string;
-}
-
 // TopicCard 可接受的数据类型
-type TopicData = TopicItemData | AIDigestResult;
+type TopicData = TopicItem | AIDigestResult;
 
-// 类型守卫：判断是否为 TopicItemData
-function isTopicItemData(topic: TopicData): topic is TopicItemData {
+// 类型守卫：判断是否为 TopicItem
+function isTopicItemData(topic: TopicData): topic is TopicItem {
     return "timeStart" in topic && "timeEnd" in topic && "groupId" in topic;
 }
 
@@ -389,4 +375,4 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
 };
 
 export default TopicCard;
-export type { TopicData, TopicItemData };
+export type { TopicData };

@@ -1,10 +1,8 @@
-import type { AskResponse, ReferenceItem } from "@/api/ragApi";
+import type { AiChatTab, AskResponse, ReferenceItem } from "@/types/index";
 
 import { useCallback } from "react";
 
 import { getSessionDetail } from "@/api/ragChatHistoryApi";
-
-type AiChatTab = "ask" | "search" | "agent";
 
 interface UseSessionActionsOptions {
     activeTab: AiChatTab;

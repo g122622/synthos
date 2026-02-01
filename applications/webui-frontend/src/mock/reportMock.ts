@@ -3,6 +3,8 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
+import type { ApiResponse } from "@/types/api";
+
 import { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/api/reportApi";
 
 // 当前时间戳

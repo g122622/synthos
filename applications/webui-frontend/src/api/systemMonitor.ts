@@ -1,24 +1,14 @@
 // api/systemMonitor.ts
+import type { SystemStats } from "@/types/system";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetLatestSystemStats, mockGetSystemStatsHistory } from "@/mock/systemMonitorMock";
 
-export interface SystemStats {
-    timestamp: number;
-    storage: {
-        chatRecordDB: { count: number; size: number };
-        imMessageFtsDB: { count: number; size: number };
-        aiDialogueDB: { count: number; size: number };
-        vectorDB: { count: number; size: number };
-        kvStoreBackend: { count: number; size: number };
-        kvStorePersistent: { count: number; size: number };
-        logs: { count: number; size: number };
-        totalSize: number;
-    };
-    modules: Record<string, { cpu: number; memory: number }>;
-}
+// 导出类型供其他模块使用
+export type { SystemStats };
 
 export const getLatestSystemStats = async (): Promise<SystemStats> => {
     if (mockConfig.systemMonitor) {

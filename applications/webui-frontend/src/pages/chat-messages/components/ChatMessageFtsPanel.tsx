@@ -1,3 +1,5 @@
+import type { FtsResult, ChatMessage } from "@/types/chat";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
@@ -12,23 +14,6 @@ import { Search } from "lucide-react";
 import { chatMessagesFtsSearch, getChatMessagesFtsContext } from "@/api/basicApi";
 import QQAvatar from "@/components/QQAvatar";
 import { highlightTextByTokens } from "@/util/highlightText";
-
-type FtsHit = { msgId: string; timestamp: number; snippet: string };
-type FtsGroup = { groupId: string; count: number; hits: FtsHit[] };
-type FtsResult = { total: number; page: number; pageSize: number; groups: FtsGroup[] };
-
-type ChatMessage = {
-    msgId: string;
-    messageContent: string;
-    groupId: string;
-    timestamp: number;
-    senderId: string;
-    senderGroupNickname: string;
-    senderNickname: string;
-    quotedMsgId: string;
-    sessionId: string;
-    preProcessedContent: string;
-};
 
 export function ChatMessageFtsPanel(props: { selectedGroupId: string; startTimeMs: number; endTimeMs: number; groupNameResolver?: (groupId: string) => string | undefined }) {
     const [query, setQuery] = useState<string>("");

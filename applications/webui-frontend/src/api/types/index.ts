@@ -1,18 +1,6 @@
-// 通用响应格式
-interface BaseResponse {
-    success: boolean;
-}
-
-interface SuccessResponse<T> extends BaseResponse {
-    data: T;
-}
-
-interface ErrorResponse extends BaseResponse {
-    message: string;
-}
-
-interface ApiResponse<T> {
-    success: boolean;
-    data: T;
-    message: string;
-}
+/**
+ * API响应格式类型
+ * 已迁移至@/types/api
+ * 该文件保留仅为了向后兼容
+ */
+export type { BaseResponse, SuccessResponse, ErrorResponse, ApiResponse } from "@/types/api";

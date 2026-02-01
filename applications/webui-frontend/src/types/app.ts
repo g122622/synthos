@@ -1,39 +1,15 @@
-// 应用相关的类型定义
+/**
+ * 应用相关的类型定义
+ * 注意：具体的业务类型已迁移到各自的分类文件中：
+ * - 群组相关: types/group.ts
+ * - 聊天相关: types/chat.ts
+ * - 话题相关: types/topic.ts
+ * - RAG相关: types/rag.ts
+ * - Agent相关: types/agent.ts
+ * - 报告相关: types/report.ts
+ */
 
-// 群组详情
-export interface GroupDetail {
-    IM: string;
-    splitStrategy: string;
-    groupIntroduction: string;
-    aiModel: string;
-}
-
-// 群组详情记录
-export interface GroupDetailsRecord {
-    [groupId: string]: GroupDetail;
-}
-
-// 聊天消息
-export interface ChatMessage {
-    msgId: string;
-    messageContent: string;
-    groupId: string;
-    timestamp: number;
-    senderId: string;
-    senderGroupNickname: string;
-    senderNickname: string;
-    quotedMsgId: string;
-    sessionId: string;
-    preProcessedContent: string;
-}
-
-// AI摘要结果
-export interface AIDigestResult {
-    topicId: string;
-    sessionId: string;
-    topic: string;
-    contributors: string;
-    detail: string;
-    modelName: string;
-    updateTime: number; // UNIX毫秒级时间戳
-}
+// 为了保持向后兼容，这里重新导出常用类型
+export type { GroupDetail, GroupDetailsRecord } from "./group";
+export type { ChatMessage } from "./chat";
+export type { AIDigestResult, TopicItem } from "./topic";

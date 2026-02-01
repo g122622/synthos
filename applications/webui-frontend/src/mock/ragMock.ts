@@ -3,6 +3,8 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
+import type { ApiResponse } from "@/types/api";
+
 import { SearchResultItem, AskResponse } from "@/api/ragApi";
 import { mockAppendSessionFromAsk } from "@/mock/ragChatHistoryMock";
 

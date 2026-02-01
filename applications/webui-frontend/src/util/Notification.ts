@@ -1,9 +1,6 @@
-import { addToast } from "@heroui/react";
+import type { NotificationOptions } from "@/types/notification";
 
-interface NotificationOptions {
-    title: string;
-    description?: string;
-}
+import { addToast } from "@heroui/react";
 
 export const Notification = {
     success(options: NotificationOptions) {

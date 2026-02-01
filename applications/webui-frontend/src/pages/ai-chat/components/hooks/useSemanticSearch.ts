@@ -1,5 +1,7 @@
 import { useCallback, useState } from "react";
 
+import { DEFAULT_SEARCH_LIMIT } from "../../constants/constants";
+
 import { search, type SearchResultItem } from "@/api/ragApi";
 
 /**
@@ -9,7 +11,7 @@ export function useSemanticSearch() {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
-    const [searchLimit, setSearchLimit] = useState(10);
+    const [searchLimit, setSearchLimit] = useState(DEFAULT_SEARCH_LIMIT);
 
     const handleSearch = useCallback(async () => {
         if (!searchQuery.trim()) {
@@ -36,7 +38,7 @@ export function useSemanticSearch() {
         setSearchQuery("");
         setSearchResults([]);
         setSearchLoading(false);
-        setSearchLimit(10);
+        setSearchLimit(DEFAULT_SEARCH_LIMIT);
     }, []);
 
     return {

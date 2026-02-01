@@ -2,30 +2,10 @@
  * Agent tRPC (WebSocket subscription) 客户端
  * 当前仅用于 RAG Ask 的流式订阅（askStream）
  */
+import type { AskStreamChunk, AskStreamInput } from "@/types/agent";
+
 import { createTRPCProxyClient, wsLink } from "@trpc/client";
 import { createWSClient } from "@trpc/client/links/wsLink";
-
-export interface AskStreamChunk {
-    type: "content" | "references" | "done" | "error";
-    content?: string;
-    references?: Array<{
-        topicId: string;
-        topic: string;
-        relevance: number;
-    }>;
-    error?: string;
-
-    // Provided by webui-backend when it saves the session.
-    sessionId?: string;
-    isFailed?: boolean;
-    failReason?: string;
-}
-
-export interface AskStreamInput {
-    question: string;
-    topK?: number;
-    enableQueryRewriter?: boolean;
-}
 
 function getAiModelWsUrl() {
     const isHttps = window.location.protocol === "https:";

@@ -1,9 +1,13 @@
-import type { TopicReferenceItem } from "@/types/topicReference";
+import type { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse, SendReportEmailResponse } from "@/types/report";
+import type { ApiResponse } from "@/types/api";
 
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
+
+// 导出类型供其他模块使用
+export type { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse, SendReportEmailResponse };
 import {
     mockGetReportById,
     mockGetReportsPaginated,
@@ -16,46 +20,6 @@ import {
     mockGetReportsReadStatus,
     mockSendReportEmail
 } from "@/mock/reportMock";
-
-// 日报类型
-export type ReportType = "half-daily" | "weekly" | "monthly";
-
-// 日报统计数据
-export interface ReportStatistics {
-    topicCount: number;
-    mostActiveGroups: string[];
-    mostActiveHour: number;
-}
-
-// 日报数据
-export interface Report {
-    reportId: string;
-    type: ReportType;
-    timeStart: number;
-    timeEnd: number;
-    isEmpty: boolean;
-    summary: string;
-    summaryGeneratedAt: number;
-    summaryStatus: "success" | "failed" | "pending";
-    model: string;
-    statistics: ReportStatistics;
-    topicIds: string[];
-    createdAt: number;
-    updatedAt: number;
-}
-
-export interface ReportDetail {
-    report: Report;
-    references: TopicReferenceItem[];
-}
-
-// 分页结果
-export interface ReportsPaginatedResponse {
-    reports: Report[];
-    total: number;
-    page: number;
-    pageSize: number;
-}
 
 /**
  * 获取单个日报详情
@@ -143,13 +107,6 @@ export const getRecentReports = async (type: ReportType, limit: number): Promise
     return response.json();
 };
 
-// 触发生成日报的响应
-export interface TriggerReportGenerateResponse {
-    success: boolean;
-    message: string;
-    reportId?: string;
-}
-
 /**
  * 手动触发生成日报
  * @param type 日报类型
@@ -225,14 +182,6 @@ export const getReportsReadStatus = async (reportIds: string[]): Promise<ApiResp
 };
 
 // ==================== 日报邮件发送 ====================
-
-/**
- * 发送日报邮件响应
- */
-export interface SendReportEmailResponse {
-    success: boolean;
-    message: string;
-}
 
 /**
  * 发送日报邮件到配置的收件人邮箱

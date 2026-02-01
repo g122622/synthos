@@ -3,6 +3,8 @@
  * 用于在只启动前端时展示 UI 效果
  */
 
+import type { ApiResponse } from "@/types/api";
+
 import { SessionListItem, SessionDetail, ReferenceItem, SessionListResponse } from "@/api/ragChatHistoryApi";
 
 // 模拟会话数据存储（用于模拟增删改操作）

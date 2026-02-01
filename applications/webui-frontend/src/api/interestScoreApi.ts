@@ -1,11 +1,15 @@
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockGetInterestScoreResults } from "@/mock/latestTopicsMock";
 
-// 兴趣得分结果接口
-interface InterestScoreResult {
+/**
+ * 兴趣得分结果
+ */
+export interface InterestScoreResult {
     topicId: string;
     score: number | null;
 }

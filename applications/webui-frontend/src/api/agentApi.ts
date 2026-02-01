@@ -2,117 +2,17 @@
  * Agent API 接口
  * 用于调用 Agent 问答、对话历史相关接口
  */
+import type { AgentMessage, AgentConversation, AgentAskRequest, AgentAskResponse, AgentEvent } from "@/types/agent";
+import type { ApiResponse } from "@/types/api";
+
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
 import { mockAgentAsk, mockAgentAskStream, mockGetAgentConversations, mockGetAgentMessages } from "@/mock/agentMock";
 
-// ==================== 类型定义 ====================
-
-/**
- * Agent 消息类型
- */
-export interface AgentMessage {
-    id: string;
-    conversationId: string;
-    role: "user" | "assistant";
-    content: string;
-    timestamp: number;
-    toolsUsed?: string[];
-    toolRounds?: number;
-    tokenUsage?: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-    };
-}
-
-/**
- * Agent 对话类型
- */
-export interface AgentConversation {
-    id: string;
-    sessionId?: string;
-    title: string;
-    createdAt: number;
-    updatedAt: number;
-}
-
-/**
- * Agent 问答请求参数
- */
-export interface AgentAskRequest {
-    question: string;
-    conversationId?: string;
-    sessionId?: string;
-    enabledTools?: Array<"rag_search" | "sql_query" | "web_search">;
-    maxToolRounds?: number;
-    temperature?: number;
-    maxTokens?: number;
-}
-
-/**
- * Agent 问答响应
- */
-export interface AgentAskResponse {
-    conversationId: string;
-    messageId: string;
-    content: string;
-    toolsUsed: string[];
-    toolRounds: number;
-    totalUsage?: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-    };
-}
-
-// ==================== Agent SSE 事件（稳定业务事件）====================
-
-export type AgentEvent =
-    | {
-          type: "token";
-          ts: number;
-          conversationId: string;
-          content: string;
-      }
-    | {
-          type: "tool_call";
-          ts: number;
-          conversationId: string;
-          toolCallId: string;
-          toolName: string;
-          toolArgs: unknown;
-      }
-    | {
-          type: "tool_result";
-          ts: number;
-          conversationId: string;
-          toolCallId: string;
-          toolName: string;
-          result: unknown;
-      }
-    | {
-          type: "done";
-          ts: number;
-          conversationId: string;
-          messageId?: string;
-          content?: string;
-          toolsUsed?: string[];
-          toolRounds?: number;
-          totalUsage?: {
-              promptTokens: number;
-              completionTokens: number;
-              totalTokens: number;
-          };
-      }
-    | {
-          type: "error";
-          ts: number;
-          conversationId: string;
-          error: string;
-      };
+// 导出类型供mock和组件使用
+export type { AgentMessage, AgentConversation, AgentAskRequest, AgentAskResponse, AgentEvent };
 
 type SseMessage = {
     event: string;
