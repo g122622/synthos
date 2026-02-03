@@ -189,7 +189,7 @@ export default function ReportDetailModal({
                     {topicReferences.length > 0 && onMarkTopicAsRead && onToggleTopicFavorite ? (
                         <div>
                             <ReferenceList
-                                defaultCollapsed={false}
+                                defaultCollapsed={true}
                                 favoriteTopics={favoriteTopics}
                                 readTopics={readTopics}
                                 references={topicReferences}
