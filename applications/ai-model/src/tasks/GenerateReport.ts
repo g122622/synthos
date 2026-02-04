@@ -10,7 +10,7 @@ import { ReportDbAccessService } from "@root/common/services/database/ReportDbAc
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { Report, ReportStatistics, ReportType } from "@root/common/contracts/report";
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
-import getRandomHash from "@root/common/util/getRandomHash";
+import getRandomHash from "@root/common/util/math/getRandomHash";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ReportEmailService } from "../services/email/ReportEmailService";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";

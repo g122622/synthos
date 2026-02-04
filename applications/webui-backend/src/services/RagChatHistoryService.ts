@@ -3,7 +3,7 @@
  * 处理 RAG 问答历史记录的业务逻辑
  */
 import { injectable, inject } from "tsyringe";
-import getRandomHash from "@root/common/util/getRandomHash";
+import getRandomHash from "@root/common/util/math/getRandomHash";
 import { TOKENS } from "../di/tokens";
 import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
 import Logger from "@root/common/util/Logger";

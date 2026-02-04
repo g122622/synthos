@@ -3,7 +3,7 @@ import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { ISplitter } from "./contracts/ISplitter";
-import getRandomHash from "@root/common/util/getRandomHash";
+import getRandomHash from "@root/common/util/math/getRandomHash";
 import { KVStore } from "@root/common/util/KVStore";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ASSERT } from "@root/common/util/ASSERT";

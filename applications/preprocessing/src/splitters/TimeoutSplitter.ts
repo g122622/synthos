@@ -2,7 +2,7 @@ import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ISplitter } from "./contracts/ISplitter";
-import getRandomHash from "@root/common/util/getRandomHash";
+import getRandomHash from "@root/common/util/math/getRandomHash";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";

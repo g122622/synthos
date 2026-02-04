@@ -1,7 +1,7 @@
 // logger.ts
 import "reflect-metadata";
 import { rainbow, pastel, atlas } from "gradient-string";
-import { getCurrentFunctionName } from "./getCurrentFunctionName";
+import { getCurrentFunctionName } from "./core/getCurrentFunctionName";
 import { appendFile, mkdir, access } from "fs/promises";
 import { join } from "path";
 import { nextTick } from "process";

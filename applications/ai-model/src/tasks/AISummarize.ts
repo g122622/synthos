@@ -15,7 +15,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import getRandomHash from "@root/common/util/getRandomHash";
+import getRandomHash from "@root/common/util/math/getRandomHash";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
