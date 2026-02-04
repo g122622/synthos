@@ -10,6 +10,7 @@ import Logger from "../../util/Logger";
 import { ConfigManagerService } from "../config/ConfigManagerService";
 import { COMMON_TOKENS } from "../../di/tokens";
 import { Disposable } from "../../util/lifecycle/Disposable";
+import { escapeHtml as utilEscapeHtml } from "../../util/secure/escapeHtml";
 
 /**
  * 发送邮件的选项
@@ -154,20 +155,7 @@ class EmailService extends Disposable {
      * @returns 转义后的文本
      */
     public escapeHtml(text: string): string {
-        const escapeMap: Record<string, string> = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#039;",
-            "\n": "<br>"
-        };
-
-        let result = text;
-        for (const [char, escaped] of Object.entries(escapeMap)) {
-            result = result.split(char).join(escaped);
-        }
-        return result;
+        return utilEscapeHtml(text, { preserveNewlines: true });
     }
 }
 

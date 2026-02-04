@@ -96,11 +96,11 @@ class InterestEmailService {
             <div class="topic-card">
                 <div class="topic-number">${index + 1}</div>
                 <div class="topic-content">
-                    <h3 class="topic-title">${this._escapeHtml(topic.topic)}</h3>
+                    <h3 class="topic-title">${this.emailService.escapeHtml(topic.topic)}</h3>
                     <div class="topic-contributors">
-                        <strong>主要参与者：</strong>${this._escapeHtml(JSON.parse(topic.contributors).join("、"))}
+                        <strong>主要参与者：</strong>${this.emailService.escapeHtml(JSON.parse(topic.contributors).join("、"))}
                     </div>
-                    <div class="topic-detail">${this._escapeHtml(topic.detail)}</div>
+                    <div class="topic-detail">${this.emailService.escapeHtml(topic.detail)}</div>
                 </div>
             </div>
         `
@@ -146,22 +146,6 @@ class InterestEmailService {
 </body>
 </html>
         `;
-    }
-
-    /**
-     * HTML 转义函数，防止 XSS
-     * @param text 待转义的文本
-     * @returns 转义后的文本
-     */
-    private _escapeHtml(text: string): string {
-        const map: Record<string, string> = {
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#039;"
-        };
-        return text.replace(/[&<>"']/g, m => map[m]);
     }
 }
 
