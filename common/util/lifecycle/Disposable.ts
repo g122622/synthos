@@ -172,7 +172,7 @@ class Disposable implements IDisposable {
                 // TODO Fix me:
                 // 但可能会导致一些问题，比如：
                 // Error disposing objects: TypeError: Cannot read properties of undefined (reading 'clear')
-                // at file:///D:/FR_Projects/synthos/common/dist/util/lifecycle/Disposable.js:133:31
+                // at file:///xxx/synthos/common/dist/util/lifecycle/Disposable.js:133:31
                 // 原因未知。
 
                 // for (const key in this) {

@@ -6,6 +6,7 @@ export enum TaskHandlerTypes {
     Preprocess = "Preprocess",
     AISummarize = "AISummarize",
     InterestScore = "InterestScore",
+    LLMInterestEvaluationAndNotification = "LLMInterestEvaluationAndNotification",
     GenerateEmbedding = "GenerateEmbedding",
     // Pipeline 调度任务
     RunPipeline = "RunPipeline",
@@ -34,6 +35,10 @@ export interface TaskParamsMap {
         endTimeStamp: number;
     };
     [TaskHandlerTypes.InterestScore]: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    };
+    [TaskHandlerTypes.LLMInterestEvaluationAndNotification]: {
         startTimeStamp: number;
         endTimeStamp: number;
     };

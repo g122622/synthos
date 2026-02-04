@@ -7,6 +7,8 @@ export const AI_MODEL_TOKENS = {
     // ai-model 特有的服务
     /** 日报邮件服务 */
     ReportEmailService: Symbol.for("ReportEmailService"),
+    /** 兴趣话题邮件服务 */
+    InterestEmailService: Symbol.for("InterestEmailService"),
     /** 向量数据库管理器 */
     VectorDBManagerService: Symbol.for("VectorDBManagerService"),
     /** 向量嵌入服务 **/
@@ -37,6 +39,8 @@ export const AI_MODEL_TOKENS = {
     AISummarizeTaskHandler: Symbol.for("AISummarizeTaskHandler"),
     /** 兴趣度评分任务处理器 */
     InterestScoreTaskHandler: Symbol.for("InterestScoreTaskHandler"),
+    /** LLM兴趣评估与通知任务处理器 */
+    LLMInterestEvaluationAndNotificationTaskHandler: Symbol.for("LLMInterestEvaluationAndNotificationTaskHandler"),
     /** 向量嵌入生成任务处理器 */
     GenerateEmbeddingTaskHandler: Symbol.for("GenerateEmbeddingTaskHandler"),
     /** 日报生成任务处理器 */

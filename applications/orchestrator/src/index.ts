@@ -18,6 +18,7 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
  * 3. AISummarize - AI 摘要生成
  * 4. GenerateEmbedding - 生成向量嵌入
  * 5. InterestScore - 计算兴趣度评分
+ * 6. LLMInterestEvaluationAndNotification - LLM智能兴趣评估与邮件通知
  */
 
 // 注意：日报生成任务由 reportScheduler 负责，独立于主 Pipeline
@@ -40,6 +41,7 @@ class OrchestratorApplication {
             TaskHandlerTypes.AISummarize,
             TaskHandlerTypes.GenerateEmbedding,
             TaskHandlerTypes.InterestScore,
+            TaskHandlerTypes.LLMInterestEvaluationAndNotification,
             TaskHandlerTypes.GenerateReport
         ]);
 
@@ -140,7 +142,7 @@ class OrchestratorApplication {
                 await job.touch();
 
                 // ==================== 步骤 5: InterestScore ====================
-                LOGGER.info("⭐ [5/5] 开始执行 InterestScore 任务...");
+                LOGGER.info("⭐ [5/6] 开始执行 InterestScore 任务...");
                 const interestScoreSuccess = await scheduleAndWaitForJob(
                     TaskHandlerTypes.InterestScore,
                     {
@@ -153,6 +155,24 @@ class OrchestratorApplication {
                 if (!interestScoreSuccess) {
                     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
                     job.fail("InterestScore task failed");
+                    return;
+                }
+                await job.touch();
+
+                // ==================== 步骤 6: LLMInterestEvaluationAndNotification ====================
+                LOGGER.info("🔔 [6/6] 开始执行 LLMInterestEvaluationAndNotification 任务...");
+                const llmInterestEvaluationSuccess = await scheduleAndWaitForJob(
+                    TaskHandlerTypes.LLMInterestEvaluationAndNotification,
+                    {
+                        startTimeStamp,
+                        endTimeStamp
+                    },
+                    POLL_INTERVAL,
+                    TASK_TIMEOUT
+                );
+                if (!llmInterestEvaluationSuccess) {
+                    LOGGER.error("❌ LLMInterestEvaluationAndNotification 任务失败，Pipeline 终止");
+                    job.fail("LLMInterestEvaluationAndNotification task failed");
                     return;
                 }
 

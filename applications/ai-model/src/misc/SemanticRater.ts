@@ -1,8 +1,15 @@
 import Logger from "@root/common/util/Logger";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
-import { UserInterest } from "@root/common/services/config/schemas/GlobalConfig";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
+
+/**
+ * 用户兴趣配置类型
+ */
+type UserInterest = {
+    keyword: string;
+    liked: boolean;
+};
 
 export class SemanticRater {
     private embeddingService: EmbeddingService;

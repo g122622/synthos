@@ -6,12 +6,14 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import { AI_MODEL_TOKENS } from "./tokens";
 import { ReportEmailService } from "../services/email/ReportEmailService";
+import { InterestEmailService } from "../services/email/InterestEmailService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { RagRPCImpl } from "../rag/RagRPCImpl";
 import { AISummarizeTaskHandler } from "../tasks/AISummarize";
 import { InterestScoreTaskHandler } from "../tasks/InterestScore";
+import { LLMInterestEvaluationAndNotificationTaskHandler } from "../tasks/LLMInterestEvaluationAndNotification";
 import { GenerateEmbeddingTaskHandler } from "../tasks/GenerateEmbedding";
 import { GenerateReportTaskHandler } from "../tasks/GenerateReport";
 import {
@@ -41,6 +43,7 @@ export async function registerAllDependencies(): Promise<void> {
     registerCommonDBService();
     registerEmailService();
     container.registerSingleton(AI_MODEL_TOKENS.ReportEmailService, ReportEmailService);
+    container.registerSingleton(AI_MODEL_TOKENS.InterestEmailService, InterestEmailService);
 
     const config = await ConfigManagerService.getCurrentConfig();
 
@@ -93,6 +96,10 @@ export async function registerAllDependencies(): Promise<void> {
     // 7. 注册任务处理器
     container.registerSingleton(AI_MODEL_TOKENS.AISummarizeTaskHandler, AISummarizeTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.InterestScoreTaskHandler, InterestScoreTaskHandler);
+    container.registerSingleton(
+        AI_MODEL_TOKENS.LLMInterestEvaluationAndNotificationTaskHandler,
+        LLMInterestEvaluationAndNotificationTaskHandler
+    );
     container.registerSingleton(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler, GenerateEmbeddingTaskHandler);
     container.registerSingleton(AI_MODEL_TOKENS.GenerateReportTaskHandler, GenerateReportTaskHandler);
 

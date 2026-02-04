@@ -153,7 +153,7 @@ ollama pull bge-m3
 
 #### 准备配置文件
 
-在项目根目录创建 `synthos_config.json`，格式请参考 [`./common/config/@types/GlobalConfig.ts`](d:\FR_Projects\synthos\common\config\@types\GlobalConfig.ts)。  
+在项目根目录创建 `synthos_config.json`，格式请参考 [`./common/config/@types/GlobalConfig.ts`](.\common\config\@types\GlobalConfig.ts)。  
 QQ 数据库密钥配置方法详见：[https://docs.aaqwq.top/](https://docs.aaqwq.top/)
 
 附：**向量嵌入相关配置示例**（配置文件中的 `ai.embedding` 和 `ai.rpc` 部分）：
@@ -298,8 +298,8 @@ npm run config
 
 ## API 与前端开发
 
-- **API 文档**：详见 [`applications/webui-backend/docs/API文档.md`](d:\FR_Projects\synthos\applications\webui-backend\docs\API文档.md)
-- **前端开发指引**：详见 [`applications/webui-backend/docs/前端开发指引文档.md`](d:\FR_Projects\synthos\applications\webui-backend\docs/前端开发指引文档.md)
+- **API 文档**：详见 [`applications/webui-backend/docs/API文档.md`](.\applications\webui-backend\docs\API文档.md)
+- **前端开发指引**：详见 [`applications/webui-backend/docs/前端开发指引文档.md`](.\applications\webui-backend\docs/前端开发指引文档.md)
 
 核心接口包括：
 

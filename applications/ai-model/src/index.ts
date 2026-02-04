@@ -11,6 +11,7 @@ import { AISummarizeTaskHandler } from "./tasks/AISummarize";
 import { GenerateEmbeddingTaskHandler } from "./tasks/GenerateEmbedding";
 import { GenerateReportTaskHandler } from "./tasks/GenerateReport";
 import { InterestScoreTaskHandler } from "./tasks/InterestScore";
+import { LLMInterestEvaluationAndNotificationTaskHandler } from "./tasks/LLMInterestEvaluationAndNotification";
 
 const LOGGER = Logger.withTag("🤖 ai-model-root-script");
 
@@ -30,6 +31,11 @@ class AIModelApplication {
         // 2. 注册各大任务到 Agenda 调度器
         await container.resolve<AISummarizeTaskHandler>(AI_MODEL_TOKENS.AISummarizeTaskHandler).register();
         await container.resolve<InterestScoreTaskHandler>(AI_MODEL_TOKENS.InterestScoreTaskHandler).register();
+        await container
+            .resolve<LLMInterestEvaluationAndNotificationTaskHandler>(
+                AI_MODEL_TOKENS.LLMInterestEvaluationAndNotificationTaskHandler
+            )
+            .register();
         await container
             .resolve<GenerateEmbeddingTaskHandler>(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler)
             .register();

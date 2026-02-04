@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DeepRequired } from "../../../util/type/DeepRequired";
 
 // ==================== Zod Schema 定义（用于运行时验证）====================
 
@@ -20,14 +21,6 @@ export const GroupConfigSchema = z.object({
     splitStrategy: z.enum(["realtime", "accumulative"]).describe("消息分割策略"),
     groupIntroduction: z.string().describe("群简介，用于拼接在 context 里面"),
     aiModels: z.array(z.string()).describe("要使用的 AI 模型名列表，按优先级排序")
-});
-
-/**
- * 用户兴趣配置 Schema
- */
-export const UserInterestSchema = z.object({
-    keyword: z.string().describe("关键词"),
-    liked: z.boolean().describe("是否喜欢")
 });
 
 /**
@@ -159,7 +152,9 @@ export const GlobalConfigSchema = z.object({
             interestScore: z
                 .object({
                     UserInterestsPositiveKeywords: z.array(z.string()).describe("正向关键词"),
-                    UserInterestsNegativeKeywords: z.array(z.string()).describe("负向关键词")
+                    UserInterestsNegativeKeywords: z.array(z.string()).describe("负向关键词"),
+                    llmEvaluationDescriptions: z.array(z.string()).describe("LLM兴趣评估的用户兴趣描述句子列表"),
+                    llmEvaluationBatchSize: z.number().positive().int().describe("LLM兴趣评估的批处理大小")
                 })
                 .describe("兴趣度评分配置"),
             embedding: z
@@ -251,17 +246,6 @@ export const PartialGlobalConfigSchema = GlobalConfigSchema.deepPartial();
 // ==================== TypeScript 类型（从 Zod Schema 自动推导）====================
 
 /**
- * 从 Zod Schema 生成严格类型（移除所有可选标记）
- */
-type DeepRequired<T> = {
-    [K in keyof T]-?: T[K] extends object | undefined
-        ? T[K] extends (...args: any[]) => any
-            ? T[K]
-            : DeepRequired<NonNullable<T[K]>>
-        : T[K];
-};
-
-/**
  * AI 模型配置类型
  */
 export type ModelConfig = DeepRequired<z.infer<typeof ModelConfigSchema>>;
@@ -270,11 +254,6 @@ export type ModelConfig = DeepRequired<z.infer<typeof ModelConfigSchema>>;
  * 群组配置类型
  */
 export type GroupConfig = DeepRequired<z.infer<typeof GroupConfigSchema>>;
-
-/**
- * 用户兴趣配置类型
- */
-export type UserInterest = DeepRequired<z.infer<typeof UserInterestSchema>>;
 
 /**
  * 全局配置类型
