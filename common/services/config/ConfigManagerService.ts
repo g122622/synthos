@@ -7,6 +7,7 @@ import { findFileUpwards } from "../../util/file/findFileUpwards";
 import { ASSERT } from "../../util/ASSERT";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { JsonSchema7Type } from "zod-to-json-schema";
+import { deepMerge } from "../../util/core/deepMerge";
 
 @injectable()
 class ConfigManagerService {
@@ -65,7 +66,7 @@ class ConfigManagerService {
         }
 
         // 3. 合并主配置和 override 配置
-        const mergedConfig = this.deepMerge(baseConfig, overrideConfig);
+        const mergedConfig = deepMerge(baseConfig, overrideConfig);
 
         // 4. 用 Zod 全量 Schema 验证合并后的配置文件是否完整且类型正确
         const parsed = GlobalConfigSchema.safeParse(mergedConfig);
@@ -185,40 +186,6 @@ class ConfigManagerService {
             success: false,
             errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`)
         };
-    }
-
-    /**
-     * 深度合并两个对象，source 中非 undefined 的值会覆盖 target 中的值
-     */
-    private deepMerge<T extends object>(target: T, source: Record<string, unknown>): T {
-        const result = { ...target };
-
-        for (const key in source) {
-            const sourceValue = source[key];
-            if (sourceValue === undefined) {
-                continue;
-            }
-
-            const targetValue = (target as Record<string, unknown>)[key];
-            if (
-                sourceValue !== null &&
-                typeof sourceValue === "object" &&
-                !Array.isArray(sourceValue) &&
-                targetValue !== null &&
-                typeof targetValue === "object" &&
-                !Array.isArray(targetValue)
-            ) {
-                // 递归合并嵌套对象
-                (result as Record<string, unknown>)[key] = this.deepMerge(
-                    targetValue as object,
-                    sourceValue as Record<string, unknown>
-                );
-            } else {
-                (result as Record<string, unknown>)[key] = sourceValue;
-            }
-        }
-
-        return result;
     }
 }
 
