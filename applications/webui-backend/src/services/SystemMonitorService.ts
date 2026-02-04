@@ -6,23 +6,9 @@ import * as path from "path";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
 import { findFileUpwards } from "@root/common/util/file/findFileUpwards";
+import type { SystemStats } from "../types/system";
 
 const LOGGER = Logger.withTag("SystemMonitorService");
-
-export interface SystemStats {
-    timestamp: number;
-    storage: {
-        chatRecordDB: { count: number; size: number };
-        imMessageFtsDB: { count: number; size: number };
-        aiDialogueDB: { count: number; size: number };
-        vectorDB: { count: number; size: number };
-        kvStoreBackend: { count: number; size: number };
-        kvStorePersistent: { count: number; size: number };
-        logs: { count: number; size: number };
-        totalSize: number;
-    };
-    modules: Record<string, { cpu: number; memory: number }>;
-}
 
 @injectable()
 export class SystemMonitorService {

@@ -3,7 +3,8 @@ import { observable } from "@trpc/server/observable";
 import { container } from "tsyringe";
 import { TOKENS } from "../di/tokens";
 import type { RAGClient } from "./aiModelClient";
-import type { RagChatHistoryService, ReferenceItem as RagReferenceItem } from "../services/RagChatHistoryService";
+import type { RagChatHistoryService } from "../services/RagChatHistoryService";
+import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 import {
     AgentAskInputSchema,
     AskInputSchema,
@@ -45,7 +46,7 @@ export const appRouter = t.router({
 
             // 流式累积：用于最终保存会话（包括失败场景保存部分内容）
             let answerBuffer = "";
-            let referencesBuffer: RagReferenceItem[] = [];
+            let referencesBuffer: ReferenceItem[] = [];
             let isFailed = false;
             let failReason = "";
             let hasSaved = false;

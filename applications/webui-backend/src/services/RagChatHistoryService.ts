@@ -5,58 +5,16 @@
 import { injectable, inject } from "tsyringe";
 import getRandomHash from "@root/common/util/getRandomHash";
 import { TOKENS } from "../di/tokens";
-import { RagChatHistoryManager, RagChatSession, SessionListItem } from "../repositories/RagChatHistoryManager";
+import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
 import Logger from "@root/common/util/Logger";
-
-/**
- * 引用项类型
- */
-export interface ReferenceItem {
-    topicId: string;
-    topic: string;
-    relevance: number;
-}
-
-/**
- * 创建会话的输入参数
- */
-export interface CreateSessionServiceInput {
-    question: string;
-    answer: string;
-    references: ReferenceItem[];
-    topK: number;
-    enableQueryRewriter: boolean;
-
-    // 可选：失败标记（用于断线续跑/后台落库场景）
-    isFailed?: boolean;
-    failReason?: string;
-}
-
-/**
- * 会话详情（用于前端展示）
- */
-export interface SessionDetail {
-    id: string;
-    title: string;
-    question: string;
-    answer: string;
-    references: ReferenceItem[];
-    topK: number;
-    enableQueryRewriter: boolean;
-    isFailed: boolean;
-    failReason: string;
-    createdAt: number;
-    updatedAt: number;
-}
-
-/**
- * 会话列表响应
- */
-export interface SessionListResponse {
-    sessions: SessionListItem[];
-    total: number;
-    hasMore: boolean;
-}
+import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
+import type {
+    RagChatSession,
+    SessionListItem,
+    CreateSessionServiceInput,
+    SessionDetail,
+    SessionListResponse
+} from "../types/rag-session";
 
 @injectable()
 export class RagChatHistoryService {

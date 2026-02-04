@@ -7,56 +7,9 @@ import sqlite3 from "sqlite3";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import Logger from "@root/common/util/Logger";
+import type { RagChatSession, CreateSessionInput, SessionListItem } from "../types/rag-session";
 
-// ==================== 类型定义 ====================
-
-/**
- * RAG 会话记录
- */
-export interface RagChatSession {
-    id: string;
-    title: string;
-    question: string;
-    answer: string;
-    refs: string; // JSON 字符串，存储 ReferenceItem[]
-    topK: number;
-    enableQueryRewriter: boolean;
-    isFailed: boolean;
-    failReason: string;
-    pinned: boolean;
-    createdAt: number;
-    updatedAt: number;
-}
-
-/**
- * 创建会话的输入参数
- */
-export interface CreateSessionInput {
-    id: string;
-    title: string;
-    question: string;
-    answer: string;
-    refs: string;
-    topK: number;
-    enableQueryRewriter: boolean;
-    isFailed: boolean;
-    failReason: string;
-    pinned: boolean;
-}
-
-/**
- * 会话列表项（用于侧边栏显示）
- */
-export interface SessionListItem {
-    id: string;
-    title: string;
-    isFailed: boolean;
-    pinned: boolean;
-    createdAt: number;
-    updatedAt: number;
-}
-
-// ==================== 数据库管理器 ====================
+// ====================  数据库管理器 ====================
 
 export class RagChatHistoryManager extends Disposable {
     private static instance: RagChatHistoryManager | null = null;

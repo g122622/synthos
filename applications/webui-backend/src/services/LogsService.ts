@@ -8,34 +8,7 @@ import ConfigManagerService from "@root/common/services/config/ConfigManagerServ
 import Logger from "@root/common/util/Logger";
 
 import { NotFoundError } from "../errors/AppError";
-
-export type LogLevel = "debug" | "info" | "success" | "warning" | "error";
-
-export interface LogItem {
-    timestamp: number;
-    level: LogLevel;
-    raw: string;
-    sourceFile: string;
-}
-
-export interface QueryLogsParams {
-    limit: number;
-    before?: number;
-    startTime?: number;
-    endTime?: number;
-    levels?: LogLevel[];
-}
-
-export interface QueryLogsResult {
-    items: LogItem[];
-    nextBefore: number | null;
-    hasMore: boolean;
-}
-
-interface LogFileInfo {
-    fileName: string;
-    dayStartMs: number;
-}
+import type { LogLevel, LogItem, QueryLogsParams, QueryLogsResult, LogFileInfo } from "../types/logs";
 
 @injectable()
 export class LogsService {

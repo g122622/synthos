@@ -6,9 +6,10 @@ import { injectable, inject } from "tsyringe";
 import { Request, Response } from "express";
 import { TOKENS } from "../di/tokens";
 import { SearchService } from "../services/SearchService";
-import { RagChatHistoryService, type ReferenceItem as RagReferenceItem } from "../services/RagChatHistoryService";
+import { RagChatHistoryService } from "../services/RagChatHistoryService";
 import Logger from "@root/common/util/Logger";
 import { RagAskSchema, RagSearchSchema } from "../schemas/index";
+import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 
 @injectable()
 export class SearchController {
@@ -48,10 +49,10 @@ export class SearchController {
         const result = await this.searchService.ask(question, resolvedTopK, resolvedEnableQueryRewriter);
 
         const answer = result.answer;
-        const references: RagReferenceItem[] = Array.isArray(
+        const references: ReferenceItem[] = Array.isArray(
             (result as unknown as { references?: unknown }).references
         )
-            ? (result as unknown as { references: RagReferenceItem[] }).references || []
+            ? (result as unknown as { references: ReferenceItem[] }).references || []
             : [];
 
         let sessionId: string | undefined;
