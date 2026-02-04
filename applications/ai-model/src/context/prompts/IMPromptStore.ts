@@ -4,6 +4,7 @@ import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
 export class IMPromptStore {
+    // 这里不注入时间中间件，因为待总结话题可能不是最近的
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
     public static async getSummarizePrompt(
         groupIntroduction: string,
