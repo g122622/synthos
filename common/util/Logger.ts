@@ -1,11 +1,14 @@
 // logger.ts
 import "reflect-metadata";
-import { rainbow, pastel, atlas } from "gradient-string";
-import { getCurrentFunctionName } from "./core/getCurrentFunctionName";
 import { appendFile, mkdir, access } from "fs/promises";
 import { join } from "path";
 import { nextTick } from "process";
+
+import { rainbow, pastel, atlas } from "gradient-string";
+
 import ConfigManagerService from "../services/config/ConfigManagerService";
+
+import { getCurrentFunctionName } from "./core/getCurrentFunctionName";
 
 class Logger {
     private tag: string | null = null;
@@ -46,6 +49,7 @@ class Logger {
             warning: "⚠️",
             error: "❌"
         };
+
         return `${emojiMap[level]} ${time}${("[" + level.toUpperCase() + "]").padEnd(9, " ")}${this.tag ? `${this.tag} ` : ""}[${getCurrentFunctionName()}] `;
     }
 
@@ -59,6 +63,7 @@ class Logger {
         const minutes = String(now.getMinutes()).padStart(2, "0");
         const seconds = String(now.getSeconds()).padStart(2, "0");
         const milliseconds = String(now.getMilliseconds()).padStart(3, "0");
+
         return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}]`;
     }
 
@@ -72,6 +77,7 @@ class Logger {
         if (this.logBuffer.length === 0) return;
         // 使用交换缓冲区策略避免极端并发下日志丢失问题
         const bufferToFlush = [...this.logBuffer]; // 复制当前内容
+
         this.logBuffer = []; // 立即清空，新日志进新数组
         for (const line of bufferToFlush) {
             const date = new Date();
@@ -80,6 +86,7 @@ class Logger {
             const day = String(date.getDate()).padStart(2, "0");
             const fileName = `${year}-${month}-${day}.log`;
             const filePath = join(this.logDirectory, fileName);
+
             // 确保目录存在
             try {
                 await access(this.logDirectory);

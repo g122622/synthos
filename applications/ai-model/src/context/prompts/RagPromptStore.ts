@@ -41,6 +41,7 @@ export class RagPromptStore {
             ]`),
             new CtxTemplateNode().setTitle("你的任务").setContentText("请输出3个改写后的查询：")
         ]);
+
         return root;
     }
 

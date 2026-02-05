@@ -61,6 +61,7 @@ export class TextGeneratorService extends Disposable {
                     effort: "minimal" // 默认不思考
                 }
             });
+
             this.models.set(modelName, chatModel);
             this.LOGGER.info(`Model ${modelName} 成功加载.`);
         }
@@ -98,9 +99,11 @@ export class TextGeneratorService extends Disposable {
      */
     private async doGenerateTextStream(modelName: string, input: string): Promise<string> {
         let fullContent = "";
+
         await this.doStreamText(modelName, input, chunk => {
             fullContent += chunk;
         });
+
         return fullContent;
     }
 
@@ -211,6 +214,7 @@ export class TextGeneratorService extends Disposable {
         ];
         let resultStr = "";
         let selectedModelName = "";
+
         for (const modelName of modelCandidates) {
             try {
                 resultStr = await this.doGenerateTextStream(modelName, input);
@@ -233,6 +237,7 @@ export class TextGeneratorService extends Disposable {
         if (!resultStr) {
             throw new Error(`所有模型都生成摘要失败，跳过`);
         }
+
         return {
             selectedModelName,
             content: resultStr
@@ -269,6 +274,7 @@ export class TextGeneratorService extends Disposable {
         });
 
         this.LOGGER.info(`为 Agent 场景创建独立的 ChatOpenAI 实例: ${modelName}`);
+
         return chatModel;
     }
 
@@ -325,7 +331,9 @@ export class TextGeneratorService extends Disposable {
             this.LOGGER.info(`绑定 ${tools.length} 个工具到 ChatModel`);
             // 使用 bindTools 绑定工具，并通过 stream 的第二个参数传递 tool_choice
             const boundModel = chatModel.bindTools(tools);
+
             this.LOGGER.info(`尝试启用强制工具调用模式 (tool_choice: "auto")`);
+
             return boundModel.stream(messages, {
                 signal: abortSignal
                 // 注意：部分模型可能不支持 tool_choice，需要测试

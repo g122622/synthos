@@ -4,11 +4,13 @@
  */
 import "reflect-metadata";
 import { injectable, container } from "tsyringe";
+
 import Logger from "../../util/Logger";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
-import { CommonDBService } from "./infra/CommonDBService";
 import { COMMON_TOKENS } from "../../di/tokens";
+
+import { CommonDBService } from "./infra/CommonDBService";
 import { createAgentTableSQL } from "./constants/InitialSQL";
 
 /**
@@ -96,6 +98,7 @@ export class AgentDbAccessService extends Disposable {
         );
 
         this.LOGGER.info(`创建新对话: ${id}, 标题: ${title}`);
+
         return conversation;
     }
 
@@ -118,6 +121,7 @@ export class AgentDbAccessService extends Disposable {
         params.push(limit);
 
         const rows = await this.db.all<AgentConversation>(sql, params);
+
         return rows;
     }
 
@@ -136,6 +140,7 @@ export class AgentDbAccessService extends Disposable {
         const params: any[] = [];
 
         const conditions: string[] = [];
+
         if (sessionId) {
             conditions.push(`session_id = ?`);
             params.push(sessionId);
@@ -152,6 +157,7 @@ export class AgentDbAccessService extends Disposable {
         params.push(limit);
 
         const rows = await this.db.all<AgentConversation>(sql, params);
+
         return rows;
     }
 
@@ -162,6 +168,7 @@ export class AgentDbAccessService extends Disposable {
      */
     public async getConversationById(id: string): Promise<AgentConversation | null> {
         const row = await this.db.get<AgentConversation>(`SELECT * FROM agent_conversations WHERE id = ?`, [id]);
+
         return row || null;
     }
 
@@ -229,6 +236,7 @@ export class AgentDbAccessService extends Disposable {
             `SELECT * FROM agent_messages WHERE conversation_id = ? ORDER BY timestamp ASC`,
             [conversationId]
         );
+
         return rows;
     }
 
@@ -255,6 +263,7 @@ export class AgentDbAccessService extends Disposable {
         params.push(limit);
 
         const rows = await this.db.all<AgentMessage>(sql, params);
+
         // 返回正序，方便 UI 直接 append
         return rows.reverse();
     }
@@ -278,6 +287,7 @@ export class AgentDbAccessService extends Disposable {
             `SELECT COUNT(*) as count FROM agent_messages WHERE conversation_id = ?`,
             [conversationId]
         );
+
         return result?.count || 0;
     }
 }

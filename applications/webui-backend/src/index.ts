@@ -2,8 +2,10 @@
  * WebUI 后端服务入口
  */
 import "reflect-metadata";
-import express, { Express } from "express";
 import * as path from "path";
+import { createServer } from "http";
+
+import express, { Express } from "express";
 
 // 基础设施
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
@@ -14,6 +16,11 @@ import { ReportDbAccessService } from "@root/common/services/database/ReportDbAc
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+import { applyWSSHandler } from "@trpc/server/adapters/ws";
+import { WebSocketServer } from "ws";
+
 import {
     registerStatusManagers,
     registerRagChatHistoryManager,
@@ -23,7 +30,6 @@ import {
     registerConfigManagerService,
     registerCommonDBService
 } from "./di/container";
-import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 
 // 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
@@ -42,13 +48,10 @@ import { setupApiRoutes } from "./routers/apiRouter";
 // 生命周期
 import { setupGracefulShutdown } from "./lifecycle/gracefulShutdown";
 import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitialization";
-import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { setupConfigPanelRoutes } from "./routers/configPanelRouter";
 
 // WebSocket & HTTP Server
-import { applyWSSHandler } from "@trpc/server/adapters/ws";
-import { WebSocketServer } from "ws";
-import { createServer } from "http";
+
 import { appRouter } from "./rpc/router";
 
 const LOGGER = Logger.withTag("WebUI-Backend");
@@ -102,6 +105,7 @@ export class WebUILocalServer {
             interestScoreDbAccessService,
             reportDbAccessService
         } = await initializeDatabases();
+
         this.agcDbAccessService = agcDbAccessService;
         this.imDbAccessService = imDbAccessService;
         this.imDbFtsService = imDbFtsService;
@@ -124,13 +128,16 @@ export class WebUILocalServer {
         const reportReadStatusManager = ReportReadStatusManager.getInstance(
             path.join(config.webUI_Backend.kvStoreBasePath, "read_reports")
         );
+
         return { favoriteStatusManager, readStatusManager, reportReadStatusManager };
     }
 
     private async initializeRagChatHistoryManager(): Promise<RagChatHistoryManager> {
         const config = await ConfigManagerService.getCurrentConfig();
         const ragChatHistoryManager = RagChatHistoryManager.getInstance(config.webUI_Backend.dbBasePath);
+
         await ragChatHistoryManager.init();
+
         return ragChatHistoryManager;
     }
 
@@ -141,16 +148,19 @@ export class WebUILocalServer {
         // 1. 注册 Status Managers
         const { favoriteStatusManager, readStatusManager, reportReadStatusManager } =
             await this.initializeStatusManagers();
+
         registerStatusManagers(favoriteStatusManager, readStatusManager, reportReadStatusManager);
 
         // 2. 注册 RAG 聊天历史管理器
         const ragChatHistoryManager = await this.initializeRagChatHistoryManager();
+
         registerRagChatHistoryManager(ragChatHistoryManager);
 
         // 3. 注册 RAG RPC 客户端
         const config = await ConfigManagerService.getCurrentConfig();
         const rpcPort = config.ai.rpc.port;
         const rpcBaseUrl = (process.env.SYNTHOS_AI_RPC_BASE_URL || "").trim() || `http://localhost:${rpcPort}`;
+
         registerRAGClient(rpcBaseUrl);
 
         // 4. 注册 Services
@@ -185,6 +195,7 @@ export class WebUILocalServer {
 
         // 设置 WebSocket 服务，用于 tRPC subscription 转发
         const wss = new WebSocketServer({ server: httpServer, path: "/trpc" });
+
         applyWSSHandler({ wss, router: appRouter });
         LOGGER.info(`Backend WebSocket Server (Forwarder) initialized`);
 

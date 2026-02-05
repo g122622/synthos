@@ -4,9 +4,10 @@
  * 实现 Multi-Query 策略以提高 RAG 检索的召回率和多样性
  */
 import Logger from "@root/common/util/Logger";
+import { sleep } from "@root/common/util/promisify/sleep";
+
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { RagPromptStore } from "../context/prompts/RagPromptStore";
-import { sleep } from "@root/common/util/promisify/sleep";
 
 export class QueryRewriter {
     private LOGGER = Logger.withTag("QueryRewriter");
@@ -35,7 +36,9 @@ export class QueryRewriter {
                 }
 
                 const expandedQueries = await this.doExpandQuery(originalQuestion);
+
                 this.LOGGER.success(`Multi-Query 扩展成功，生成 ${expandedQueries.length} 个查询`);
+
                 return expandedQueries;
             } catch (error) {
                 lastError = error as Error;
@@ -72,6 +75,7 @@ export class QueryRewriter {
         const uniqueQueries = [...new Set(allQueries)];
 
         this.LOGGER.debug(`扩展查询列表: ${JSON.stringify(uniqueQueries)}`);
+
         return uniqueQueries;
     }
 
@@ -82,12 +86,14 @@ export class QueryRewriter {
     private parseMultiQueryResponse(response: string): string[] {
         // 尝试提取 JSON 数组
         const jsonMatch = response.match(/\[[\s\S]*\]/);
+
         if (!jsonMatch) {
             throw new Error(`无法从响应中提取 JSON 数组: ${response.substring(0, 200)}`);
         }
 
         try {
             const parsed = JSON.parse(jsonMatch[0]);
+
             if (!Array.isArray(parsed)) {
                 throw new Error("解析结果不是数组");
             }

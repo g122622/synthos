@@ -2,11 +2,13 @@
  * 配置服务
  * 提供配置的读取、保存和验证功能
  */
+import type { JsonSchema7Type } from "zod-to-json-schema";
+
 import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { GlobalConfig, PartialGlobalConfig } from "@root/common/services/config/schemas/GlobalConfig";
-import type { JsonSchema7Type } from "zod-to-json-schema";
+
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class ConfigService {

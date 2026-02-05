@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { ReportService } from "../services/ReportService";
 import {
@@ -27,6 +28,7 @@ export class ReportController {
     public async getReportById(req: Request, res: Response): Promise<void> {
         const params = GetReportByIdSchema.parse(req.params);
         const detail = await this.reportService.getReportDetailById(params.reportId);
+
         res.json({ success: true, data: detail });
     }
 
@@ -37,6 +39,7 @@ export class ReportController {
     public async getReportsPaginated(req: Request, res: Response): Promise<void> {
         const params = GetReportsPaginatedSchema.parse(req.body);
         const result = await this.reportService.getReportsPaginated(params.page, params.pageSize, params.type);
+
         res.json({ success: true, data: result });
     }
 
@@ -48,6 +51,7 @@ export class ReportController {
         const params = GetReportsByDateSchema.parse(req.body);
         const date = new Date(params.date);
         const reports = await this.reportService.getHalfDailyReportsByDate(date);
+
         res.json({ success: true, data: reports });
     }
 
@@ -62,6 +66,7 @@ export class ReportController {
             params.timeEnd,
             params.type
         );
+
         res.json({ success: true, data: reports });
     }
 
@@ -72,6 +77,7 @@ export class ReportController {
     public async getRecentReports(req: Request, res: Response): Promise<void> {
         const params = GetRecentReportsSchema.parse(req.body);
         const reports = await this.reportService.getRecentReports(params.type, params.limit);
+
         res.json({ success: true, data: reports });
     }
 
@@ -82,6 +88,7 @@ export class ReportController {
     public async triggerGenerate(req: Request, res: Response): Promise<void> {
         const params = TriggerReportGenerateSchema.parse(req.body);
         const result = await this.reportService.triggerGenerate(params.type, params.timeStart, params.timeEnd);
+
         res.json({ success: true, data: result });
     }
 
@@ -93,6 +100,7 @@ export class ReportController {
      */
     public async markAsRead(req: Request, res: Response): Promise<void> {
         const params = ReportIdSchema.parse(req.body);
+
         await this.reportService.markAsRead(params.reportId);
         res.json({ success: true, message: "日报已标记为已读" });
     }
@@ -103,6 +111,7 @@ export class ReportController {
      */
     public async markAsUnread(req: Request, res: Response): Promise<void> {
         const params = ReportIdSchema.parse(req.body);
+
         await this.reportService.markAsUnread(params.reportId);
         res.json({ success: true, message: "日报已读状态已清除" });
     }
@@ -114,6 +123,7 @@ export class ReportController {
     public async checkReadStatus(req: Request, res: Response): Promise<void> {
         const params = ReportIdsSchema.parse(req.body);
         const readStatus = await this.reportService.checkReadStatus(params.reportIds);
+
         res.json({ success: true, data: { readStatus } });
     }
 
@@ -124,6 +134,7 @@ export class ReportController {
     public async sendReportEmail(req: Request, res: Response): Promise<void> {
         const params = ReportIdSchema.parse(req.body);
         const result = await this.reportService.sendReportEmail(params.reportId);
+
         res.json({ success: result.success, data: result });
     }
 }

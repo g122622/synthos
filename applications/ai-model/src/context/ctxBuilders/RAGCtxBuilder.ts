@@ -1,13 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
-import { ICtxBuilder } from "./contracts/ICtxBuilder";
-import { RagPromptStore } from "../prompts/RagPromptStore";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { formatTimestamp } from "@root/common/util/TimeUtils";
 import { SearchOutput } from "@root/common/rpc/ai-model";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { RagPromptStore } from "../prompts/RagPromptStore";
+
+import { ICtxBuilder } from "./contracts/ICtxBuilder";
 
 /**
  * RAG 上下文构建器
@@ -51,8 +53,10 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
             const indexStr = String(i + 1); // 使用索引作为键
 
             const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId!);
+
             if (digest && digest.sessionId) {
                 const timeRange = await this.imDB.getSessionTimeDuration(digest.sessionId);
+
                 if (timeRange) {
                     topicDates[indexStr] = {
                         startTime: formatTimestamp(timeRange.timeStart),
@@ -75,6 +79,7 @@ export class RAGCtxBuilder extends Disposable implements ICtxBuilder {
                 }
 
                 topicStr += `\n${r.detail}`;
+
                 return topicStr;
             })
             .join("\n\n");

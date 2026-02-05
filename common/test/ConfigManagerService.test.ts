@@ -1,5 +1,6 @@
+import { join, dirname } from "path";
+
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { sep, join, dirname } from "path";
 
 // ==================== Mock 区域 ====================
 
@@ -13,6 +14,7 @@ const { mockReadFile, mockWriteFile, mockAccess, mockFindFileUpwards, mockLogger
         warning: vi.fn(),
         error: vi.fn()
     };
+
     loggerInstance.withTag = vi.fn().mockReturnValue(loggerInstance);
 
     return {
@@ -101,7 +103,9 @@ const mockMainConfig = {
         },
         interestScore: {
             UserInterestsPositiveKeywords: ["tech", "coding"],
-            UserInterestsNegativeKeywords: ["spam"]
+            UserInterestsNegativeKeywords: ["spam"],
+            llmEvaluationDescriptions: ["技术", "编程"],
+            llmEvaluationBatchSize: 10
         },
         embedding: {
             ollamaBaseURL: "http://localhost:11434",
@@ -221,6 +225,7 @@ describe("ConfigManagerService", () => {
     describe("构造函数", () => {
         it("使用环境变量 SYNTHOS_CONFIG_PATH 时应直接使用该路径", async () => {
             const customPath = join("/custom", "path", "synthos_config.json");
+
             process.env.SYNTHOS_CONFIG_PATH = customPath;
 
             service = new ConfigManagerService();
@@ -233,6 +238,7 @@ describe("ConfigManagerService", () => {
 
         it("未设置环境变量时应使用 findFileUpwards 查找配置文件", async () => {
             const foundPath = join("/found", "path", "synthos_config.json");
+
             mockFindFileUpwards.mockResolvedValue(foundPath);
 
             service = new ConfigManagerService();
@@ -246,6 +252,7 @@ describe("ConfigManagerService", () => {
     describe("getConfigPath", () => {
         it("应返回配置文件路径", async () => {
             const customPath = join("/custom", "path", "synthos_config.json");
+
             process.env.SYNTHOS_CONFIG_PATH = customPath;
 
             service = new ConfigManagerService();
@@ -256,6 +263,7 @@ describe("ConfigManagerService", () => {
 
         it("使用 findFileUpwards 时应返回找到的路径", async () => {
             const foundPath = join("/found", "path", "synthos_config.json");
+
             mockFindFileUpwards.mockResolvedValue(foundPath);
 
             service = new ConfigManagerService();
@@ -278,6 +286,7 @@ describe("ConfigManagerService", () => {
         it("应返回 override 配置文件路径", async () => {
             const customPath = join("/custom", "path", "synthos_config.json");
             const expectedOverridePath = getExpectedOverridePath(customPath);
+
             process.env.SYNTHOS_CONFIG_PATH = customPath;
 
             service = new ConfigManagerService();
@@ -317,6 +326,7 @@ describe("ConfigManagerService", () => {
 
         it("当存在 override 配置文件时应合并配置", async () => {
             const expectedOverridePath = getExpectedOverridePath(testConfigPath);
+
             process.env.SYNTHOS_CONFIG_PATH = testConfigPath;
 
             mockAccess.mockResolvedValue(undefined); // override 存在
@@ -372,6 +382,7 @@ describe("ConfigManagerService", () => {
     describe("getOverrideConfig", () => {
         it("应返回 override 配置", async () => {
             const expectedOverridePath = getExpectedOverridePath(testConfigPath);
+
             process.env.SYNTHOS_CONFIG_PATH = testConfigPath;
             mockReadFile.mockResolvedValue(JSON.stringify(mockOverrideConfig));
 
@@ -405,6 +416,7 @@ describe("ConfigManagerService", () => {
     describe("saveOverrideConfig", () => {
         it("应保存 override 配置", async () => {
             const expectedOverridePath = getExpectedOverridePath(testConfigPath);
+
             process.env.SYNTHOS_CONFIG_PATH = testConfigPath;
 
             service = new ConfigManagerService();

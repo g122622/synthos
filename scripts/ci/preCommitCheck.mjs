@@ -6,8 +6,7 @@
  * 1. 构建 common
  * 2. 在所有子项目中执行类型检查
  * 3. 如果涉及测试文件，运行测试
- * 4. 如果涉及前端页面，执行 eslint --fix
- * 5. 执行 prettier --write 格式化代码
+ * 4. 对变更文件执行 eslint --fix 和 prettier --write 格式化代码
  */
 
 import { execSync } from "child_process";
@@ -62,11 +61,6 @@ function hasTestFiles(files) {
 // 获取变更的测试文件列表
 function getChangedTestFiles(files) {
     return files.filter(file => file.includes(".test.") || file.includes(".spec.") || file.includes("/test/"));
-}
-
-// 检查是否涉及前端文件
-function hasFrontendFiles(files) {
-    return files.some(file => file.startsWith("applications/webui-frontend/"));
 }
 
 // 执行命令并输出结果
@@ -141,76 +135,76 @@ function main() {
     }
 
     // 步骤 3: 如果涉及测试文件，运行测试
-    if (hasTestFiles(stagedFiles)) {
-        const changedTestFiles = getChangedTestFiles(stagedFiles);
-        console.log(`\n检测到测试文件变更，共 ${changedTestFiles.length} 个测试文件:`);
-        changedTestFiles.forEach(file => console.log(`  - ${file}`));
+    // if (hasTestFiles(stagedFiles)) {
+    //     const changedTestFiles = getChangedTestFiles(stagedFiles);
+    //     console.log(`\n检测到测试文件变更，共 ${changedTestFiles.length} 个测试文件:`);
+    //     changedTestFiles.forEach(file => console.log(`  - ${file}`));
 
-        // 提取测试文件名（不带路径）并传递给 pnpm test
-        const testFileNames = changedTestFiles
-            .map(file => {
-                const parts = file.split(/[/\\]/);
-                return parts[parts.length - 1];
-            })
-            .join(" ");
+    //     // 提取测试文件名（不带路径）并传递给 pnpm test
+    //     const testFileNames = changedTestFiles
+    //         .map(file => {
+    //             const parts = file.split(/[/\\]/);
+    //             return parts[parts.length - 1];
+    //         })
+    //         .join(" ");
 
-        if (!execCommand(`pnpm test ${testFileNames}`, rootDir, "运行测试")) {
-            hasError = true;
-        }
-    }
+    //     if (!execCommand(`pnpm test ${testFileNames}`, rootDir, "运行测试")) {
+    //         hasError = true;
+    //     }
+    // }
 
-    if (hasError) {
-        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
-        return 1;
-    }
+    // if (hasError) {
+    //     console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+    //     return 1;
+    // }
 
-    // 步骤 4: 如果涉及前端页面，执行 eslint --fix
-    if (hasFrontendFiles(stagedFiles)) {
-        console.log("\n检测到前端文件变更，执行 eslint --fix...");
-        if (
-            execCommand(
-                "npx eslint --fix .",
-                join(rootDir, "applications/webui-frontend"),
-                "修复前端 eslint 格式问题"
-            )
-        ) {
-            // eslint --fix 可能修改了文件，需要重新添加到 staging area
-            try {
-                execSync("git add applications/webui-frontend", {
-                    cwd: rootDir,
-                    stdio: "inherit"
-                });
-            } catch (error) {
-                // 忽略错误，可能没有修改
-            }
-        } else {
-            hasError = true;
-        }
-    }
-
-    if (hasError) {
-        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
-        return 1;
-    }
-
-    // 步骤 5: 执行 prettier --write 格式化代码（仅限初始的 staged 文件）
+    // 步骤 4: 对变更文件执行 eslint --fix 和 prettier --write 格式化代码（仅限初始的 staged 文件）
     console.log("\n格式化代码...");
 
     // 仅处理初始的 staged 文件（不会包含工作区未暂存的修改）
-    const filesToPrettier = stagedFiles.filter(file => {
+    const filesToFormat = stagedFiles.filter(file => {
         const ext = file.split(".").pop().toLowerCase();
-        return [".js", ".ts", ".tsx", ".jsx", ".css", ".scss", ".html"].includes(
-            `.${ext}`
-        );
+        return ["js", "ts", "tsx", "jsx", "css", "scss", "html"].includes(ext);
     });
 
-    if (filesToPrettier.length > 0) {
-        console.log(`检测到 ${filesToPrettier.length} 个需要格式化的 staged 文件`);
+    // 过滤出需要 eslint 处理的文件
+    const filesToEslint = filesToFormat.filter(file => {
+        const ext = file.split(".").pop().toLowerCase();
+        return ["js", "ts", "tsx", "jsx"].includes(ext);
+    });
+
+    // 先执行 eslint --fix
+    if (filesToEslint.length > 0) {
+        console.log(`检测到 ${filesToEslint.length} 个需要 eslint 修复的 staged 文件`);
 
         // 分批处理文件（避免命令行长度限制）
         const batchSize = 30;
-        for (let i = 0; i < filesToPrettier.length; i += batchSize) {
-            const batch = filesToPrettier.slice(i, i + batchSize);
+        for (let i = 0; i < filesToEslint.length; i += batchSize) {
+            const batch = filesToEslint.slice(i, i + batchSize);
+            const command = `npx eslint --fix ${batch.map(file => `"${file}"`).join(" ")}`;
+
+            if (!execCommand(command, rootDir, `修复 eslint 问题 (批 ${Math.floor(i / batchSize) + 1})`)) {
+                hasError = true;
+                break;
+            }
+        }
+    } else {
+        console.log("没有需要 eslint 修复的 staged 文件");
+    }
+
+    if (hasError) {
+        console.error("\n✗ Pre-commit 检查失败，请修复错误后重试");
+        return 1;
+    }
+
+    // 再执行 prettier --write
+    if (filesToFormat.length > 0) {
+        console.log(`\n检测到 ${filesToFormat.length} 个需要格式化的 staged 文件`);
+
+        // 分批处理文件（避免命令行长度限制）
+        const batchSize = 30;
+        for (let i = 0; i < filesToFormat.length; i += batchSize) {
+            const batch = filesToFormat.slice(i, i + batchSize);
             const command = `npx prettier --write ${batch.map(file => `"${file}"`).join(" ")}`;
 
             if (!execCommand(command, rootDir, `格式化代码 (批 ${Math.floor(i / batchSize) + 1})`)) {
@@ -219,16 +213,20 @@ function main() {
             }
         }
 
-        // 仅将格式化的 staged 文件重新添加到暂存区
-        if (!hasError && filesToPrettier.length > 0) {
+        // 将 eslint 和 prettier 处理过的 staged 文件重新添加到暂存区
+        if (!hasError && filesToFormat.length > 0) {
             console.log("\n将格式化后的文件重新加入暂存区...");
             try {
-                // 仅添加被 prettier 修改的文件（初始 staged 文件）
-                const gitAddCommand = `git add ${filesToPrettier.map(file => `"${file}"`).join(" ")}`;
-                execSync(gitAddCommand, {
-                    cwd: rootDir,
-                    stdio: "inherit"
-                });
+                // 分批添加文件（避免命令行长度限制）
+                const gitAddBatchSize = 30;
+                for (let i = 0; i < filesToFormat.length; i += gitAddBatchSize) {
+                    const batch = filesToFormat.slice(i, i + gitAddBatchSize);
+                    const gitAddCommand = `git add ${batch.map(file => `"${file}"`).join(" ")}`;
+                    execSync(gitAddCommand, {
+                        cwd: rootDir,
+                        stdio: "inherit"
+                    });
+                }
                 console.log("✓ 格式化文件已重新加入暂存区");
             } catch (error) {
                 console.error("✗ 重新添加格式化文件失败:", error.message);

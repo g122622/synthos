@@ -4,7 +4,7 @@
  */
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { COMMON_TOKENS } from "./tokens";
+
 import ConfigManagerService from "../services/config/ConfigManagerService";
 import { EmailService } from "../services/email/EmailService";
 import { CommonDBService } from "../services/database/infra/CommonDBService";
@@ -14,6 +14,8 @@ import { ImDbFtsService } from "../services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "../services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "../services/database/AgentDbAccessService";
+
+import { COMMON_TOKENS } from "./tokens";
 
 /**
  * 初始化并注册 ConfigManagerService 到 DI 容器

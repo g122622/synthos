@@ -69,6 +69,7 @@ export function mustInitBeforeUse<T extends new (...args: any[]) => Disposable>(
                 if (super.init && super.init !== DecoratedClass.prototype.init) {
                     // @ts-ignore
                     const result = super.init(...args);
+
                     if (result instanceof Promise) {
                         await result;
                     }

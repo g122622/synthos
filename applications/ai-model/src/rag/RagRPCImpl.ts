@@ -3,6 +3,10 @@
  * 提供语义搜索和 RAG 问答能力
  */
 import "reflect-metadata";
+import type { AgentGetConversationsOutput, AgentGetMessagesOutput } from "@root/common/rpc/ai-model/schemas";
+
+import { randomUUID } from "crypto";
+
 import { injectable, inject, container } from "tsyringe";
 import {
     RAGRPCImplementation,
@@ -12,30 +16,30 @@ import {
     TriggerReportGenerateOutput,
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
-import type { AgentGetConversationsOutput, AgentGetMessagesOutput } from "@root/common/rpc/ai-model/schemas";
-import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
-import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
-import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import Logger from "@root/common/util/Logger";
-import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { QueryRewriter } from "./QueryRewriter";
-import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ReportType } from "@root/common/contracts/report/index";
-import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { ReportEmailService } from "../services/email/ReportEmailService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
-import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
 import { AgentDbAccessService, AgentMessage } from "@root/common/services/database/AgentDbAccessService";
+
+import { AI_MODEL_TOKENS } from "../di/tokens";
+import { ReportEmailService } from "../services/email/ReportEmailService";
+import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
+import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
+import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
 import { LangGraphAgentExecutor } from "../agent-langgraph/LangGraphAgentExecutor";
 import { AgentToolCatalog } from "../agent-langgraph/AgentToolCatalog";
-import { randomUUID } from "crypto";
+
+import { QueryRewriter } from "./QueryRewriter";
 
 /**
  * RAG RPC 实现类
@@ -70,6 +74,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
      */
     public async init(): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
+
         this.defaultModelName = config.ai.defaultModelName;
         // 创建 QueryRewriter 实例
         this.queryRewriter = new QueryRewriter(this.TextGeneratorService, this.defaultModelName);
@@ -87,16 +92,20 @@ export class RagRPCImpl implements RAGRPCImplementation {
         const queryEmbedding = await this.embeddingService.embed(
             EmbeddingPromptStore.getEmbeddingPromptForRAG(input.query)
         );
+
         this.LOGGER.debug(`查询向量生成完成，维度: ${queryEmbedding.length}`);
 
         // 2. 向量搜索
         const results = this.vectorDB.searchSimilar(queryEmbedding, [], input.limit);
+
         this.LOGGER.debug(`向量搜索完成，找到 ${results.length} 条结果`);
 
         // 3. 获取完整的话题信息
         const output: SearchOutput = [];
+
         for (const result of results) {
             const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId);
+
             if (digest) {
                 output.push({
                     topicId: result.topicId,
@@ -109,6 +118,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         }
 
         this.LOGGER.success(`搜索完成，返回 ${output.length} 条结果`);
+
         return output;
     }
 
@@ -125,13 +135,16 @@ export class RagRPCImpl implements RAGRPCImplementation {
         if (input.enableQueryRewriter) {
             // 1. 使用 Multi-Query 扩展原始问题
             const expandedQueries = await this.queryRewriter.expandQuery(input.question);
+
             this.LOGGER.info(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
 
             // 2. 对每个扩展查询进行搜索
             const allResults: SearchOutput = [];
+
             for (const query of expandedQueries) {
                 this.LOGGER.debug(`执行查询: "${query}"`);
                 const results = await this.search({ query, limit: input.topK });
+
                 allResults.push(...results);
             }
             this.LOGGER.info(`Multi-Query 搜索完成，共获取 ${allResults.length} 条原始结果`);
@@ -148,6 +161,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         if (deduplicatedResults.length === 0) {
             this.LOGGER.warning("未找到相关话题");
+
             return {
                 answer: "抱歉，没有找到与您问题相关的话题内容。",
                 references: []
@@ -161,6 +175,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 5. 构建 RAG prompt
         const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults);
+
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
@@ -168,6 +183,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             [this.defaultModelName],
             prompt
         );
+
         this.LOGGER.success(`LLM 回答生成完成，长度: ${answer.length}`);
 
         // 7. 构建引用列表
@@ -200,12 +216,15 @@ export class RagRPCImpl implements RAGRPCImplementation {
             if (input.enableQueryRewriter) {
                 // 1. 使用 Multi-Query 扩展原始问题
                 const expandedQueries = await this.queryRewriter.expandQuery(input.question);
+
                 this.LOGGER.debug(`Multi-Query 扩展完成，共 ${expandedQueries.length} 个查询`);
 
                 // 2. 对每个扩展查询进行搜索
                 const allResults: SearchOutput = [];
+
                 for (const query of expandedQueries) {
                     const results = await this.search({ query, limit: input.topK });
+
                     allResults.push(...results);
                 }
 
@@ -220,6 +239,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 this.LOGGER.warning("未找到相关话题");
                 onChunk({ type: "content", content: "抱歉，没有找到与您问题相关的话题内容。" });
                 onChunk({ type: "references", references: [] });
+
                 return;
             }
 
@@ -230,6 +250,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
             // 5. 构建 RAG prompt
             const prompt = await this.ragCtxBuilder.buildCtx(input.question, topResults);
+
             this.LOGGER.debug(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
             // 6. 构建引用列表并发送
@@ -238,6 +259,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 topic: r.topic,
                 relevance: Math.max(0, 1 - (r.distance ?? 1))
             }));
+
             onChunk({ type: "references", references });
 
             // 7. 调用 LLM 生成回答（流式）
@@ -321,6 +343,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             };
         } catch (error) {
             this.LOGGER.error(`触发日报生成失败: ${error}`);
+
             return {
                 success: false,
                 message: `触发失败: ${error instanceof Error ? error.message : String(error)}`
@@ -340,8 +363,10 @@ export class RagRPCImpl implements RAGRPCImplementation {
         try {
             // 1. 根据 reportId 获取日报
             const report = await this.reportDB.getReportById(input.reportId);
+
             if (!report) {
                 this.LOGGER.warning(`未找到日报: ${input.reportId}`);
+
                 return {
                     success: false,
                     message: "未找到对应的日报"
@@ -354,12 +379,14 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
             if (success) {
                 this.LOGGER.success(`日报邮件发送成功: ${input.reportId}`);
+
                 return {
                     success: true,
                     message: "日报邮件发送成功"
                 };
             } else {
                 this.LOGGER.warning(`日报邮件发送失败: ${input.reportId}`);
+
                 return {
                     success: false,
                     message: "日报邮件发送失败，请检查邮件配置是否正确"
@@ -367,6 +394,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             }
         } catch (error) {
             this.LOGGER.error(`发送日报邮件时发生错误: ${error}`);
+
             return {
                 success: false,
                 message: `发送失败: ${error instanceof Error ? error.message : String(error)}`
@@ -425,12 +453,14 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         for (const result of results) {
             const topicId = result.topicId;
+
             // 跳过无效的 topicId（理论上不会发生，但满足 TS 严格模式）
             if (!topicId) {
                 continue;
             }
 
             const existing = topicMap.get(topicId);
+
             if (!existing) {
                 // 新的 topicId，直接加入
                 topicMap.set(topicId, result);
@@ -438,6 +468,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 // 已存在，保留距离更小的（相关性更高）
                 const currentDistance = result.distance ?? Infinity;
                 const existingDistance = existing.distance ?? Infinity;
+
                 if (currentDistance < existingDistance) {
                     topicMap.set(topicId, result);
                 }
@@ -473,6 +504,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         // 1. 确定对话 ID
         let conversationId: string = input.conversationId || randomUUID();
+
         if (!input.conversationId) {
             // 创建新对话
             await this.agentDB.createConversation(
@@ -492,6 +524,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             content: input.question,
             timestamp: Date.now()
         };
+
         await this.agentDB.addMessage(userMessage);
 
         // 3. 获取历史消息
@@ -541,6 +574,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             toolRounds: result.toolRounds,
             tokenUsage: result.totalUsage ? JSON.stringify(result.totalUsage) : undefined
         };
+
         await this.agentDB.addMessage(assistantMessage);
 
         // 8. done 事件：由落库后统一发出（确保 messageId 可用）

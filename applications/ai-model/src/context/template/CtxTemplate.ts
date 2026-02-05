@@ -17,6 +17,7 @@ export class CtxTemplateNode {
      */
     public setTitle(title: string): CtxTemplateNode {
         this._title = title;
+
         return this;
     }
 
@@ -27,6 +28,7 @@ export class CtxTemplateNode {
      */
     public setContentText(contentText: string): CtxTemplateNode {
         this._contentText = contentText;
+
         return this;
     }
 
@@ -36,6 +38,7 @@ export class CtxTemplateNode {
      */
     public setChildNodes(childNodes: CtxTemplateNode[]): CtxTemplateNode {
         this._childNodes = [...childNodes];
+
         return this;
     }
 
@@ -45,6 +48,7 @@ export class CtxTemplateNode {
      */
     public insertChildNodeToFront(node: CtxTemplateNode): CtxTemplateNode {
         this._childNodes.unshift(node);
+
         return this;
     }
     /**
@@ -53,6 +57,7 @@ export class CtxTemplateNode {
      */
     public insertChildNodeToBack(node: CtxTemplateNode): CtxTemplateNode {
         this._childNodes.push(node);
+
         return this;
     }
 
@@ -63,10 +68,13 @@ export class CtxTemplateNode {
      */
     public removeChildNode(node: CtxTemplateNode): boolean {
         const index = this._childNodes.indexOf(node);
+
         if (index !== -1) {
             this._childNodes.splice(index, 1);
+
             return true;
         }
+
         return false;
     }
 
@@ -77,10 +85,13 @@ export class CtxTemplateNode {
      */
     public removeChildNodeByTitle(title: string): boolean {
         const index = this._childNodes.findIndex(child => child.getTitle() === title);
+
         if (index !== -1) {
             this._childNodes.splice(index, 1);
+
             return true;
         }
+
         return false;
     }
 
@@ -92,16 +103,19 @@ export class CtxTemplateNode {
     public traverseDFS(callback: (node: CtxTemplateNode, depth: number) => boolean | void): void {
         const dfs = (node: CtxTemplateNode, depth: number) => {
             const shouldContinue = callback(node, depth);
+
             if (shouldContinue === false) {
                 return false;
             }
 
             for (const child of node._childNodes) {
                 const continueTraversal = dfs(child, depth + 1);
+
                 if (continueTraversal === false) {
                     return false;
                 }
             }
+
             return true;
         };
 
@@ -119,6 +133,7 @@ export class CtxTemplateNode {
 
         this.traverseDFS((node, depth) => {
             let segment = "";
+
             // 添加标题（如果存在）
             if (node._title) {
                 segment += `${"#".repeat(depth)} ${node._title}`;

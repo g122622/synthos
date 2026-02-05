@@ -6,6 +6,7 @@
 import "reflect-metadata";
 import * as nodemailer from "nodemailer";
 import { injectable, inject } from "tsyringe";
+
 import Logger from "../../util/Logger";
 import { ConfigManagerService } from "../config/ConfigManagerService";
 import { COMMON_TOKENS } from "../../di/tokens";
@@ -54,6 +55,7 @@ class EmailService extends Disposable {
         if (!this._logger) {
             this._logger = Logger.withTag("EmailService");
         }
+
         return this._logger;
     }
 
@@ -65,6 +67,7 @@ class EmailService extends Disposable {
 
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用");
+
             return;
         }
 
@@ -96,6 +99,7 @@ class EmailService extends Disposable {
      */
     public async isEnabled(): Promise<boolean> {
         const config = await this.configManagerService.getCurrentConfig();
+
         return config.email.enabled;
     }
 
@@ -110,6 +114,7 @@ class EmailService extends Disposable {
 
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用，跳过发送");
+
             return false;
         }
 
@@ -119,6 +124,7 @@ class EmailService extends Disposable {
 
         if (!this.transporter) {
             this.LOGGER.error("邮件传输器未初始化，无法发送邮件");
+
             return false;
         }
 
@@ -136,11 +142,13 @@ class EmailService extends Disposable {
                 });
 
                 this.LOGGER.success(`邮件发送成功: ${subject}`);
+
                 return true;
             } catch (error) {
                 this.LOGGER.warning(`第 ${attempt + 1} 次发送邮件失败: ${error}`);
                 if (attempt === retryCount) {
                     this.LOGGER.error(`所有重试均失败，邮件发送失败`);
+
                     return false;
                 }
             }

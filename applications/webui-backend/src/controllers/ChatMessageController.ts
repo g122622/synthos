@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { ChatMessageService } from "../services/ChatMessageService";
 import {
@@ -26,6 +27,7 @@ export class ChatMessageController {
             parseInt(params.timeStart, 10),
             parseInt(params.timeEnd, 10)
         );
+
         res.json({ success: true, data: messages });
     }
 
@@ -39,6 +41,7 @@ export class ChatMessageController {
             params.timeStart,
             params.timeEnd
         );
+
         res.json({ success: true, data: results });
     }
 
@@ -48,6 +51,7 @@ export class ChatMessageController {
     public async getSessionTimeDurations(req: Request, res: Response): Promise<void> {
         const params = GetSessionTimeDurationsSchema.parse(req.body);
         const results = await this.chatMessageService.getSessionTimeDurations(params.sessionIds);
+
         res.json({ success: true, data: results });
     }
 
@@ -58,6 +62,7 @@ export class ChatMessageController {
     public async getMessageHourlyStats(req: Request, res: Response): Promise<void> {
         const params = GetMessageHourlyStatsSchema.parse(req.body);
         const results = await this.chatMessageService.getMessageHourlyStats(params.groupIds);
+
         res.json({ success: true, data: results });
     }
 }

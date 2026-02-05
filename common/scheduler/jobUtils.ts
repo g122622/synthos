@@ -1,9 +1,11 @@
-import { agendaInstance } from "./agenda";
-import { TaskHandlerTypes, TaskParamsMap } from "./@types/Tasks";
+import { ObjectId } from "bson";
+
 import { sleep } from "../util/promisify/sleep";
 import Logger from "../util/Logger";
-import { ObjectId } from "bson";
 import { retryAsync } from "../util/retryAsync";
+
+import { agendaInstance } from "./agenda";
+import { TaskHandlerTypes, TaskParamsMap } from "./@types/Tasks";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
 
@@ -47,17 +49,21 @@ export async function waitForJobCompletionV1(
         // 检查任务是否失败
         if (attrs.failedAt) {
             const failedAtTime = attrs.failedAt.getTime();
+
             // 如果 failedAt 在我们开始等待之后，说明本次执行失败了
             if (failedAtTime > startTime) {
                 LOGGER.error(`任务 [${taskName}] 执行失败，失败原因: ${attrs.failReason}`);
+
                 return false;
             }
         }
 
         // 检查任务是否完成（lastFinishedAt 更新了）
         const currentLastFinishedAt = attrs.lastFinishedAt?.getTime() || 0;
+
         if (currentLastFinishedAt > initialLastFinishedAt && currentLastFinishedAt > startTime) {
             LOGGER.success(`任务 [${taskName}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`);
+
             return true;
         }
 
@@ -70,6 +76,7 @@ export async function waitForJobCompletionV1(
     }
 
     LOGGER.error(`任务 [${taskName}] 等待超时（${timeoutMs}ms）`);
+
     return false;
 }
 
@@ -134,16 +141,20 @@ export async function waitForJobCompletionByIdV3(
         // 检查任务是否失败
         if (attrs.failedAt) {
             const failedAtTime = attrs.failedAt.getTime();
+
             if (failedAtTime > startTime) {
                 LOGGER.error(`任务ID [${jobId}] 执行失败，失败原因: ${attrs.failReason}`);
+
                 return false;
             }
         }
 
         // 检查任务是否完成
         const currentLastFinishedAt = attrs.lastFinishedAt?.getTime() || 0;
+
         if (currentLastFinishedAt > startTime) {
             LOGGER.success(`任务ID [${jobId}] 已完成，耗时: ${Math.round((Date.now() - startTime) / 1000)}s`);
+
             return true;
         }
 
@@ -156,6 +167,7 @@ export async function waitForJobCompletionByIdV3(
     }
 
     LOGGER.error(`任务ID [${jobId}] 等待超时（${timeoutMs}ms）`);
+
     return false;
 }
 
@@ -203,6 +215,7 @@ export async function cleanupStaleJobs(taskNames?: TaskHandlerTypes[]): Promise<
             LOGGER.info("🧹 开始清理启动前残留的任务...");
 
             const query: Record<string, unknown> = {};
+
             if (taskNames && taskNames.length > 0) {
                 query.name = { $in: taskNames };
             }

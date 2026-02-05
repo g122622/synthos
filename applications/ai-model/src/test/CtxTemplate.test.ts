@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
+
 import { CtxTemplateNode } from "../context/template/CtxTemplate";
 
 describe("CtxTemplateNode", () => {
@@ -35,6 +36,7 @@ describe("CtxTemplateNode", () => {
             childNode2.setTitle("Child 2");
             rootNode.setChildNodes([childNode1, childNode2]);
             const children = rootNode.getChildNodes();
+
             expect(children.length).toBe(2);
             expect(children[0].getTitle()).toBe("Child 1");
             expect(children[1].getTitle()).toBe("Child 2");
@@ -44,6 +46,7 @@ describe("CtxTemplateNode", () => {
             rootNode.insertChildNodeToFront(childNode1);
             rootNode.insertChildNodeToFront(childNode2);
             const children = rootNode.getChildNodes();
+
             expect(children[0].getTitle()).toBe(""); // Default title
             expect(children[1].getTitle()).toBe(""); // Default title
         });
@@ -54,12 +57,14 @@ describe("CtxTemplateNode", () => {
             rootNode.insertChildNodeToBack(childNode1);
             rootNode.insertChildNodeToBack(childNode2);
             const children = rootNode.getChildNodes();
+
             expect(children[0].getTitle()).toBe("First");
             expect(children[1].getTitle()).toBe("Second");
         });
 
         it("should not mutate original child nodes array when setting", () => {
             const originalArray = [childNode1];
+
             rootNode.setChildNodes(originalArray);
             originalArray.push(childNode2);
             expect(rootNode.getChildNodes().length).toBe(1);
@@ -68,6 +73,7 @@ describe("CtxTemplateNode", () => {
         it("should return copy of child nodes to prevent external mutation", () => {
             rootNode.setChildNodes([childNode1]);
             const children = rootNode.getChildNodes();
+
             children.push(childNode2);
             expect(rootNode.getChildNodes().length).toBe(1);
         });
@@ -116,6 +122,7 @@ describe("CtxTemplateNode", () => {
             childNode1.setTitle("Child1");
             childNode2.setTitle("Child2");
             const grandChild = new CtxTemplateNode();
+
             grandChild.setTitle("GrandChild");
             childNode1.setChildNodes([grandChild]);
             rootNode.setChildNodes([childNode1, childNode2]);
@@ -123,6 +130,7 @@ describe("CtxTemplateNode", () => {
 
         it("should traverse all nodes in DFS order", () => {
             const visited: string[] = [];
+
             rootNode.traverseDFS((node, depth) => {
                 visited.push(`${node.getTitle()}@${depth}`);
             });
@@ -131,8 +139,10 @@ describe("CtxTemplateNode", () => {
 
         it("should stop traversal when callback returns false", () => {
             const visited: string[] = [];
+
             rootNode.traverseDFS((node, depth) => {
                 visited.push(`${node.getTitle()}@${depth}`);
+
                 return node.getTitle() !== "Child1"; // Stop after Child1
             });
             expect(visited).toEqual(["Root@1", "Child1@2"]);
@@ -141,6 +151,7 @@ describe("CtxTemplateNode", () => {
         it("should handle empty tree traversal", () => {
             const visited: string[] = [];
             const emptyNode = new CtxTemplateNode();
+
             emptyNode.traverseDFS((node, depth) => {
                 visited.push(`visited@${depth}`);
             });
@@ -150,6 +161,7 @@ describe("CtxTemplateNode", () => {
 
         it("should maintain correct depth levels", () => {
             const depths: number[] = [];
+
             rootNode.traverseDFS((_, depth) => {
                 depths.push(depth);
             });
@@ -169,12 +181,14 @@ describe("CtxTemplateNode", () => {
             childNode1.setTitle("Child");
             childNode1.setContentText("Child content");
             const grandChild = new CtxTemplateNode();
+
             grandChild.setTitle("GrandChild");
             grandChild.setContentText("Deep content");
             childNode1.setChildNodes([grandChild]);
             rootNode.setChildNodes([childNode1]);
 
             const result = rootNode.serializeToString();
+
             expect(result).toBe("# Root\n\n" + "## Child\nChild content\n\n" + "### GrandChild\nDeep content");
         });
 
@@ -194,6 +208,7 @@ describe("CtxTemplateNode", () => {
 
         it("should skip empty nodes during serialization", () => {
             const emptyNode = new CtxTemplateNode();
+
             rootNode.setChildNodes([emptyNode, childNode1]);
             childNode1.setTitle("Valid Child");
             // Empty nodes (no title and no content) are completely skipped
@@ -205,6 +220,7 @@ describe("CtxTemplateNode", () => {
             childNode1.setTitle("Second");
             rootNode.setChildNodes([childNode1]);
             const result = rootNode.serializeToString();
+
             expect(result.split("\n\n").length).toBe(2);
         });
     });
@@ -227,6 +243,7 @@ describe("CtxTemplateNode", () => {
             rootNode.setChildNodes([childNode1]);
 
             const result = rootNode.serializeToObject();
+
             expect(result).toEqual({
                 title: "Root",
                 contentText: "",
@@ -251,6 +268,7 @@ describe("CtxTemplateNode", () => {
         it("should not mutate original structure during serialization", () => {
             rootNode.setTitle("Original");
             const serialized = rootNode.serializeToObject();
+
             serialized.title = "Modified";
             expect(rootNode.getTitle()).toBe("Original");
         });
@@ -265,13 +283,16 @@ describe("CtxTemplateNode", () => {
 
         it("should handle large depth levels correctly", () => {
             let currentNode = rootNode;
+
             for (let i = 1; i <= 10; i++) {
                 const newNode = new CtxTemplateNode();
+
                 newNode.setTitle(`Level ${i}`);
                 currentNode.insertChildNodeToBack(newNode);
                 currentNode = newNode;
             }
             const result = rootNode.serializeToString();
+
             expect(result).toContain("########## Level 10");
         });
 
@@ -281,9 +302,11 @@ describe("CtxTemplateNode", () => {
             rootNode.setChildNodes([childNode1]);
 
             let visitCount = 0;
+
             expect(() => {
                 rootNode.traverseDFS(() => {
                     visitCount++;
+
                     return visitCount < 5; // Prevent infinite loop in test
                 });
             }).not.toThrow();
@@ -297,6 +320,7 @@ describe("CtxTemplateNode", () => {
         it("should maintain immutability of internal structures", () => {
             rootNode.setChildNodes([childNode1]);
             const children = rootNode.getChildNodes();
+
             // getChildNodes returns a shallow copy - array is new but elements are same references
             // Modifying the array itself doesn't affect the internal structure
             children.push(childNode2);

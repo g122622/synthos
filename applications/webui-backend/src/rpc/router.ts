@@ -1,16 +1,18 @@
-import { initTRPC } from "@trpc/server";
-import { observable } from "@trpc/server/observable";
-import { container } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import type { RAGClient } from "./aiModelClient";
 import type { RagChatHistoryService } from "../services/RagChatHistoryService";
 import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
+
+import { initTRPC } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
+import { container } from "tsyringe";
 import {
     AgentAskInputSchema,
     AskInputSchema,
     AgentEvent,
     AskStreamChunk
 } from "@root/common/rpc/ai-model/schemas";
+
+import { TOKENS } from "../di/tokens";
 
 const t = initTRPC.create();
 
@@ -26,6 +28,7 @@ export const appRouter = t.router({
                 onError: err => emit.error(err),
                 onComplete: () => emit.complete()
             });
+
             return () => sub.unsubscribe();
         });
     }),
@@ -57,6 +60,7 @@ export const appRouter = t.router({
                 }
 
                 const hasAnyContent = !!answerBuffer || referencesBuffer.length > 0 || isFailed;
+
                 if (!hasAnyContent) {
                     return null;
                 }
@@ -125,6 +129,7 @@ export const appRouter = t.router({
                         answerBuffer += `\n\n【生成失败】原因：${failReason}`;
 
                         let sessionId: string | null = null;
+
                         try {
                             sessionId = await saveIfNeeded();
                         } catch {
@@ -146,6 +151,7 @@ export const appRouter = t.router({
                 onComplete: () => {
                     void (async () => {
                         let sessionId: string | null = null;
+
                         try {
                             sessionId = await saveIfNeeded();
                         } catch (saveErr) {

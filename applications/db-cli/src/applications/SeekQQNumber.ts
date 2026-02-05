@@ -1,14 +1,16 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
+
+import { IApplication } from "@/contracts/IApplication";
 
 /**
  * 判断一个字符是否为数字（0-9）
  */
 function isDigit(char: string): boolean {
     const code = char.charCodeAt(0);
+
     return code >= 48 && code <= 57; // '0' = 48, '9' = 57
 }
 
@@ -21,10 +23,12 @@ function extractQQNumbers(content: string): string[] {
     const maxQQValue = 4294967296; // 2^32
 
     let i = 0;
+
     while (i < content.length) {
         // 找到数字开始的位置
         if (isDigit(content[i])) {
             let numStart = i;
+
             // 收集连续的数字
             while (i < content.length && isDigit(content[i])) {
                 i++;
@@ -36,6 +40,7 @@ function extractQQNumbers(content: string): string[] {
             if (numLength === 9 || numLength === 10) {
                 // 检查数值是否小于 2^32
                 const numValue = parseInt(numStr, 10);
+
                 if (numValue < maxQQValue) {
                     result.push(numStr);
                 }
@@ -59,6 +64,7 @@ export class SeekQQNumber extends Disposable implements IApplication {
 
     public async run() {
         const imDbAccessService = new ImDbAccessService();
+
         await imDbAccessService.init();
         // 使用SQL先过滤出messageContent不为空的记录
         // SQLite中可以用GLOB模式来初步筛选包含数字的内容
@@ -74,9 +80,11 @@ export class SeekQQNumber extends Disposable implements IApplication {
 
         this.LOGGER.info("正在查询数据库...");
         const rows = await imDbAccessService.execQuerySQL(sql);
+
         this.LOGGER.info(`初步筛选出 ${rows.length} 条记录，正在精确筛选...`);
 
         let matchCount = 0;
+
         for (const row of rows) {
             const content = row.messageContent as string;
             const qqNumbers = extractQQNumbers(content);

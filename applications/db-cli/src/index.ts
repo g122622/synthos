@@ -1,9 +1,10 @@
 import Logger from "@root/common/util/Logger";
-import { applications } from "./applications/index";
 import { select } from "@inquirer/prompts";
-import { IApplicationClass } from "./contracts/IApplication";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { registerConfigManagerService, registerCommonDBService } from "@root/common/di/container";
+
+import { IApplicationClass } from "./contracts/IApplication";
+import { applications } from "./applications/index";
 
 const LOGGER = Logger.withTag("⛏️ db-cli");
 const EXIT_OPTION = "__exit__";
@@ -38,6 +39,7 @@ class ConsoleApplicationMain {
             message: "请选择要运行的应用：",
             choices: this.buildChoices()
         });
+
         return selectedApp;
     }
 

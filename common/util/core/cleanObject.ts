@@ -3,6 +3,7 @@ export function cleanObject(obj: any, shouldRemoveZeroValue = false) {
     for (const key in obj) {
         if (obj.hasOwnProperty(key)) {
             const value = obj[key];
+
             if (value === "" || value === undefined || value === null || (shouldRemoveZeroValue && value === 0)) {
                 delete obj[key];
             } else if (typeof value === "object" && value !== null) {
@@ -10,5 +11,6 @@ export function cleanObject(obj: any, shouldRemoveZeroValue = false) {
             }
         }
     }
+
     return obj;
 }

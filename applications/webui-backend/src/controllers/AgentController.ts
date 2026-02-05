@@ -2,12 +2,15 @@
  * Agent 控制器
  * 处理 Agent 相关的 HTTP 请求
  */
+import type { AgentEvent } from "@root/common/rpc/ai-model/schemas";
+
+import { randomUUID } from "crypto";
+
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { AgentService } from "../services/AgentService";
-import { randomUUID } from "crypto";
-import type { AgentEvent } from "@root/common/rpc/ai-model/schemas";
 import {
     AgentAskRequestSchema,
     AgentAskStreamRequestSchema,
@@ -36,6 +39,7 @@ export class AgentController {
             temperature: params.temperature,
             maxTokens: params.maxTokens
         });
+
         res.json({ success: true, data: result });
     }
 
@@ -54,6 +58,7 @@ export class AgentController {
                 success: false,
                 error: "该对话正在运行中，请等待当前请求完成"
             });
+
             return;
         }
 
@@ -122,6 +127,7 @@ export class AgentController {
             );
         } catch (e) {
             const msg = e instanceof Error ? e.message : String(e);
+
             writeEvent("error", {
                 type: "error",
                 ts: Date.now(),
@@ -146,6 +152,7 @@ export class AgentController {
             params.beforeUpdatedAt,
             params.limit
         );
+
         res.json({ success: true, data: conversations });
     }
 
@@ -164,6 +171,7 @@ export class AgentController {
             params.beforeTimestamp,
             params.limit
         );
+
         res.json({ success: true, data: messages });
     }
 
@@ -174,6 +182,7 @@ export class AgentController {
     public async getStateHistory(req: Request, res: Response): Promise<void> {
         const params = AgentGetStateHistoryRequestSchema.parse(req.body);
         const result = await this.agentService.getStateHistory(params);
+
         res.json({ success: true, data: result });
     }
 
@@ -184,6 +193,7 @@ export class AgentController {
     public async forkFromCheckpoint(req: Request, res: Response): Promise<void> {
         const params = AgentForkFromCheckpointRequestSchema.parse(req.body);
         const result = await this.agentService.forkFromCheckpoint(params);
+
         res.json({ success: true, data: result });
     }
 }

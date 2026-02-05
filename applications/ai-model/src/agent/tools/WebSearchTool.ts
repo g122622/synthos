@@ -2,10 +2,11 @@
  * Web 搜索工具
  * 从互联网搜索信息（使用 duck-duck-scrape 实现）
  */
-import { ToolDefinition, ToolExecutor } from "../contracts/index";
 import { injectable } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { search, SearchOptions, SafeSearchType, SearchResult } from "duck-duck-scrape";
+
+import { ToolDefinition, ToolExecutor } from "../contracts/index";
 
 /**
  * Web 搜索工具参数
@@ -61,6 +62,7 @@ export class WebSearchTool {
     public getExecutor(): ToolExecutor<WebSearchParams> {
         return async (params: WebSearchParams) => {
             const { query, limit = 5 } = params;
+
             this.LOGGER.info(`执行 DuckDuckGo 搜索: query="${query}", limit=${limit}`);
 
             try {
@@ -76,6 +78,7 @@ export class WebSearchTool {
                 // 处理无结果的情况
                 if (results.noResults || !results.results || results.results.length === 0) {
                     this.LOGGER.warning(`未找到与 "${query}" 相关的搜索结果`);
+
                     return {
                         totalResults: 0,
                         results: [],
@@ -92,6 +95,7 @@ export class WebSearchTool {
                 }));
 
                 this.LOGGER.info(`成功获取 ${formattedResults.length} 个搜索结果`);
+
                 return {
                     totalResults: formattedResults.length,
                     results: formattedResults,

@@ -9,6 +9,7 @@ import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { sleep } from "@root/common/util/promisify/sleep";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+
 import { setupReportScheduler } from "./schedulers/reportScheduler";
 
 /**
@@ -59,6 +60,7 @@ class OrchestratorApplication {
                 const endTimeStamp = Date.now();
 
                 const groupIds = Object.keys(config.groupConfigs);
+
                 LOGGER.info(`Pipeline 配置 - 处理群组: ${groupIds.join(", ")}`);
 
                 // 任务超时时间配置（毫秒）
@@ -78,9 +80,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!provideDataSuccess) {
                     LOGGER.error("❌ ProvideData 任务失败，Pipeline 终止");
                     job.fail("ProvideData task failed");
+
                     return;
                 }
                 await job.touch();
@@ -97,9 +101,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!preprocessSuccess) {
                     LOGGER.error("❌ Preprocess 任务失败，Pipeline 终止");
                     job.fail("Preprocess task failed");
+
                     return;
                 }
                 await job.touch();
@@ -116,9 +122,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!aiSummarizeSuccess) {
                     LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
                     job.fail("AISummarize task failed");
+
                     return;
                 }
                 await job.touch();
@@ -134,9 +142,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!generateEmbeddingSuccess) {
                     LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
                     job.fail("GenerateEmbedding task failed");
+
                     return;
                 }
                 await job.touch();
@@ -152,9 +162,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!interestScoreSuccess) {
                     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
                     job.fail("InterestScore task failed");
+
                     return;
                 }
                 await job.touch();
@@ -170,9 +182,11 @@ class OrchestratorApplication {
                     POLL_INTERVAL,
                     TASK_TIMEOUT
                 );
+
                 if (!llmInterestEvaluationSuccess) {
                     LOGGER.error("❌ LLMInterestEvaluationAndNotification 任务失败，Pipeline 终止");
                     job.fail("LLMInterestEvaluationAndNotification task failed");
+
                     return;
                 }
 
@@ -189,6 +203,7 @@ class OrchestratorApplication {
 
         // 读取配置，设置定时执行 Pipeline
         const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
+
         LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
         await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
         await agendaInstance.now(TaskHandlerTypes.RunPipeline);

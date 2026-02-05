@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
+import { describe, it, expect } from "vitest";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
+
+import { anonymizeDigestDetail } from "../utils/anonymizeDigestDetail";
 
 describe("anonymizeDigestDetail", () => {
     // 基础测试数据

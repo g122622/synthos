@@ -6,11 +6,13 @@ export function deepMerge<T extends object>(target: T, source: Record<string, un
 
     for (const key in source) {
         const sourceValue = source[key];
+
         if (sourceValue === undefined) {
             continue;
         }
 
         const targetValue = (target as Record<string, unknown>)[key];
+
         if (
             sourceValue !== null &&
             typeof sourceValue === "object" &&
@@ -20,7 +22,7 @@ export function deepMerge<T extends object>(target: T, source: Record<string, un
             !Array.isArray(targetValue)
         ) {
             // 递归合并嵌套对象
-            (result as Record<string, unknown>)[key] = this.deepMerge(
+            (result as Record<string, unknown>)[key] = deepMerge(
                 targetValue as object,
                 sourceValue as Record<string, unknown>
             );

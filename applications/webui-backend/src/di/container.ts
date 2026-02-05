@@ -3,7 +3,6 @@
  */
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { TOKENS } from "./tokens";
 import {
     registerConfigManagerService,
     registerCommonDBService,
@@ -40,7 +39,7 @@ import { AgentService } from "../services/AgentService";
 import { LogsService } from "../services/LogsService";
 
 // RPC Clients
-import { createRAGClient, RAGClient } from "../rpc/aiModelClient";
+import { createRAGClient } from "../rpc/aiModelClient";
 
 // Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
@@ -57,6 +56,8 @@ import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
 import { LogsController } from "../controllers/LogsController";
+
+import { TOKENS } from "./tokens";
 
 /**
  * 注册所有 DBManager 实例
@@ -102,6 +103,7 @@ export function registerRagChatHistoryManager(ragChatHistoryManager: RagChatHist
  */
 export function registerRAGClient(rpcBaseUrl: string): void {
     const client = createRAGClient(rpcBaseUrl);
+
     container.registerInstance(TOKENS.RAGClient, client);
 }
 

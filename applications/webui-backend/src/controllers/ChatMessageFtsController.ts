@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { ChatMessageFtsService } from "../services/ChatMessageFtsService";
 import { ChatMessageFtsContextSchema, ChatMessageFtsSearchSchema } from "../schemas/index";

@@ -3,11 +3,12 @@
  * 允许 Agent 直接查询聊天记录数据库
  * 注意：当前版本未实现安全限制，仅用于演示
  */
-import { ToolDefinition, ToolExecutor } from "../contracts/tools";
 import { injectable, inject } from "tsyringe";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import Logger from "@root/common/util/Logger";
+
+import { ToolDefinition, ToolExecutor } from "../contracts/tools";
 
 /**
  * SQL 查询工具参数
@@ -80,12 +81,14 @@ export class SQLQueryTool {
 
                 // 简单的安全检查：仅允许 SELECT
                 const normalizedQuery = query.trim().toLowerCase();
+
                 if (!normalizedQuery.startsWith("select")) {
                     throw new Error("仅支持 SELECT 查询");
                 }
 
                 // 检查危险关键字
                 const dangerousKeywords = ["drop", "delete", "update", "insert", "alter", "create", "truncate"];
+
                 for (const keyword of dangerousKeywords) {
                     if (normalizedQuery.includes(keyword)) {
                         throw new Error(`不允许使用关键字: ${keyword.toUpperCase()}`);
@@ -94,6 +97,7 @@ export class SQLQueryTool {
 
                 // 自动添加 LIMIT 限制
                 let finalQuery = query.trim();
+
                 if (!normalizedQuery.includes("limit")) {
                     finalQuery += ` LIMIT ${actualLimit}`;
                 } else {

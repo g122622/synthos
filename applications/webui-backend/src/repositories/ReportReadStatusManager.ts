@@ -20,6 +20,7 @@ export class ReportReadStatusManager {
         if (!ReportReadStatusManager.instance) {
             ReportReadStatusManager.instance = new ReportReadStatusManager(dbPath);
         }
+
         return ReportReadStatusManager.instance;
     }
 
@@ -42,6 +43,7 @@ export class ReportReadStatusManager {
      */
     public async isReportRead(reportId: string): Promise<boolean> {
         const value = await this.store.get(reportId);
+
         return value === true; // 仅当明确存入 true 时才视为已读
     }
 

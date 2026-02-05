@@ -16,6 +16,7 @@ class RequestURLBuilder {
     public buildUrl(path: string, queryParams?: { [key: string]: string | number | boolean }): string {
         // 处理path，确保不以'/'开头，如果baseUrl已经以'/'结尾了
         let url = this.baseUrl + (path.startsWith("/") ? path.substring(1) : path);
+
         // 确保path不以'/'结尾
         if (url.endsWith("/")) {
             url = url.substring(0, url.length - 1);
@@ -24,6 +25,7 @@ class RequestURLBuilder {
         // 如果有查询参数，将它们添加到URL中
         if (queryParams && Object.keys(queryParams).length > 0) {
             const queryStrings = new URLSearchParams();
+
             for (const key of Object.keys(queryParams)) {
                 queryStrings.append(key, String(queryParams[key]));
             }

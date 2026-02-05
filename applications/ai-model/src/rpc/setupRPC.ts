@@ -1,9 +1,11 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { startRAGRPCServer } from "./server";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+
 import { RagRPCImpl } from "../rag/RagRPCImpl";
 import { AI_MODEL_TOKENS } from "../di/tokens";
+
+import { startRAGRPCServer } from "./server";
 
 /**
  * 启动 RPC Server
@@ -20,5 +22,6 @@ export const setupRPC = async () => {
 
     // 启动 RPC 服务器
     const rpcPort = config.ai.rpc.port;
+
     startRAGRPCServer(rpcImpl, rpcPort);
 };

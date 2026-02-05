@@ -1,5 +1,6 @@
 // KVStore.ts
 import { Level } from "level";
+
 import { Disposable } from "./lifecycle/Disposable";
 
 /**

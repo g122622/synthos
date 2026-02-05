@@ -1,4 +1,5 @@
 import Logger from "@root/common/util/Logger";
+
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 const MAX_INPUT_LENGTH = Infinity; // 保留此配置项，以备后续可能需要限制输入长度
@@ -84,6 +85,7 @@ export class SemanticRater {
 
         // 批量获取未缓存的 embedding
         let fetchedVectors: Float32Array[] = [];
+
         if (textsToFetch.length > 0) {
             fetchedVectors = await this.embeddingService.embedBatch(textsToFetch);
             // 将新获取的向量存入缓存
@@ -98,6 +100,7 @@ export class SemanticRater {
 
         for (let i = 0; i < processedItems.length; i++) {
             const item = processedItems[i];
+
             if (item.cachedVector) {
                 result[item.originalIndex] = item.cachedVector;
             } else {
@@ -117,6 +120,7 @@ export class SemanticRater {
      */
     private async getEmbedding(text: string, isKeywordQuery: boolean): Promise<Float32Array> {
         const vectors = await this.getEmbeddingBatch([{ text, isKeywordQuery }]);
+
         return vectors[0];
     }
 
@@ -155,12 +159,14 @@ export class SemanticRater {
 
         // 添加所有正向关键词（isKeywordQuery=true，去重）
         const uniquePositiveKeywords = Array.from(new Set(positiveKeywords));
+
         for (const keyword of uniquePositiveKeywords) {
             embeddingItems.push({ text: keyword, isKeywordQuery: true });
         }
 
         // 添加所有负向关键词（isKeywordQuery=true，去重）
         const uniqueNegativeKeywords = Array.from(new Set(negativeKeywords));
+
         for (const keyword of uniqueNegativeKeywords) {
             embeddingItems.push({ text: keyword, isKeywordQuery: true });
         }
@@ -171,18 +177,21 @@ export class SemanticRater {
         // 建立索引映射
         let index = 0;
         const topicVectors: Float32Array[] = [];
+
         for (let i = 0; i < topics.length; i++) {
             topicVectors.push(allVectors[index]);
             index++;
         }
 
         const positiveKeywordVectors = new Map<string, Float32Array>();
+
         for (const keyword of uniquePositiveKeywords) {
             positiveKeywordVectors.set(keyword, allVectors[index]);
             index++;
         }
 
         const negativeKeywordVectors = new Map<string, Float32Array>();
+
         for (const keyword of uniqueNegativeKeywords) {
             negativeKeywordVectors.set(keyword, allVectors[index]);
             index++;
@@ -190,6 +199,7 @@ export class SemanticRater {
 
         // 对每个 topic 计算得分
         const scores: number[] = [];
+
         for (let i = 0; i < topics.length; i++) {
             const topicVec = topicVectors[i];
 
@@ -200,8 +210,10 @@ export class SemanticRater {
             if (positiveKeywords.length > 0) {
                 const posSims = positiveKeywords.map(keyword => {
                     const vec = positiveKeywordVectors.get(keyword)!;
+
                     return this.cosineSimilarity(vec, topicVec);
                 });
+
                 posSim = Math.max(...posSims);
             }
 
@@ -209,8 +221,10 @@ export class SemanticRater {
             if (negativeKeywords.length > 0) {
                 const negSims = negativeKeywords.map(keyword => {
                     const vec = negativeKeywordVectors.get(keyword)!;
+
                     return this.cosineSimilarity(vec, topicVec);
                 });
+
                 negSim = Math.max(...negSims);
             }
 
@@ -234,14 +248,17 @@ export class SemanticRater {
      */
     public async scoreTopic(userInterests: UserInterest[], topicDetail: string): Promise<number> {
         const scores = await this.scoreTopics(userInterests, [topicDetail]);
+
         return scores[0];
     }
 
     private cosineSimilarity(a: Float32Array, b: Float32Array): number {
         let dot = 0;
+
         for (let i = 0; i < a.length; i++) {
             dot += a[i] * b[i];
         }
+
         return dot; // 已 L2 归一化，点积 = 余弦相似度
     }
 }

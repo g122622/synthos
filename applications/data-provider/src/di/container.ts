@@ -4,9 +4,11 @@
  */
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { DATA_PROVIDER_TOKENS } from "./tokens";
+
 import { ProvideDataTaskHandler } from "../tasks/ProvideDataTask";
 import { QQProvider } from "../providers/QQProvider/QQProvider";
+
+import { DATA_PROVIDER_TOKENS } from "./tokens";
 
 /**
  * 注册 QQProvider 到 DI 容器

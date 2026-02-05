@@ -73,6 +73,7 @@ class PromisifiedSQLite extends Disposable {
                     reject(err);
                 } else {
                     const stmt = new PromisifiedStatement(statement);
+
                     resolve(stmt);
                 }
             });

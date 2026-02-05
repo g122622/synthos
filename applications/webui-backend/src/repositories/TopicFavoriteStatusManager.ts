@@ -16,6 +16,7 @@ export class TopicFavoriteStatusManager {
         if (!TopicFavoriteStatusManager.instance) {
             TopicFavoriteStatusManager.instance = new TopicFavoriteStatusManager(dbPath);
         }
+
         return TopicFavoriteStatusManager.instance;
     }
 
@@ -40,6 +41,7 @@ export class TopicFavoriteStatusManager {
      */
     async isTopicFavorite(topicId: string): Promise<boolean> {
         const value = await this.store.get(topicId);
+
         return value === true; // 显式判断 true，避免 undefined 或 false 混淆
     }
 

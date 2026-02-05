@@ -1,10 +1,14 @@
 // tests/PooledTextGeneratorService.test.ts
+import "reflect-metadata";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { container } from "tsyringe";
+
 import {
     PooledTextGeneratorService,
     PooledTask,
     PooledTaskResult
 } from "../services/generators/text/PooledTextGeneratorService";
+import { AI_MODEL_TOKENS } from "../di/tokens";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
@@ -31,52 +35,49 @@ let totalCalls = 0;
 // 用于追踪调用顺序
 let callOrder: string[] = [];
 
-// Mock TextGeneratorService
-vi.mock("../generators/text/TextGeneratorService", () => {
-    return {
-        TextGeneratorService: class MockTextGeneratorService {
-            public async init(): Promise<void> {
-                // 初始化不需要实际逻辑
-            }
+// Mock TextGeneratorService类
+class MockTextGeneratorService {
+    public async init(): Promise<void> {
+        // 初始化不需要实际逻辑
+    }
 
-            public dispose(): void {
-                // 清理不需要实际逻辑
-            }
+    public dispose(): void {
+        // 清理不需要实际逻辑
+    }
 
-            public async generateTextWithModelCandidates(
-                modelNames: string[],
-                input: string
-            ): Promise<{ content: string; selectedModelName: string }> {
-                currentConcurrency++;
-                totalCalls++;
-                callOrder.push(`start:${input}`);
-                maxObservedConcurrency = Math.max(maxObservedConcurrency, currentConcurrency);
+    public async generateTextWithModelCandidates(
+        modelNames: string[],
+        input: string
+    ): Promise<{ content: string; selectedModelName: string }> {
+        currentConcurrency++;
+        totalCalls++;
+        callOrder.push(`start:${input}`);
+        maxObservedConcurrency = Math.max(maxObservedConcurrency, currentConcurrency);
 
-                // 根据输入模拟不同延迟
-                const delayTime = input.includes("SLOW") ? 100 : 50;
-                await delay(delayTime);
+        // 根据输入模拟不同延迟
+        const delayTime = input.includes("SLOW") ? 100 : 50;
 
-                currentConcurrency--;
-                callOrder.push(`end:${input}`);
+        await delay(delayTime);
 
-                // 模拟错误场景
-                if (input.includes("ERROR")) {
-                    throw new Error("模拟生成错误");
-                }
+        currentConcurrency--;
+        callOrder.push(`end:${input}`);
 
-                // 模拟超时场景
-                if (input.includes("TIMEOUT")) {
-                    throw new Error("Request timeout");
-                }
-
-                return {
-                    content: `生成结果: ${input}`,
-                    selectedModelName: modelNames[0]
-                };
-            }
+        // 模拟错误场景
+        if (input.includes("ERROR")) {
+            throw new Error("模拟生成错误");
         }
-    };
-});
+
+        // 模拟超时场景
+        if (input.includes("TIMEOUT")) {
+            throw new Error("Request timeout");
+        }
+
+        return {
+            content: `生成结果: ${input}`,
+            selectedModelName: modelNames[0]
+        };
+    }
+}
 
 describe("PooledTextGeneratorService", () => {
     let generator: PooledTextGeneratorService;
@@ -87,6 +88,9 @@ describe("PooledTextGeneratorService", () => {
         maxObservedConcurrency = 0;
         totalCalls = 0;
         callOrder = [];
+
+        // 注册mock到DI容器
+        container.registerInstance(AI_MODEL_TOKENS.TextGeneratorService, new MockTextGeneratorService() as any);
     });
 
     afterEach(() => {
@@ -288,6 +292,7 @@ describe("PooledTextGeneratorService", () => {
 
             // 第一次调用
             const results1 = await generator.generateTextWithModelCandidates(modelNames, ["batch1_a", "batch1_b"]);
+
             expect(results1.length).toBe(2);
 
             // 第二次调用
@@ -296,6 +301,7 @@ describe("PooledTextGeneratorService", () => {
                 "batch2_b",
                 "batch2_c"
             ]);
+
             expect(results2.length).toBe(3);
 
             // 验证总调用次数
@@ -329,6 +335,7 @@ describe("PooledTextGeneratorService", () => {
             expect(results.length).toBe(3);
             // 验证所有上下文都被正确传递
             const ids = results.map(r => r.context.id).sort();
+
             expect(ids).toEqual([1, 2, 3]);
         });
 
@@ -569,6 +576,7 @@ describe("PooledTextGeneratorService", () => {
 
             // 验证所有上下文索引都存在
             const indices = results.map(r => r.context.index).sort((a, b) => a - b);
+
             expect(indices).toEqual(Array.from({ length: 100 }, (_, i) => i));
         });
 
@@ -604,6 +612,7 @@ describe("PooledTextGeneratorService", () => {
 
             // 第一批任务
             const batch1Results: PooledTaskResult<TestContext>[] = [];
+
             await generator.submitTasks<TestContext>(
                 [
                     { input: "b1_a", modelNames: ["model1"], context: { batch: 1, id: 1 } },
@@ -616,6 +625,7 @@ describe("PooledTextGeneratorService", () => {
 
             // 第二批任务
             const batch2Results: PooledTaskResult<TestContext>[] = [];
+
             await generator.submitTasks<TestContext>(
                 [
                     { input: "b2_a", modelNames: ["model1"], context: { batch: 2, id: 1 } },

@@ -2,11 +2,13 @@
  * 搜索服务
  * 封装对 RAG RPC 的调用
  */
-import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import type { RAGClient } from "../rpc/aiModelClient";
 import type { SearchOutput, AskOutput } from "@root/common/rpc/ai-model";
+
+import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
+
+import { TOKENS } from "../di/tokens";
 import { InternalError } from "../errors/AppError";
 
 @injectable()
@@ -26,7 +28,9 @@ export class SearchService {
 
         try {
             const results = await this.ragClient.search.query({ query, limit });
+
             this.LOGGER.success(`搜索完成，返回 ${results.length} 条结果`);
+
             return results;
         } catch (error) {
             this.LOGGER.error(`搜索失败: ${error}`);
@@ -50,10 +54,12 @@ export class SearchService {
                 topK,
                 enableQueryRewriter
             } as any);
+
             if (!result.answer) {
                 throw new InternalError("result.answer无效");
             }
             this.LOGGER.success(`问答完成，回答长度: ${result.answer.length}`);
+
             return result;
         } catch (error) {
             this.LOGGER.error(`问答失败: ${error}, ${error instanceof Error ? JSON.stringify(error) : ""}`);

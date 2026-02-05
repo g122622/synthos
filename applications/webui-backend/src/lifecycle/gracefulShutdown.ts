@@ -1,4 +1,5 @@
 import Logger from "@root/common/util/Logger";
+
 import { WebUILocalServer } from "../index";
 
 const LOGGER = Logger.withTag("📃 WebUI-Backend");

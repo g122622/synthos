@@ -40,6 +40,7 @@ class Disposable implements IDisposable {
             for (const root of currentRoots) {
                 // 调用 dispose，兼容同步和异步
                 const result = root.dispose();
+
                 if (result instanceof Promise) {
                     promises.push(result);
                 }
@@ -95,11 +96,13 @@ class Disposable implements IDisposable {
     protected _registerDisposable<T extends IDisposable | null | undefined>(disposable: T): T {
         if (!disposable) {
             LOGGER.warning("Cannot register null or undefined disposable");
+
             return disposable;
         }
         if (this._isDisposed) {
             LOGGER.warning("Cannot register disposable on a disposed object. Disposing the disposable instead!");
             disposable.dispose();
+
             return disposable;
         } else {
             if ((disposable as unknown as Disposable) === this) {
@@ -115,6 +118,7 @@ class Disposable implements IDisposable {
                 Disposable._roots.delete(disposable);
             }
         }
+
         return disposable;
     }
 
@@ -126,6 +130,7 @@ class Disposable implements IDisposable {
     protected _registerDisposableFunction(func: () => Promise<void> | void): void {
         if (!func) {
             LOGGER.error("Cannot register null or undefined disposable");
+
             return;
         }
         this._registerDisposable({
@@ -144,9 +149,11 @@ class Disposable implements IDisposable {
 
         // 遍历释放所有资源
         const promises = [] as Array<Promise<void>>; // 存储所有异步任务的 Promise
+
         this._disposables.forEach(disposable => {
             try {
                 const promise = disposable.dispose();
+
                 if (promise && typeof promise.then === "function") {
                     promises.push(promise);
                 }

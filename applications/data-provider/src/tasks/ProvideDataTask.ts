@@ -5,9 +5,10 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+
 import { IIMProvider } from "../providers/contracts/IIMProvider";
 import { COMMON_TOKENS } from "../di/tokens";
-import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { getQQProvider } from "../di/container";
 
 /**
@@ -44,10 +45,12 @@ export class ProvideDataTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 // 根据 IM 类型从 DI 容器获取对应的 IM 提供者
                 let activeProvider: IIMProvider;
+
                 switch (attrs.IMType) {
                     case IMTypes.QQ: {
                         activeProvider = getQQProvider();
@@ -56,6 +59,7 @@ export class ProvideDataTaskHandler {
                     default: {
                         this.LOGGER.error(`Unknown IM type: ${attrs.IMType}`);
                         job.fail("Unknown IM type");
+
                         return;
                     }
                 }
@@ -74,6 +78,7 @@ export class ProvideDataTaskHandler {
                         attrs.endTimeStamp,
                         groupId
                     );
+
                     this.LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
                     await this.imDbAccessService.storeRawChatMessages(results);
                     await job.touch(); // 保证任务存活

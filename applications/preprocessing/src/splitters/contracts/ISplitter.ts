@@ -1,4 +1,3 @@
-import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 

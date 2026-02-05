@@ -104,6 +104,7 @@ export async function bootstrapAll(options: BootstrapAllOptions = {}): Promise<B
 
     if (bootstrappableClasses.length === 0) {
         LOGGER.warning("没有找到任何被 @bootstrap 装饰的类");
+
         return result;
     }
 
@@ -128,6 +129,7 @@ export async function bootstrapAll(options: BootstrapAllOptions = {}): Promise<B
             LOGGER.success(`Bootstrap 类 "${className}" 执行成功`);
         } catch (error) {
             const err = error instanceof Error ? error : new Error(String(error));
+
             result.failed.push({ className, error: err });
             LOGGER.error(`Bootstrap 类 "${className}" 执行失败: ${err.message}`);
 

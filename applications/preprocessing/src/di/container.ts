@@ -4,10 +4,12 @@
  */
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { PREPROCESSING_TOKENS } from "./tokens";
+
 import { PreprocessTaskHandler } from "../tasks/PreprocessTask";
 import { AccumulativeSplitter } from "../splitters/AccumulativeSplitter";
 import { TimeoutSplitter } from "../splitters/TimeoutSplitter";
+
+import { PREPROCESSING_TOKENS } from "./tokens";
 
 /**
  * 注册 AccumulativeSplitter 到 DI 容器

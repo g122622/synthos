@@ -13,8 +13,10 @@ export class NgrokClient extends Disposable {
 
     public async init() {
         const config = await ConfigManagerService.getCurrentConfig();
+
         if (!config.webUI_Forwarder.enabled) {
             this.LOGGER.warning("Ngrok客户端未在配置文件中启用, 跳过初始化");
+
             return;
         }
 

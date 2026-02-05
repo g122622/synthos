@@ -2,10 +2,13 @@ import "reflect-metadata";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+
 import { setupRPC } from "./rpc/setupRPC";
 import "./context/middleware/registerAll";
 import { registerAllDependencies } from "./di/container";
+
 import { container } from "tsyringe";
+
 import { AI_MODEL_TOKENS } from "./di/tokens";
 import { AISummarizeTaskHandler } from "./tasks/AISummarize";
 import { GenerateEmbeddingTaskHandler } from "./tasks/GenerateEmbedding";

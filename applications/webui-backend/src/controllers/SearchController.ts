@@ -2,14 +2,16 @@
  * 搜索控制器
  * 处理搜索和问答 API 请求
  */
+import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
+
 import { injectable, inject } from "tsyringe";
 import { Request, Response } from "express";
+import Logger from "@root/common/util/Logger";
+
 import { TOKENS } from "../di/tokens";
 import { SearchService } from "../services/SearchService";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
-import Logger from "@root/common/util/Logger";
 import { RagAskSchema, RagSearchSchema } from "../schemas/index";
-import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 
 @injectable()
 export class SearchController {
@@ -56,6 +58,7 @@ export class SearchController {
             : [];
 
         let sessionId: string | undefined;
+
         try {
             const session = await this.ragChatHistoryService.createSession({
                 question,
@@ -64,6 +67,7 @@ export class SearchController {
                 topK: resolvedTopK,
                 enableQueryRewriter: resolvedEnableQueryRewriter
             });
+
             sessionId = session.id;
         } catch (error) {
             // 不能因为历史记录保存失败而影响问答结果返回

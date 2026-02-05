@@ -7,13 +7,14 @@ import {
     registerCommonDBService,
     registerImDbAccessService
 } from "@root/common/di/container";
+import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+
 import {
     registerTaskHandlers,
     getPreprocessTaskHandler,
     registerAccumulativeSplitter,
     registerTimeoutSplitter
 } from "./di/container";
-import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 
@@ -33,6 +34,7 @@ class PreprocessingApplication {
 
         // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
+
         await imDbAccessService.init();
 
         // 3. 注册 ImDbAccessService 到 DI 容器
@@ -47,6 +49,7 @@ class PreprocessingApplication {
 
         // 6. 获取任务处理器并注册到 Agenda
         const preprocessTaskHandler = getPreprocessTaskHandler();
+
         await preprocessTaskHandler.register();
 
         LOGGER.success("Ready to start agenda scheduler");

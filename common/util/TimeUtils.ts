@@ -6,6 +6,7 @@
 export function getHoursAgoTimestamp(arg: number): number {
     const now = Date.now(); // 当前时间的毫秒时间戳
     const millisecondsInHour = 60 * 60 * 1000; // 1 小时对应的毫秒数
+
     return now - arg * millisecondsInHour;
 }
 
@@ -17,6 +18,7 @@ export function getHoursAgoTimestamp(arg: number): number {
 export function getMinutesAgoTimestamp(arg: number): number {
     const now = Date.now(); // 当前时间的毫秒时间戳
     const millisecondsInMinute = 60 * 1000; // 1 分钟对应的毫秒数
+
     return now - arg * millisecondsInMinute;
 }
 

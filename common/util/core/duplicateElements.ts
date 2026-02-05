@@ -35,6 +35,7 @@ function duplicateElements<T>(array: T[], repeatCount: number = 2): T[] {
         for (let i = 0; i < repeatCount; i++) {
             result.push(item);
         }
+
         return result;
     }, []);
 }

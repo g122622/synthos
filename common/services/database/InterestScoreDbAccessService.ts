@@ -1,11 +1,13 @@
 import "reflect-metadata";
 import { injectable, container } from "tsyringe";
+
 import Logger from "../../util/Logger";
-import { CommonDBService } from "./infra/CommonDBService";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
-import { createInterestScoreTableSQL } from "./constants/InitialSQL";
 import { COMMON_TOKENS } from "../../di/tokens";
+
+import { createInterestScoreTableSQL } from "./constants/InitialSQL";
+import { CommonDBService } from "./infra/CommonDBService";
 
 /**
  * 兴趣评分数据库访问服务
@@ -43,6 +45,7 @@ export class InterestScoreDbAccessService extends Disposable {
             `SELECT scoreV${version} FROM interset_score_results WHERE topicId = ?`,
             [topicId]
         );
+
         // TODO 由于版本号是可配置的，下面这一行的scoreVx不应该写死
         return result?.scoreV1 || null;
     }
@@ -53,6 +56,7 @@ export class InterestScoreDbAccessService extends Disposable {
             `SELECT EXISTS(SELECT 1 FROM interset_score_results WHERE topicId = ? AND scoreV${version} IS NOT NULL)`,
             [topicId]
         );
+
         return result[Object.keys(result)[0]] === 1;
     }
 

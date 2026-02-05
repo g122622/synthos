@@ -9,12 +9,13 @@ import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessSe
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { Report, ReportStatistics, ReportType } from "@root/common/contracts/report";
-import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import getRandomHash from "@root/common/util/math/getRandomHash";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 import { ReportEmailService } from "../services/email/ReportEmailService";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
-import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 /**
  * 日报生成任务处理器
@@ -50,11 +51,13 @@ export class GenerateReportTaskHandler {
             async job => {
                 this.LOGGER.info(`📰 开始处理日报生成任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig();
 
                 // 检查日报功能是否启用
                 if (!config.report.enabled) {
                     this.LOGGER.info("日报功能未启用，跳过任务");
+
                     return;
                 }
 
@@ -65,10 +68,12 @@ export class GenerateReportTaskHandler {
                     this.LOGGER.info(
                         `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
                     );
+
                     return;
                 }
 
                 const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
+
                 this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
                 try {
@@ -84,6 +89,7 @@ export class GenerateReportTaskHandler {
 
                     for (const topicId of topicIds) {
                         const score = await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
+
                         if (score !== null) {
                             interestScores.set(topicId, score);
                         }
@@ -93,6 +99,7 @@ export class GenerateReportTaskHandler {
                     const interestScoreThreshold = config.report.generation.interestScoreThreshold;
                     const filteredResults = digestResults.filter(result => {
                         const score = interestScores.get(result.topicId);
+
                         return score === undefined || score >= interestScoreThreshold;
                     });
 
@@ -125,6 +132,7 @@ export class GenerateReportTaskHandler {
                         } catch (emailError) {
                             this.LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
                         }
+
                         return;
                     }
 
@@ -134,6 +142,7 @@ export class GenerateReportTaskHandler {
                         .sort((a, b) => {
                             const scoreA = interestScores.get(a.topicId) ?? 0;
                             const scoreB = interestScores.get(b.topicId) ?? 0;
+
                             return scoreB - scoreA;
                         })
                         .slice(0, topN);
@@ -142,6 +151,7 @@ export class GenerateReportTaskHandler {
                     const sessionGroupMap = new Map<string, string>();
                     // 从配置中获取所有群组
                     const groupIds = Object.keys(config.groupConfigs);
+
                     for (const result of sortedResults) {
                         // TODO 修正这部分逻辑
                         // 暂时将 sessionId 的前缀作为 groupId（简化实现）
@@ -188,6 +198,7 @@ export class GenerateReportTaskHandler {
                         };
 
                         await this.reportDbAccessService.storeReport(report);
+
                         return;
                     }
 
@@ -214,6 +225,7 @@ export class GenerateReportTaskHandler {
                                 modelCandidates,
                                 prompt
                             );
+
                             summary = result.content;
                             selectedModelName = result.selectedModelName;
                             summaryStatus = "success";
@@ -282,6 +294,7 @@ export class GenerateReportTaskHandler {
         if (type === "half-daily") {
             const hour = startDate.getHours();
             const period = hour < 12 ? "上午" : "下午";
+
             return `${formatDate(startDate)} ${period}`;
         } else if (type === "weekly") {
             return `${formatDate(startDate)} - ${formatDate(endDate)} 周报`;
@@ -306,8 +319,10 @@ export class GenerateReportTaskHandler {
     ): ReportStatistics {
         // 计算最活跃群组
         const groupTopicCount = new Map<string, number>();
+
         for (const topic of topics) {
             const groupId = topic.groupId || sessionGroupMap.get(topic.sessionId) || "unknown";
+
             groupTopicCount.set(groupId, (groupTopicCount.get(groupId) || 0) + 1);
         }
 
@@ -318,13 +333,16 @@ export class GenerateReportTaskHandler {
 
         // 计算最活跃时段
         const hourCount = new Map<number, number>();
+
         for (const topic of topics) {
             const hour = new Date(topic.updateTime).getHours();
+
             hourCount.set(hour, (hourCount.get(hour) || 0) + 1);
         }
 
         let mostActiveHour = 0;
         let maxCount = 0;
+
         for (const [hour, count] of hourCount.entries()) {
             if (count > maxCount) {
                 maxCount = count;

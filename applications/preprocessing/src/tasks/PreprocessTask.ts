@@ -3,12 +3,13 @@ import { injectable, inject } from "tsyringe";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
-import { formatMsg } from "../formatMsg";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
+import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+
+import { formatMsg } from "../formatMsg";
 import { ISplitter } from "../splitters/contracts/ISplitter";
 import { COMMON_TOKENS } from "../di/tokens";
-import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { getAccumulativeSplitter, getTimeoutSplitter } from "../di/container";
 
 /**
@@ -45,11 +46,13 @@ export class PreprocessTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 for (const groupId of attrs.groupIds) {
                     // 从 DI 容器获取对应的分割器
                     let splitter: ISplitter;
+
                     switch (config.groupConfigs[groupId]?.splitStrategy) {
                         case "accumulative": {
                             splitter = getAccumulativeSplitter();
@@ -87,6 +90,7 @@ export class PreprocessTaskHandler {
                             };
                         })
                     );
+
                     await this.imDbAccessService.storeProcessedChatMessages(results);
                     await splitter.dispose();
 

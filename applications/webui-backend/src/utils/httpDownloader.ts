@@ -6,10 +6,12 @@ export function downloadImage(url: string): Promise<Buffer> {
             .get(url, res => {
                 if (res.statusCode !== 200) {
                     reject(new Error(`HTTP 状态码 ${res.statusCode}`));
+
                     return;
                 }
 
                 const chunks: Buffer[] = [];
+
                 res.on("data", chunk => chunks.push(chunk));
                 res.on("end", () => resolve(Buffer.concat(chunks)));
             })

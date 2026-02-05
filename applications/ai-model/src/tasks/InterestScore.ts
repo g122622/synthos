@@ -7,10 +7,11 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
-import { SemanticRater } from "../misc/SemanticRater";
-import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { SemanticRater } from "../misc/SemanticRater";
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { AI_MODEL_TOKENS } from "../di/tokens";
 
 /**
@@ -46,15 +47,18 @@ export class InterestScoreTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 // 检查 Ollama 服务是否可用
                 if (!(await this.embeddingService.isAvailable())) {
                     this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
+
                     return;
                 }
 
                 const sessionIds = [] as string[];
+
                 for (const groupId of Object.keys(config.groupConfigs)) {
                     sessionIds.push(
                         ...(await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
@@ -66,6 +70,7 @@ export class InterestScoreTaskHandler {
                 }
 
                 const digestResults = [] as AIDigestResult[];
+
                 for (const sessionId of sessionIds) {
                     digestResults.push(
                         ...(await this.agcDbAccessService.getAIDigestResultsBySessionId(sessionId))
@@ -75,10 +80,12 @@ export class InterestScoreTaskHandler {
 
                 // 过滤掉已经计算过兴趣度的结果
                 const filteredDigestResults = [];
+
                 for (const digestResult of digestResults) {
                     const exists = await this.interestScoreDbAccessService.isInterestScoreResultExist(
                         digestResult.topicId
                     );
+
                     if (!exists) {
                         filteredDigestResults.push(digestResult);
                     }
@@ -86,12 +93,14 @@ export class InterestScoreTaskHandler {
                 this.LOGGER.info(`还剩 ${filteredDigestResults.length} 条需要打分的摘要结果`);
                 if (filteredDigestResults.length === 0) {
                     this.LOGGER.info("没有需要打分的摘要结果，跳过当前任务");
+
                     return;
                 }
 
                 const rater = new SemanticRater(this.embeddingService);
                 // 转换参数格式
                 const argArr = [];
+
                 argArr.push(
                     ...config.ai.interestScore.UserInterestsPositiveKeywords.map(keyword => {
                         return {

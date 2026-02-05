@@ -4,6 +4,7 @@
  */
 import "reflect-metadata";
 import path from "path";
+
 import { injectable, inject } from "tsyringe";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
@@ -29,6 +30,7 @@ export class LangGraphCheckpointerService {
 
         this.LOGGER.info(`LangGraph checkpointer 使用 SQLite: ${checkpointDBPath}`);
         this.checkpointer = SqliteSaver.fromConnString(checkpointDBPath);
+
         return this.checkpointer;
     }
 }

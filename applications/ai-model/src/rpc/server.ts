@@ -25,6 +25,7 @@ export function startRAGRPCServer(impl: RAGRPCImplementation, port: number) {
 
     // 同端口启用 WebSocket（tRPC subscription）
     const wss = new WebSocketServer({ server: httpServer.server });
+
     applyWSSHandler({ wss, router: router as any });
     LOGGER.success(`RAG RPC WebSocket 已启动，监听端口: ${port}`);
 

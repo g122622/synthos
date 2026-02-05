@@ -1,5 +1,7 @@
-import { describe, it, expect, vi } from "vitest";
 import type { ToolContext, ToolDefinition } from "../agent/contracts/index";
+
+import { describe, it, expect, vi } from "vitest";
+
 import { AgentToolCatalog } from "../agent-langgraph/AgentToolCatalog";
 
 vi.mock("@root/common/util/Logger", () => {
@@ -71,6 +73,7 @@ describe("AgentToolCatalog", () => {
         );
 
         const defs = catalog.getEnabledToolDefinitions(["sql_query"]);
+
         expect(defs).toHaveLength(1);
         expect(defs[0].function.name).toBe("sql_query");
     });
@@ -92,6 +95,7 @@ describe("AgentToolCatalog", () => {
         );
 
         const ctx: ToolContext = { sessionId: "s1" };
+
         await expect(catalog.executeTool("rag_search", { q: "hi" }, ctx, ["sql_query"])).rejects.toThrow(
             "工具未启用"
         );
@@ -115,6 +119,7 @@ describe("AgentToolCatalog", () => {
 
         const ctx: ToolContext = { sessionId: "s1" };
         const result = await catalog.executeTool("rag_search", { q: "hi" }, ctx, ["rag_search"]);
+
         expect(result).toEqual({ ok: true, params: { q: "hi" } });
     });
 });

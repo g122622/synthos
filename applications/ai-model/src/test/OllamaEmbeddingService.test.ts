@@ -1,7 +1,8 @@
 // tests/EmbeddingService.test.ts
 import { describe, it, expect, beforeEach, vi, Mock } from "vitest";
-import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import axios from "axios";
+
+import { EmbeddingService } from "../services/embedding/EmbeddingService";
 
 // Mock axios
 vi.mock("axios", () => {
@@ -9,6 +10,7 @@ vi.mock("axios", () => {
         post: vi.fn(),
         get: vi.fn()
     };
+
     return {
         default: {
             create: vi.fn(() => mockAxiosInstance),
@@ -61,6 +63,7 @@ describe("EmbeddingService", () => {
     describe("embed", () => {
         it("should return Float32Array for single text", async () => {
             const mockEmbedding = Array(TEST_DIMENSION).fill(0.1);
+
             mockAxiosInstance.post.mockResolvedValueOnce({
                 data: {
                     model: TEST_MODEL,
@@ -93,6 +96,7 @@ describe("EmbeddingService", () => {
                 Array(TEST_DIMENSION).fill(0.2),
                 Array(TEST_DIMENSION).fill(0.3)
             ];
+
             mockAxiosInstance.post.mockResolvedValueOnce({
                 data: {
                     model: TEST_MODEL,
@@ -115,6 +119,7 @@ describe("EmbeddingService", () => {
 
         it("should throw error if dimension mismatch", async () => {
             const wrongDimensionEmbedding = Array(512).fill(0.1); // 错误的维度
+
             mockAxiosInstance.post.mockResolvedValueOnce({
                 data: {
                     model: TEST_MODEL,
@@ -129,6 +134,7 @@ describe("EmbeddingService", () => {
 
         it("should throw error on API failure", async () => {
             const axiosError = new Error("Network Error");
+
             (axiosError as any).isAxiosError = true;
             (axiosError as any).code = "ECONNREFUSED";
             mockAxiosInstance.post.mockRejectedValueOnce(axiosError);
@@ -138,6 +144,7 @@ describe("EmbeddingService", () => {
 
         it("should handle non-axios errors", async () => {
             const genericError = new Error("Unknown error");
+
             mockAxiosInstance.post.mockRejectedValueOnce(genericError);
 
             await expect(service.embedBatch(["测试"])).rejects.toThrow("Unknown error");

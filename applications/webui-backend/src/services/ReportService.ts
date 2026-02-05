@@ -1,15 +1,17 @@
 /**
  * 日报服务
  */
+import type { ReferenceItem } from "@root/common/rpc/ai-model";
+
 import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { Report, ReportType } from "@root/common/contracts/report/index";
+
+import { TOKENS } from "../di/tokens";
 import { NotFoundError } from "../errors/AppError";
 import { RAGClient } from "../rpc/aiModelClient";
 import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager";
-import type { ReferenceItem } from "@root/common/rpc/ai-model";
 
 @injectable()
 export class ReportService {
@@ -25,9 +27,11 @@ export class ReportService {
      */
     public async getReportById(reportId: string): Promise<Report> {
         const report = await this.reportDbAccessService.getReportById(reportId);
+
         if (!report) {
             throw new NotFoundError("未找到对应的日报");
         }
+
         return report;
     }
 
@@ -39,6 +43,7 @@ export class ReportService {
         const report = await this.getReportById(reportId);
 
         const topicIds = report.topicIds;
+
         if (topicIds.length === 0) {
             return { report, references: [] };
         }
@@ -76,6 +81,7 @@ export class ReportService {
         type?: ReportType
     ): Promise<{ reports: Report[]; total: number; page: number; pageSize: number }> {
         const result = await this.reportDbAccessService.getReportsPaginated(page, pageSize, type);
+
         return {
             ...result,
             page,
@@ -97,6 +103,7 @@ export class ReportService {
         if (type) {
             return this.reportDbAccessService.getReportsByTypeAndTimeRange(type, timeStart, timeEnd);
         }
+
         return this.reportDbAccessService.getReportsByTimeRange(timeStart, timeEnd);
     }
 
@@ -146,9 +153,11 @@ export class ReportService {
      */
     public async checkReadStatus(reportIds: string[]): Promise<Record<string, boolean>> {
         const readStatus: Record<string, boolean> = {};
+
         for (const reportId of reportIds) {
             readStatus[reportId] = await this.readStatusManager.isReportRead(reportId);
         }
+
         return readStatus;
     }
 
@@ -160,6 +169,7 @@ export class ReportService {
      */
     public async sendReportEmail(reportId: string): Promise<{ success: boolean; message: string }> {
         const result = await this.ragClient.sendReportEmail.mutate({ reportId });
+
         return {
             success: result.success ?? false,
             message: result.message ?? ""

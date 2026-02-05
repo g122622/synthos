@@ -1,8 +1,9 @@
 /**
  * 杂项服务
  */
-import { injectable } from "tsyringe";
 import https from "https";
+
+import { injectable } from "tsyringe";
 
 @injectable()
 export class MiscService {
@@ -22,6 +23,7 @@ export class MiscService {
     async getQQAvatarBase64(qqNumber: string): Promise<string> {
         const avatarUrl = `https://q1.qlogo.cn/g?b=qq&nk=${qqNumber}&s=100`;
         const avatarBuffer = await this.downloadImage(avatarUrl);
+
         return avatarBuffer.toString("base64");
     }
 
@@ -34,10 +36,12 @@ export class MiscService {
                 .get(url, res => {
                     if (res.statusCode !== 200) {
                         reject(new Error(`HTTP 状态码 ${res.statusCode}`));
+
                         return;
                     }
 
                     const chunks: Buffer[] = [];
+
                     res.on("data", chunk => chunks.push(chunk));
                     res.on("end", () => resolve(Buffer.concat(chunks)));
                 })

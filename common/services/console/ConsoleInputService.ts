@@ -1,4 +1,5 @@
 import * as readline from "readline";
+
 import Logger from "../../util/Logger";
 import { Disposable } from "../../util/lifecycle/Disposable";
 
@@ -45,6 +46,7 @@ class ConsoleInputService extends Disposable {
         const input: string = await new Promise(resolve => {
             this.rl.question(prompt, answer => resolve(answer));
         });
+
         return input;
     }
 
@@ -57,6 +59,7 @@ class ConsoleInputService extends Disposable {
         const input: string = await new Promise(resolve => {
             this.rl.question(prompt, answer => resolve(answer));
         });
+
         return Number(input);
     }
 
@@ -69,6 +72,7 @@ class ConsoleInputService extends Disposable {
         let input: string = await new Promise(resolve => {
             this.rl.question(prompt + "(y/n)", answer => resolve(answer));
         });
+
         input = input.toLowerCase();
         if (input === "y" || input === "yes") {
             return true;
@@ -76,6 +80,7 @@ class ConsoleInputService extends Disposable {
             return false;
         } else {
             this.LOGGER.error("请输入y或n!");
+
             return await this.yesOrNo(prompt);
         }
     }

@@ -4,6 +4,7 @@
  */
 import { initTRPC, type AnyRootConfig, type DefaultErrorShape, type Router } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+
 import {
     SearchInputSchema,
     SearchOutput,
@@ -155,6 +156,7 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 query: input.query,
                 limit: input.limit ?? 10
             };
+
             return impl.search(validatedInput);
         }),
 
@@ -165,6 +167,7 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 topK: input.topK ?? 5,
                 enableQueryRewriter: input.enableQueryRewriter ?? true
             };
+
             return impl.ask(validatedInput);
         }),
 
@@ -355,6 +358,7 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
     };
 
     const typedRouter = router as unknown as Router<RAGRouterDef> & RouterRecord;
+
     return typedRouter;
 };
 

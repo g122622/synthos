@@ -1,13 +1,17 @@
 import "reflect-metadata";
-import { readFile, writeFile, access } from "fs/promises";
-import { injectable } from "tsyringe";
-import { dirname, join } from "path";
-import { GlobalConfig, GlobalConfigSchema, PartialGlobalConfig } from "./schemas/GlobalConfig";
-import { findFileUpwards } from "../../util/file/findFileUpwards";
-import { ASSERT } from "../../util/ASSERT";
-import { zodToJsonSchema } from "zod-to-json-schema";
 import type { JsonSchema7Type } from "zod-to-json-schema";
+
+import { readFile, writeFile, access } from "fs/promises";
+import { dirname, join } from "path";
+
+import { injectable } from "tsyringe";
+import { zodToJsonSchema } from "zod-to-json-schema";
+
+import { ASSERT } from "../../util/ASSERT";
+import { findFileUpwards } from "../../util/file/findFileUpwards";
 import { deepMerge } from "../../util/core/deepMerge";
+
+import { GlobalConfig, GlobalConfigSchema, PartialGlobalConfig } from "./schemas/GlobalConfig";
 
 @injectable()
 class ConfigManagerService {
@@ -19,6 +23,7 @@ class ConfigManagerService {
         } else {
             // 从当前目录开始逐层向上层查找synthos_config.json文件
             const absolutePath = findFileUpwards("synthos_config.json");
+
             this.configPath = absolutePath;
         }
     }
@@ -39,7 +44,9 @@ class ConfigManagerService {
      */
     public async getOverridePath(): Promise<string | null> {
         const configPath = await this.getConfigPath();
+
         if (!configPath) return null;
+
         return join(dirname(configPath), "synthos_config_override.json");
     }
 
@@ -48,6 +55,7 @@ class ConfigManagerService {
      */
     public async getCurrentConfig(): Promise<GlobalConfig> {
         const configPath = await this.configPath;
+
         ASSERT(configPath, "未找到配置文件");
 
         // 1. 读取主配置
@@ -57,9 +65,11 @@ class ConfigManagerService {
         // 2. 读取 override 配置（如果存在）
         const overridePath = join(dirname(configPath), "synthos_config_override.json");
         let overrideConfig = {};
+
         try {
             await access(overridePath);
             const overrideContent = await readFile(overridePath, "utf8");
+
             overrideConfig = JSON.parse(overrideContent);
         } catch {
             // override 不存在或读取失败，忽略
@@ -70,8 +80,10 @@ class ConfigManagerService {
 
         // 4. 用 Zod 全量 Schema 验证合并后的配置文件是否完整且类型正确
         const parsed = GlobalConfigSchema.safeParse(mergedConfig);
+
         if (!parsed.success) {
             const errors = parsed.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
+
             throw new Error(`配置文件schema完整性校验失败:\n${errors}`);
         }
 
@@ -83,10 +95,12 @@ class ConfigManagerService {
      */
     public async getBaseConfig(): Promise<GlobalConfig | null> {
         const configPath = await this.getConfigPath();
+
         if (!configPath) return null;
 
         try {
             const configContent = await readFile(configPath, "utf8");
+
             return JSON.parse(configContent) as GlobalConfig;
         } catch {
             return null;
@@ -98,10 +112,12 @@ class ConfigManagerService {
      */
     public async getOverrideConfig(): Promise<PartialGlobalConfig | null> {
         const overridePath = await this.getOverridePath();
+
         if (!overridePath) return null;
 
         try {
             const overrideContent = await readFile(overridePath, "utf8");
+
             return JSON.parse(overrideContent) as PartialGlobalConfig;
         } catch {
             return null;
@@ -114,11 +130,13 @@ class ConfigManagerService {
      */
     public async saveOverrideConfig(config: PartialGlobalConfig): Promise<void> {
         const overridePath = await this.getOverridePath();
+
         ASSERT(overridePath, "无法确定 override 配置文件路径");
 
         // 验证配置格式
         const partialSchema = GlobalConfigSchema.deepPartial();
         const validationResult = partialSchema.safeParse(config);
+
         if (!validationResult.success) {
             throw new Error(`配置验证失败: ${validationResult.error.message}`);
         }
@@ -132,12 +150,15 @@ class ConfigManagerService {
      */
     public async saveBaseConfig(config: GlobalConfig): Promise<void> {
         const configPath = await this.getConfigPath();
+
         ASSERT(configPath, "无法确定基础配置文件路径");
 
         // 验证配置格式（全量验证）
         const validationResult = GlobalConfigSchema.safeParse(config);
+
         if (!validationResult.success) {
             const errors = validationResult.error.errors.map(e => `${e.path.join(".")}: ${e.message}`).join("\n");
+
             throw new Error(`配置验证失败:\n${errors}`);
         }
 
@@ -162,9 +183,11 @@ class ConfigManagerService {
      */
     public validateConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
         const result = GlobalConfigSchema.safeParse(config);
+
         if (result.success) {
             return { success: true };
         }
+
         return {
             success: false,
             errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`)
@@ -179,9 +202,11 @@ class ConfigManagerService {
     public validatePartialConfig(config: unknown): { success: true } | { success: false; errors: string[] } {
         const partialSchema = GlobalConfigSchema.deepPartial();
         const result = partialSchema.safeParse(config);
+
         if (result.success) {
             return { success: true };
         }
+
         return {
             success: false,
             errors: result.error.errors.map(e => `${e.path.join(".")}: ${e.message}`)

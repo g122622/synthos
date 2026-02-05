@@ -2,19 +2,20 @@
  * RAG 聊天历史服务
  * 处理 RAG 问答历史记录的业务逻辑
  */
-import { injectable, inject } from "tsyringe";
-import getRandomHash from "@root/common/util/math/getRandomHash";
-import { TOKENS } from "../di/tokens";
-import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
-import Logger from "@root/common/util/Logger";
 import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 import type {
     RagChatSession,
-    SessionListItem,
     CreateSessionServiceInput,
     SessionDetail,
     SessionListResponse
 } from "../types/rag-session";
+
+import { injectable, inject } from "tsyringe";
+import getRandomHash from "@root/common/util/math/getRandomHash";
+import Logger from "@root/common/util/Logger";
+
+import { TOKENS } from "../di/tokens";
+import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
 
 @injectable()
 export class RagChatHistoryService {
@@ -54,9 +55,11 @@ export class RagChatHistoryService {
      */
     async getSessionById(sessionId: string): Promise<SessionDetail | null> {
         const session = await this.ragChatHistoryManager.getSessionById(sessionId);
+
         if (!session) {
             return null;
         }
+
         return this.transformSession(session);
     }
 
@@ -109,6 +112,7 @@ export class RagChatHistoryService {
      */
     private transformSession(session: RagChatSession): SessionDetail {
         let references: ReferenceItem[] = [];
+
         try {
             references = JSON.parse(session.refs) as ReferenceItem[];
         } catch (e) {

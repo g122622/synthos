@@ -2,8 +2,9 @@
  * 聊天消息服务
  */
 import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class ChatMessageService {
@@ -25,14 +26,17 @@ export class ChatMessageService {
      */
     async getSessionIdsByGroupIdsAndTimeRange(groupIds: string[], timeStart: number, timeEnd: number) {
         const results = [];
+
         for (const groupId of groupIds) {
             const sessionIds = await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
                 groupId,
                 timeStart,
                 timeEnd
             );
+
             results.push({ groupId, sessionIds });
         }
+
         return results;
     }
 
@@ -41,14 +45,17 @@ export class ChatMessageService {
      */
     async getSessionTimeDurations(sessionIds: string[]) {
         const results = [];
+
         for (const sessionId of sessionIds) {
             const result = await this.imDbAccessService.getSessionTimeDuration(sessionId);
+
             results.push({
                 sessionId,
                 timeStart: result?.timeStart,
                 timeEnd: result?.timeEnd
             });
         }
+
         return results;
     }
 
@@ -87,6 +94,7 @@ export class ChatMessageService {
         // 生成时间戳数组（24个整点）
         const currentTimestamps: number[] = [];
         const previousTimestamps: number[] = [];
+
         for (let i = 0; i < 24; i++) {
             currentTimestamps.push(currentPeriodStart + i * 60 * 60 * 1000);
             previousTimestamps.push(previousPeriodStart + i * 60 * 60 * 1000);
@@ -116,6 +124,7 @@ export class ChatMessageService {
         // 填充当前24小时数据
         for (const stat of currentRawStats) {
             const hourIndex = Math.floor((stat.hourTimestamp - currentPeriodStart) / (60 * 60 * 1000));
+
             if (hourIndex >= 0 && hourIndex < 24 && data[stat.groupId]) {
                 data[stat.groupId].current[hourIndex] = stat.count;
             }
@@ -124,6 +133,7 @@ export class ChatMessageService {
         // 填充前一天24小时数据
         for (const stat of previousRawStats) {
             const hourIndex = Math.floor((stat.hourTimestamp - previousPeriodStart) / (60 * 60 * 1000));
+
             if (hourIndex >= 0 && hourIndex < 24 && data[stat.groupId]) {
                 data[stat.groupId].previous[hourIndex] = stat.count;
             }
@@ -132,6 +142,7 @@ export class ChatMessageService {
         // 计算总消息数
         let currentTotal = 0;
         let previousTotal = 0;
+
         for (const groupId of groupIds) {
             currentTotal += data[groupId].current.reduce((sum, count) => sum + count, 0);
             previousTotal += data[groupId].previous.reduce((sum, count) => sum + count, 0);

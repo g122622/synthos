@@ -2,8 +2,9 @@
  * 工具调用解析器
  * 用于解析 LLM 文本输出中的工具调用（当模型不支持原生 Function Calling 时）
  */
-import { ToolCall } from "../contracts/tools";
 import Logger from "@root/common/util/Logger";
+
+import { ToolCall } from "../contracts/tools";
 
 export class ToolCallParser {
     private static LOGGER = Logger.withTag("ToolCallParser");
@@ -30,6 +31,7 @@ export class ToolCallParser {
         while ((match = codeBlockRegex.exec(text)) !== null) {
             const codeContent = match[1].trim();
             const parsed = this.parseToolCallString(codeContent);
+
             if (parsed) {
                 toolCalls.push(parsed);
             }
@@ -38,6 +40,7 @@ export class ToolCallParser {
         // 如果代码块中没找到，尝试直接匹配工具调用格式
         if (toolCalls.length === 0) {
             const directMatch = this.parseToolCallString(text);
+
             if (directMatch) {
                 toolCalls.push(directMatch);
             }
@@ -75,6 +78,7 @@ export class ToolCallParser {
             };
         } catch (error) {
             this.LOGGER.warning(`解析工具调用失败: ${error}`);
+
             return null;
         }
     }
@@ -102,6 +106,7 @@ export class ToolCallParser {
             const boolOrNull = match[5]; // true/false/null
 
             let value: unknown;
+
             if (stringValue1 !== undefined) {
                 value = stringValue1;
             } else if (stringValue2 !== undefined) {

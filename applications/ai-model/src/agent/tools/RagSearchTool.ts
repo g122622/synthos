@@ -2,14 +2,15 @@
  * RAG 搜索工具
  * 基于语义相似度搜索聊天记录中的相关话题
  */
-import { ToolDefinition, ToolExecutor } from "../contracts/tools";
 import { injectable, inject } from "tsyringe";
-import { VectorDBManagerService } from "../../services/embedding/VectorDBManagerService";
-import { EmbeddingService } from "../../services/embedding/EmbeddingService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
-import { AI_MODEL_TOKENS } from "../../di/tokens";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import Logger from "@root/common/util/Logger";
+
+import { ToolDefinition, ToolExecutor } from "../contracts/tools";
+import { VectorDBManagerService } from "../../services/embedding/VectorDBManagerService";
+import { EmbeddingService } from "../../services/embedding/EmbeddingService";
+import { AI_MODEL_TOKENS } from "../../di/tokens";
 import { EmbeddingPromptStore } from "../../context/prompts/EmbeddingPromptStore";
 
 /**
@@ -85,8 +86,10 @@ export class RagSearchTool {
 
                 // 3. 获取完整的话题信息
                 const topics = [];
+
                 for (const result of results) {
                     const digest = await this.agcDB.getAIDigestResultByTopicId(result.topicId);
+
                     if (digest) {
                         topics.push({
                             topicId: result.topicId,

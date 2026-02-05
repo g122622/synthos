@@ -1,8 +1,9 @@
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+import Logger from "@root/common/util/Logger";
+
 import { CtxTemplateNode } from "../../template/CtxTemplate";
 import { CtxMiddleware } from "../container/container";
 import { ContentUtils } from "../../template/ContentUtils";
-import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
-import Logger from "@root/common/util/Logger";
 
 // 第一个key是关键词，第二个是相关解释
 export type KnowledgeBase = Map<string[], string[]>;
@@ -33,6 +34,7 @@ export const addBackgroundKnowledgeMiddleware: CtxMiddleware = async rootNode =>
 
     // 只取前 N 条，防止内容过多
     const maxEntries = config.ai.context.backgroundKnowledge.maxKnowledgeEntries;
+
     if (results.length > maxEntries) {
         Logger.warning(`背景知识匹配到的条目过多，已截断为前 ${maxEntries} 条`);
         results.splice(maxEntries);
@@ -46,5 +48,6 @@ export const addBackgroundKnowledgeMiddleware: CtxMiddleware = async rootNode =>
                 .setContentText(ContentUtils.unorderedList(results))
         );
     }
+
     return rootNode;
 };

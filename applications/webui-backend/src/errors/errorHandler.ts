@@ -3,8 +3,9 @@
  */
 import { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
-import { AppError, ValidationError } from "./AppError";
 import Logger from "@root/common/util/Logger";
+
+import { AppError } from "./AppError";
 
 const LOGGER = Logger.withTag("WebUI-Backend");
 
@@ -13,6 +14,7 @@ const LOGGER = Logger.withTag("WebUI-Backend");
  */
 function formatZodError(error: ZodError): string {
     const issues = error.issues;
+
     if (issues.length === 0) {
         return "参数验证失败";
     }
@@ -25,6 +27,7 @@ function formatZodError(error: ZodError): string {
     if (path) {
         return `参数 ${path}: ${message}`;
     }
+
     return message;
 }
 
@@ -35,10 +38,12 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     // Zod 验证错误
     if (err instanceof ZodError) {
         const message = formatZodError(err);
+
         res.status(400).json({
             success: false,
             message
         });
+
         return;
     }
 
@@ -51,6 +56,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
             success: false,
             message: err.message
         });
+
         return;
     }
 

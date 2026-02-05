@@ -160,6 +160,7 @@ describe("mustInitBeforeUse 装饰器", () => {
 
         it("异步方法应正常工作", async () => {
             const result = await service.asyncMethod();
+
             expect(result).toBe("async result");
         });
 

@@ -1,5 +1,6 @@
 import "reflect-metadata";
 import { injectable, container } from "tsyringe";
+
 import Logger from "../../util/Logger";
 import {
     Report,
@@ -10,9 +11,10 @@ import {
 } from "../../contracts/report/index";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
+import { COMMON_TOKENS } from "../../di/tokens";
+
 import { CommonDBService } from "./infra/CommonDBService";
 import { createReportTableSQL } from "./constants/InitialSQL";
-import { COMMON_TOKENS } from "../../di/tokens";
 
 /**
  * 日报数据库访问服务
@@ -38,6 +40,7 @@ export class ReportDbAccessService extends Disposable {
      */
     public async storeReport(report: Report): Promise<void> {
         const record = reportToDBRecord(report);
+
         await this.db.run(
             `INSERT INTO reports (reportId, type, timeStart, timeEnd, isEmpty, summary, summaryGeneratedAt, summaryStatus, model, statisticsJson, topicIdsJson, createdAt, updatedAt) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -77,6 +80,7 @@ export class ReportDbAccessService extends Disposable {
      */
     public async getReportById(reportId: string): Promise<Report | null> {
         const record = await this.db.get<ReportDBRecord>(`SELECT * FROM reports WHERE reportId = ?`, [reportId]);
+
         return record ? dbRecordToReport(record) : null;
     }
 
@@ -92,6 +96,7 @@ export class ReportDbAccessService extends Disposable {
             `SELECT * FROM reports WHERE type = ? AND timeStart >= ? AND timeEnd <= ? ORDER BY timeStart DESC`,
             [type, timeStart, timeEnd]
         );
+
         return records.map(dbRecordToReport);
     }
 
@@ -103,6 +108,7 @@ export class ReportDbAccessService extends Disposable {
             `SELECT * FROM reports WHERE type = ? ORDER BY timeEnd DESC LIMIT ?`,
             [type, limit]
         );
+
         return records.map(dbRecordToReport);
     }
 
@@ -114,6 +120,7 @@ export class ReportDbAccessService extends Disposable {
             `SELECT * FROM reports WHERE timeStart >= ? AND timeEnd <= ? ORDER BY timeStart DESC`,
             [timeStart, timeEnd]
         );
+
         return records.map(dbRecordToReport);
     }
 
@@ -122,14 +129,17 @@ export class ReportDbAccessService extends Disposable {
      */
     public async getHalfDailyReportsByDate(date: Date): Promise<Report[]> {
         const startOfDay = new Date(date);
+
         startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(date);
+
         endOfDay.setHours(23, 59, 59, 999);
 
         const records = await this.db.all<ReportDBRecord>(
             `SELECT * FROM reports WHERE type = 'half-daily' AND timeStart >= ? AND timeEnd <= ? ORDER BY timeStart ASC`,
             [startOfDay.getTime(), endOfDay.getTime()]
         );
+
         return records.map(dbRecordToReport);
     }
 
@@ -141,6 +151,7 @@ export class ReportDbAccessService extends Disposable {
             `SELECT COUNT(*) as count FROM reports WHERE type = ? AND timeStart = ? AND timeEnd = ?`,
             [type, timeStart, timeEnd]
         );
+
         return (result?.count ?? 0) > 0;
     }
 
@@ -171,6 +182,7 @@ export class ReportDbAccessService extends Disposable {
      */
     public async selectAll(): Promise<Report[]> {
         const records = await this.db.all<ReportDBRecord>(`SELECT * FROM reports ORDER BY createdAt DESC`);
+
         return records.map(dbRecordToReport);
     }
 

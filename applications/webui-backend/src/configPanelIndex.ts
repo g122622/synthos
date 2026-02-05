@@ -9,7 +9,7 @@ import express, { Express } from "express";
 import Logger from "@root/common/util/Logger";
 
 // DI 容器
-import { registerConfigPanelDependencies, registerConfigManagerService, container } from "./di/container";
+import { registerConfigPanelDependencies, registerConfigManagerService } from "./di/container";
 
 // 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
@@ -74,6 +74,7 @@ const isConfigPanelMode = process.env.CONFIG_PANEL_MODE === "true";
 if (isConfigPanelMode) {
     // 配置面板模式：启动轻量级服务
     const server = new ConfigPanelServer();
+
     server.start().catch(error => {
         LOGGER.error(`配置面板启动失败: ${error.message}`);
         process.exit(1);

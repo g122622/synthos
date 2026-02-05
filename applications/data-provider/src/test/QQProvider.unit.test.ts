@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from "vitest";
+
 import { MsgElementType } from "../providers/QQProvider/@types/mappers/MsgElementType";
 import { GroupMsgColumn as GMC } from "../providers/QQProvider/@types/mappers/GroupMsgColumn";
 import { MsgType } from "../providers/QQProvider/@types/mappers/MsgType";
@@ -44,6 +45,11 @@ const { mockConfig, mockDbMethods, mockParserMethods, mockLogger } = vi.hoisted(
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => ({
     default: {
+        debug: mockLogger.debug,
+        info: mockLogger.info,
+        success: mockLogger.success,
+        warning: mockLogger.warning,
+        error: mockLogger.error,
         withTag: () => mockLogger
     }
 }));
@@ -107,7 +113,9 @@ vi.mock("@root/common/util/lifecycle/Disposable", () => ({
 
 // 在所有 mock 之后导入被测试的模块
 import { QQProvider } from "../providers/QQProvider/QQProvider";
+
 import { registerConfigManagerService } from "@root/common/di/container";
+
 import { registerQQProvider, getQQProvider } from "../di/container";
 
 // 初始化 DI 容器
@@ -196,6 +204,7 @@ describe("QQProvider", () => {
 
         it("应正确返回时间范围内的文本消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -226,6 +235,7 @@ describe("QQProvider", () => {
 
         it("应正确处理表情消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -245,6 +255,7 @@ describe("QQProvider", () => {
 
         it("应正确处理图片消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -263,6 +274,7 @@ describe("QQProvider", () => {
 
         it("应正确处理语音消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -281,6 +293,7 @@ describe("QQProvider", () => {
 
         it("应正确处理文件消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -300,6 +313,7 @@ describe("QQProvider", () => {
 
         it("应正确处理混合消息（文本+表情）", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -324,6 +338,7 @@ describe("QQProvider", () => {
 
         it("应过滤空内容的消息", async () => {
             const mockRow = createMockDbRow();
+
             mockDbMethods.all.mockResolvedValue([mockRow]);
             mockParserMethods.parseMessageSegment.mockReturnValue({
                 messages: [
@@ -347,6 +362,7 @@ describe("QQProvider", () => {
             await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000, mockGroupId);
 
             const sqlCall = mockDbMethods.all.mock.calls[0][0] as string;
+
             expect(sqlCall).toContain(`"${GMC.groupUin}" = ${mockGroupId}`);
         });
 
@@ -367,6 +383,7 @@ describe("QQProvider", () => {
             await qqProvider.getMsgByTimeRange(timeStartMs, timeEndMs);
 
             const sqlCall = mockDbMethods.all.mock.calls[0][0] as string;
+
             // 验证开始时间向下取整，结束时间向上取整
             expect(sqlCall).toContain("BETWEEN 1700000000 AND 1700003601");
         });
@@ -440,7 +457,7 @@ describe("QQProvider", () => {
                 [GMC.groupUin]: mockGroupId,
                 [GMC.senderUin]: "987654321",
                 [GMC.replyMsgSeq]: null,
-                [GMC.msgContent]: Buffer.from("mock"),
+                [GMC.msgContent]: Buffer.from("mock_content"),
                 [GMC.msgType]: MsgType.TEXT, // 非引用消息
                 [GMC.sendMemberName]: "测试用户",
                 [GMC.sendNickName]: "测试昵称"
@@ -448,7 +465,8 @@ describe("QQProvider", () => {
 
             mockDbMethods.all.mockResolvedValueOnce([mockRow]);
 
-            mockParserMethods.parseMessageSegment.mockReturnValue({
+            // 为 msgContent 的解析返回正常消息内容
+            mockParserMethods.parseMessageSegment.mockReturnValueOnce({
                 messages: [
                     {
                         messageId: "elem_1",
@@ -462,6 +480,7 @@ describe("QQProvider", () => {
 
             expect(result).toHaveLength(1);
             expect(result[0].quotedMsgContent).toBeUndefined();
+            expect(result[0].messageContent).toBe("普通消息");
         });
     });
 
@@ -480,10 +499,12 @@ describe("QQProvider", () => {
                     }
                 }
             };
+
             (ConfigManagerService.default.getCurrentConfig as Mock).mockResolvedValue(configWithPatch);
 
             // 从 DI 容器获取新实例使用新配置
             const providerWithPatch = getQQProvider();
+
             await providerWithPatch.init();
 
             mockDbMethods.all.mockResolvedValue([]);
@@ -491,6 +512,7 @@ describe("QQProvider", () => {
             await providerWithPatch.getMsgByTimeRange(1700000000000, 1700001000000);
 
             const sqlCall = mockDbMethods.all.mock.calls[0][0] as string;
+
             expect(sqlCall).toContain("(40001 IS NOT NULL)");
 
             await providerWithPatch.dispose();

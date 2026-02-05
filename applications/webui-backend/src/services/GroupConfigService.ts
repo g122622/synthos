@@ -1,9 +1,11 @@
 /**
  * 群组配置服务
  */
-import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import type ConfigManagerServiceType from "@root/common/services/config/ConfigManagerService";
+
+import { injectable, inject } from "tsyringe";
+
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class GroupConfigService {
@@ -17,6 +19,7 @@ export class GroupConfigService {
      */
     async getAllGroupDetails() {
         const config = await this.configManagerService.getCurrentConfig();
+
         return config.groupConfigs;
     }
 }

@@ -12,12 +12,14 @@
  * 如果配置不可用，测试会自动跳过
  */
 import "reflect-metadata";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { QQProvider } from "../providers/QQProvider/QQProvider";
-import { registerConfigManagerService } from "@root/common/di/container";
-import { registerQQProvider, getQQProvider } from "../di/container";
-import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { existsSync } from "fs";
+
+import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { registerConfigManagerService } from "@root/common/di/container";
+import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+
+import { QQProvider } from "../providers/QQProvider/QQProvider";
+import { registerQQProvider, getQQProvider } from "../di/container";
 
 // 初始化 DI 容器
 registerConfigManagerService();
@@ -58,6 +60,7 @@ async function canRunIntegrationTest(): Promise<{
 
         // 检查数据库文件是否存在
         const dbPath = `${qqConfig.dbBasePath}/nt_msg.db`;
+
         if (!existsSync(dbPath)) {
             return {
                 canRun: false,
@@ -80,9 +83,11 @@ describe("QQProvider 集成测试", () => {
 
     beforeAll(async () => {
         const checkResult = await canRunIntegrationTest();
+
         if (!checkResult.canRun) {
             console.log(`\n⏭️  跳过 QQProvider 集成测试: ${checkResult.reason}\n`);
             skipTests = true;
+
             return;
         }
 
@@ -100,6 +105,7 @@ describe("QQProvider 集成测试", () => {
         it("应能成功查询数据库并返回消息数组", async ctx => {
             if (skipTests || !qqProvider) {
                 ctx.skip();
+
                 return;
             }
 
@@ -117,6 +123,7 @@ describe("QQProvider 集成测试", () => {
             // 打印第一条
             if (messages.length > 0) {
                 const firstMsg = messages[0];
+
                 console.log("第一条消息示例:", {
                     msgId: firstMsg.msgId,
                     groupId: firstMsg.groupId,
@@ -134,6 +141,7 @@ describe("QQProvider 集成测试", () => {
         it("应能查询指定时间范围内的消息", async ctx => {
             if (skipTests || !qqProvider) {
                 ctx.skip();
+
                 return;
             }
 
@@ -186,6 +194,7 @@ describe("QQProvider 集成测试", () => {
         it("应能按群号过滤消息", async ctx => {
             if (skipTests || !qqProvider) {
                 ctx.skip();
+
                 return;
             }
 
@@ -197,6 +206,7 @@ describe("QQProvider 集成测试", () => {
 
             if (allMessages.length === 0) {
                 console.log("没有消息可供测试群号过滤");
+
                 return;
             }
 
@@ -218,6 +228,7 @@ describe("QQProvider 集成测试", () => {
         it("空时间范围应返回空数组", async ctx => {
             if (skipTests || !qqProvider) {
                 ctx.skip();
+
                 return;
             }
 

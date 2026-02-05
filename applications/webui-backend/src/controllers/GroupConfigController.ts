@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { GroupConfigService } from "../services/GroupConfigService";
 
@@ -15,6 +16,7 @@ export class GroupConfigController {
      */
     async getAllGroupDetails(_req: Request, res: Response): Promise<void> {
         const groupConfigs = await this.groupConfigService.getAllGroupDetails();
+
         res.json({ success: true, data: groupConfigs });
     }
 }

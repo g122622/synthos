@@ -4,6 +4,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { ConfigService } from "../services/ConfigService";
 
@@ -17,6 +18,7 @@ export class ConfigController {
      */
     getConfigSchema(_req: Request, res: Response): void {
         const schema = this.configService.getConfigSchema();
+
         res.json({ success: true, data: schema });
     }
 
@@ -26,6 +28,7 @@ export class ConfigController {
      */
     async getCurrentConfig(_req: Request, res: Response): Promise<void> {
         const config = await this.configService.getCurrentConfig();
+
         res.json({ success: true, data: config });
     }
 
@@ -35,8 +38,10 @@ export class ConfigController {
      */
     async getBaseConfig(_req: Request, res: Response): Promise<void> {
         const config = await this.configService.getBaseConfig();
+
         if (config === null) {
             res.status(404).json({ success: false, error: "基础配置文件不存在" });
+
             return;
         }
         res.json({ success: true, data: config });
@@ -48,6 +53,7 @@ export class ConfigController {
      */
     async saveBaseConfig(req: Request, res: Response): Promise<void> {
         const config = req.body;
+
         try {
             await this.configService.saveBaseConfig(config);
             res.json({ success: true, message: "基础配置保存成功" });
@@ -62,6 +68,7 @@ export class ConfigController {
      */
     async getOverrideConfig(_req: Request, res: Response): Promise<void> {
         const config = await this.configService.getOverrideConfig();
+
         // override 配置可能不存在，返回空对象
         res.json({ success: true, data: config ?? {} });
     }
@@ -75,6 +82,7 @@ export class ConfigController {
 
         // 验证配置格式
         const validationResult = this.configService.validatePartialConfig(config);
+
         if (!validationResult.success) {
             // TODO 复用src/errors下的公共错误
             res.status(400).json({
@@ -82,6 +90,7 @@ export class ConfigController {
                 error: "配置验证失败",
                 details: validationResult.errors
             });
+
             return;
         }
 

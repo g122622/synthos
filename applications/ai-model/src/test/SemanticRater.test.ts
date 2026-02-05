@@ -1,5 +1,6 @@
 // tests/SemanticRater.test.ts
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
 import { SemanticRater } from "../misc/SemanticRater";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 
@@ -20,12 +21,14 @@ vi.mock("@root/common/util/Logger", () => {
 // 简单的模拟向量生成：基于文本内容生成一个确定性的向量
 const generateMockVector = (text: string): Float32Array => {
     const vector = new Float32Array(1024);
+
     // 基于文本生成确定性向量，相似文本会有相似的向量
     for (let i = 0; i < text.length && i < 1024; i++) {
         vector[i] = text.charCodeAt(i) / 65536;
     }
     // L2 归一化
     let norm = 0;
+
     for (let i = 0; i < vector.length; i++) {
         norm += vector[i] * vector[i];
     }
@@ -35,6 +38,7 @@ const generateMockVector = (text: string): Float32Array => {
             vector[i] /= norm;
         }
     }
+
     return vector;
 };
 
@@ -58,6 +62,7 @@ vi.mock("../services/embedding/EmbeddingService", () => {
             async embedBatch(texts: string[]): Promise<Float32Array[]> {
                 embedBatchCallCount++;
                 embedBatchTextCount += texts.length;
+
                 return texts.map(text => generateMockVector(text));
             }
         }
@@ -95,6 +100,7 @@ describe("SemanticRater", () => {
         const topic = "北邮就业报告";
 
         const score = await rater.scoreTopic(interests, topic);
+
         console.log("Score:", score);
 
         expect(score).toBeGreaterThanOrEqual(-1);
@@ -157,6 +163,7 @@ describe("SemanticRater", () => {
         const topics = ["AI发展", "游戏测评", "技术博客"];
 
         const scores = await rater.scoreTopics(interests, topics);
+
         console.log("Scores:", scores);
 
         expect(scores.length).toBe(3);
@@ -174,6 +181,7 @@ describe("SemanticRater", () => {
         const topic = "北邮就业报告";
 
         const score = await rater.scoreTopic(interests, topic);
+
         console.log("Score (only positive):", score);
 
         expect(score).toBeGreaterThanOrEqual(0);
@@ -188,6 +196,7 @@ describe("SemanticRater", () => {
         const topic = "游戏测评";
 
         const score = await rater.scoreTopic(interests, topic);
+
         console.log("Score (only negative):", score);
 
         expect(score).toBeGreaterThanOrEqual(-1);

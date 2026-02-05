@@ -35,6 +35,7 @@ class InterestEmailService {
         if (!this._logger) {
             this._logger = Logger.withTag("InterestEmailService");
         }
+
         return this._logger;
     }
 
@@ -49,11 +50,13 @@ class InterestEmailService {
         // 检查邮件功能是否启用
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用，跳过发送感兴趣话题提醒邮件");
+
             return false;
         }
 
         if (interestedTopics.length === 0) {
             this.LOGGER.info("没有感兴趣的话题，无需发送邮件");
+
             return false;
         }
 

@@ -3,15 +3,6 @@
  * 使用 LangGraph Graph API 实现 tool-calling 循环，并接入 checkpointer 实现持久化/时间旅行/HITL。
  */
 import "reflect-metadata";
-import util from "util";
-import { injectable, inject } from "tsyringe";
-import { Annotation, StateGraph, messagesStateReducer, START, END } from "@langchain/langgraph";
-import { ToolNode } from "@langchain/langgraph/prebuilt";
-import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
-import { DynamicStructuredTool } from "@langchain/core/tools";
-import Logger from "@root/common/util/Logger";
-import { z } from "zod";
-import { AI_MODEL_TOKENS } from "../di/tokens";
 import type {
     AgentConfig,
     AgentResult,
@@ -20,10 +11,23 @@ import type {
     ToolContext,
     TokenUsage
 } from "../agent/contracts/index";
+
+import util from "util";
+
+import { injectable, inject } from "tsyringe";
+import { Annotation, StateGraph, messagesStateReducer, START, END } from "@langchain/langgraph";
+import { ToolNode } from "@langchain/langgraph/prebuilt";
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
+import { DynamicStructuredTool } from "@langchain/core/tools";
+import Logger from "@root/common/util/Logger";
+import { z } from "zod";
+
+import { AI_MODEL_TOKENS } from "../di/tokens";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
+import { ToolCallParser } from "../agent/utils/ToolCallParser";
+
 import { AgentToolCatalog } from "./AgentToolCatalog";
 import { LangGraphCheckpointerService } from "./LangGraphCheckpointerService";
-import { ToolCallParser } from "../agent/utils/ToolCallParser";
 
 interface AgentGraphState {
     messages: BaseMessage[];
@@ -66,6 +70,7 @@ export class LangGraphAgentExecutor {
 
     private _estimateMessageChars(messages: BaseMessage[]) {
         let chars = 0;
+
         for (const m of messages) {
             const anyMsg = m as any;
             const content = anyMsg?.content;
@@ -100,6 +105,7 @@ export class LangGraphAgentExecutor {
                 }
             }
         }
+
         return chars;
     }
 
@@ -146,6 +152,7 @@ export class LangGraphAgentExecutor {
                 const promptTokens = Number(u.input_tokens || 0);
                 const completionTokens = Number(u.output_tokens || 0);
                 const totalTokens = Number(u.total_tokens || promptTokens + completionTokens);
+
                 return { promptTokens, completionTokens, totalTokens };
             }
 
@@ -174,6 +181,7 @@ export class LangGraphAgentExecutor {
 
         for (const c of usageCandidates) {
             const normalized = normalize(c.value);
+
             if (normalized) {
                 usage = normalized;
                 pickedSource = c.source;
@@ -197,6 +205,7 @@ export class LangGraphAgentExecutor {
             this.LOGGER.debug(
                 `检测到可疑 token usage(可能为占位值)，忽略。source=${pickedSource}, usage=${util.inspect(usage)}`
             );
+
             return undefined;
         }
 
@@ -231,6 +240,7 @@ export class LangGraphAgentExecutor {
         if (arr.includes(item)) {
             return arr;
         }
+
         return [...arr, item];
     }
 
@@ -291,6 +301,7 @@ export class LangGraphAgentExecutor {
                     } else {
                         // 仅在缺失 id 时用 name+args 去重，避免流式增量导致重复执行
                         let callKey = "";
+
                         try {
                             callKey = `${tc.name}::${JSON.stringify(toolArgs)}`;
                         } catch {
@@ -305,6 +316,7 @@ export class LangGraphAgentExecutor {
 
                     // 注意：stream 过程中 tool_calls 可能重复上报，这里做一次去重
                     let key = "";
+
                     try {
                         key = `${tc.name}::${JSON.stringify(toolArgs)}::${toolCallId}`;
                     } catch {
@@ -337,8 +349,10 @@ export class LangGraphAgentExecutor {
         // 兼容：部分模型/渠道不支持原生 tool_calls，沿用旧实现的“文本工具调用”兜底
         if (toolCalls.length === 0 && fullContent) {
             const parsed = ToolCallParser.parseToolCalls(fullContent);
+
             if (parsed.length > 0) {
                 const filtered = parsed.filter(tc => args.enabledTools.includes(tc.name));
+
                 if (filtered.length > 0) {
                     this.LOGGER.info(`从文本中解析到 ${filtered.length} 个工具调用(已按 enabledTools 过滤)`);
 
@@ -407,6 +421,7 @@ export class LangGraphAgentExecutor {
             const tools = this.agentToolCatalog.getEnabledToolDefinitions(state.enabledTools);
 
             const promptMessages: BaseMessage[] = [];
+
             if (state.systemPrompt) {
                 promptMessages.push(new SystemMessage(state.systemPrompt));
             }
@@ -470,6 +485,7 @@ export class LangGraphAgentExecutor {
                         return await this.agentToolCatalog.executeTool(toolName, input, context, enabledTools);
                     } catch (e) {
                         const errorMessage = e instanceof Error ? e.message : String(e);
+
                         return { error: errorMessage };
                     }
                 }
@@ -480,16 +496,19 @@ export class LangGraphAgentExecutor {
 
         const toolsNode = async (state: AgentGraphState): Promise<Partial<AgentGraphState>> => {
             const lastMessage = state.messages.at(-1);
+
             if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
                 return {};
             }
 
             const toolCalls = lastMessage.tool_calls ?? [];
+
             if (toolCalls.length === 0) {
                 return {};
             }
 
             const toolCallIdToName = new Map<string, string>();
+
             for (const tc of toolCalls) {
                 if (tc?.id && tc?.name) {
                     toolCallIdToName.set(String(tc.id), String(tc.name));
@@ -498,6 +517,7 @@ export class LangGraphAgentExecutor {
 
             // 审阅展示：tool_call 事件已由 LLM streaming 发出。这里补齐 toolsUsed 统计。
             let toolsUsed = state.runToolsUsed;
+
             for (const tc of toolCalls) {
                 toolsUsed = this._addUnique(toolsUsed, tc.name);
             }
@@ -510,6 +530,7 @@ export class LangGraphAgentExecutor {
             for (const tm of toolMessages) {
                 const anyMsg = tm as any;
                 const toolCallId = String(anyMsg?.tool_call_id || "");
+
                 if (!toolCallId) {
                     continue;
                 }
@@ -517,6 +538,7 @@ export class LangGraphAgentExecutor {
                 const toolName = toolCallIdToName.get(toolCallId) || String(anyMsg?.name || "");
 
                 let result: unknown = anyMsg?.content;
+
                 if (typeof result === "string") {
                     try {
                         result = JSON.parse(result);
@@ -549,6 +571,7 @@ export class LangGraphAgentExecutor {
 
         const shouldContinue = (state: AgentGraphState): "toolNode" | "maxRounds" | typeof END => {
             const lastMessage = state.messages.at(-1);
+
             if (!lastMessage || !AIMessage.isInstance(lastMessage)) {
                 return END;
             }
@@ -606,6 +629,7 @@ export class LangGraphAgentExecutor {
             };
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
+
             this.LOGGER.error(`Agent 执行出错: ${msg}`);
             onChunk({ type: "error", ts: Date.now(), conversationId, error: msg });
             throw error;
@@ -672,11 +696,13 @@ export class LangGraphAgentExecutor {
         for await (const snapshot of graph.getStateHistory(baseConfig, options)) {
             const cfg: any = snapshot.config as any;
             const checkpointId = String(cfg?.configurable?.checkpoint_id || "");
+
             if (!checkpointId) {
                 continue;
             }
 
             const createdAtMs = snapshot.createdAt ? Date.parse(snapshot.createdAt) : Date.now();
+
             items.push({
                 checkpointId,
                 createdAt: Number.isNaN(createdAtMs) ? Date.now() : createdAtMs,

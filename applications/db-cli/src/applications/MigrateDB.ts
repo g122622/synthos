@@ -5,8 +5,9 @@ import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite
 import sqlite3 from "sqlite3";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+
+import { IApplication } from "@/contracts/IApplication";
 
 @mustInitBeforeUse
 export class MigrateDB extends Disposable implements IApplication {
@@ -30,6 +31,7 @@ export class MigrateDB extends Disposable implements IApplication {
 
     public async run() {
         const newDB = new PromisifiedSQLite(sqlite3);
+
         await newDB.open("migrated_database.db");
         this.LOGGER.success("已创建新的数据库文件 migrated_database.db");
 
@@ -75,6 +77,7 @@ export class MigrateDB extends Disposable implements IApplication {
                     scoreV4 REAL,
                     scoreV5 REAL
                 );`;
+
         await newDB.run(createIMDBTableSQL);
         await newDB.run(createAGCTableSQL);
         await newDB.run(createInterestScoreTableSQL);
@@ -90,6 +93,7 @@ export class MigrateDB extends Disposable implements IApplication {
         // 迁移 IMDB 数据库
         this.LOGGER.info("开始迁移 IMDB 数据库...");
         const allImdbData = await this.imdbDBManager.selectAll();
+
         this.LOGGER.info(`已获取 IMDB 数据库所有数据，共 ${allImdbData.length} 条记录`);
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {
@@ -118,6 +122,7 @@ export class MigrateDB extends Disposable implements IApplication {
         // 迁移 AGC 数据库
         this.LOGGER.info("开始迁移 AGC 数据库...");
         const allAgcData = await this.agcDbAccessService.selectAll();
+
         this.LOGGER.info(`已获取 AGC 数据库所有数据，共 ${allAgcData.length} 条记录`);
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {
@@ -142,6 +147,7 @@ export class MigrateDB extends Disposable implements IApplication {
         // 迁移 Interest Score 数据库
         this.LOGGER.info("开始迁移 Interest Score 数据库...");
         const allInterestScoreData = await this.interestScoreDbAccessService.selectAll();
+
         this.LOGGER.info(`已获取 Interest Score 数据库所有数据，共 ${allInterestScoreData.length} 条记录`);
         await newDB.run(`BEGIN IMMEDIATE TRANSACTION`);
         try {

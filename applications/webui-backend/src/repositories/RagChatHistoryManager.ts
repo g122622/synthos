@@ -2,12 +2,14 @@
  * RAG 聊天历史记录数据库管理器
  * 使用 SQLite 存储用户的 RAG 问答历史会话
  */
+import type { RagChatSession, CreateSessionInput, SessionListItem } from "../types/rag-session";
+
 import * as path from "path";
+
 import sqlite3 from "sqlite3";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import Logger from "@root/common/util/Logger";
-import type { RagChatSession, CreateSessionInput, SessionListItem } from "../types/rag-session";
 
 // ====================  数据库管理器 ====================
 
@@ -30,6 +32,7 @@ export class RagChatHistoryManager extends Disposable {
         if (!RagChatHistoryManager.instance) {
             RagChatHistoryManager.instance = new RagChatHistoryManager(dbBasePath);
         }
+
         return RagChatHistoryManager.instance;
     }
 
@@ -68,6 +71,7 @@ export class RagChatHistoryManager extends Disposable {
             const columns = (await this.db.all(`PRAGMA table_info(rag_sessions)`)) as Array<{ name?: string }>;
 
             const hasEnableQueryRewriter = columns.some(col => col.name === "enableQueryRewriter");
+
             if (!hasEnableQueryRewriter) {
                 await this.db.run(
                     `ALTER TABLE rag_sessions ADD COLUMN enableQueryRewriter INTEGER NOT NULL DEFAULT 1`
@@ -76,18 +80,21 @@ export class RagChatHistoryManager extends Disposable {
             }
 
             const hasIsFailed = columns.some(col => col.name === "isFailed");
+
             if (!hasIsFailed) {
                 await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN isFailed INTEGER NOT NULL DEFAULT 0`);
                 this.LOGGER.info("已为 rag_sessions 表补齐 isFailed 字段");
             }
 
             const hasFailReason = columns.some(col => col.name === "failReason");
+
             if (!hasFailReason) {
                 await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN failReason TEXT NOT NULL DEFAULT ''`);
                 this.LOGGER.info("已为 rag_sessions 表补齐 failReason 字段");
             }
 
             const hasPinned = columns.some(col => col.name === "pinned");
+
             if (!hasPinned) {
                 await this.db.run(`ALTER TABLE rag_sessions ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0`);
                 this.LOGGER.info("已为 rag_sessions 表补齐 pinned 字段");
@@ -149,6 +156,7 @@ export class RagChatHistoryManager extends Disposable {
         );
 
         this.LOGGER.info(`创建新会话: ${session.id}`);
+
         return session;
     }
 
@@ -215,6 +223,7 @@ export class RagChatHistoryManager extends Disposable {
         await this.db!.run(`DELETE FROM rag_sessions WHERE id = ?`, [id]);
 
         this.LOGGER.info(`删除会话: ${id}`);
+
         return true;
     }
 
@@ -225,9 +234,11 @@ export class RagChatHistoryManager extends Disposable {
         this.ensureInitialized();
 
         const now = Date.now();
+
         await this.db!.run(`UPDATE rag_sessions SET title = ?, updatedAt = ? WHERE id = ?`, [title, now, id]);
 
         this.LOGGER.info(`更新会话标题: ${id}`);
+
         return true;
     }
 
@@ -248,6 +259,7 @@ export class RagChatHistoryManager extends Disposable {
         this.ensureInitialized();
 
         const now = Date.now();
+
         await this.db!.run(`UPDATE rag_sessions SET pinned = ?, updatedAt = ? WHERE id = ?`, [
             pinned ? 1 : 0,
             now,
@@ -255,6 +267,7 @@ export class RagChatHistoryManager extends Disposable {
         ]);
 
         this.LOGGER.info(`${pinned ? "置顶" : "取消置顶"}会话: ${id}`);
+
         return true;
     }
 }

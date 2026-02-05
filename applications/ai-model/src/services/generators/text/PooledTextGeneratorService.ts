@@ -1,9 +1,11 @@
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { TextGeneratorService } from "./TextGeneratorService";
 import Logger from "@root/common/util/Logger";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import { AI_MODEL_TOKENS } from "../../../di/tokens";
 import { container } from "tsyringe";
+
+import { AI_MODEL_TOKENS } from "../../../di/tokens";
+
+import { TextGeneratorService } from "./TextGeneratorService";
 
 /**
  * 池化任务定义
@@ -84,8 +86,10 @@ export class PooledTextGeneratorService extends Disposable {
     private async acquireSlot(): Promise<void> {
         if (this.runningTasks < this.maxConcurrency) {
             this.runningTasks++;
+
             return;
         }
+
         // 等待槽位释放
         return new Promise<void>(resolve => {
             this.semaphoreQueue.push(resolve);
@@ -98,6 +102,7 @@ export class PooledTextGeneratorService extends Disposable {
     private releaseSlot(): void {
         this.runningTasks--;
         const next = this.semaphoreQueue.shift();
+
         if (next) {
             this.runningTasks++; // 立即分配槽位
             next();
@@ -128,6 +133,7 @@ export class PooledTextGeneratorService extends Disposable {
         }
 
         const queued = this.taskQueue.shift();
+
         if (!queued) {
             return; // 队列为空
         }
@@ -154,6 +160,7 @@ export class PooledTextGeneratorService extends Disposable {
                 new Promise<void>(resolve => {
                     const task = async () => {
                         let result: PooledTaskResult<TContext>;
+
                         try {
                             const generatedResult =
                                 await this.TextGeneratorService!.generateTextWithModelCandidates(
@@ -259,6 +266,7 @@ export class PooledTextGeneratorService extends Disposable {
         }
 
         await Promise.all(taskPromises);
+
         return results;
     }
 }

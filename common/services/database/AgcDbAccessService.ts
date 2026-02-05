@@ -1,12 +1,14 @@
 import "reflect-metadata";
-import { injectable, inject, container } from "tsyringe";
+import { injectable, container } from "tsyringe";
+
 import Logger from "../../util/Logger";
 import { AIDigestResult } from "../../contracts/ai-model";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
+import { COMMON_TOKENS } from "../../di/tokens";
+
 import { CommonDBService } from "./infra/CommonDBService";
 import { createAGCTableSQL } from "./constants/InitialSQL";
-import { COMMON_TOKENS } from "../../di/tokens";
 
 /**
  * AI 生成内容数据库访问服务
@@ -94,6 +96,7 @@ export class AgcDbAccessService extends Disposable {
         const result = await this.db.get<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE topicId =?`, [
             topicId
         ]);
+
         return result;
     }
 
@@ -106,6 +109,7 @@ export class AgcDbAccessService extends Disposable {
         const results = await this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE sessionId =?`, [
             sessionId
         ]);
+
         return results;
     }
 
@@ -120,6 +124,7 @@ export class AgcDbAccessService extends Disposable {
         const result = await this.db.get(`SELECT EXISTS(SELECT 1 FROM ai_digest_results WHERE sessionId = ?)`, [
             sessionId
         ]);
+
         return result[Object.keys(result)[0]] === 1;
     }
 

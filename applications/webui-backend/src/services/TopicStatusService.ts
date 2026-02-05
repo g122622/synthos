@@ -2,6 +2,7 @@
  * 话题状态服务（收藏、已读）
  */
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
@@ -35,9 +36,11 @@ export class TopicStatusService {
      */
     async checkFavoriteStatus(topicIds: string[]): Promise<Record<string, boolean>> {
         const favoriteStatus: Record<string, boolean> = {};
+
         for (const topicId of topicIds) {
             favoriteStatus[topicId] = await this.favoriteStatusManager.isTopicFavorite(topicId);
         }
+
         return favoriteStatus;
     }
 
@@ -62,9 +65,11 @@ export class TopicStatusService {
      */
     async checkReadStatus(topicIds: string[]): Promise<Record<string, boolean>> {
         const readStatus: Record<string, boolean> = {};
+
         for (const topicId of topicIds) {
             readStatus[topicId] = await this.readStatusManager.isTopicRead(topicId);
         }
+
         return readStatus;
     }
 }

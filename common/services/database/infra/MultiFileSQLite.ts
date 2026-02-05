@@ -1,10 +1,12 @@
 import { readdir, mkdir } from "fs/promises";
 import { join, basename, extname } from "path";
+
+import sqlite3 from "sqlite3";
+
 import { PromisifiedSQLite, PromisifiedStatement } from "../../../util/promisify/PromisifiedSQLite";
 import Logger from "../../../util/Logger";
 import { deepUnique } from "../../../util/core/deepUnique";
 import { Disposable } from "../../../util/lifecycle/Disposable";
-import sqlite3 from "sqlite3";
 sqlite3.verbose();
 
 interface CommonDatabaseConfig {
@@ -59,11 +61,13 @@ class MultiFileSQLite extends Disposable {
             .map(file => {
                 const name = basename(file, ".db");
                 const ts = parseInt(name, 10);
+
                 return isNaN(ts) ? null : { path: join(this.config.dbBasePath, file), timestamp: ts };
             })
             .filter(Boolean) as { path: string; timestamp: number }[];
 
         dbFiles.sort((a, b) => a.timestamp - b.timestamp); // 升序排序
+
         return dbFiles;
     }
 
@@ -74,12 +78,14 @@ class MultiFileSQLite extends Disposable {
         }
 
         const db = new PromisifiedSQLite(this.sqlite3);
+
         await db.open(path);
         if (this.initialSQL) {
             await db.exec(this.initialSQL);
         }
         this.dbCache.set(path, db);
         this._registerDisposable(db);
+
         return db;
     }
 
@@ -120,21 +126,25 @@ class MultiFileSQLite extends Disposable {
 
     public async run(sql: string, params: any[] = []): Promise<void> {
         const db = await this.getActiveDB();
+
         return db.run(sql, params);
     }
 
     public async exec(sql: string): Promise<void> {
         const db = await this.getActiveDB();
+
         return db.exec(sql);
     }
 
     public async prepare(sql: string): Promise<PromisifiedStatement> {
         const db = await this.getActiveDB();
+
         return db.prepare(sql);
     }
 
     public async loadExtension(extensionPath: string): Promise<void> {
         const db = await this.getActiveDB();
+
         return db.loadExtension(extensionPath);
     }
 
@@ -142,11 +152,14 @@ class MultiFileSQLite extends Disposable {
 
     public async get<T>(sql: string, params: any[] = []): Promise<T | undefined> {
         const dbFiles = await this.getAllDBPaths();
+
         // 从最新到最旧查询（适合找最新记录）
         for (let i = dbFiles.length - 1; i >= 0; i--) {
             const db = await this.getOrCreateDB(dbFiles[i].path);
+
             try {
                 const row = await db.get(sql, params);
+
                 if (sql.includes("EXISTS")) {
                     // 如果是 EXISTS 查询，只要找到一个就返回
                     if (row[Object.keys(row)[0]] >= 1) return row[Object.keys(row)[0]];
@@ -158,16 +171,20 @@ class MultiFileSQLite extends Disposable {
                 throw err;
             }
         }
+
         return undefined;
     }
 
     public async all<T>(sql: string, params: any[] = [], shouldDeepUnique: boolean = true): Promise<T[]> {
         const dbFiles = await this.getAllDBPaths();
         let allRows: T[] = [];
+
         for (const dbInfo of dbFiles) {
             const db = await this.getOrCreateDB(dbInfo.path);
+
             try {
                 const rows = await db.all(sql, params);
+
                 allRows = allRows.concat(rows);
             } catch (err) {
                 this.LOGGER.error(`Error in all() on ${dbInfo.path}: ${err.message}`);
@@ -178,6 +195,7 @@ class MultiFileSQLite extends Disposable {
         if (shouldDeepUnique) {
             allRows = deepUnique(allRows);
         }
+
         return allRows;
     }
 
@@ -187,8 +205,10 @@ class MultiFileSQLite extends Disposable {
         callback: (err: Error | null, row: any) => void
     ): Promise<void> {
         const dbFiles = await this.getAllDBPaths();
+
         for (const dbInfo of dbFiles) {
             const db = await this.getOrCreateDB(dbInfo.path);
+
             try {
                 await db.each(sql, params, callback);
             } catch (err) {
@@ -211,8 +231,10 @@ class MultiFileSQLite extends Disposable {
 
     public async migrateDatabases(migrationSQLs: string[]): Promise<void> {
         const dbFiles = await this.getAllDBPaths();
+
         for (const dbInfo of dbFiles) {
             const db = await this.getOrCreateDB(dbInfo.path);
+
             for (const sql of migrationSQLs) {
                 try {
                     await db.exec(sql);

@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { TopicStatusService } from "../services/TopicStatusService";
 import { TopicIdSchema, TopicIdsSchema } from "../schemas/index";
@@ -18,6 +19,7 @@ export class TopicStatusController {
      */
     async markAsFavorite(req: Request, res: Response): Promise<void> {
         const params = TopicIdSchema.parse(req.body);
+
         await this.topicStatusService.markAsFavorite(params.topicId);
         res.json({ success: true, message: "话题已标记为收藏" });
     }
@@ -27,6 +29,7 @@ export class TopicStatusController {
      */
     async removeFromFavorites(req: Request, res: Response): Promise<void> {
         const params = TopicIdSchema.parse(req.body);
+
         await this.topicStatusService.removeFromFavorites(params.topicId);
         res.json({ success: true, message: "话题已从收藏中移除" });
     }
@@ -37,6 +40,7 @@ export class TopicStatusController {
     async checkFavoriteStatus(req: Request, res: Response): Promise<void> {
         const params = TopicIdsSchema.parse(req.body);
         const favoriteStatus = await this.topicStatusService.checkFavoriteStatus(params.topicIds);
+
         res.json({ success: true, data: { favoriteStatus } });
     }
 
@@ -47,6 +51,7 @@ export class TopicStatusController {
      */
     async markAsRead(req: Request, res: Response): Promise<void> {
         const params = TopicIdSchema.parse(req.body);
+
         await this.topicStatusService.markAsRead(params.topicId);
         res.json({ success: true, message: "话题已标记为已读" });
     }
@@ -56,6 +61,7 @@ export class TopicStatusController {
      */
     async markAsUnread(req: Request, res: Response): Promise<void> {
         const params = TopicIdSchema.parse(req.body);
+
         await this.topicStatusService.markAsUnread(params.topicId);
         res.json({ success: true, message: "话题已读状态已清除" });
     }
@@ -66,6 +72,7 @@ export class TopicStatusController {
     async checkReadStatus(req: Request, res: Response): Promise<void> {
         const params = TopicIdsSchema.parse(req.body);
         const readStatus = await this.topicStatusService.checkReadStatus(params.topicIds);
+
         res.json({ success: true, data: { readStatus } });
     }
 }

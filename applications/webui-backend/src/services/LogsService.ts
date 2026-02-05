@@ -1,14 +1,15 @@
 import "reflect-metadata";
 
+import type { LogLevel, LogItem, QueryLogsParams, QueryLogsResult, LogFileInfo } from "../types/logs";
+
 import * as fs from "fs/promises";
 import * as path from "path";
-import { injectable } from "tsyringe";
 
+import { injectable } from "tsyringe";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
 
 import { NotFoundError } from "../errors/AppError";
-import type { LogLevel, LogItem, QueryLogsParams, QueryLogsResult, LogFileInfo } from "../types/logs";
 
 @injectable()
 export class LogsService {
@@ -20,6 +21,7 @@ export class LogsService {
 
         if (!path.isAbsolute(logDirectory)) {
             const configPath = await ConfigManagerService.getConfigPath();
+
             if (configPath) {
                 logDirectory = path.join(path.dirname(configPath), logDirectory);
             }
@@ -38,6 +40,7 @@ export class LogsService {
 
             await this._readLinesFromEnd(filePath, async line => {
                 const parsed = this._parseLogLine(line, file.fileName);
+
                 if (!parsed) {
                     return true;
                 }
@@ -81,8 +84,10 @@ export class LogsService {
         }
 
         let nextBefore: number | null = null;
+
         if (items.length > 0) {
             const oldest = items[items.length - 1];
+
             nextBefore = Math.max(0, oldest.timestamp - 1);
         }
 
@@ -109,6 +114,7 @@ export class LogsService {
     private async _assertLogDirectoryExists(logDirectory: string): Promise<void> {
         try {
             const stat = await fs.stat(logDirectory);
+
             if (!stat.isDirectory()) {
                 throw new NotFoundError(`日志目录不是文件夹: ${logDirectory}`);
             }
@@ -119,7 +125,9 @@ export class LogsService {
 
     private _getDayStartMs(timestamp: number): number {
         const d = new Date(timestamp);
+
         d.setHours(0, 0, 0, 0);
+
         return d.getTime();
     }
 
@@ -140,11 +148,13 @@ export class LogsService {
             }
 
             const fileName = d.name;
+
             if (!fileName.endsWith(".log")) {
                 continue;
             }
 
             const dayStartMs = this._parseDayStartMsFromFileName(fileName);
+
             if (dayStartMs === null) {
                 continue;
             }
@@ -165,6 +175,7 @@ export class LogsService {
         }
 
         results.sort((a, b) => b.dayStartMs - a.dayStartMs);
+
         return results;
     }
 
@@ -176,6 +187,7 @@ export class LogsService {
 
         const datePart = fileName.slice(0, 10);
         const dateParts = datePart.split("-");
+
         if (dateParts.length !== 3) {
             return null;
         }
@@ -189,6 +201,7 @@ export class LogsService {
         }
 
         const ms = new Date(`${dateParts[0]}-${dateParts[1]}-${dateParts[2]}T00:00:00`).getTime();
+
         if (!Number.isFinite(ms)) {
             return null;
         }
@@ -198,11 +211,13 @@ export class LogsService {
 
     private _parseLogLine(line: string, sourceFile: string): LogItem | null {
         const timestampMs = this._extractTimestampMs(line);
+
         if (timestampMs === null) {
             return null;
         }
 
         const level = this._extractLevel(line);
+
         if (!level) {
             return null;
         }
@@ -217,23 +232,27 @@ export class LogsService {
 
     private _extractTimestampMs(line: string): number | null {
         const left = line.indexOf("[");
+
         if (left === -1) {
             return null;
         }
 
         const right = line.indexOf("]", left + 1);
+
         if (right === -1) {
             return null;
         }
 
         const inside = line.slice(left + 1, right);
         const parts = inside.split(" ");
+
         if (parts.length !== 2) {
             return null;
         }
 
         const iso = `${parts[0]}T${parts[1]}`;
         const ms = new Date(iso).getTime();
+
         if (!Number.isFinite(ms)) {
             return null;
         }
@@ -243,16 +262,19 @@ export class LogsService {
 
     private _extractLevel(line: string): LogLevel | null {
         const firstRight = line.indexOf("]");
+
         if (firstRight === -1) {
             return null;
         }
 
         const secondLeft = line.indexOf("[", firstRight + 1);
+
         if (secondLeft === -1) {
             return null;
         }
 
         const secondRight = line.indexOf("]", secondLeft + 1);
+
         if (secondRight === -1) {
             return null;
         }
@@ -261,11 +283,13 @@ export class LogsService {
             .slice(secondLeft + 1, secondRight)
             .trim()
             .toUpperCase();
+
         if (levelUpper === "DEBUG") return "debug";
         if (levelUpper === "INFO") return "info";
         if (levelUpper === "SUCCESS") return "success";
         if (levelUpper === "WARNING") return "warning";
         if (levelUpper === "ERROR") return "error";
+
         return null;
     }
 
@@ -283,9 +307,11 @@ export class LogsService {
 
             while (position > 0) {
                 const readSize = Math.min(chunkSize, position);
+
                 position -= readSize;
 
                 const buffer = Buffer.alloc(readSize);
+
                 await handle.read(buffer, 0, readSize, position);
 
                 const chunkText = buffer.toString("utf8");
@@ -296,6 +322,7 @@ export class LogsService {
 
                 for (let idx = parts.length - 1; idx >= 1; idx--) {
                     let line = parts[idx];
+
                     if (line.endsWith("\r")) {
                         line = line.slice(0, -1);
                     }
@@ -305,6 +332,7 @@ export class LogsService {
                     }
 
                     const shouldContinue = await onLine(line);
+
                     if (shouldContinue === false) {
                         return;
                     }
@@ -313,6 +341,7 @@ export class LogsService {
 
             if (carry.length > 0) {
                 let lastLine = carry;
+
                 if (lastLine.endsWith("\r")) {
                     lastLine = lastLine.slice(0, -1);
                 }

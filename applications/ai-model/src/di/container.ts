@@ -4,18 +4,6 @@
  */
 import "reflect-metadata";
 import { container } from "tsyringe";
-import { AI_MODEL_TOKENS } from "./tokens";
-import { ReportEmailService } from "../services/email/ReportEmailService";
-import { InterestEmailService } from "../services/email/InterestEmailService";
-import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
-import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
-import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
-import { RagRPCImpl } from "../rag/RagRPCImpl";
-import { AISummarizeTaskHandler } from "../tasks/AISummarize";
-import { InterestScoreTaskHandler } from "../tasks/InterestScore";
-import { LLMInterestEvaluationAndNotificationTaskHandler } from "../tasks/LLMInterestEvaluationAndNotification";
-import { GenerateEmbeddingTaskHandler } from "../tasks/GenerateEmbedding";
-import { GenerateReportTaskHandler } from "../tasks/GenerateReport";
 import {
     registerCommonDBService,
     registerConfigManagerService,
@@ -29,6 +17,18 @@ import { InterestScoreDbAccessService } from "@root/common/services/database/Int
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "@root/common/services/database/AgentDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { ReportEmailService } from "../services/email/ReportEmailService";
+import { InterestEmailService } from "../services/email/InterestEmailService";
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
+import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
+import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { RagRPCImpl } from "../rag/RagRPCImpl";
+import { AISummarizeTaskHandler } from "../tasks/AISummarize";
+import { InterestScoreTaskHandler } from "../tasks/InterestScore";
+import { LLMInterestEvaluationAndNotificationTaskHandler } from "../tasks/LLMInterestEvaluationAndNotification";
+import { GenerateEmbeddingTaskHandler } from "../tasks/GenerateEmbedding";
+import { GenerateReportTaskHandler } from "../tasks/GenerateReport";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { RagSearchTool } from "../agent/tools/RagSearchTool";
 import { SQLQueryTool } from "../agent/tools/SQLQueryTool";
@@ -36,6 +36,8 @@ import { WebSearchTool } from "../agent/tools/WebSearchTool";
 import { AgentToolCatalog } from "../agent-langgraph/AgentToolCatalog";
 import { LangGraphCheckpointerService } from "../agent-langgraph/LangGraphCheckpointerService";
 import { LangGraphAgentExecutor } from "../agent-langgraph/LangGraphAgentExecutor";
+
+import { AI_MODEL_TOKENS } from "./tokens";
 
 export async function registerAllDependencies(): Promise<void> {
     // 1. 初始化 DI 容器 - 注册基础服务
@@ -49,14 +51,19 @@ export async function registerAllDependencies(): Promise<void> {
 
     // 2. 初始化数据库服务
     const imDbAccessService = new ImDbAccessService();
+
     await imDbAccessService.init();
     const agcDbAccessService = new AgcDbAccessService();
+
     await agcDbAccessService.init();
     const interestScoreDbAccessService = new InterestScoreDbAccessService();
+
     await interestScoreDbAccessService.init();
     const reportDbAccessService = new ReportDbAccessService();
+
     await reportDbAccessService.init();
     const agentDbAccessService = new AgentDbAccessService();
+
     await agentDbAccessService.init();
     // 3. 注册数据库服务到 DI 容器
     registerDbAccessServices({
@@ -72,6 +79,7 @@ export async function registerAllDependencies(): Promise<void> {
         config.ai.embedding.vectorDBPath,
         config.ai.embedding.dimension
     );
+
     await vectorDBManagerService.init();
     container.registerInstance(AI_MODEL_TOKENS.VectorDBManagerService, vectorDBManagerService);
     const embeddingService = new EmbeddingService(
@@ -79,6 +87,7 @@ export async function registerAllDependencies(): Promise<void> {
         config.ai.embedding.model,
         config.ai.embedding.dimension
     );
+
     container.registerInstance(AI_MODEL_TOKENS.EmbeddingService, embeddingService);
 
     // 5. 注册并初始化文本生成器
@@ -86,6 +95,7 @@ export async function registerAllDependencies(): Promise<void> {
     const textGenerator = new TextGeneratorService(
         container.resolve<typeof ConfigManagerService>(COMMON_TOKENS.ConfigManagerService)
     );
+
     await textGenerator.init();
     container.registerInstance(AI_MODEL_TOKENS.TextGeneratorService, textGenerator);
 

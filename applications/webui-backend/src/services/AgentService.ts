@@ -2,18 +2,21 @@
  * Agent 服务
  * 处理 Agent 问答、对话历史的业务逻辑
  */
-import { inject, injectable } from "tsyringe";
-import Logger from "@root/common/util/Logger";
-import { RAGClient } from "../rpc/aiModelClient";
 import type {
     AgentAskOutput,
     AgentEvent,
     AgentForkFromCheckpointOutput,
     AgentGetStateHistoryOutput
 } from "@root/common/rpc/ai-model/schemas";
-import { TOKENS } from "../di/tokens";
-import { randomUUID } from "crypto";
 import type { AgentMessage, AgentConversation, AgentAskRequest } from "../types/agent";
+
+import { randomUUID } from "crypto";
+
+import { inject, injectable } from "tsyringe";
+import Logger from "@root/common/util/Logger";
+
+import { RAGClient } from "../rpc/aiModelClient";
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class AgentService {
@@ -29,6 +32,7 @@ export class AgentService {
             return false;
         }
         this.runningConversationIds.add(conversationId);
+
         return true;
     }
 
@@ -142,6 +146,7 @@ export class AgentService {
 
             if (options.abortSignal.aborted) {
                 handleAbort();
+
                 return;
             }
 

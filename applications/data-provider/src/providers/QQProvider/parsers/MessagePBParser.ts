@@ -1,10 +1,12 @@
 // 使用动态导入来确保在不同模块系统下都能正常工作
 import { readFile } from "fs/promises";
+
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import Logger from "@root/common/util/Logger";
-import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
+
+import { RawMsgContentParseResult } from "../@types/RawMsgContentParseResult";
 
 @mustInitBeforeUse
 export class MessagePBParser extends Disposable {
@@ -19,6 +21,7 @@ export class MessagePBParser extends Disposable {
         try {
             // 尝试不同的导入方式
             const protobufModule = await import("protobufjs");
+
             this.protobuf = protobufModule.default || protobufModule;
             this.LOGGER.debug("Successfully imported protobufjs library");
         } catch (error) {
@@ -32,6 +35,7 @@ export class MessagePBParser extends Disposable {
             "./applications/data-provider/src/providers/QQProvider/parsers/messageSegment.proto"
         ];
         let protoContent: string | undefined = undefined;
+
         for (const path of pathCandidates) {
             try {
                 this.LOGGER.debug(`Trying to read file ${path}...`);
@@ -51,10 +55,12 @@ export class MessagePBParser extends Disposable {
         this.LOGGER.debug("Building Root from messageSegment.proto...");
 
         let root;
+
         try {
             // 检查可用的解析方法
             if (typeof this.protobuf.parse === "function") {
                 const parseResult = this.protobuf.parse(protoContent);
+
                 root = parseResult.root;
                 this.LOGGER.debug("Successfully parsed using protobuf.parse()");
             } else if (typeof this.protobuf.load === "function") {
@@ -81,6 +87,7 @@ export class MessagePBParser extends Disposable {
             try {
                 const { parse } = await import("protobufjs");
                 const parseResult = parse(protoContent);
+
                 root = parseResult.root;
                 this.LOGGER.debug("Successfully parsed using fallback method");
             } catch (fallbackError) {
@@ -108,6 +115,7 @@ export class MessagePBParser extends Disposable {
         }
 
         const errMsg = this.messageSegment.verify(buffer);
+
         if (errMsg) {
             this.LOGGER.error("Protobuf verify error:" + errMsg);
             console.dir;
@@ -124,6 +132,7 @@ export class MessagePBParser extends Disposable {
                 arrays: true,
                 objects: true
             });
+
             return plain as RawMsgContentParseResult;
         } catch (error) {
             this.LOGGER.error("Protobuf decode error:" + error);

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+
 import { RagPromptStore } from "../context/prompts/RagPromptStore";
 import "../context/middleware/registerAll";
 
@@ -8,6 +9,7 @@ describe("RagPromptStore", async () => {
         const topics = "话题1内容";
 
         const prompt = (await RagPromptStore.getRagAnswerPrompt(question, topics)).serializeToString();
+
         expect(prompt).toContain("你是一个智能助手");
         expect(prompt).toContain(question);
         expect(prompt).toContain(topics);

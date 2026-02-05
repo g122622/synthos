@@ -14,6 +14,7 @@ const UnixMsSchema = z.preprocess(value => {
 
     if (typeof value === "string") {
         const trimmed = value.trim();
+
         if (trimmed.length === 0) {
             return value;
         }

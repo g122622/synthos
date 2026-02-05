@@ -1,16 +1,18 @@
 import "reflect-metadata";
 import { injectable, container } from "tsyringe";
+
 import {
     ProcessedChatMessage,
     RawChatMessage,
     ProcessedChatMessageWithRawMessage
 } from "../../contracts/data-provider/index";
 import Logger from "../../util/Logger";
-import { CommonDBService } from "./infra/CommonDBService";
 import { Disposable } from "../../util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
-import { createIMDBTableSQL } from "./constants/InitialSQL";
 import { COMMON_TOKENS } from "../../di/tokens";
+
+import { createIMDBTableSQL } from "./constants/InitialSQL";
+import { CommonDBService } from "./infra/CommonDBService";
 
 /**
  * IM 消息数据库访问服务
@@ -87,6 +89,7 @@ export class ImDbAccessService extends Disposable {
 
                 // 收集参数
                 const params: any[] = [];
+
                 batch.forEach(msg => {
                     params.push(
                         msg.msgId,
@@ -131,8 +134,10 @@ export class ImDbAccessService extends Disposable {
             `SELECT * FROM chat_messages WHERE groupId = ? AND (timestamp BETWEEN ? AND ?)`,
             [groupId, timeStart, timeEnd]
         );
+
         // 按照时间从早到晚排序
         results.sort((a, b) => a.timestamp - b.timestamp);
+
         return results;
     }
 
@@ -152,8 +157,10 @@ export class ImDbAccessService extends Disposable {
             `SELECT * FROM chat_messages WHERE groupId = ? AND (timestamp BETWEEN ? AND ?)`,
             [groupId, timeStart, timeEnd]
         );
+
         // 按照时间从早到晚排序
         results.sort((a, b) => a.timestamp - b.timestamp);
+
         return results;
     }
 
@@ -166,6 +173,7 @@ export class ImDbAccessService extends Disposable {
             `SELECT DISTINCT sessionId FROM chat_messages WHERE groupId =? AND (timestamp BETWEEN? AND?) AND sessionId IS NOT NULL`,
             [groupId, timeStart, timeEnd]
         );
+
         return results.map(r => r.sessionId);
     }
 
@@ -215,9 +223,11 @@ export class ImDbAccessService extends Disposable {
      */
     public async getRawChatMessageByMsgId(msgId: string): Promise<RawChatMessage> {
         const result = await this.db.get<RawChatMessage>(`SELECT * FROM chat_messages WHERE msgId =?`, [msgId]);
+
         if (!result) {
             this.LOGGER.warning(`未找到消息id为${msgId}的消息`);
         }
+
         return result;
     }
 
@@ -241,6 +251,7 @@ export class ImDbAccessService extends Disposable {
             `SELECT * FROM chat_messages WHERE msgId = ? AND groupId = ?`,
             [msgId, groupId]
         );
+
         if (!target) {
             return [];
         }
@@ -261,20 +272,25 @@ export class ImDbAccessService extends Disposable {
         ]);
 
         const combined = [...beforeRows.reverse(), target, ...afterRows];
+
         return combined;
     }
 
     // 获取所有消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<ProcessedChatMessageWithRawMessage[]> {
         const res = await this.db.all<ProcessedChatMessageWithRawMessage>(`SELECT * FROM chat_messages`);
+
         this.LOGGER.info(`去重前消息数量: ${res.length}`);
         // 按照id进行去重
         const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
+
         res.forEach(item => {
             uniqueResMap.set(item.msgId, item);
         });
         const dedupedArr = Array.from(uniqueResMap.values());
+
         this.LOGGER.info(`去重后消息数量: ${dedupedArr.length}`);
+
         return dedupedArr;
     }
 

@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import * as fs from "fs/promises";
 import * as path from "path";
+
 import { injectable, container } from "tsyringe";
 import sqlite3 from "sqlite3";
 
@@ -72,6 +73,7 @@ export class ImDbFtsService extends Disposable {
         if (!this.db) {
             throw new Error("FTS 数据库尚未初始化");
         }
+
         return this.db;
     }
 
@@ -93,6 +95,7 @@ export class ImDbFtsService extends Disposable {
         if (!this.dbPath) {
             throw new Error("FTS 数据库尚未初始化");
         }
+
         return this.dbPath;
     }
 
@@ -115,6 +118,7 @@ export class ImDbFtsService extends Disposable {
     ): Promise<void> {
         if (messages.length === 0) {
             this.LOGGER.warning("rebuildIndex 收到空数组，将跳过");
+
             return;
         }
 
@@ -138,6 +142,7 @@ export class ImDbFtsService extends Disposable {
 				`;
 
                 const params: any[] = [];
+
                 for (const msg of batch) {
                     params.push(
                         msg.msgId,
@@ -175,6 +180,7 @@ export class ImDbFtsService extends Disposable {
         const offset = (resolvedPage - 1) * resolvedPageSize;
 
         const matchQuery = this._buildMatchQuery(params.query);
+
         if (!matchQuery) {
             return {
                 page: resolvedPage,
@@ -189,6 +195,7 @@ export class ImDbFtsService extends Disposable {
 
         if (params.groupIds && params.groupIds.length > 0) {
             const placeholders = params.groupIds.map(() => "?").join(", ");
+
             whereSqlParts.push(`groupId IN (${placeholders})`);
             whereParams.push(...params.groupIds);
         }
@@ -318,9 +325,11 @@ export class ImDbFtsService extends Disposable {
         try {
             await this._db.exec(this._getCreateFts5Sql());
             this.isFts5 = true;
+
             return;
         } catch (err) {
             const msg = err instanceof Error ? err.message : String(err);
+
             this.LOGGER.warning(`尝试初始化 FTS5 失败，将降级到 FTS4。错误：${msg}`);
         }
 
@@ -377,6 +386,7 @@ export class ImDbFtsService extends Disposable {
      */
     private _buildMatchQuery(raw: string): string {
         const tokens = this._splitToTokens(raw);
+
         if (tokens.length === 0) {
             return "";
         }
@@ -392,6 +402,7 @@ export class ImDbFtsService extends Disposable {
 
     private _splitToTokens(input: string): string[] {
         const trimmed = input.trim();
+
         if (!trimmed) {
             return [];
         }
@@ -401,6 +412,7 @@ export class ImDbFtsService extends Disposable {
 
         const flush = () => {
             const token = current.trim();
+
             current = "";
             if (!token) {
                 return;
@@ -413,6 +425,7 @@ export class ImDbFtsService extends Disposable {
 
         for (let i = 0; i < trimmed.length; i++) {
             const ch = trimmed[i];
+
             if (this._isWhitespaceChar(ch)) {
                 flush();
                 continue;
@@ -436,10 +449,12 @@ export class ImDbFtsService extends Disposable {
             const isUpper = code >= 65 && code <= 90;
             const isLower = code >= 97 && code <= 122;
             const isCJK = code >= 0x4e00 && code <= 0x9fff;
+
             if (isDigit || isUpper || isLower || isCJK) {
                 return true;
             }
         }
+
         return false;
     }
 }

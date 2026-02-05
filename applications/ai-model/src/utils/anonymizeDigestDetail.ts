@@ -15,8 +15,10 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
 
     // 安全解析 contributors 字符串
     let contributors: string[] = [];
+
     try {
         const parsed = JSON.parse(contributorsStr);
+
         if (Array.isArray(parsed)) {
             // 过滤出非空字符串的有效昵称
             contributors = parsed.filter((item): item is string => typeof item === "string" && item.trim() !== "");
@@ -33,6 +35,7 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
 
     // 构建昵称到泛化标签的映射
     const nicknameToPlaceholder: Record<string, string> = {};
+
     contributors.forEach((nickname, index) => {
         nicknameToPlaceholder[nickname] = `用户${index + 1}`;
     });
@@ -46,6 +49,7 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
     for (const nickname of sortedNicknames) {
         // 使用全局字符串替换，避免正则表达式问题
         const placeholder = nicknameToPlaceholder[nickname];
+
         if (placeholder) {
             // 使用 split/join 方法进行替换，避免正则表达式的问题
             anonymizedDetail = anonymizedDetail.split(nickname).join(placeholder);

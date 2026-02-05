@@ -14,6 +14,7 @@ export class MiddlewareContainer {
         if (!MiddlewareContainer.instance) {
             MiddlewareContainer.instance = new MiddlewareContainer();
         }
+
         return MiddlewareContainer.instance;
     }
 

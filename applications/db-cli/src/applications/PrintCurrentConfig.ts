@@ -1,7 +1,8 @@
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { IApplication } from "@/contracts/IApplication";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+
+import { IApplication } from "@/contracts/IApplication";
 
 @mustInitBeforeUse
 export class PrintCurrentConfig extends Disposable implements IApplication {

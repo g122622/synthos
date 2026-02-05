@@ -3,10 +3,12 @@
  * 统一管理 Agent 可用工具的定义与执行器，并支持按 enabledTools 过滤。
  */
 import "reflect-metadata";
+import type { ToolDefinition, ToolContext } from "../agent/contracts/index";
+
 import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";
+
 import { AI_MODEL_TOKENS } from "../di/tokens";
-import type { ToolDefinition, ToolContext } from "../agent/contracts/index";
 import { RagSearchTool } from "../agent/tools/RagSearchTool";
 import { SQLQueryTool } from "../agent/tools/SQLQueryTool";
 import { WebSearchTool } from "../agent/tools/WebSearchTool";
@@ -54,9 +56,11 @@ export class AgentToolCatalog {
 
     public getToolDefinition(toolName: AgentToolName): ToolDefinition {
         const def = this.toolDefinitions.get(toolName);
+
         if (!def) {
             throw new Error(`未找到工具定义: ${toolName}`);
         }
+
         return def;
     }
 
@@ -64,6 +68,7 @@ export class AgentToolCatalog {
         if (!enabledTools || enabledTools.length === 0) {
             return false;
         }
+
         return enabledTools.includes(toolName) && this.toolDefinitions.has(toolName as AgentToolName);
     }
 
@@ -73,6 +78,7 @@ export class AgentToolCatalog {
         }
 
         const enabled: ToolDefinition[] = [];
+
         for (const name of this.getAllToolNames()) {
             if (enabledTools.includes(name)) {
                 enabled.push(this.toolDefinitions.get(name)!);
@@ -93,6 +99,7 @@ export class AgentToolCatalog {
         }
 
         const executor = this.toolExecutors.get(toolName);
+
         if (!executor) {
             throw new Error(`未找到工具执行器: ${toolName}`);
         }

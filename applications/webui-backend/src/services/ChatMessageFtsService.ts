@@ -2,9 +2,10 @@
  * 聊天消息全文检索（FTS）服务
  */
 import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
+
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class ChatMessageFtsService {

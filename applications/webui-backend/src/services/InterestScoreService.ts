@@ -2,8 +2,9 @@
  * 兴趣度评分服务
  */
 import { injectable, inject } from "tsyringe";
-import { TOKENS } from "../di/tokens";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
+
+import { TOKENS } from "../di/tokens";
 
 @injectable()
 export class InterestScoreService {
@@ -17,12 +18,14 @@ export class InterestScoreService {
      */
     async getInterestScoreResults(topicIds: string[]) {
         const results = [];
+
         for (const topicId of topicIds) {
             results.push({
                 topicId,
                 score: await this.interestScoreDbAccessService.getInterestScoreResult(topicId)
             });
         }
+
         return results;
     }
 }

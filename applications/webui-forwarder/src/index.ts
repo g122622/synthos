@@ -1,6 +1,7 @@
 import "reflect-metadata";
 import { registerConfigManagerService } from "@root/common/di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+
 import { NgrokClient } from "./NgrokClient";
 
 @bootstrap
@@ -10,6 +11,7 @@ class WebUIForwarderApplication {
         registerConfigManagerService();
 
         const ngrokClient = new NgrokClient();
+
         await ngrokClient.init();
     }
 }

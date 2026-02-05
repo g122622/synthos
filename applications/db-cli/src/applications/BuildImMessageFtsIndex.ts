@@ -1,9 +1,10 @@
-import { IApplication } from "@/contracts/IApplication";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
 import Logger from "@root/common/util/Logger";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
+
+import { IApplication } from "@/contracts/IApplication";
 
 @mustInitBeforeUse
 export class BuildImMessageFtsIndex extends Disposable implements IApplication {
@@ -25,6 +26,7 @@ export class BuildImMessageFtsIndex extends Disposable implements IApplication {
     public async run(): Promise<void> {
         this.LOGGER.info("开始从主库导出 chat_messages 全量数据...");
         const allMessages = await this.imDbAccessService.selectAll();
+
         this.LOGGER.info(`已导出 ${allMessages.length} 条消息，准备重建 FTS 索引...`);
 
         await this.imDbFtsService.rebuildIndex(

@@ -47,6 +47,7 @@ describe("@bootstrap 装饰器", () => {
             }
 
             const registeredClasses = getRegisteredBootstrapClasses();
+
             expect(registeredClasses).toHaveLength(1);
             expect(registeredClasses[0]).toBe(TestService);
         });
@@ -68,6 +69,7 @@ describe("@bootstrap 装饰器", () => {
             }
 
             const registeredClasses = getRegisteredBootstrapClasses();
+
             expect(registeredClasses).toHaveLength(3);
         });
 
@@ -373,7 +375,6 @@ describe("@bootstrap 装饰器", () => {
             @bootstrap
             class ServiceThrowingString {
                 public main(): void {
-                    // eslint-disable-next-line no-throw-literal
                     throw "字符串错误";
                 }
             }

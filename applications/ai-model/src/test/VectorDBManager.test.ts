@@ -1,9 +1,11 @@
 // tests/VectorDBManager.test.ts
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { join } from "path";
 import { rm, mkdtemp } from "fs/promises";
 import { tmpdir } from "os";
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 
 // Mock Logger
 vi.mock("@root/common/util/Logger", () => {
@@ -30,9 +32,11 @@ describe("VectorDBManagerService", () => {
     // 生成随机向量
     const generateRandomVector = (dimension: number): Float32Array => {
         const arr = new Float32Array(dimension);
+
         for (let i = 0; i < dimension; i++) {
             arr[i] = Math.random();
         }
+
         return arr;
     };
 
@@ -59,6 +63,7 @@ describe("VectorDBManagerService", () => {
         it("should initialize database and create tables", async () => {
             // 如果 init 成功，getCount 应该返回 0
             const count = manager.getCount();
+
             expect(count).toBe(0);
         });
     });
@@ -132,6 +137,7 @@ describe("VectorDBManagerService", () => {
     describe("hasEmbedding", () => {
         it("should return true for existing topicId", () => {
             const topicId = "exists-001";
+
             manager.storeEmbedding(topicId, generateRandomVector(TEST_DIMENSION));
 
             expect(manager.hasEmbedding(topicId)).toBe(true);
@@ -145,6 +151,7 @@ describe("VectorDBManagerService", () => {
     describe("filterWithoutEmbedding", () => {
         it("should return empty array for empty input", () => {
             const result = manager.filterWithoutEmbedding([]);
+
             expect(result).toEqual([]);
         });
 
@@ -251,6 +258,7 @@ describe("VectorDBManagerService", () => {
 
             expect(result.length).toBe(2);
             const topicIds = result.map(r => r.topicId);
+
             expect(topicIds).toContain("candidate-001");
             expect(topicIds).toContain("candidate-002");
             expect(topicIds).not.toContain("non-candidate");
@@ -260,6 +268,7 @@ describe("VectorDBManagerService", () => {
     describe("deleteEmbedding", () => {
         it("should delete an existing embedding", () => {
             const topicId = "delete-001";
+
             manager.storeEmbedding(topicId, generateRandomVector(TEST_DIMENSION));
             expect(manager.hasEmbedding(topicId)).toBe(true);
             expect(manager.getCount()).toBe(1);

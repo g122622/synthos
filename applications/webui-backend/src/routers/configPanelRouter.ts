@@ -4,6 +4,7 @@
  */
 import { Express } from "express";
 import { container } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { asyncHandler } from "../errors/errorHandler";
 import { ConfigController } from "../controllers/ConfigController";

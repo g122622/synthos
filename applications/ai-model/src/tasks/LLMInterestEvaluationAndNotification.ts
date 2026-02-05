@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import * as path from "path";
+
 import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
@@ -7,14 +9,14 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { retryAsync } from "@root/common/util/retryAsync";
+import { KVStore } from "@root/common/util/KVStore";
+
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { InterestPromptStore } from "../context/prompts/InterestPromptStore";
 import { InterestEmailService } from "../services/email/InterestEmailService";
-import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { AI_MODEL_TOKENS } from "../di/tokens";
-import { retryAsync } from "@root/common/util/retryAsync";
-import { KVStore } from "@root/common/util/KVStore";
-import * as path from "path";
 
 /**
  * LLM兴趣评估与通知任务处理器
@@ -48,6 +50,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 // 获取配置
@@ -58,6 +61,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                 // 检查配置是否有效
                 if (!llmEvaluationDescriptions || llmEvaluationDescriptions.length === 0) {
                     this.LOGGER.warning("未配置 llmEvaluationDescriptions，跳过任务");
+
                     return;
                 }
 
@@ -72,6 +76,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                 try {
                     // 1. 获取指定时间范围内的所有摘要结果
                     const sessionIds = [] as string[];
+
                     for (const groupId of Object.keys(config.groupConfigs)) {
                         sessionIds.push(
                             ...(await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
@@ -83,6 +88,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                     }
 
                     const allDigestResults = [] as AIDigestResult[];
+
                     for (const sessionId of sessionIds) {
                         allDigestResults.push(
                             ...(await this.agcDbAccessService.getAIDigestResultsBySessionId(sessionId))
@@ -92,6 +98,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
 
                     if (allDigestResults.length === 0) {
                         this.LOGGER.info("没有可评估的摘要结果，跳过任务");
+
                         return;
                     }
 
@@ -100,12 +107,14 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                         allDigestResults,
                         evaluationKVStore
                     );
+
                     this.LOGGER.info(
                         `过滤后剩余 ${unevaluatedTopics.length} 个未评估话题（已跳过 ${allDigestResults.length - unevaluatedTopics.length} 个已评估话题）`
                     );
 
                     if (unevaluatedTopics.length === 0) {
                         this.LOGGER.info("所有话题都已评估过，跳过任务");
+
                         return;
                     }
 
@@ -114,6 +123,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
 
                     for (let i = 0; i < unevaluatedTopics.length; i += batchSize) {
                         const batch = unevaluatedTopics.slice(i, i + batchSize);
+
                         this.LOGGER.info(
                             `正在处理第 ${Math.floor(i / batchSize) + 1} 批，共 ${batch.length} 个话题`
                         );
@@ -128,6 +138,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                         // 记录评估结果到 KV Store
                         for (let j = 0; j < batch.length; j++) {
                             const topicId = batch[j].topicId;
+
                             try {
                                 await evaluationKVStore.put(topicId, true);
                             } catch (error) {
@@ -153,6 +164,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                         interestedTopics,
                         notificationKVStore
                     );
+
                     this.LOGGER.info(
                         `过滤后剩余 ${unnotifiedTopics.length} 个未发送话题（已跳过 ${interestedTopics.length - unnotifiedTopics.length} 个已发送话题）`
                     );
@@ -161,6 +173,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                     if (unnotifiedTopics.length > 0) {
                         const emailSuccess =
                             await this.interestEmailService.sendInterestTopicsEmail(unnotifiedTopics);
+
                         if (emailSuccess) {
                             this.LOGGER.success("邮件通知发送成功");
 
@@ -210,6 +223,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
         for (const topic of topics) {
             try {
                 const evaluated = await kvStore.get(topic.topicId);
+
                 if (!evaluated) {
                     unevaluatedTopics.push(topic);
                 }
@@ -237,6 +251,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
         for (const topic of topics) {
             try {
                 const notified = await kvStore.get(topic.topicId);
+
                 if (!notified) {
                     unnotifiedTopics.push(topic);
                 }
@@ -310,6 +325,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
         try {
             // 尝试从响应中提取JSON数组
             const jsonMatch = responseText.match(/\[[\s\S]*?\]/);
+
             if (!jsonMatch) {
                 throw new Error("LLM响应中未找到JSON数组");
             }
@@ -328,6 +344,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
 
             // 验证数组元素都是boolean
             const allBoolean = parsed.every(item => typeof item === "boolean");
+
             if (!allBoolean) {
                 throw new Error("LLM返回的数组中包含非boolean类型的元素");
             }

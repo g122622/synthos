@@ -1,12 +1,12 @@
 import "reflect-metadata";
-import { injectable } from "tsyringe";
-import pidusage from "pidusage";
+import type { SystemStats } from "../types/system";
+
 import * as fs from "fs/promises";
 import * as path from "path";
+
+import { injectable } from "tsyringe";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import Logger from "@root/common/util/Logger";
-import { findFileUpwards } from "@root/common/util/file/findFileUpwards";
-import type { SystemStats } from "../types/system";
 
 const LOGGER = Logger.withTag("SystemMonitorService");
 
@@ -33,6 +33,7 @@ export class SystemMonitorService {
         this.collectionInterval = setInterval(async () => {
             try {
                 const stats = await this.collectStats();
+
                 this.statsHistory.push(stats);
                 if (this.statsHistory.length > this.MAX_HISTORY_LENGTH) {
                     this.statsHistory.shift();
@@ -121,6 +122,7 @@ export class SystemMonitorService {
         try {
             await fs.access(dirPath);
             const stats = await fs.stat(dirPath);
+
             if (!stats.isDirectory()) {
                 // 如果是文件（如某些数据库可能为单文件）
                 return { count: 1, size: stats.size };
@@ -132,14 +134,17 @@ export class SystemMonitorService {
 
             for (const file of files) {
                 const filePath = path.join(dirPath, file);
+
                 try {
                     const fileStats = await fs.stat(filePath);
+
                     if (fileStats.isFile()) {
                         totalSize += fileStats.size;
                         fileCount++;
                     }
                 } catch {}
             }
+
             return { count: fileCount, size: totalSize };
         } catch (error) {
             // 目录或文件不存在

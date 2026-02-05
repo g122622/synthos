@@ -4,10 +4,11 @@
  * 使用单独的固定数据库文件存储向量
  */
 import "reflect-metadata";
-import Database from "better-sqlite3";
-import * as sqliteVec from "sqlite-vec";
 import { mkdir } from "fs/promises";
 import { dirname } from "path";
+
+import Database from "better-sqlite3";
+import * as sqliteVec from "sqlite-vec";
 import Logger from "@root/common/util/Logger";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
@@ -96,6 +97,7 @@ export class VectorDBManagerService extends Disposable {
 
         // 创建一个随机查询向量进行预热
         const dummyVector = new Float32Array(this.dimension);
+
         for (let i = 0; i < this.dimension; i++) {
             dummyVector[i] = Math.random();
         }
@@ -134,6 +136,7 @@ export class VectorDBManagerService extends Disposable {
             const insertMapping = this.db!.prepare(`
                 INSERT INTO topic_vector_mapping (topic_id, vector_rowid) VALUES (?, ?)
             `);
+
             insertMapping.run(topicId, vectorRowid);
         });
 
@@ -170,6 +173,7 @@ export class VectorDBManagerService extends Disposable {
 
                 const result = insertVec.run(item.embedding);
                 const vectorRowid = result.lastInsertRowid;
+
                 insertMapping.run(item.topicId, vectorRowid);
             }
         });
@@ -210,6 +214,7 @@ export class VectorDBManagerService extends Disposable {
 
         // 先检查所有 topicId 是否都存在
         const missingTopicIds = this.filterWithoutEmbedding(topicIds);
+
         if (missingTopicIds.length > 0) {
             throw new Error(`向量不存在：topicId = ${missingTopicIds.join(", ")}`);
         }
@@ -247,12 +252,14 @@ export class VectorDBManagerService extends Disposable {
         const deleteVecStmt = this.db!.prepare(`
             DELETE FROM vec_topics WHERE rowid = ?
         `);
+
         deleteVecStmt.run(vectorRowid);
 
         // 3. 删除 topic_vector_mapping 中的映射记录
         const deleteMappingStmt = this.db!.prepare(`
             DELETE FROM topic_vector_mapping WHERE topic_id = ?
         `);
+
         deleteMappingStmt.run(topicId);
     }
 
@@ -268,6 +275,7 @@ export class VectorDBManagerService extends Disposable {
             SELECT 1 FROM topic_vector_mapping WHERE topic_id = ?
         `);
         const result = stmt.get(topicId);
+
         return result !== undefined;
     }
 
@@ -302,6 +310,7 @@ export class VectorDBManagerService extends Disposable {
             SELECT COUNT(*) as count FROM topic_vector_mapping
         `);
         const result = stmt.get() as { count: number };
+
         return result.count;
     }
 
@@ -327,6 +336,7 @@ export class VectorDBManagerService extends Disposable {
         if (topicIdCandidates.length > 0) {
             // 有候选集，先过滤再搜索
             const placeholders = topicIdCandidates.map(() => "?").join(",");
+
             sql = `
                 SELECT 
                     m.topic_id,
@@ -394,6 +404,7 @@ export class VectorDBManagerService extends Disposable {
             if (candidateRowIds.length === 0) return [];
 
             const rowIdPlaceholders = candidateRowIds.map(() => "?").join(",");
+
             // 使用 MATCH 语法进行 KNN 优化搜索
             sql = `
             SELECT 

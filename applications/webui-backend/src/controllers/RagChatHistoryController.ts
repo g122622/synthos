@@ -4,6 +4,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { RagChatHistoryService } from "../services/RagChatHistoryService";
 import {
@@ -24,6 +25,7 @@ export class RagChatHistoryController {
     async getSessionList(req: Request, res: Response): Promise<void> {
         const params = GetRagSessionListSchema.parse(req.body);
         const result = await this.ragChatHistoryService.getSessionList(params.limit, params.offset);
+
         res.json({ success: true, data: result });
     }
 
@@ -34,8 +36,10 @@ export class RagChatHistoryController {
     async getSessionDetail(req: Request, res: Response): Promise<void> {
         const params = RagSessionIdSchema.parse(req.body);
         const session = await this.ragChatHistoryService.getSessionById(params.sessionId);
+
         if (!session) {
             res.json({ success: false, message: "会话不存在" });
+
             return;
         }
         res.json({ success: true, data: session });
@@ -47,6 +51,7 @@ export class RagChatHistoryController {
      */
     async deleteSession(req: Request, res: Response): Promise<void> {
         const params = RagSessionIdSchema.parse(req.body);
+
         await this.ragChatHistoryService.deleteSession(params.sessionId);
         res.json({ success: true, message: "会话已删除" });
     }
@@ -57,6 +62,7 @@ export class RagChatHistoryController {
      */
     async updateSessionTitle(req: Request, res: Response): Promise<void> {
         const params = UpdateRagSessionTitleSchema.parse(req.body);
+
         await this.ragChatHistoryService.updateSessionTitle(params.sessionId, params.title);
         res.json({ success: true, message: "标题已更新" });
     }
@@ -76,6 +82,7 @@ export class RagChatHistoryController {
      */
     async toggleSessionPin(req: Request, res: Response): Promise<void> {
         const params = ToggleSessionPinSchema.parse(req.body);
+
         await this.ragChatHistoryService.toggleSessionPin(params.sessionId, params.pinned);
         res.json({ success: true, message: params.pinned ? "会话已置顶" : "会话已取消置顶" });
     }

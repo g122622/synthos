@@ -5,18 +5,19 @@ import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/
 import Logger from "@root/common/util/Logger";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import {
-    PooledTextGeneratorService,
-    PooledTask,
-    PooledTaskResult
-} from "../services/generators/text/PooledTextGeneratorService";
-import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
+import {
+    PooledTextGeneratorService,
+    PooledTask,
+    PooledTaskResult
+} from "../services/generators/text/PooledTextGeneratorService";
 
 /**
  * AI 摘要任务处理器
@@ -48,16 +49,20 @@ export class AISummarizeTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
+
                 config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 if (!(await checkConnectivity())) {
                     this.LOGGER.error(`网络连接不可用，跳过当前任务`);
+
                     return;
                 }
 
                 const pooledTextGeneratorService = new PooledTextGeneratorService(config.ai.maxConcurrentRequests);
+
                 await pooledTextGeneratorService.init();
                 const ctxBuilder = new IMSummaryCtxBuilder();
+
                 await ctxBuilder.init();
 
                 // 任务上下文类型定义
@@ -81,18 +86,22 @@ export class AISummarizeTaskHandler {
                         // 过滤掉sessionId为空的消息
                         if (!msg.sessionId) {
                             this.LOGGER.warning(`消息 ${msg.msgId} 的 sessionId 为空，跳过`);
+
                             return false;
                         } else {
                             return true;
                         }
                     });
+
                     this.LOGGER.info(`群 ${groupId} 成功获取到 ${msgs.length} 条有效消息`);
                     await job.touch(); // 保证任务存活
 
                     /* 2. 按照 sessionId 分组 */
                     const sessions: Record<string, ProcessedChatMessageWithRawMessage[]> = {};
+
                     for (const msg of msgs) {
                         const { sessionId } = msg;
+
                         // 如果 sessionId 已经被生成过摘要，跳过
                         if (!(await this.agcDbAccessService.isSessionIdSummarized(sessionId))) {
                             if (!sessions[sessionId]) {
@@ -107,6 +116,7 @@ export class AISummarizeTaskHandler {
                     }
                     // 考虑到最后一个session可能正在发生，还没有闭合，因此需要删掉
                     const newestSessionId = msgs[msgs.length - 1].sessionId;
+
                     delete sessions[newestSessionId];
                     this.LOGGER.debug(`删掉了最后一个sessionId为 ${newestSessionId} 的session`);
                     this.LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个需要处理的session`);
@@ -132,6 +142,7 @@ export class AISummarizeTaskHandler {
                             sessions[sessionId],
                             config.groupConfigs[groupId].groupIntroduction
                         );
+
                         this.LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
                         allTasks.push({
@@ -147,6 +158,7 @@ export class AISummarizeTaskHandler {
 
                 // 并行处理所有任务，每个任务完成时回调
                 let completedCount = 0;
+
                 await pooledTextGeneratorService.submitTasks<TaskContext>(
                     allTasks,
                     async (result: PooledTaskResult<TaskContext>) => {
@@ -158,6 +170,7 @@ export class AISummarizeTaskHandler {
                             this.LOGGER.error(
                                 `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要失败，错误信息为：${result.error}, 跳过该session`
                             );
+
                             return;
                         }
 
@@ -167,6 +180,7 @@ export class AISummarizeTaskHandler {
 
                             // 解析llm回传的json结果
                             let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
+
                             results = JSON.parse(resultStr);
                             this.LOGGER.success(
                                 `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
@@ -176,6 +190,7 @@ export class AISummarizeTaskHandler {
                                     `session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`
                                 );
                                 console.log(resultStr);
+
                                 return;
                             }
 

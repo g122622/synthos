@@ -1,11 +1,13 @@
 import "reflect-metadata";
 import * as fs from "fs/promises";
 import * as path from "path";
+
 import { injectable, inject } from "tsyringe";
+import sqlite3 from "sqlite3";
+
 import { PromisifiedSQLite, PromisifiedStatement } from "../../../util/promisify/PromisifiedSQLite";
 import Logger from "../../../util/Logger";
 import { Disposable } from "../../../util/lifecycle/Disposable";
-import sqlite3 from "sqlite3";
 import { ConfigManagerService } from "../../config/ConfigManagerService";
 import { mustInitBeforeUse } from "../../../util/lifecycle/mustInitBeforeUse";
 import { COMMON_TOKENS } from "../../../di/tokens";
@@ -40,6 +42,7 @@ export class CommonDBService extends Disposable {
     public async init(initialSQL?: string): Promise<void> {
         // 确保 dbBasePath 存在
         const config = await this.configManagerService.getCurrentConfig();
+
         try {
             await fs.mkdir(config.commonDatabase.dbBasePath, { recursive: true });
         } catch (err) {

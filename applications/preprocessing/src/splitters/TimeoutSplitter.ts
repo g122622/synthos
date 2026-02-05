@@ -1,12 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
-import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+
 import { COMMON_TOKENS } from "../di/tokens";
+
+import { ISplitter } from "./contracts/ISplitter";
 
 /**
  * 超时式消息分割器

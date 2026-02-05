@@ -2,21 +2,24 @@ import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { RawChatMessage } from "@root/common/contracts/data-provider/index";
-import { IIMProvider } from "../contracts/IIMProvider";
 import Logger from "@root/common/util/Logger";
 import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
-import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { ASSERT, ASSERT_NOT_FATAL } from "@root/common/util/ASSERT";
+import { Disposable } from "@root/common/util/lifecycle/Disposable";
+import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+import sqlite3 from "@journeyapps/sqlcipher";
+
+import { IIMProvider } from "../contracts/IIMProvider";
+import { COMMON_TOKENS } from "../../di/tokens";
+
+import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
 import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
 import { MessagePBParser } from "./parsers/MessagePBParser";
 import { MsgElementType } from "./@types/mappers/MsgElementType";
 import { MsgElement } from "./@types/RawMsgContentParseResult";
-import { Disposable } from "@root/common/util/lifecycle/Disposable";
-import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import sqlite3 from "@journeyapps/sqlcipher";
 import { MsgType } from "./@types/mappers/MsgType";
-import { COMMON_TOKENS } from "../../di/tokens";
+
 sqlite3.verbose();
 
 /**
@@ -47,6 +50,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         const config = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
         // 1. 创建一个临时内存数据库（仅用于加载扩展）
         const tempDb = new PromisifiedSQLite(sqlite3);
+
         await tempDb.open(":memory:"); // 内存数据库，瞬间打开
         // 2. 通过这个临时连接加载扩展 → 全局注册 offset_vfs
         await tempDb.loadExtension(config.VFSExtPath);
@@ -57,6 +61,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         // 打开QQNT数据库（原地读取，不复制）
         // @see https://docs.aaqwq.top/decrypt/decode_db.html#%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
         const db = new PromisifiedSQLite(sqlite3);
+
         await db.open(dbPath);
         this.db = this._registerDisposable(db);
 
@@ -74,6 +79,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         const sql = `SELECT count(*) FROM sqlite_master`;
         const stmt = await db.prepare(sql);
         const result = await stmt.get();
+
         this.LOGGER.success(`解密成功，数据库表数量: ${result["count(*)"]}`);
         await stmt.finalize();
 
@@ -90,11 +96,13 @@ export class QQProvider extends Disposable implements IIMProvider {
     private async _getPatchSQL() {
         const qqConfig = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
         const patchSQL = qqConfig.dbPatch.enabled ? `(${qqConfig.dbPatch.patchSQL})` : "";
+
         return patchSQL;
     }
 
     private async _parseMessageContent(rawMsgElements: MsgElement[]): Promise<string> {
         let result = "";
+
         for (const rawMsgElement of rawMsgElements) {
             switch (rawMsgElement.elementType) {
                 case MsgElementType.TEXT: {
@@ -134,6 +142,7 @@ export class QQProvider extends Disposable implements IIMProvider {
                 }
             }
         }
+
         return result;
     }
 
@@ -171,12 +180,15 @@ export class QQProvider extends Disposable implements IIMProvider {
                 AND ("${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd})
                 ${groupId ? `AND "${GMC.groupUin}" = ${groupId}` : ""}
             `;
+
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
+
             this.LOGGER.debug(`结果数量: ${results.length}`);
 
             // 解析查询到的全部消息内容
             const messages: RawChatMessage[] = [];
+
             for (const result of results) {
                 // 生成消息对象
                 const processedMsg: RawChatMessage = {
@@ -197,6 +209,7 @@ export class QQProvider extends Disposable implements IIMProvider {
                         const quotedMsgContent = await this._parseMessageContent(
                             this.messagePBParser.parseMessageSegment(result[GMC.extraData]).extraMessage.messages
                         );
+
                         if (!quotedMsgContent) {
                             this.LOGGER.warning(
                                 `msgId: ${result[GMC.msgId]}的引用消息内容为空。放弃获取该条消息的引用。
@@ -244,6 +257,7 @@ export class QQProvider extends Disposable implements IIMProvider {
                     messages.push(processedMsg);
                 }
             }
+
             return messages;
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;
@@ -268,6 +282,7 @@ export class QQProvider extends Disposable implements IIMProvider {
 
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
+
             this.LOGGER.debug(`结果数量: ${results.length}`);
             ASSERT_NOT_FATAL(
                 results.length <= 1,
@@ -293,8 +308,10 @@ export class QQProvider extends Disposable implements IIMProvider {
         if (this.db) {
             // 生成SQL语句
             const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.msgId}" = ${msgId}`;
+
             this.LOGGER.debug(`执行的SQL: ${sql}`);
             const results = await this.db.all(sql);
+
             this.LOGGER.debug(`结果数量: ${results.length}`);
             ASSERT(
                 results.length <= 1,
@@ -303,6 +320,7 @@ export class QQProvider extends Disposable implements IIMProvider {
             if (results.length === 0) {
                 return null;
             }
+
             return results[0];
         } else {
             throw ErrorReasons.UNINITIALIZED_ERROR;

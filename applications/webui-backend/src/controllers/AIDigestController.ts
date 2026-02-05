@@ -3,6 +3,7 @@
  */
 import { Request, Response } from "express";
 import { injectable, inject } from "tsyringe";
+
 import { TOKENS } from "../di/tokens";
 import { AIDigestService } from "../services/AIDigestService";
 import {
@@ -21,6 +22,7 @@ export class AIDigestController {
     async getAIDigestResultByTopicId(req: Request, res: Response): Promise<void> {
         const params = GetAIDigestResultByTopicIdSchema.parse(req.query);
         const result = await this.aiDigestService.getAIDigestResultByTopicId(params.topicId);
+
         res.json({ success: true, data: result });
     }
 
@@ -30,6 +32,7 @@ export class AIDigestController {
     async getAIDigestResultsBySessionIds(req: Request, res: Response): Promise<void> {
         const params = GetAIDigestResultsBySessionIdsSchema.parse(req.body);
         const results = await this.aiDigestService.getAIDigestResultsBySessionIds(params.sessionIds);
+
         res.json({ success: true, data: results });
     }
 
@@ -39,6 +42,7 @@ export class AIDigestController {
     async checkSessionSummarized(req: Request, res: Response): Promise<void> {
         const params = CheckSessionSummarizedSchema.parse(req.query);
         const isSummarized = await this.aiDigestService.isSessionSummarized(params.sessionId);
+
         res.json({ success: true, data: { isSummarized } });
     }
 }

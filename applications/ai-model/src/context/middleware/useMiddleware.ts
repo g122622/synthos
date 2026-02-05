@@ -1,6 +1,8 @@
-import { MiddlewareContainer } from "./container/container";
-import { CtxTemplateNode } from "../template/CtxTemplate";
 import Logger from "@root/common/util/Logger";
+
+import { CtxTemplateNode } from "../template/CtxTemplate";
+
+import { MiddlewareContainer } from "./container/container";
 
 /**
  * 中间件装饰器工厂
@@ -21,8 +23,10 @@ export function useMiddleware(token: string | symbol) {
 
             // 3. 从容器获取中间件
             const middleware = MiddlewareContainer.getInstance().get(token);
+
             if (!middleware) {
                 Logger.warning(`[Middleware] Token "${String(token)}" not registered`);
+
                 return result;
             }
 

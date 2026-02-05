@@ -1,7 +1,7 @@
 // lib/agenda.ts
 import { Agenda } from "@hokify/agenda";
+
 import Logger from "../util/Logger";
-import { TaskHandlerTypes } from "./@types/Tasks";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler");
 

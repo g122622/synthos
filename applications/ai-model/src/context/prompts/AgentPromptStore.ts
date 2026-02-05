@@ -2,11 +2,12 @@
  * Agent 系统提示词
  * 提供 Agent 的角色定义和工具使用指导
  */
+import type { ToolDefinition } from "../../agent/contracts/index";
+
 import { CtxTemplateNode } from "../template/CtxTemplate";
 import { ContentUtils } from "../template/ContentUtils";
 import { useMiddleware } from "../middleware/useMiddleware";
 import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
-import type { ToolDefinition } from "../../agent/contracts/index";
 
 /**
  * Agent 提示词存储

@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
-import { ISplitter } from "./contracts/ISplitter";
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { KVStore } from "@root/common/util/KVStore";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
@@ -10,7 +9,10 @@ import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
+
 import { COMMON_TOKENS } from "../di/tokens";
+
+import { ISplitter } from "./contracts/ISplitter";
 
 /**
  * 累积式消息分割器
@@ -37,6 +39,7 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      */
     public async init() {
         const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
+
         this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
         this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
     }
@@ -76,14 +79,17 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
 
         for (let index = 0; index < msgs.length; index++) {
             const msg = msgs[index];
+
             if (!msg.sessionId) {
                 if (index === 0) {
                     // 第一条消息，为其分配一个新的 sessionId
                     await assignNewSessionId(msg);
                 } else {
                     const previousMsgSessionId = msgs[index - 1].sessionId!;
+
                     ASSERT(previousMsgSessionId !== undefined); // 上一条消息的 sessionId 一定存在
                     const capacity = (await this.kvStore!.get(previousMsgSessionId))!; // 获取上一条消息的容量
+
                     ASSERT(capacity !== undefined); // capacity一定存在
                     ASSERT(capacity >= 0); // capacity一定非负
 

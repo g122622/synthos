@@ -16,6 +16,7 @@ export class TopicReadStatusManager {
         if (!TopicReadStatusManager.instance) {
             TopicReadStatusManager.instance = new TopicReadStatusManager(dbPath);
         }
+
         return TopicReadStatusManager.instance;
     }
 
@@ -39,6 +40,7 @@ export class TopicReadStatusManager {
      */
     async isTopicRead(topicId: string): Promise<boolean> {
         const value = await this.store.get(topicId);
+
         return value === true; // 仅当明确存入 true 时才视为已读
     }
 

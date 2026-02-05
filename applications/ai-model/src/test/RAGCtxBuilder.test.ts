@@ -1,11 +1,12 @@
 import "reflect-metadata";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { container } from "tsyringe";
-import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { SearchOutput } from "@root/common/rpc/ai-model";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+
+import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 
 // 模拟依赖
 vi.mock("@root/common/database/AgcDbAccessService");
@@ -73,6 +74,7 @@ describe("RAGCtxBuilder", () => {
                     contributors: "用户3, 用户4"
                 } as any);
             }
+
             return Promise.resolve(null);
         });
 
@@ -89,6 +91,7 @@ describe("RAGCtxBuilder", () => {
                     timeEnd: new Date(2024, 0, 12, 15, 45, 30).getTime()
                 });
             }
+
             return Promise.resolve(null);
         });
 
@@ -100,13 +103,11 @@ describe("RAGCtxBuilder", () => {
             .mockImplementation((question, topics) => {
                 // 验证 topics 格式
                 expect(topics).toContain("【话题1:机器学习基础】");
-                expect(topics).toContain("【参与者:用户1, 用户2】");
-                expect(topics).toContain("【起止时间:2024-01-10-08:00:00至2024-01-10-09:30:00】");
+                expect(topics).toContain("【时间:2024-01-10】");
                 expect(topics).toContain("机器学习是人工智能的一个分支");
 
                 expect(topics).toContain("【话题2:深度学习应用】");
-                expect(topics).toContain("【参与者:用户3, 用户4】");
-                expect(topics).toContain("【起止时间:2024-01-12-14:15:20至2024-01-12-15:45:30】");
+                expect(topics).toContain("【时间:2024-01-12】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
 
                 // 返回模拟的 CtxTemplateNode 对象
@@ -157,6 +158,7 @@ describe("RAGCtxBuilder", () => {
                     contributors: "用户1, 用户2"
                 } as any);
             }
+
             return Promise.resolve(null);
         });
 
@@ -167,6 +169,7 @@ describe("RAGCtxBuilder", () => {
                     timeEnd: new Date(2024, 0, 10, 9, 30, 0).getTime()
                 });
             }
+
             return Promise.resolve(null);
         });
 
@@ -177,13 +180,11 @@ describe("RAGCtxBuilder", () => {
             .mockImplementation((question, topics) => {
                 // 验证 topics 格式包含第一个话题的日期信息
                 expect(topics).toContain("【话题1:机器学习基础】");
-                expect(topics).toContain("【参与者:用户1, 用户2】");
-                expect(topics).toContain("【起止时间:2024-01-10-08:00:00至2024-01-10-09:30:00】");
+                expect(topics).toContain("【时间:2024-01-10】");
                 expect(topics).toContain("机器学习是人工智能的一个分支");
 
                 // 验证 topics 格式包含第二个话题但不包含日期信息
                 expect(topics).toContain("【话题2:深度学习应用】");
-                expect(topics).toContain("【参与者:用户3, 用户4】");
                 expect(topics).toContain("深度学习在图像识别中的应用");
 
                 // 返回模拟的 CtxTemplateNode 对象

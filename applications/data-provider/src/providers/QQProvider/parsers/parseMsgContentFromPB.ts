@@ -1,7 +1,6 @@
 // 基于有限状态机的消息解析器，用于从 Protocol Buffer 格式的消息中提取文本内容。
 // ！！！目前已经废弃，被MessageSegmentPBParser取代。
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
-import Logger from "@root/common/util/Logger";
 
 /**
  * 从 Protocol Buffer 格式的 Buffer 中解析出纯文本消息内容。
@@ -275,6 +274,7 @@ function parseMsgContentFromPBV2(msgBuf: Buffer, isDebug = false): string {
 
     // 合并所有文本字段，使用逗号连接
     let result = "";
+
     textResult = textResult.filter(item => item.length > 0);
     for (let i = 0; i < textResult.length; i++) {
         result += Buffer.from(textResult[i]).toString("utf8");
@@ -282,6 +282,7 @@ function parseMsgContentFromPBV2(msgBuf: Buffer, isDebug = false): string {
             result += ","; // 每个字段之间用逗号分隔
         }
     }
+
     return result;
 }
 

@@ -12,6 +12,7 @@ const LOGGER = Logger.withTag("📰 [orchestrator] [ReportScheduler]");
  */
 function parseTimeStr(timeStr: string): { hour: number; minute: number } {
     const [hour, minute] = timeStr.split(":").map(Number);
+
     return { hour, minute };
 }
 
@@ -39,6 +40,7 @@ function calculateHalfDailyTimeRange(
         // 第一个时间点，从前一天最后一个时间点开始
         const lastTime = parseTimeStr(sortedTimes[sortedTimes.length - 1]);
         const startDate = new Date(triggerTime);
+
         startDate.setDate(startDate.getDate() - 1);
         startDate.setHours(lastTime.hour, lastTime.minute, 0, 0);
         timeStart = startDate.getTime();
@@ -46,6 +48,7 @@ function calculateHalfDailyTimeRange(
         // 从前一个时间点开始
         const prevTime = parseTimeStr(sortedTimes[currentIndex - 1]);
         const startDate = new Date(triggerTime);
+
         startDate.setHours(prevTime.hour, prevTime.minute, 0, 0);
         timeStart = startDate.getTime();
     }
@@ -62,6 +65,7 @@ export async function setupReportScheduler(): Promise<void> {
     // 检查日报功能是否启用
     if (!config.report?.enabled) {
         LOGGER.info("📰 日报功能未启用");
+
         return;
     }
 
@@ -91,8 +95,10 @@ export async function setupReportScheduler(): Promise<void> {
     for (const timeStr of reportConfig.schedule.halfDailyTimes) {
         agendaInstance.define(`HalfDailyReport_${timeStr}`, async () => {
             const currentConfig = await ConfigManagerService.getCurrentConfig();
+
             if (!currentConfig.report?.enabled) {
                 LOGGER.info("日报功能未启用，跳过");
+
                 return;
             }
 
@@ -134,8 +140,10 @@ export async function setupReportScheduler(): Promise<void> {
 
     agendaInstance.define("WeeklyReport", async () => {
         const currentConfig = await ConfigManagerService.getCurrentConfig();
+
         if (!currentConfig.report?.enabled) {
             LOGGER.info("日报功能未启用，跳过");
+
             return;
         }
 
@@ -175,8 +183,10 @@ export async function setupReportScheduler(): Promise<void> {
 
     agendaInstance.define("MonthlyReport", async () => {
         const currentConfig = await ConfigManagerService.getCurrentConfig();
+
         if (!currentConfig.report?.enabled) {
             LOGGER.info("日报功能未启用，跳过");
+
             return;
         }
 

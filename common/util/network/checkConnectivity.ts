@@ -31,6 +31,7 @@ async function checkConnectivityV2(timeout: number = 5000): Promise<boolean> {
             // Microsoft 的该端点应返回"Microsoft Connect Test"
             if (res.statusCode === 200) {
                 let data = "";
+
                 res.on("data", chunk => {
                     data += chunk;
                 });
@@ -62,6 +63,7 @@ export async function checkConnectivity(timeout: number = 5000): Promise<boolean
         return (await checkConnectivityV1(timeout)) || (await checkConnectivityV2(timeout));
     } catch (error) {
         console.error("网络连通性检查失败:", error);
+
         return false;
     }
 }

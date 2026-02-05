@@ -34,6 +34,7 @@ class ReportEmailService {
         if (!this._logger) {
             this._logger = Logger.withTag("ReportEmailService");
         }
+
         return this._logger;
     }
 
@@ -49,6 +50,7 @@ class ReportEmailService {
         // 检查日报邮件发送功能是否启用
         if (!config.report.sendEmail) {
             this.LOGGER.info("日报邮件发送功能未启用，跳过发送");
+
             return false;
         }
 
@@ -67,6 +69,7 @@ class ReportEmailService {
         // 检查邮件功能是否启用
         if (!config.email.enabled) {
             this.LOGGER.info("邮件功能未启用，无法发送日报邮件");
+
             return false;
         }
 
@@ -108,6 +111,7 @@ class ReportEmailService {
 
         if (report.type === "half-daily") {
             const period = startDate.getHours() < 12 ? "上午" : "下午";
+
             return `[Synthos 半日报] ${dateStr} ${period}`;
         } else if (report.type === "weekly") {
             return `[Synthos 周报] ${dateStr}`;

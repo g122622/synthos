@@ -2,7 +2,7 @@
  * EmbeddingService
  * 封装 Ollama 的 /api/embed 接口，提供文本嵌入向量生成能力
  */
-import 'reflect-metadata';
+import "reflect-metadata";
 import axios, { AxiosInstance } from "axios";
 import Logger from "@root/common/util/Logger";
 import { injectable } from "tsyringe";
@@ -44,6 +44,7 @@ export class EmbeddingService {
      */
     async embed(text: string): Promise<Float32Array> {
         const embeddings = await this.embedBatch([text]);
+
         return embeddings[0];
     }
 
@@ -97,6 +98,7 @@ export class EmbeddingService {
     async isAvailable(): Promise<boolean> {
         try {
             await this.client.get("/api/tags");
+
             return true;
         } catch {
             return false;
