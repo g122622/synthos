@@ -67,7 +67,10 @@ export class ProvideDataTaskHandler {
                     this.LOGGER.debug(`开始获取群 ${groupId} 的消息`);
 
                     const results = await activeProvider.getMsgByTimeRange(
-                        attrs.startTimeStamp,
+                        attrs.startTimeStamp < 0 // 如果是负数则代表自动获取时间范围
+                            ? (await this.imDbAccessService.getNewestRawChatMessageByGroupId(groupId)).timestamp -
+                                  1000 // 避免漏掉最后一条消息，回溯1秒
+                            : attrs.startTimeStamp,
                         attrs.endTimeStamp,
                         groupId
                     );

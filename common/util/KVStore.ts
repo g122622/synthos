@@ -29,7 +29,7 @@ export class KVStore<T = any> extends Disposable {
     }
 
     /**
-     * 读取值
+     * 读取值（不存在时返回 undefined）
      */
     async get(key: string): Promise<T | undefined> {
         try {

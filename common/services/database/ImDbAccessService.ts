@@ -62,7 +62,7 @@ export class ImDbAccessService extends Disposable {
         // 构建基础SQL模板（带冲突处理）
         const baseSql = `
         INSERT INTO chat_messages (
-            msgId, messageContent, groupId, timestamp, senderId, 
+            msgId, messageContent, groupId, timestamp, senderId,
             senderGroupNickname, senderNickname, quotedMsgId, quotedMsgContent
         ) VALUES ${Array(batchSize).fill("(?, ?, ?, ?, ?, ?, ?, ?, ?)").join(", ")}
         ON CONFLICT(msgId) DO NOTHING
@@ -270,7 +270,7 @@ export class ImDbAccessService extends Disposable {
         this.LOGGER.info(`去重前消息数量: ${res.length}`);
         // 按照id进行去重
         const uniqueResMap = new Map<string, ProcessedChatMessageWithRawMessage>();
-        (await res).forEach(item => {
+        res.forEach(item => {
             uniqueResMap.set(item.msgId, item);
         });
         const dedupedArr = Array.from(uniqueResMap.values());
@@ -304,13 +304,13 @@ export class ImDbAccessService extends Disposable {
         // 使用 SQL 进行小时级别聚合统计
         // hourTimestamp 为每小时的起始时间戳（整点对齐）
         const sql = `
-            SELECT 
+            SELECT
                 groupId,
                 (timestamp / 3600000) * 3600000 AS hourTimestamp,
                 COUNT(*) AS count
-            FROM chat_messages 
-            WHERE groupId IN (${placeholders}) 
-                AND timestamp >= ? 
+            FROM chat_messages
+            WHERE groupId IN (${placeholders})
+                AND timestamp >= ?
                 AND timestamp < ?
             GROUP BY groupId, hourTimestamp
             ORDER BY groupId, hourTimestamp

@@ -55,7 +55,7 @@ class OrchestratorApplication {
             async job => {
                 LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
                 config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
-                const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours);
+                const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours); // 如果是负数则代表自动获取时间范围
                 const endTimeStamp = Date.now();
 
                 const groupIds = Object.keys(config.groupConfigs);
@@ -72,7 +72,7 @@ class OrchestratorApplication {
                     {
                         IMType: IMTypes.QQ, // TODO: 支持多种 IM 类型
                         groupIds,
-                        startTimeStamp,
+                        startTimeStamp: -1,
                         endTimeStamp
                     },
                     POLL_INTERVAL,
