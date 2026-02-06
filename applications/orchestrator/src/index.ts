@@ -1,30 +1,227 @@
 import "reflect-metadata";
+import { container } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
-import { cleanupStaleJobs, scheduleAndWaitForJob } from "@root/common/scheduler/jobUtils";
+import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
+import { cleanupStaleJobs } from "@root/common/scheduler/jobUtils";
 import { registerConfigManagerService } from "@root/common/di/container";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
-import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { sleep } from "@root/common/util/promisify/sleep";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
+import {
+    WorkflowDefinition,
+    WorkflowNodeType,
+    WorkflowNode,
+    WorkflowEdge
+} from "@root/common/contracts/workflow/index";
+import { getHoursAgoTimestamp } from "@root/common/util/TimeUtils";
 
-import { setupReportScheduler } from "./schedulers/reportScheduler";
+import { ExecutionPersistence } from "./core/ExecutionPersistence";
+import { startOrchestratorRPCServer } from "./rpc/server";
+import { OrchestratorRPCImpl } from "./rpc/impl";
+
+const LOGGER = Logger.withTag("🎭 orchestrator");
 
 /**
- * Pipeline 执行顺序（严格串行）:
- * 1. ProvideData - 获取原始数据
- * 2. Preprocess - 预处理数据
- * 3. AISummarize - AI 摘要生成
- * 4. GenerateEmbedding - 生成向量嵌入
- * 5. InterestScore - 计算兴趣度评分
- * 6. LLMInterestEvaluationAndNotification - LLM智能兴趣评估与邮件通知
+ * 生成默认工作流定义（对标原有 6 步 Pipeline）
+ * @param config 当前配置
+ * @returns 默认工作流定义
  */
+function generateDefaultWorkflow(config: any): WorkflowDefinition {
+    const nodes: WorkflowNode[] = [
+        {
+            id: "start",
+            type: WorkflowNodeType.Start,
+            position: { x: 100, y: 100 },
+            data: { label: "开始" }
+        },
+        {
+            id: "provideData",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 200 },
+            data: {
+                label: "获取原始数据",
+                taskType: TaskHandlerTypes.ProvideData,
+                params: {
+                    IMType: IMTypes.QQ,
+                    groupIds: Object.keys(config.groupConfigs),
+                    startTimeStamp: -1,
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "preprocess",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 300 },
+            data: {
+                label: "预处理数据",
+                taskType: TaskHandlerTypes.Preprocess,
+                params: {
+                    groupIds: Object.keys(config.groupConfigs),
+                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "aiSummarize",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 400 },
+            data: {
+                label: "AI 摘要生成",
+                taskType: TaskHandlerTypes.AISummarize,
+                params: {
+                    groupIds: Object.keys(config.groupConfigs),
+                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "generateEmbedding",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 500 },
+            data: {
+                label: "生成向量嵌入",
+                taskType: TaskHandlerTypes.GenerateEmbedding,
+                params: {
+                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "interestScore",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 600 },
+            data: {
+                label: "计算兴趣度评分",
+                taskType: TaskHandlerTypes.InterestScore,
+                params: {
+                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "llmInterestEvaluation",
+            type: WorkflowNodeType.Task,
+            position: { x: 100, y: 700 },
+            data: {
+                label: "LLM 智能兴趣评估与邮件通知",
+                taskType: TaskHandlerTypes.LLMInterestEvaluationAndNotification,
+                params: {
+                    startTimeStamp: getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours),
+                    endTimeStamp: Date.now()
+                },
+                retryCount: 0,
+                timeoutMs: 90 * 60 * 1000,
+                skipOnFailure: false
+            }
+        },
+        {
+            id: "end",
+            type: WorkflowNodeType.End,
+            position: { x: 100, y: 800 },
+            data: { label: "结束" }
+        }
+    ];
 
-// 注意：日报生成任务由 reportScheduler 负责，独立于主 Pipeline
+    const edges: WorkflowEdge[] = [
+        { id: "e1", source: "start", target: "provideData" },
+        { id: "e2", source: "provideData", target: "preprocess" },
+        { id: "e3", source: "preprocess", target: "aiSummarize" },
+        { id: "e4", source: "aiSummarize", target: "generateEmbedding" },
+        { id: "e5", source: "generateEmbedding", target: "interestScore" },
+        { id: "e6", source: "interestScore", target: "llmInterestEvaluation" },
+        { id: "e7", source: "llmInterestEvaluation", target: "end" }
+    ];
 
-const LOGGER = Logger.withTag("🎭 orchestrator-root-script");
+    return {
+        id: "default-pipeline",
+        name: "默认数据处理流程",
+        description:
+            "对标原有 6 步 Pipeline：ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore → LLMInterestEvaluation",
+        nodes,
+        edges,
+        viewport: { x: 0, y: 0, zoom: 1 }
+    };
+}
+
+/**
+ * 生成报告定时工作流
+ * @param config 当前配置
+ * @returns 报告工作流定义数组
+ */
+function generateReportWorkflows(config: any): WorkflowDefinition[] {
+    if (!config.report?.enabled) {
+        return [];
+    }
+
+    const workflows: WorkflowDefinition[] = [];
+
+    // 半日报工作流（每个时间点一个独立流程）
+    config.report.schedule.halfDailyTimes.forEach((timeStr: string, index: number) => {
+        workflows.push({
+            id: `half-daily-report-${timeStr.replace(":", "")}`,
+            name: `半日报 (${timeStr})`,
+            description: `每日 ${timeStr} 生成半日报`,
+            nodes: [
+                {
+                    id: "start",
+                    type: WorkflowNodeType.Start,
+                    position: { x: 100, y: 100 },
+                    data: { label: "开始" }
+                },
+                {
+                    id: "generateReport",
+                    type: WorkflowNodeType.Task,
+                    position: { x: 100, y: 200 },
+                    data: {
+                        label: "生成半日报",
+                        taskType: TaskHandlerTypes.GenerateReport,
+                        params: {
+                            reportType: "half-daily",
+                            timeStart: 0, // 动态计算
+                            timeEnd: 0 // 动态计算
+                        }
+                    }
+                },
+                {
+                    id: "end",
+                    type: WorkflowNodeType.End,
+                    position: { x: 100, y: 300 },
+                    data: { label: "结束" }
+                }
+            ],
+            edges: [
+                { id: "e1", source: "start", target: "generateReport" },
+                { id: "e2", source: "generateReport", target: "end" }
+            ],
+            viewport: { x: 0, y: 0, zoom: 1 }
+        });
+    });
+
+    return workflows;
+}
 
 @bootstrap
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -33,11 +230,32 @@ class OrchestratorApplication {
         // 初始化 DI 容器
         registerConfigManagerService();
 
-        let config = await ConfigManagerService.getCurrentConfig();
+        const config = await ConfigManagerService.getCurrentConfig();
 
-        // 在启动前清理所有残留任务，避免上次运行残留的任务导致非预期执行
+        // 初始化执行持久化服务
+        const persistence = new ExecutionPersistence(container.resolve(COMMON_TOKENS.ConfigManagerService));
+
+        await persistence.init();
+
+        // 检查配置中是否已存在 workflows，如果没有则生成默认流程
+        let workflows = config.orchestrator.workflows || [];
+
+        if (workflows.length === 0) {
+            LOGGER.warning("⚠️ 配置中未找到工作流定义，生成默认流程...");
+            const defaultWorkflow = generateDefaultWorkflow(config);
+            const reportWorkflows = generateReportWorkflows(config);
+
+            // 类型断言：我们确信生成的 WorkflowDefinition 符合运行时需求
+            workflows = [defaultWorkflow as any, ...reportWorkflows.map(wf => wf as any)];
+
+            // 保存到配置文件（首次启动自动生成）
+            // 注意：这里需要实现配置保存逻辑，暂时只记录日志
+            LOGGER.info("默认工作流已生成，需要手动更新配置文件或通过前端保存");
+            LOGGER.info(JSON.stringify(workflows, null, 2));
+        }
+
+        // 清理残留任务
         await cleanupStaleJobs([
-            TaskHandlerTypes.RunPipeline,
             TaskHandlerTypes.ProvideData,
             TaskHandlerTypes.Preprocess,
             TaskHandlerTypes.AISummarize,
@@ -47,173 +265,71 @@ class OrchestratorApplication {
             TaskHandlerTypes.GenerateReport
         ]);
 
-        // 定义 RunPipeline 任务
-        await agendaInstance
-            .create(TaskHandlerTypes.RunPipeline)
-            .unique({ name: TaskHandlerTypes.RunPipeline }, { insertOnly: true })
-            .save();
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.RunPipeline>>(
-            TaskHandlerTypes.RunPipeline,
-            async job => {
-                LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
-                config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
-                const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours); // 如果是负数则代表自动获取时间范围
-                const endTimeStamp = Date.now();
-
-                const groupIds = Object.keys(config.groupConfigs);
-
-                LOGGER.info(`Pipeline 配置 - 处理群组: ${groupIds.join(", ")}`);
-
-                // 任务超时时间配置（毫秒）
-                const TASK_TIMEOUT = 90 * 60 * 1000; // 90分钟
-                const POLL_INTERVAL = 5000; // 5秒
-
-                // ==================== 步骤 1: ProvideData ====================
-                LOGGER.info("📥 [1/5] 开始执行 ProvideData 任务...");
-                const provideDataSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.ProvideData,
-                    {
-                        IMType: IMTypes.QQ, // TODO: 支持多种 IM 类型
-                        groupIds,
-                        startTimeStamp: -1,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!provideDataSuccess) {
-                    LOGGER.error("❌ ProvideData 任务失败，Pipeline 终止");
-                    job.fail("ProvideData task failed");
-
-                    return;
-                }
-                await job.touch();
-
-                // ==================== 步骤 2: Preprocess ====================
-                LOGGER.info("🔧 [2/5] 开始执行 Preprocess 任务...");
-                const preprocessSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.Preprocess,
-                    {
-                        groupIds,
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!preprocessSuccess) {
-                    LOGGER.error("❌ Preprocess 任务失败，Pipeline 终止");
-                    job.fail("Preprocess task failed");
-
-                    return;
-                }
-                await job.touch();
-
-                // ==================== 步骤 3: AISummarize ====================
-                LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
-                const aiSummarizeSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.AISummarize,
-                    {
-                        groupIds,
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!aiSummarizeSuccess) {
-                    LOGGER.error("❌ AISummarize 任务失败，Pipeline 终止");
-                    job.fail("AISummarize task failed");
-
-                    return;
-                }
-                await job.touch();
-
-                // ==================== 步骤 4: GenerateEmbedding ====================
-                LOGGER.info("📐 [4/5] 开始执行 GenerateEmbedding 任务...");
-                const generateEmbeddingSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.GenerateEmbedding,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!generateEmbeddingSuccess) {
-                    LOGGER.error("❌ GenerateEmbedding 任务失败，Pipeline 终止");
-                    job.fail("GenerateEmbedding task failed");
-
-                    return;
-                }
-                await job.touch();
-
-                // ==================== 步骤 5: InterestScore ====================
-                LOGGER.info("⭐ [5/6] 开始执行 InterestScore 任务...");
-                const interestScoreSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.InterestScore,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!interestScoreSuccess) {
-                    LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-                    job.fail("InterestScore task failed");
-
-                    return;
-                }
-                await job.touch();
-
-                // ==================== 步骤 6: LLMInterestEvaluationAndNotification ====================
-                LOGGER.info("🔔 [6/6] 开始执行 LLMInterestEvaluationAndNotification 任务...");
-                const llmInterestEvaluationSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.LLMInterestEvaluationAndNotification,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
-
-                if (!llmInterestEvaluationSuccess) {
-                    LOGGER.error("❌ LLMInterestEvaluationAndNotification 任务失败，Pipeline 终止");
-                    job.fail("LLMInterestEvaluationAndNotification task failed");
-
-                    return;
-                }
-
-                LOGGER.success(`🎉 Pipeline 任务全部完成！`);
-            },
-            {
-                concurrency: 1,
-                priority: "high",
-                lockLifetime: 90 * 60 * 1000 // 90min（Pipeline 整体超时）
-            }
+        // 创建 RPC 实现
+        const rpcImpl = new OrchestratorRPCImpl(
+            container.resolve(COMMON_TOKENS.ConfigManagerService),
+            persistence
         );
 
-        await sleep(10 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
+        // 启动 tRPC Server
+        const rpcPort = config.orchestrator.rpcPort;
 
-        // 读取配置，设置定时执行 Pipeline
-        const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
+        startOrchestratorRPCServer(rpcImpl, rpcPort);
 
-        LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
-        await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
-        await agendaInstance.now(TaskHandlerTypes.RunPipeline);
+        await sleep(10 * 1000); // 等其他 apps 启动后再开始
+
+        // 注册定时触发（对于主流程，按配置的 pipelineIntervalInMinutes 触发）
+        const defaultWorkflow = workflows.find(wf => wf.id === "default-pipeline");
+
+        if (defaultWorkflow) {
+            const intervalMinutes = config.orchestrator.pipelineIntervalInMinutes;
+
+            LOGGER.info(`📋 注册默认流程定时触发: 每 ${intervalMinutes} 分钟`);
+
+            // 使用 Agenda 注册定时任务
+            agendaInstance.define("TriggerDefaultWorkflow", async () => {
+                LOGGER.info("⏰ 定时触发默认流程");
+                await rpcImpl.triggerWorkflow({ workflowId: "default-pipeline" });
+            });
+
+            await agendaInstance.every(`${intervalMinutes} minutes`, "TriggerDefaultWorkflow");
+
+            // 立即执行一次
+            await rpcImpl.triggerWorkflow({ workflowId: "default-pipeline" });
+        }
+
+        // 注册报告定时任务
+        const reportWorkflows = workflows.filter(wf => wf.id.startsWith("half-daily-report-"));
+
+        for (const workflow of reportWorkflows) {
+            const timeStr = workflow.name.match(/\((\d{2}:\d{2})\)/)?.[1];
+
+            if (!timeStr) {
+                continue;
+            }
+
+            const [hour, minute] = timeStr.split(":").map(Number);
+            const cronExpression = `${minute} ${hour} * * *`;
+
+            LOGGER.info(`📰 注册报告流程定时触发: ${workflow.name} (cron: ${cronExpression})`);
+
+            agendaInstance.define(`TriggerWorkflow_${workflow.id}`, async () => {
+                LOGGER.info(`⏰ 定时触发报告流程: ${workflow.name}`);
+                await rpcImpl.triggerWorkflow({ workflowId: workflow.id });
+            });
+
+            await agendaInstance.every(
+                cronExpression,
+                `TriggerWorkflow_${workflow.id}`,
+                {},
+                { skipImmediate: true }
+            );
+        }
 
         LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
         await agendaInstance.start();
 
-        // 设置日报定时任务
-        await setupReportScheduler();
+        LOGGER.success("🎭 Orchestrator 服务已完全启动");
     }
 }
 

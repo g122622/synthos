@@ -33,6 +33,7 @@ import { SystemMonitorService } from "../services/SystemMonitorService";
 import { AgentService } from "../services/AgentService";
 import { LogsService } from "../services/LogsService";
 import { createRAGClient } from "../rpc/aiModelClient";
+import { createOrchestratorClient } from "../rpc/orchestratorClient";
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
 import { ChatMessageFtsController } from "../controllers/ChatMessageFtsController";
@@ -96,6 +97,16 @@ export function registerRAGClient(rpcBaseUrl: string): void {
     const client = createRAGClient(rpcBaseUrl);
 
     container.registerInstance(TOKENS.RAGClient, client);
+}
+
+/**
+ * 注册 Orchestrator RPC 客户端
+ * @param rpcBaseUrl Orchestrator RPC 服务地址
+ */
+export function registerOrchestratorClient(rpcBaseUrl: string): void {
+    const client = createOrchestratorClient(rpcBaseUrl);
+
+    container.registerInstance(TOKENS.OrchestratorClient, client);
 }
 
 /**

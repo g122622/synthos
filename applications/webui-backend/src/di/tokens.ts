@@ -25,6 +25,7 @@ export const TOKENS = {
 
     // RPC Clients
     RAGClient: Symbol.for("RAGClient"),
+    OrchestratorClient: Symbol.for("OrchestratorClient"),
 
     // Services
     AIDigestService: Symbol.for("AIDigestService"),

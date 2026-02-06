@@ -80,7 +80,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 > - [TODO] 上下文中间件支持补充链接查询结果
 > - [TODO] 上下文中间件支持过滤违禁词
 > - ✅ 后端子项目可以监听代码变动，进行HMR
-> - [TODO] 支持可视化任务编排
+> - ✅ 已完成 可视化工作流编排（基于事件驱动的 DAG 执行引擎）
 > - [TODO] 支持进行关键词or语义实时监听群内消息，并快速发邮件通知
 > - ✅ 支持监控各个模块的CPU和内存占用、支持监控存储空间占用。将这些数据持久化，并可通过前端看到趋势图，以及通过健康检测接口看到实时值。
 > - ✅ 已完成 兴趣度指数：用户给出自己的兴趣偏好（关键词标签组），系统根据用户的兴趣偏好为每个话题打分，排序后推荐给用户。（用户也可以标记不喜欢的话题，此时话题得分为负数）
@@ -112,8 +112,8 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 | `data-provider` | 从 QQ 等 IM 平台获取原始聊天记录 |
 | `preprocessing` | 清洗、分组、上下文拼接、引用解析 |
 | `ai-model` | 文本向量化、主题提取、摘要生成、兴趣度计算、向量嵌入存储与检索（RAG） |
-| `orchestrator` | Pipeline 调度器，按顺序串联执行各数据处理任务（ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore） |
-| `webui-backend` | 提供 RESTful API，支持群组管理、消息查询、结果获取 |
+| `orchestrator` | **可视化工作流引擎**，支持 DAG 工作流定义、tRPC 远程管理，提供流程触发、暂停、重试、断点续跑等能力，默认包含标准数据处理流程（ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore） |
+| `webui-backend` | 提供 RESTful API，支持群组管理、消息查询、结果获取；作为 tRPC 客户端转发 orchestrator 和 ai-model 的 RPC 调用 |
 | `common` | 共享类型定义、配置管理、数据库工具、日志系统 |
 
 ---

@@ -869,3 +869,370 @@ Body：
   data: { valid: true } | { valid: false; errors: string[] }
 }
 ```
+
+---
+
+## 21. Orchestrator RPC 接口
+
+**说明**：webui-backend 作为 tRPC 客户端，转发 orchestrator 的工作流管理 RPC 调用。所有接口均通过 HTTP POST 调用 `/api/<methodName>`。
+
+### 21.1 listWorkflows - 列出所有工作流
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/listWorkflows`
+- Body: `{}`（无参数）
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "default-pipeline",
+      "name": "标准数据处理流程",
+      "description": "ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore",
+      "nodes": [
+        {
+          "id": "provide-data",
+          "type": "task",
+          "position": { "x": 100, "y": 100 },
+          "data": {
+            "label": "提供数据",
+            "taskType": "ProvideData",
+            "params": {},
+            "retryCount": 3,
+            "timeoutMs": 600000
+          }
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "provide-data", "target": "preprocess" }
+      ]
+    }
+  ]
+}
+```
+
+### 21.2 getWorkflow - 获取单个工作流详情
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/getWorkflow`
+- Body:
+
+```json
+{
+  "workflowId": "default-pipeline"
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "default-pipeline",
+    "name": "标准数据处理流程",
+    "description": "...",
+    "nodes": [...],
+    "edges": [...]
+  }
+}
+```
+
+#### 错误
+
+```json
+{
+  "success": false,
+  "message": "工作流 xxx 不存在"
+}
+```
+
+### 21.3 triggerWorkflow - 手动触发工作流执行
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/triggerWorkflow`
+- Body:
+
+```json
+{
+  "workflowId": "default-pipeline"
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "executionId": "exec_1706123456789_abc123",
+    "message": "工作流执行已启动"
+  }
+}
+```
+
+#### 错误
+
+```json
+{
+  "success": false,
+  "message": "工作流 xxx 不存在"
+}
+```
+
+### 21.4 cancelExecution - 取消正在执行的工作流
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/cancelExecution`
+- Body:
+
+```json
+{
+  "executionId": "exec_1706123456789_abc123"
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "message": "工作流执行已取消"
+  }
+}
+```
+
+#### 错误
+
+```json
+{
+  "success": false,
+  "message": "执行 xxx 不存在或无法取消"
+}
+```
+
+### 21.5 retryExecution - 断点续跑（从失败节点重新执行）
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/retryExecution`
+- Body:
+
+```json
+{
+  "executionId": "exec_1706123456789_abc123"
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "newExecutionId": "exec_1706123999999_xyz789",
+    "message": "断点续跑已启动"
+  }
+}
+```
+
+#### 错误
+
+```json
+{
+  "success": false,
+  "message": "执行 xxx 不存在"
+}
+```
+
+### 21.6 listExecutions - 查询工作流执行历史
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/listExecutions`
+- Body:
+
+```json
+{
+  "workflowId": "default-pipeline",
+  "limit": 50
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "executionId": "exec_1706123456789_abc123",
+      "workflowId": "default-pipeline",
+      "status": "success",
+      "startedAt": 1706123456789,
+      "completedAt": 1706123999999,
+      "progress": {
+        "total": 6,
+        "completed": 6,
+        "failed": 0,
+        "running": 0
+      }
+    }
+  ]
+}
+```
+
+### 21.7 getExecution - 获取单次执行详情
+
+#### 请求
+
+- Method: `POST`
+- URL: `/api/getExecution`
+- Body:
+
+```json
+{
+  "executionId": "exec_1706123456789_abc123"
+}
+```
+
+#### 响应
+
+```json
+{
+  "success": true,
+  "data": {
+    "executionId": "exec_1706123456789_abc123",
+    "workflowId": "default-pipeline",
+    "status": "success",
+    "startedAt": 1706123456789,
+    "completedAt": 1706123999999,
+    "snapshot": {
+      "nodeStates": [
+        {
+          "nodeId": "provide-data",
+          "status": "success",
+          "result": {
+            "success": true,
+            "output": { "recordCount": 100 }
+          }
+        },
+        {
+          "nodeId": "preprocess",
+          "status": "success",
+          "result": {
+            "success": true,
+            "output": { "sessionCount": 10 }
+          }
+        }
+      ],
+      "executionContext": {
+        "provide-data": { "success": true, "output": { "recordCount": 100 } }
+      }
+    }
+  }
+}
+```
+
+#### 错误
+
+```json
+{
+  "success": false,
+  "message": "执行 xxx 不存在"
+}
+```
+
+### 21.8 onExecutionUpdate - 订阅执行状态更新（WebSocket）
+
+**说明**：此接口使用 tRPC 订阅机制，需通过 WebSocket 连接。前端应使用 `@trpc/client` 的 `wsLink` 创建 WebSocket 客户端。
+
+#### 连接
+
+- WebSocket URL: `ws://localhost:3002`（通过 webui-backend 转发）
+- Protocol: tRPC WebSocket Subscription
+
+#### 订阅请求
+
+```typescript
+import { createWSClient, createTRPCProxyClient, wsLink } from '@trpc/client';
+
+const wsClient = createWSClient({ url: 'ws://localhost:3002' });
+const client = createTRPCProxyClient({ links: [wsLink({ client: wsClient })] });
+
+client.onExecutionUpdate.subscribe({ executionId: "exec_xxx" }, {
+  onData(event) {
+    console.log("执行状态更新:", event);
+  },
+  onError(err) {
+    console.error("订阅错误:", err);
+  }
+});
+```
+
+#### 推送事件格式
+
+```json
+{
+  "type": "nodeStarted" | "nodeCompleted" | "nodeFailed" | "workflowCompleted" | "workflowFailed",
+  "executionId": "exec_1706123456789_abc123",
+  "nodeId": "provide-data",
+  "timestamp": 1706123456789,
+  "data": {
+    "nodeId": "provide-data",
+    "status": "running" | "success" | "failed",
+    "result": {
+      "success": true,
+      "output": { "recordCount": 100 },
+      "error": "错误信息（仅失败时）"
+    }
+  }
+}
+```
+
+#### 事件类型说明
+
+- `nodeStarted` - 节点开始执行
+- `nodeCompleted` - 节点执行成功
+- `nodeFailed` - 节点执行失败
+- `workflowCompleted` - 工作流执行完成
+- `workflowFailed` - 工作流执行失败
+
+---
+
+## 22. 工作流节点类型参考
+
+### 节点类型枚举
+
+| 类型 | 描述 |
+|------|------|
+| `start` | 开始节点（非必需） |
+| `end` | 结束节点（非必需） |
+| `task` | Agenda 任务节点（调用 Agenda 任务队列） |
+| `condition` | 条件分支节点 |
+| `parallel` | 并行节点 |
+| `script` | 脚本节点（执行自定义 JavaScript） |
+| `http` | HTTP 请求节点 |
+
+### 条件表达式类型
+
+| 类型 | 描述 |
+|------|------|
+| `previousNodeSuccess` | 上游节点执行成功 |
+| `previousNodeFailed` | 上游节点执行失败 |
+| `keyValueMatch` | 键值匹配（如 `previousNode.output.status === "ready"`） |
+| `customExpression` | 自定义 JavaScript 表达式 |

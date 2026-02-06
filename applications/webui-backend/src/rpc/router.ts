@@ -1,4 +1,5 @@
 import type { RAGClient } from "./aiModelClient";
+import type { OrchestratorClient } from "./orchestratorClient";
 import type { RagChatHistoryService } from "../services/RagChatHistoryService";
 import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 
@@ -11,6 +12,15 @@ import {
     AgentEvent,
     AskStreamChunk
 } from "@root/common/rpc/ai-model/schemas";
+import {
+    GetWorkflowInputSchema,
+    TriggerWorkflowInputSchema,
+    CancelExecutionInputSchema,
+    RetryExecutionInputSchema,
+    ListExecutionsInputSchema,
+    GetExecutionInputSchema,
+    OnExecutionUpdateInputSchema
+} from "@root/common/rpc/orchestrator/index";
 
 import { TOKENS } from "../di/tokens";
 
@@ -177,6 +187,71 @@ export const appRouter = t.router({
             return () => {
                 clientConnected = false;
             };
+        });
+    }),
+
+    // ==================== Orchestrator 相关接口（扁平结构） ====================
+
+    listWorkflows: t.procedure.query(async () => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.listWorkflows.query();
+    }),
+
+    getWorkflow: t.procedure.input(GetWorkflowInputSchema).query(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.getWorkflow.query(input);
+    }),
+
+    triggerWorkflow: t.procedure.input(TriggerWorkflowInputSchema).mutation(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.triggerWorkflow.mutate(input);
+    }),
+
+    cancelExecution: t.procedure.input(CancelExecutionInputSchema).mutation(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.cancelExecution.mutate(input);
+    }),
+
+    retryExecution: t.procedure.input(RetryExecutionInputSchema).mutation(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.retryExecution.mutate(input);
+    }),
+
+    listExecutions: t.procedure.input(ListExecutionsInputSchema).query(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.listExecutions.query(input);
+    }),
+
+    getExecution: t.procedure.input(GetExecutionInputSchema).query(async ({ input }) => {
+        const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+
+        // @ts-ignore - tRPC 类型推断问题，运行时正常
+        return client.getExecution.query(input);
+    }),
+
+    onExecutionUpdate: t.procedure.input(OnExecutionUpdateInputSchema).subscription(({ input }) => {
+        return observable(emit => {
+            const client = container.resolve<OrchestratorClient>(TOKENS.OrchestratorClient);
+            // @ts-ignore - tRPC 类型推断问题，运行时正常
+            const sub = client.onExecutionUpdate.subscribe(input, {
+                onData: data => emit.next(data),
+                onError: err => emit.error(err),
+                onComplete: () => emit.complete()
+            });
+
+            return () => sub.unsubscribe();
         });
     })
 });

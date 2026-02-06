@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DeepRequired } from "../../../util/type/DeepRequired";
+import { WorkflowDefinitionSchema } from "../../../contracts/workflow/index";
 
 // ==================== Zod Schema 定义（用于运行时验证）====================
 
@@ -186,7 +187,9 @@ export const GlobalConfigSchema = z.object({
     orchestrator: z
         .object({
             pipelineIntervalInMinutes: z.number().positive().int().describe("Pipeline 执行间隔（分钟）"),
-            dataSeekTimeWindowInHours: z.number().positive().int().describe("数据时间窗口（小时）")
+            dataSeekTimeWindowInHours: z.number().positive().int().describe("数据时间窗口（小时）"),
+            rpcPort: z.number().int().positive().describe("RPC 服务端口"),
+            workflows: z.array(WorkflowDefinitionSchema).describe("工作流定义列表")
         })
         .describe("调度器配置"),
 
