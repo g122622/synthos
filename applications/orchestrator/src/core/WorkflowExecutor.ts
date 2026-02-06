@@ -17,6 +17,7 @@ import { ExecutionContext } from "./ExecutionContext";
 import { DagParser } from "./DagParser";
 import { ConditionEvaluator } from "./ConditionEvaluator";
 import { NodeExecutionStrategy } from "./NodeExecutionStrategy";
+import { ExecutionPersistence } from "./ExecutionPersistence";
 
 const LOGGER = Logger.withTag("🎯 WorkflowExecutor");
 
@@ -33,18 +34,26 @@ export class WorkflowExecutor extends EventEmitter {
     private _executionStrategy: NodeExecutionStrategy;
     private _executionId: string;
     private _nodeMap: Map<string, WorkflowNode>;
+    private _persistence: ExecutionPersistence | null;
 
     /**
      * 构造函数
      * @param workflowDefinition 工作流定义
      * @param executionId 执行 ID
      * @param adapter 节点执行器适配器
+     * @param persistence 执行持久化服务（可选）
      */
-    public constructor(workflowDefinition: WorkflowDefinition, executionId: string, adapter: NodeExecutorAdapter) {
+    public constructor(
+        workflowDefinition: WorkflowDefinition,
+        executionId: string,
+        adapter: NodeExecutorAdapter,
+        persistence: ExecutionPersistence | null = null
+    ) {
         super();
         this._workflowDefinition = workflowDefinition;
         this._executionId = executionId;
         this._adapter = adapter;
+        this._persistence = persistence;
         this._conditionEvaluator = new ConditionEvaluator();
         this._executionStrategy = new NodeExecutionStrategy();
 
@@ -63,18 +72,27 @@ export class WorkflowExecutor extends EventEmitter {
 
     /**
      * 执行工作流
+     * @param resumeFromSaved 是否从保存的状态恢复（断点续跑）
      * @returns 工作流执行实例
      */
-    public async execute(): Promise<WorkflowExecution> {
+    public async execute(resumeFromSaved: boolean = false): Promise<WorkflowExecution> {
         const startedAt = Date.now();
 
         LOGGER.info(`开始执行工作流 [${this._executionSnapshot.name}] (ID: ${this._executionId})`);
+
+        // 如果启用断点续跑，尝试从数据库加载之前的执行状态
+        if (resumeFromSaved && this._persistence) {
+            await this._resumeFromSaved();
+        }
 
         this.emit("executionStarted", {
             executionId: this._executionId,
             workflowId: this._executionSnapshot.id,
             startedAt
         });
+
+        // 立即保存初始状态
+        await this._persistCurrentState(startedAt, WorkflowExecutionStatus.Running);
 
         try {
             // 1. 解析 DAG 并生成执行计划
@@ -115,7 +133,7 @@ export class WorkflowExecutor extends EventEmitter {
                 completedAt
             });
 
-            return {
+            const finalExecution: WorkflowExecution = {
                 executionId: this._executionId,
                 workflowId: this._executionSnapshot.id,
                 status: WorkflowExecutionStatus.Success,
@@ -124,6 +142,11 @@ export class WorkflowExecutor extends EventEmitter {
                 completedAt,
                 snapshot: this._executionSnapshot
             };
+
+            // 保存最终状态
+            await this._persistExecution(finalExecution);
+
+            return finalExecution;
         } catch (error) {
             const completedAt = Date.now();
 
@@ -139,7 +162,7 @@ export class WorkflowExecutor extends EventEmitter {
             // 将所有未完成的节点标记为 Cancelled
             this._cancelUnfinishedNodes();
 
-            return {
+            const finalExecution: WorkflowExecution = {
                 executionId: this._executionId,
                 workflowId: this._executionSnapshot.id,
                 status: WorkflowExecutionStatus.Failed,
@@ -148,11 +171,16 @@ export class WorkflowExecutor extends EventEmitter {
                 completedAt,
                 snapshot: this._executionSnapshot
             };
+
+            // 保存失败状态
+            await this._persistExecution(finalExecution);
+
+            return finalExecution;
         }
     }
 
     /**
-     * 过滤可执行的节点（检查前置节点是否完成）
+     * 过滤可执行的节点（检查前置节点是否完成 且 自身未完成）
      * @param nodeIds 候选节点 ID 列表
      * @returns 可执行的节点 ID 列表
      */
@@ -164,6 +192,27 @@ export class WorkflowExecutor extends EventEmitter {
 
             if (!node) {
                 continue;
+            }
+
+            // 断点续跑：如果节点已完成（Success/Skipped），则跳过
+            const currentState = this._executionContext.getNodeState(nodeId);
+
+            if (currentState) {
+                if (
+                    currentState.status === NodeExecutionStatus.Success ||
+                    currentState.status === NodeExecutionStatus.Skipped
+                ) {
+                    LOGGER.info(`节点 [${nodeId}] 已完成（状态: ${currentState.status}），跳过执行`);
+                    continue;
+                }
+
+                // Failed 或 Cancelled 状态的节点，在断点续跑时会重新执行
+                if (
+                    currentState.status === NodeExecutionStatus.Failed ||
+                    currentState.status === NodeExecutionStatus.Cancelled
+                ) {
+                    LOGGER.info(`节点 [${nodeId}] 之前状态为 ${currentState.status}，将重新执行`);
+                }
             }
 
             // 获取该节点的所有入边
@@ -300,9 +349,15 @@ export class WorkflowExecutor extends EventEmitter {
             if (result.success) {
                 LOGGER.success(`节点 [${nodeId}] 执行成功`);
                 this.emit("nodeCompleted", { nodeId, executionId: this._executionId, result });
+
+                // 节点成功完成后，持久化当前状态
+                await this._persistCurrentState(Date.now(), WorkflowExecutionStatus.Running);
             } else {
                 LOGGER.error(`节点 [${nodeId}] 执行失败: ${result.error}`);
                 this.emit("nodeFailed", { nodeId, executionId: this._executionId, result });
+
+                // 节点失败后，持久化当前状态
+                await this._persistCurrentState(Date.now(), WorkflowExecutionStatus.Running);
 
                 // 如果节点未设置 skipOnFailure，抛出异常终止流程
                 if (!node.data.skipOnFailure) {
@@ -327,6 +382,9 @@ export class WorkflowExecutor extends EventEmitter {
                 executionId: this._executionId,
                 error: (error as Error).message
             });
+
+            // 节点异常后，持久化当前状态
+            await this._persistCurrentState(Date.now(), WorkflowExecutionStatus.Running);
 
             throw error;
         }
@@ -453,6 +511,71 @@ export class WorkflowExecutor extends EventEmitter {
                 });
             }
         }
+    }
+
+    /**
+     * 保存当前执行状态到数据库
+     */
+    private async _persistCurrentState(startedAt: number, status: WorkflowExecutionStatus): Promise<void> {
+        if (!this._persistence) {
+            return;
+        }
+
+        const execution: WorkflowExecution = {
+            executionId: this._executionId,
+            workflowId: this._executionSnapshot.id,
+            status,
+            nodeStates: this._executionContext.getAllNodeStates(),
+            startedAt,
+            snapshot: this._executionSnapshot
+        };
+
+        await this._persistence.saveExecution(execution);
+    }
+
+    /**
+     * 保存完整的执行实例到数据库
+     */
+    private async _persistExecution(execution: WorkflowExecution): Promise<void> {
+        if (!this._persistence) {
+            return;
+        }
+
+        await this._persistence.saveExecution(execution);
+    }
+
+    /**
+     * 从数据库恢复执行状态（断点续跑）
+     */
+    private async _resumeFromSaved(): Promise<void> {
+        if (!this._persistence) {
+            return;
+        }
+
+        const savedExecution = await this._persistence.loadExecution(this._executionId);
+
+        if (!savedExecution) {
+            LOGGER.warning(`未找到执行 ID [${this._executionId}] 的保存状态，将从头开始执行`);
+
+            return;
+        }
+
+        LOGGER.info(
+            `从数据库加载执行状态，workflowId: ${savedExecution.workflowId}, status: ${savedExecution.status}`
+        );
+
+        // 恢复节点状态和节点结果到 ExecutionContext
+        for (const [nodeId, nodeState] of savedExecution.nodeStates.entries()) {
+            // 恢复节点状态
+            this._executionContext.setNodeState(nodeId, nodeState);
+
+            // 恢复节点执行结果（如果存在）
+            if (nodeState.result) {
+                this._executionContext.setNodeResult(nodeId, nodeState.result);
+            }
+        }
+
+        LOGGER.info(`已恢复 ${savedExecution.nodeStates.size} 个节点的状态`);
     }
 
     /**
