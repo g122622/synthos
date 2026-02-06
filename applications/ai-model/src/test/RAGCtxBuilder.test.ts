@@ -98,23 +98,22 @@ describe("RAGCtxBuilder", () => {
         // 由于 getRagAnswerPrompt 被模拟，我们需要直接调用内部方法来验证格式
         // 这里我们使用 spyOn 来部分模拟，保留原始实现
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagAnswerPromptSpy = vi
-            .spyOn(RagPromptStore, "getRagAnswerPrompt")
-            .mockImplementation((question, topics) => {
-                // 验证 topics 格式
-                expect(topics).toContain("【话题1:机器学习基础】");
-                expect(topics).toContain("【时间:2024-01-10】");
-                expect(topics).toContain("机器学习是人工智能的一个分支");
 
-                expect(topics).toContain("【话题2:深度学习应用】");
-                expect(topics).toContain("【时间:2024-01-12】");
-                expect(topics).toContain("深度学习在图像识别中的应用");
+        vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation((question, topics) => {
+            // 验证 topics 格式
+            expect(topics).toContain("【话题1:机器学习基础】");
+            expect(topics).toContain("【时间:2024-01-10】");
+            expect(topics).toContain("机器学习是人工智能的一个分支");
 
-                // 返回模拟的 CtxTemplateNode 对象
-                return {
-                    serializeToString: () => "mocked prompt"
-                } as any;
-            });
+            expect(topics).toContain("【话题2:深度学习应用】");
+            expect(topics).toContain("【时间:2024-01-12】");
+            expect(topics).toContain("深度学习在图像识别中的应用");
+
+            // 返回模拟的 CtxTemplateNode 对象
+            return {
+                serializeToString: () => "mocked prompt"
+            } as any;
+        });
 
         const prompt = await ragCtxBuilder.buildCtx(question, searchResults);
 
@@ -175,23 +174,22 @@ describe("RAGCtxBuilder", () => {
 
         // 使用 spyOn 验证传递给 RagPromptStore 的参数
         const { RagPromptStore } = await import("../context/prompts/RagPromptStore");
-        const getRagAnswerPromptSpy = vi
-            .spyOn(RagPromptStore, "getRagAnswerPrompt")
-            .mockImplementation((question, topics) => {
-                // 验证 topics 格式包含第一个话题的日期信息
-                expect(topics).toContain("【话题1:机器学习基础】");
-                expect(topics).toContain("【时间:2024-01-10】");
-                expect(topics).toContain("机器学习是人工智能的一个分支");
 
-                // 验证 topics 格式包含第二个话题但不包含日期信息
-                expect(topics).toContain("【话题2:深度学习应用】");
-                expect(topics).toContain("深度学习在图像识别中的应用");
+        vi.spyOn(RagPromptStore, "getRagAnswerPrompt").mockImplementation((question, topics) => {
+            // 验证 topics 格式包含第一个话题的日期信息
+            expect(topics).toContain("【话题1:机器学习基础】");
+            expect(topics).toContain("【时间:2024-01-10】");
+            expect(topics).toContain("机器学习是人工智能的一个分支");
 
-                // 返回模拟的 CtxTemplateNode 对象
-                return {
-                    serializeToString: () => "mocked prompt"
-                } as any;
-            });
+            // 验证 topics 格式包含第二个话题但不包含日期信息
+            expect(topics).toContain("【话题2:深度学习应用】");
+            expect(topics).toContain("深度学习在图像识别中的应用");
+
+            // 返回模拟的 CtxTemplateNode 对象
+            return {
+                serializeToString: () => "mocked prompt"
+            } as any;
+        });
 
         const prompt = await ragCtxBuilder.buildCtx(question, searchResults);
 

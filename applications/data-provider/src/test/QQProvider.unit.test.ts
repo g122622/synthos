@@ -112,10 +112,9 @@ vi.mock("@root/common/util/lifecycle/Disposable", () => ({
 }));
 
 // 在所有 mock 之后导入被测试的模块
-import { QQProvider } from "../providers/QQProvider/QQProvider";
-
+// eslint-disable-next-line import/order
 import { registerConfigManagerService } from "@root/common/di/container";
-
+import { QQProvider } from "../providers/QQProvider/QQProvider";
 import { registerQQProvider, getQQProvider } from "../di/container";
 
 // 初始化 DI 容器

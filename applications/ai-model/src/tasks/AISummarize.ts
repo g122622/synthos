@@ -164,7 +164,7 @@ export class AISummarizeTaskHandler {
                     async (result: PooledTaskResult<TaskContext>) => {
                         await job.touch(); // 保证任务存活
                         completedCount++;
-                        const { sessionId, groupId } = result.context;
+                        const { sessionId } = result.context;
 
                         if (!result.isSuccess) {
                             this.LOGGER.error(

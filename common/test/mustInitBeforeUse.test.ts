@@ -98,7 +98,7 @@ describe("mustInitBeforeUse 装饰器", () => {
     describe("未初始化时的行为", () => {
         it("访问普通属性应抛出错误", () => {
             expect(() => {
-                const _ = service.value;
+                void service.value;
             }).toThrow(/必须在使用前调用.*init\(\)/);
         });
 
@@ -127,7 +127,7 @@ describe("mustInitBeforeUse 装饰器", () => {
 
         it("isDisposed 属性应始终可访问", () => {
             expect(() => {
-                const _ = service.isDisposed;
+                void service.isDisposed;
             }).not.toThrow();
             expect(service.isDisposed).toBe(false);
         });

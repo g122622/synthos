@@ -3,7 +3,7 @@ import type { TopicReferenceItem } from "@/types/topicReference";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button, Chip, Divider, Card, CardBody, Link } from "@heroui/react";
 import { FileText, Clock, Users, TrendingUp, Calendar, Bot, Check, Mail, X, ExternalLink } from "lucide-react";
 
-import { Report, ReportType } from "@/api/reportApi";
+import { Report, ReportType } from "@/types";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ReferenceList from "@/components/topic-reference/ReferenceList";
 import TopicReferenceHeatmap from "@/components/topic-reference/TopicReferenceHeatmap";

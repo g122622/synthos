@@ -23,6 +23,7 @@ const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
  * 负责初始化 DI 容器、数据库服务和任务处理器
  */
 @bootstrap
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class PreprocessingApplication {
     /**
      * 应用主入口

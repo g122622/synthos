@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { container } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
@@ -6,9 +7,6 @@ import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { setupRPC } from "./rpc/setupRPC";
 import "./context/middleware/registerAll";
 import { registerAllDependencies } from "./di/container";
-
-import { container } from "tsyringe";
-
 import { AI_MODEL_TOKENS } from "./di/tokens";
 import { AISummarizeTaskHandler } from "./tasks/AISummarize";
 import { GenerateEmbeddingTaskHandler } from "./tasks/GenerateEmbedding";
@@ -23,6 +21,7 @@ const LOGGER = Logger.withTag("🤖 ai-model-root-script");
  * 负责初始化 DI 容器、数据库服务、任务处理器和 RPC 服务
  */
 @bootstrap
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class AIModelApplication {
     /**
      * 应用主入口

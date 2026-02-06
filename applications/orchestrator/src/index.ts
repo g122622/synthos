@@ -27,6 +27,7 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
 const LOGGER = Logger.withTag("🎭 orchestrator-root-script");
 
 @bootstrap
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class OrchestratorApplication {
     public async main(): Promise<void> {
         // 初始化 DI 容器

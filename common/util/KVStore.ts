@@ -35,7 +35,7 @@ export class KVStore<T = any> extends Disposable {
     async get(key: string): Promise<T | undefined> {
         try {
             return await this.db.get(key);
-        } catch (error) {
+        } catch {
             return undefined;
         }
     }

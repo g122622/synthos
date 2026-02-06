@@ -5,9 +5,6 @@ import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
 import { mockConfig } from "@/config/mock";
-
-// 导出类型供其他模块使用
-export type { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse, SendReportEmailResponse };
 import {
     mockGetReportById,
     mockGetReportsPaginated,

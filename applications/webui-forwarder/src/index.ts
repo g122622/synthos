@@ -5,6 +5,7 @@ import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { NgrokClient } from "./NgrokClient";
 
 @bootstrap
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class WebUIForwarderApplication {
     public async main(): Promise<void> {
         // 初始化 DI 容器

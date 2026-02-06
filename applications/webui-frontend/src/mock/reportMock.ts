@@ -5,7 +5,7 @@
 
 import type { ApiResponse } from "@/types/api";
 
-import { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/api/reportApi";
+import { Report, ReportDetail, ReportType, ReportsPaginatedResponse, TriggerReportGenerateResponse } from "@/types";
 
 // 当前时间戳
 const now = Date.now();

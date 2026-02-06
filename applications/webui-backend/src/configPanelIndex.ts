@@ -4,19 +4,12 @@
  */
 import "reflect-metadata";
 import express, { Express } from "express";
-
-// 基础设施
 import Logger from "@root/common/util/Logger";
 
-// DI 容器
 import { registerConfigPanelDependencies, registerConfigManagerService } from "./di/container";
-
-// 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
 import { setupJsonMiddleware } from "./middleware/jsonMiddleware";
 import { errorHandler } from "./errors/errorHandler";
-
-// 路由
 import { setupConfigPanelRoutes } from "./routers/configPanelRouter";
 
 const LOGGER = Logger.withTag("ConfigPanel-Backend");

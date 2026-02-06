@@ -146,7 +146,7 @@ export class SystemMonitorService {
             }
 
             return { count: fileCount, size: totalSize };
-        } catch (error) {
+        } catch {
             // 目录或文件不存在
             return { count: 0, size: 0 };
         }

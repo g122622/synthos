@@ -6,8 +6,6 @@ import { container } from "tsyringe";
 
 import { TOKENS } from "../di/tokens";
 import { asyncHandler } from "../errors/errorHandler";
-
-// Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
 import { ChatMessageFtsController } from "../controllers/ChatMessageFtsController";

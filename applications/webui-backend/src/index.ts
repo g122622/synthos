@@ -6,16 +6,12 @@ import * as path from "path";
 import { createServer } from "http";
 
 import express, { Express } from "express";
-
-// 基础设施
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
-
-// DI 容器
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
@@ -30,28 +26,17 @@ import {
     registerConfigManagerService,
     registerCommonDBService
 } from "./di/container";
-
-// 仓库
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "./repositories/TopicReadStatusManager";
 import { RagChatHistoryManager } from "./repositories/RagChatHistoryManager";
 import { ReportReadStatusManager } from "./repositories/ReportReadStatusManager";
-
-// 中间件
 import { setupCorsMiddleware } from "./middleware/corsMiddleware";
 import { setupJsonMiddleware } from "./middleware/jsonMiddleware";
 import { errorHandler } from "./errors/errorHandler";
-
-// 路由
 import { setupApiRoutes } from "./routers/apiRouter";
-
-// 生命周期
 import { setupGracefulShutdown } from "./lifecycle/gracefulShutdown";
 import { initializeDatabases, closeDatabases } from "./lifecycle/dbInitialization";
 import { setupConfigPanelRoutes } from "./routers/configPanelRouter";
-
-// WebSocket & HTTP Server
-
 import { appRouter } from "./rpc/router";
 
 const LOGGER = Logger.withTag("WebUI-Backend");

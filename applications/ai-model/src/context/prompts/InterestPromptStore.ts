@@ -18,7 +18,7 @@ export class InterestPromptStore {
     ): CtxTemplateNode {
         const root = new CtxTemplateNode();
 
-        const userInterestsList = userInterestDescriptions.map((desc, index) => `${desc}`);
+        const userInterestsList = userInterestDescriptions.map(desc => `${desc}`);
 
         const topicsList = topics
             .map((t, index) => `${index + 1}. 话题标题：${t.topic}\n   详细内容：${t.detail}`)

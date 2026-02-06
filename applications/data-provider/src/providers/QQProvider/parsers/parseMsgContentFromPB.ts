@@ -18,7 +18,8 @@ import ErrorReasons from "@root/common/contracts/ErrorReasons";
  * @returns 解析出的 UTF-8 字符串
  * @throws ErrorReasons.TYPE_ERROR - 如果 msgBuf 不是 Buffer
  */
-function parseMsgContentFromPBV1(msgBuf: Buffer, isDebug = false): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _parseMsgContentFromPBV1(msgBuf: Buffer, isDebug = false): string {
     // 类型校验：确保输入是 Buffer
     if (!Buffer.isBuffer(msgBuf)) {
         throw ErrorReasons.TYPE_ERROR;

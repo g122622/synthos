@@ -67,7 +67,7 @@ class Disposable implements IDisposable {
         });
 
         // 监听未处理的拒绝的 Promise，一旦发生未处理的拒绝的 Promise，会自动释放所有资源并退出进程
-        process.on("unhandledRejection", (reason, promise) => {
+        process.on("unhandledRejection", (reason, _promise) => {
             LOGGER.error("Unhandled rejection: " + reason);
             handleSignal("unhandledRejection");
         });

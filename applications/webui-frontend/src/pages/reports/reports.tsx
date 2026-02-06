@@ -15,11 +15,12 @@ import ReportCard from "./components/ReportCard";
 import ReportDetailModal from "./components/ReportDetailModal";
 import { useTopicStatus } from "./hooks/useTopicStatus";
 
-import { Report, ReportType, getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus, sendReportEmail } from "@/api/reportApi";
+import { getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus, sendReportEmail } from "@/api/reportApi";
 import { getCurrentConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
+import { Report, ReportType } from "@/types";
 
 export default function ReportsPage() {
     const [searchParams, setSearchParams] = useSearchParams();

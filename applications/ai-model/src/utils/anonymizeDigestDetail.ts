@@ -23,7 +23,7 @@ export function anonymizeDigestDetail(digest: AIDigestResult): AIDigestResult {
             // 过滤出非空字符串的有效昵称
             contributors = parsed.filter((item): item is string => typeof item === "string" && item.trim() !== "");
         }
-    } catch (e) {
+    } catch {
         // 如果解析失败，视为无有效参与者
         contributors = [];
     }

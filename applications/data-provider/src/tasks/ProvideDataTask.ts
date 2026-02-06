@@ -33,8 +33,6 @@ export class ProvideDataTaskHandler {
      * 注册任务到 Agenda 调度器
      */
     public async register(): Promise<void> {
-        let config = await this.configManagerService.getCurrentConfig();
-
         await agendaInstance
             .create(TaskHandlerTypes.ProvideData)
             .unique({ name: TaskHandlerTypes.ProvideData }, { insertOnly: true })
@@ -45,8 +43,6 @@ export class ProvideDataTaskHandler {
             async job => {
                 this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
                 const attrs = job.attrs.data;
-
-                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
 
                 // 根据 IM 类型从 DI 容器获取对应的 IM 提供者
                 let activeProvider: IIMProvider;

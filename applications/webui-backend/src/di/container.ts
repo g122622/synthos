@@ -9,20 +9,15 @@ import {
     registerEmailService,
     registerDbAccessServices
 } from "@root/common/di/container";
-
-// DBManagers
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 
-// Status Managers
 import { TopicFavoriteStatusManager } from "../repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "../repositories/TopicReadStatusManager";
 import { RagChatHistoryManager } from "../repositories/RagChatHistoryManager";
 import { ReportReadStatusManager } from "../repositories/ReportReadStatusManager";
-
-// Services
 import { AIDigestService } from "../services/AIDigestService";
 import { ChatMessageService } from "../services/ChatMessageService";
 import { ChatMessageFtsService } from "../services/ChatMessageFtsService";
@@ -37,11 +32,7 @@ import { ReportService } from "../services/ReportService";
 import { SystemMonitorService } from "../services/SystemMonitorService";
 import { AgentService } from "../services/AgentService";
 import { LogsService } from "../services/LogsService";
-
-// RPC Clients
 import { createRAGClient } from "../rpc/aiModelClient";
-
-// Controllers
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
 import { ChatMessageFtsController } from "../controllers/ChatMessageFtsController";

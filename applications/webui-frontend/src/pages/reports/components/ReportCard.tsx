@@ -2,7 +2,7 @@ import { Card, CardBody, Chip, Tooltip } from "@heroui/react";
 import { Button as HeroUIButton } from "@heroui/button";
 import { FileText, Clock, Users, TrendingUp, AlertCircle, CheckCircle2, Check, Mail } from "lucide-react";
 
-import { Report, ReportType } from "@/api/reportApi";
+import { Report, ReportType } from "@/types";
 
 interface ReportCardProps {
     /** 日报数据 */

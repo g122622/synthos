@@ -10,6 +10,7 @@ const LOGGER = Logger.withTag("⛏️ db-cli");
 const EXIT_OPTION = "__exit__";
 
 @bootstrap
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class ConsoleApplicationMain {
     /**
      * 构建 Inquirer 选择列表的选项

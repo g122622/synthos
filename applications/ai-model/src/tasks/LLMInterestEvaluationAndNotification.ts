@@ -298,7 +298,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
                 );
 
                 // 验证返回的JSON格式
-                const parsed = this._parseAndValidateResponse(result.content, topics.length);
+                this._parseAndValidateResponse(result.content, topics.length);
 
                 // 如果验证通过，返回原始响应文本
                 return result.content;
