@@ -2,6 +2,8 @@
  * 兴趣评估提示词存储
  * 提供基于LLM的用户兴趣评估提示词
  */
+import { CTX_MIDDLEWARE_TOKENS } from "../middleware/container/container";
+import { useMiddleware } from "../middleware/useMiddleware";
 import { ContentUtils } from "../template/ContentUtils";
 import { CtxTemplateNode } from "../template/CtxTemplate";
 
@@ -12,6 +14,8 @@ export class InterestPromptStore {
      * @param topics 待评估的话题列表，每个话题包含标题和详细内容
      * @returns CtxTemplateNode
      */
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
+    @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
     public static getLLMInterestEvaluationPrompt(
         userInterestDescriptions: string[],
         topics: Array<{ topic: string; detail: string }>
@@ -34,7 +38,7 @@ export class InterestPromptStore {
                 .setTitle("评估标准")
                 .setContentText(
                     ContentUtils.orderedList([
-                        "话题内容与“用户感兴趣的内容类型”中的任一项在语义上相关或重叠",
+                        "话题内容与“用户感兴趣的内容类型”中的任一项完全符合（如果只有部分相关，则不视为完全符合）",
                         "话题包含的信息对用户可能有实际价值"
                     ])
                 ),
