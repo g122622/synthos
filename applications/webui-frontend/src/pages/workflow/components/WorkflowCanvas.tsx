@@ -44,8 +44,8 @@ export const WorkflowCanvas: React.FC = () => {
         deleteEdge: deleteStoreEdge
     } = useWorkflowStore();
 
-    const [nodes, , onNodesChange] = useNodesState(storeNodes);
-    const [edges, , onEdgesChange] = useEdgesState(storeEdges);
+    const [nodes, setNodes, onNodesChange] = useNodesState(storeNodes);
+    const [edges, setEdges, onEdgesChange] = useEdgesState(storeEdges);
     const reactFlowWrapper = React.useRef<HTMLDivElement>(null);
     const [reactFlowInstance, setReactFlowInstance] = React.useState<any>(null);
 
@@ -56,6 +56,15 @@ export const WorkflowCanvas: React.FC = () => {
         targetType: "node" | "edge" | "pane";
         targetId?: string;
     } | null>(null);
+
+    // 当 store 中的节点/边变化时，同步到 React Flow
+    React.useEffect(() => {
+        setNodes(storeNodes);
+    }, [storeNodes, setNodes]);
+
+    React.useEffect(() => {
+        setEdges(storeEdges);
+    }, [storeEdges, setEdges]);
 
     // 同步 React Flow 状态到 Zustand
     React.useEffect(() => {
