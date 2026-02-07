@@ -97,13 +97,13 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 - **🐳容器化/部署（WIP）**：Docker Compose + Nginx（前端静态托管 & /api 反代）
 - **💬RPC库**：tRPC
 - **💉依赖注入框架**：TSyringe
-- **🕗任务调度与编排框架**：Agenda
-- **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
+- **🕗任务调度与编排框架**：Agenda + 自研工作流引擎（DAG 执行器）
+- **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储 & 工作流执行状态） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
 - **📦向量数据库**：基于 better-sqlite3 + sqlite-vec 的轻量级向量存储方案
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
 - **🧪测试框架**：Vitest  
 - **🌏Web 后端框架**：Express
-- **⚛️Web 前端框架**：React + ECharts + HeroUI + Tailwind CSS
+- **⚛️Web 前端框架**：React + ECharts + HeroUI + Tailwind CSS + React Flow（工作流可视化）+ Zustand（状态管理）
 
 ### 模块划分
 
