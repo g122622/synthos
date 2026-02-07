@@ -4,10 +4,11 @@
  * 卡片式节点，显示任务类型图标 + label + 状态指示
  */
 
+import type { NodeExecutionStatus } from "../types/index";
+
 import React from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Card, CardBody, Chip } from "@heroui/react";
-import type { NodeExecutionStatus } from "../types/index";
 
 /**
  * 根据执行状态获取边框颜色类名
@@ -61,7 +62,7 @@ export const TaskNode: React.FC<NodeProps> = ({ data, selected }) => {
     return (
         <div className="relative">
             {/* 左侧入口 handle */}
-            <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-primary-500" />
+            <Handle className="w-3 h-3 !bg-primary-500" position={Position.Left} type="target" />
 
             <Card className={`min-w-[180px] border-3 ${borderClass} ${selected ? "ring-2 ring-primary-400" : ""}`} shadow="sm">
                 <CardBody className="p-3">
@@ -83,7 +84,7 @@ export const TaskNode: React.FC<NodeProps> = ({ data, selected }) => {
             </Card>
 
             {/* 右侧出口 handle */}
-            <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-primary-500" />
+            <Handle className="w-3 h-3 !bg-primary-500" position={Position.Right} type="source" />
         </div>
     );
 };

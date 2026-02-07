@@ -4,10 +4,11 @@
  * 展示所有可用节点类型，支持拖拽到画布创建节点
  */
 
+import type { WorkflowNodeType } from "../types/index";
+
 import React from "react";
 import { Card, CardBody } from "@heroui/react";
 import { Circle, Square, GitBranch, Zap, Code2, Globe } from "lucide-react";
-import type { WorkflowNodeType } from "../types/index";
 
 /**
  * 节点类型配置
@@ -91,11 +92,11 @@ export const NodePalette: React.FC = () => {
                 {NODE_TYPES.map(nodeType => (
                     <Card
                         key={nodeType.type}
+                        draggable
                         isPressable
                         className="cursor-grab active:cursor-grabbing hover:scale-105 transition-transform"
                         shadow="sm"
                         onDragStart={e => onDragStart(e, nodeType.type)}
-                        draggable
                     >
                         <CardBody className="p-3">
                             <div className="flex items-start gap-3">

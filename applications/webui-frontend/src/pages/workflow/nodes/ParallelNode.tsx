@@ -17,7 +17,7 @@ export const ParallelNode: React.FC<NodeProps> = ({ data, selected }) => {
     return (
         <div className="relative">
             {/* 左侧入口 handle */}
-            <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-warning-500" />
+            <Handle className="w-3 h-3 !bg-warning-500" position={Position.Left} type="target" />
 
             <Card className={`min-w-[200px] border-3 border-warning-500 ${selected ? "ring-2 ring-warning-400" : ""}`} shadow="sm">
                 <CardBody className="p-2">
@@ -28,7 +28,7 @@ export const ParallelNode: React.FC<NodeProps> = ({ data, selected }) => {
             </Card>
 
             {/* 右侧出口 handle */}
-            <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-warning-500" />
+            <Handle className="w-3 h-3 !bg-warning-500" position={Position.Right} type="source" />
         </div>
     );
 };

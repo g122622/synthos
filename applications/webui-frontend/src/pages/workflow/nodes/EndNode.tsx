@@ -18,7 +18,7 @@ export const EndNode: React.FC<NodeProps> = ({ data }) => {
             <div className="text-danger-700 text-xs font-semibold text-center">{nodeData.label || "结束"}</div>
 
             {/* 左侧入口 handle */}
-            <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-danger-500" />
+            <Handle className="w-3 h-3 !bg-danger-500" position={Position.Left} type="target" />
         </div>
     );
 };

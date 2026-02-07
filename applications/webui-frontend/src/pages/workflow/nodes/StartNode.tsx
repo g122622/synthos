@@ -18,7 +18,7 @@ export const StartNode: React.FC<NodeProps> = ({ data }) => {
             <div className="text-success-700 text-xs font-semibold text-center">{nodeData.label || "开始"}</div>
 
             {/* 右侧出口 handle */}
-            <Handle type="source" position={Position.Right} className="w-3 h-3 !bg-success-500" />
+            <Handle className="w-3 h-3 !bg-success-500" position={Position.Right} type="source" />
         </div>
     );
 };

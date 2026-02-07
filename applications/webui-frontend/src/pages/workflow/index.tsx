@@ -4,6 +4,8 @@
  * 提供完整的工作流编辑、可视化、执行功能
  */
 
+import type { WorkflowDefinition, ExecutionSummary } from "./types/index";
+
 import React from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Button, Select, SelectItem, useDisclosure } from "@heroui/react";
@@ -18,7 +20,7 @@ import { ExecutionPanel } from "./components/ExecutionPanel";
 import { useWorkflowStore } from "./stores/workflowStore";
 import { fetchWorkflows, saveWorkflow, fetchWorkflowById, triggerWorkflow, cancelExecution, resumeExecution, fetchExecutionHistory, fetchExecutionById } from "./api/workflowApi";
 import { useExecutionStatus, type ExecutionUpdateEvent } from "./hooks/useExecutionStatus";
-import type { WorkflowDefinition, ExecutionSummary } from "./types/index";
+
 import { Notification } from "@/util/Notification";
 
 /**
@@ -66,6 +68,7 @@ const WorkflowPage: React.FC = () => {
     const loadWorkflowList = React.useCallback(async () => {
         try {
             const list = await fetchWorkflows();
+
             setWorkflows(list);
         } catch (error) {
             console.error("加载工作流列表失败:", error);
@@ -76,6 +79,7 @@ const WorkflowPage: React.FC = () => {
     // 从 URL 参数加载工作流
     React.useEffect(() => {
         const workflowId = searchParams.get("workflowId");
+
         if (workflowId && workflows.length > 0) {
             loadWorkflowById(workflowId);
         }
@@ -97,6 +101,7 @@ const WorkflowPage: React.FC = () => {
         setIsLoadingHistory(true);
         try {
             const { executions: historyList, total } = await fetchExecutionHistory(currentWorkflowId, executionPage, PAGE_SIZE);
+
             setExecutions(historyList);
             setTotalExecutions(total);
         } catch (error) {
@@ -118,6 +123,7 @@ const WorkflowPage: React.FC = () => {
     const loadWorkflowById = async (id: string) => {
         try {
             const workflow = await fetchWorkflowById(id);
+
             setCurrentWorkflowId(id);
             setOriginalWorkflow(workflow);
             loadWorkflow(workflow);
@@ -133,6 +139,7 @@ const WorkflowPage: React.FC = () => {
      */
     const handleWorkflowChange = (keys: any) => {
         const selectedId = Array.from(keys)[0] as string;
+
         if (!selectedId) {
             return;
         }
@@ -146,6 +153,7 @@ const WorkflowPage: React.FC = () => {
      */
     const handleSaveClick = () => {
         const current = getCurrentWorkflowDefinition();
+
         setModifiedWorkflow(current);
         onOpen();
     };
@@ -161,6 +169,7 @@ const WorkflowPage: React.FC = () => {
         setIsSaving(true);
         try {
             const saved = await saveWorkflow(modifiedWorkflow);
+
             setOriginalWorkflow(saved);
             setCurrentWorkflowId(saved.id);
             await loadWorkflowList(); // 刷新列表
@@ -179,17 +188,21 @@ const WorkflowPage: React.FC = () => {
     const handleTrigger = async () => {
         if (!currentWorkflowId) {
             Notification.error({ title: "请先选择工作流" });
+
             return;
         }
 
         const currentDef = getCurrentWorkflowDefinition();
+
         if (!currentDef) {
             Notification.error({ title: "无法获取当前工作流定义" });
+
             return;
         }
 
         try {
             const executionId = await triggerWorkflow(currentWorkflowId);
+
             setCurrentExecution({
                 executionId,
                 workflowId: currentWorkflowId,
@@ -212,6 +225,7 @@ const WorkflowPage: React.FC = () => {
     const handleCancel = async () => {
         if (!currentExecutionId) {
             Notification.error({ title: "当前没有正在执行的任务" });
+
             return;
         }
 
@@ -231,6 +245,7 @@ const WorkflowPage: React.FC = () => {
     const handleResume = async () => {
         if (!currentExecutionId) {
             Notification.error({ title: "当前没有可恢复的任务" });
+
             return;
         }
 
@@ -249,6 +264,7 @@ const WorkflowPage: React.FC = () => {
     const handleLoadSnapshot = async (executionId: string) => {
         try {
             const execution = await fetchExecutionById(executionId);
+
             loadWorkflow(execution.snapshot);
 
             // 恢复节点状态
@@ -280,7 +296,7 @@ const WorkflowPage: React.FC = () => {
                 <h1 className="text-lg font-semibold shrink-0">🔀 流程编排</h1>
 
                 {/* 工作流选择器 */}
-                <Select size="sm" label="当前工作流" placeholder="选择工作流" className="max-w-xs" selectedKeys={currentWorkflowId ? [currentWorkflowId] : []} onSelectionChange={handleWorkflowChange}>
+                <Select className="max-w-xs" label="当前工作流" placeholder="选择工作流" selectedKeys={currentWorkflowId ? [currentWorkflowId] : []} size="sm" onSelectionChange={handleWorkflowChange}>
                     {workflows.map(wf => (
                         <SelectItem key={wf.id}>{wf.name}</SelectItem>
                     ))}
@@ -291,16 +307,16 @@ const WorkflowPage: React.FC = () => {
                     <Button size="sm" startContent={<FolderOpen size={16} />} variant="flat" onPress={loadWorkflowList}>
                         刷新列表
                     </Button>
-                    <Button size="sm" color="primary" startContent={<Save size={16} />} onPress={handleSaveClick}>
+                    <Button color="primary" size="sm" startContent={<Save size={16} />} onPress={handleSaveClick}>
                         保存
                     </Button>
-                    <Button size="sm" color="success" startContent={<Play size={16} />} onPress={handleTrigger} isDisabled={!currentWorkflowId || isConnected}>
+                    <Button color="success" isDisabled={!currentWorkflowId || isConnected} size="sm" startContent={<Play size={16} />} onPress={handleTrigger}>
                         手动触发
                     </Button>
-                    <Button size="sm" color="danger" startContent={<StopCircle size={16} />} onPress={handleCancel} isDisabled={!isConnected}>
+                    <Button color="danger" isDisabled={!isConnected} size="sm" startContent={<StopCircle size={16} />} onPress={handleCancel}>
                         取消执行
                     </Button>
-                    <Button size="sm" color="warning" startContent={<RotateCcw size={16} />} onPress={handleResume} isDisabled={!currentExecutionId}>
+                    <Button color="warning" isDisabled={!currentExecutionId} size="sm" startContent={<RotateCcw size={16} />} onPress={handleResume}>
                         断点续跑
                     </Button>
                     {isConnecting && <span className="text-xs text-warning self-center">连接中...</span>}
@@ -327,19 +343,19 @@ const WorkflowPage: React.FC = () => {
             {/* 底部执行面板 */}
             <div className="h-48 border-t border-divider bg-content1 p-4">
                 <ExecutionPanel
+                    currentPage={executionPage}
                     executions={executions}
                     isLoading={isLoadingHistory}
-                    totalCount={totalExecutions}
-                    currentPage={executionPage}
                     pageSize={PAGE_SIZE}
-                    onPageChange={handlePageChange}
+                    totalCount={totalExecutions}
                     onLoadSnapshot={handleLoadSnapshot}
+                    onPageChange={handlePageChange}
                 />
             </div>
 
             {/* Diff 预览模态框 */}
             {modifiedWorkflow && (
-                <WorkflowDiffModal isOpen={isOpen} onClose={onClose} originalWorkflow={originalWorkflow} modifiedWorkflow={modifiedWorkflow} onConfirm={handleConfirmSave} isSaving={isSaving} />
+                <WorkflowDiffModal isOpen={isOpen} isSaving={isSaving} modifiedWorkflow={modifiedWorkflow} originalWorkflow={originalWorkflow} onClose={onClose} onConfirm={handleConfirmSave} />
             )}
         </div>
     );

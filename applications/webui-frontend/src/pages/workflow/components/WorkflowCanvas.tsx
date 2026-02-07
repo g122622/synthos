@@ -4,13 +4,15 @@
  * 核心可视化画布，支持拖拽、缩放、连线等交互
  */
 
+import type { WorkflowNodeType } from "../types/index";
+
 import React, { useCallback } from "react";
 import { ReactFlow, Controls, Background, MiniMap, useNodesState, useEdgesState, type Connection, type Edge, type Node, BackgroundVariant, ConnectionMode, type OnConnect } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { useWorkflowStore } from "../stores/workflowStore";
 import { StartNode, EndNode, TaskNode, ConditionNode, ParallelNode, ScriptNode, HttpNode } from "../nodes/index";
-import type { WorkflowNodeType } from "../types/index";
+
 import { ContextMenu } from "./ContextMenu";
 
 /**
@@ -78,18 +80,21 @@ export const WorkflowCanvas: React.FC = () => {
             // 不允许自环
             if (connection.source === connection.target) {
                 console.warn("❌ 不允许节点连接到自己");
+
                 return;
             }
 
             // start 节点不可有入边（已在 handle 配置中限制）
             if (targetNode?.type === "start") {
                 console.warn("❌ start 节点不可有入边");
+
                 return;
             }
 
             // end 节点不可有出边（已在 handle 配置中限制）
             if (sourceNode?.type === "end") {
                 console.warn("❌ end 节点不可有出边");
+
                 return;
             }
 
@@ -154,6 +159,7 @@ export const WorkflowCanvas: React.FC = () => {
         }
 
         const sourceNode = nodes.find(n => n.id === contextMenu.targetId);
+
         if (!sourceNode) {
             return;
         }
@@ -202,6 +208,7 @@ export const WorkflowCanvas: React.FC = () => {
             event.preventDefault();
 
             const type = event.dataTransfer.getData("application/reactflow") as WorkflowNodeType;
+
             if (!type || !reactFlowInstance) {
                 return;
             }
@@ -238,46 +245,47 @@ export const WorkflowCanvas: React.FC = () => {
             script: "脚本",
             http: "HTTP 请求"
         };
+
         return labels[type] || "节点";
     };
 
     return (
-        <div className="flex-1 h-full" ref={reactFlowWrapper}>
+        <div ref={reactFlowWrapper} className="flex-1 h-full">
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                onNodeClick={onNodeClick}
-                onPaneClick={onPaneClick}
-                onNodeContextMenu={onNodeContextMenu}
-                onEdgeContextMenu={onEdgeContextMenu}
-                onInit={setReactFlowInstance}
-                onDrop={onDrop}
-                onDragOver={onDragOver}
-                connectionMode={ConnectionMode.Loose}
                 fitView
                 snapToGrid
-                snapGrid={[15, 15]}
+                connectionMode={ConnectionMode.Loose}
                 deleteKeyCode="Delete"
-                minZoom={0.1}
+                edges={edges}
                 maxZoom={2}
+                minZoom={0.1}
+                nodeTypes={nodeTypes}
+                nodes={nodes}
+                snapGrid={[15, 15]}
+                onConnect={onConnect}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
+                onEdgeContextMenu={onEdgeContextMenu}
+                onEdgesChange={onEdgesChange}
+                onInit={setReactFlowInstance}
+                onNodeClick={onNodeClick}
+                onNodeContextMenu={onNodeContextMenu}
+                onNodesChange={onNodesChange}
+                onPaneClick={onPaneClick}
             >
-                <Background variant={BackgroundVariant.Dots} gap={15} size={1} color="#888" />
-                <Controls showZoom showFitView showInteractive={false} position="top-left" />
-                <MiniMap nodeStrokeWidth={3} zoomable pannable position="bottom-right" />
+                <Background color="#888" gap={15} size={1} variant={BackgroundVariant.Dots} />
+                <Controls showFitView showZoom position="top-left" showInteractive={false} />
+                <MiniMap pannable zoomable nodeStrokeWidth={3} position="bottom-right" />
             </ReactFlow>
 
             {contextMenu && contextMenu.visible && (
                 <ContextMenu
                     position={contextMenu.position}
-                    targetType={contextMenu.targetType}
                     targetId={contextMenu.targetId}
+                    targetType={contextMenu.targetType}
                     onClose={() => setContextMenu(null)}
-                    onDelete={handleDelete}
                     onCopy={contextMenu.targetType === "node" ? handleCopyNode : undefined}
+                    onDelete={handleDelete}
                 />
             )}
         </div>

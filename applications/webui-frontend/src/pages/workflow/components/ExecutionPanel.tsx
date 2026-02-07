@@ -4,10 +4,11 @@
  * 展示工作流执行历史记录，支持快照加载和分页
  */
 
+import type { ExecutionSummary } from "../types/index";
+
 import React from "react";
 import { Card, CardBody, Button, Chip, Pagination } from "@heroui/react";
 import { Clock, CheckCircle2, XCircle, AlertCircle, Loader2 } from "lucide-react";
-import type { ExecutionSummary } from "../types/index";
 
 export interface ExecutionPanelProps {
     /**
@@ -51,6 +52,7 @@ export interface ExecutionPanelProps {
  */
 const formatTimestamp = (timestamp: number): string => {
     const date = new Date(timestamp);
+
     return date.toLocaleString("zh-CN", {
         year: "numeric",
         month: "2-digit",
@@ -75,6 +77,7 @@ const calculateDuration = (startedAt: number, completedAt?: number): string => {
 
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
+
     return `${minutes}分${remainingSeconds}秒`;
 };
 
@@ -97,7 +100,7 @@ const getStatusConfig = (status: ExecutionSummary["status"]) => {
             };
         case "running":
             return {
-                icon: <Loader2 size={14} className="animate-spin" />,
+                icon: <Loader2 className="animate-spin" size={14} />,
                 color: "primary" as const,
                 label: "运行中"
             };
@@ -131,7 +134,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ executions, isLo
 
             {isLoading ? (
                 <div className="flex-1 flex items-center justify-center">
-                    <Loader2 size={24} className="animate-spin text-primary" />
+                    <Loader2 className="animate-spin text-primary" size={24} />
                 </div>
             ) : executions.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center">
@@ -147,21 +150,21 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ executions, isLo
                             const totalNodeCount = progress.total;
 
                             return (
-                                <Card key={execution.executionId} shadow="sm" className="hover:shadow-md transition-shadow">
+                                <Card key={execution.executionId} className="hover:shadow-md transition-shadow" shadow="sm">
                                     <CardBody className="p-3">
                                         <div className="flex items-start justify-between gap-3">
                                             {/* 左侧信息 */}
                                             <div className="flex-1 space-y-1">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs font-mono text-default-600">{execution.executionId.slice(0, 8)}</span>
-                                                    <Chip size="sm" color={statusConfig.color} variant="flat" startContent={statusConfig.icon}>
+                                                    <Chip color={statusConfig.color} size="sm" startContent={statusConfig.icon} variant="flat">
                                                         {statusConfig.label}
                                                     </Chip>
                                                 </div>
 
                                                 <div className="text-xs text-default-500 space-y-0.5">
                                                     <div>
-                                                        <Clock size={10} className="inline mr-1" />
+                                                        <Clock className="inline mr-1" size={10} />
                                                         开始: {formatTimestamp(execution.startedAt)}
                                                     </div>
                                                     <div>时长: {calculateDuration(execution.startedAt, execution.completedAt)}</div>
@@ -185,7 +188,7 @@ export const ExecutionPanel: React.FC<ExecutionPanelProps> = ({ executions, isLo
                     {/* 分页器 */}
                     {totalPages > 1 && (
                         <div className="flex justify-center mt-3">
-                            <Pagination size="sm" total={totalPages} page={currentPage} onChange={onPageChange} showControls />
+                            <Pagination showControls page={currentPage} size="sm" total={totalPages} onChange={onPageChange} />
                         </div>
                     )}
                 </>

@@ -4,11 +4,12 @@
  * 保存前展示新旧工作流定义的差异，参考 config-panel 的 DiffEditor 模式
  */
 
+import type { WorkflowDefinition } from "../types/index";
+
 import React from "react";
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from "@heroui/react";
 import { DiffEditor } from "@monaco-editor/react";
 import { useTheme } from "@heroui/use-theme";
-import type { WorkflowDefinition } from "../types/index";
 
 export interface WorkflowDiffModalProps {
     /**
@@ -58,7 +59,7 @@ export const WorkflowDiffModal: React.FC<WorkflowDiffModalProps> = ({ isOpen, on
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} size="5xl" scrollBehavior="inside" backdrop="blur" isDismissable={!isSaving} hideCloseButton={isSaving}>
+        <Modal backdrop="blur" hideCloseButton={isSaving} isDismissable={!isSaving} isOpen={isOpen} scrollBehavior="inside" size="5xl" onClose={onClose}>
             <ModalContent>
                 <>
                     <ModalHeader className="flex flex-col gap-1">
@@ -70,9 +71,7 @@ export const WorkflowDiffModal: React.FC<WorkflowDiffModalProps> = ({ isOpen, on
                             <DiffEditor
                                 height="100%"
                                 language="json"
-                                original={originalJson}
                                 modified={modifiedJson}
-                                theme={theme === "dark" ? "vs-dark" : "vs"}
                                 options={{
                                     readOnly: true,
                                     minimap: { enabled: false },
@@ -83,14 +82,16 @@ export const WorkflowDiffModal: React.FC<WorkflowDiffModalProps> = ({ isOpen, on
                                         enabled: true
                                     }
                                 }}
+                                original={originalJson}
+                                theme={theme === "dark" ? "vs-dark" : "vs"}
                             />
                         </div>
                     </ModalBody>
                     <ModalFooter>
-                        <Button color="danger" variant="light" onPress={onClose} isDisabled={isSaving}>
+                        <Button color="danger" isDisabled={isSaving} variant="light" onPress={onClose}>
                             取消
                         </Button>
-                        <Button color="primary" onPress={handleConfirm} isLoading={isSaving}>
+                        <Button color="primary" isLoading={isSaving} onPress={handleConfirm}>
                             确认保存
                         </Button>
                     </ModalFooter>

@@ -4,14 +4,17 @@
  * 根据选中节点类型动态渲染不同的属性表单
  */
 
+import type { WorkflowNodeData } from "../types/index";
+
 import React from "react";
+import { Input } from "@heroui/react";
+
 import { useWorkflowStore } from "../stores/workflowStore";
+
 import { TaskPropertyForm } from "./property-forms/TaskPropertyForm";
 import { ConditionPropertyForm } from "./property-forms/ConditionPropertyForm";
 import { ScriptPropertyForm } from "./property-forms/ScriptPropertyForm";
 import { HttpPropertyForm } from "./property-forms/HttpPropertyForm";
-import { Input } from "@heroui/react";
-import type { WorkflowNodeData } from "../types/index";
 
 /**
  * 属性面板组件
@@ -43,7 +46,7 @@ export const PropertyPanel: React.FC = () => {
 
             {/* 节点 ID（只读） */}
             <div className="mb-4">
-                <Input label="节点 ID" size="sm" value={selectedNode.id} isReadOnly description="节点唯一标识符" />
+                <Input isReadOnly description="节点唯一标识符" label="节点 ID" size="sm" value={selectedNode.id} />
             </div>
 
             {/* 根据节点类型渲染不同表单 */}

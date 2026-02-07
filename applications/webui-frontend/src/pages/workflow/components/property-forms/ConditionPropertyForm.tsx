@@ -4,9 +4,10 @@
  * 编辑条件类型和表达式
  */
 
+import type { ConditionType, WorkflowNodeData } from "../../types/index";
+
 import React from "react";
 import { Input, Select, SelectItem } from "@heroui/react";
-import type { ConditionType, WorkflowNodeData } from "../../types/index";
 
 interface ConditionPropertyFormProps {
     data: WorkflowNodeData;
@@ -32,10 +33,11 @@ export const ConditionPropertyForm: React.FC<ConditionPropertyFormProps> = ({ da
 
             <Select
                 label="条件类型"
-                size="sm"
                 selectedKeys={data.conditionType ? [data.conditionType] : []}
+                size="sm"
                 onSelectionChange={keys => {
                     const selected = Array.from(keys)[0] as ConditionType;
+
                     onChange({ conditionType: selected });
                 }}
             >
@@ -54,6 +56,7 @@ export const ConditionPropertyForm: React.FC<ConditionPropertyFormProps> = ({ da
                         onChange={e => {
                             try {
                                 const parsed = JSON.parse(e.target.value);
+
                                 onChange({ conditionExpression: parsed });
                             } catch {
                                 // 输入未完成，暂不更新

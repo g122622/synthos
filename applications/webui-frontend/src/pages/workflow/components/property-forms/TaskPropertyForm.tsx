@@ -4,9 +4,10 @@
  * 编辑任务类型、参数、重试次数、超时时间等
  */
 
+import type { TaskHandlerType, WorkflowNodeData } from "../../types/index";
+
 import React from "react";
 import { Input, Select, SelectItem, Switch } from "@heroui/react";
-import type { TaskHandlerType, WorkflowNodeData } from "../../types/index";
 
 interface TaskPropertyFormProps {
     data: WorkflowNodeData;
@@ -35,10 +36,11 @@ export const TaskPropertyForm: React.FC<TaskPropertyFormProps> = ({ data, onChan
 
             <Select
                 label="任务类型"
-                size="sm"
                 selectedKeys={data.taskType ? [data.taskType] : []}
+                size="sm"
                 onSelectionChange={keys => {
                     const selected = Array.from(keys)[0] as TaskHandlerType;
+
                     onChange({ taskType: selected });
                 }}
             >
@@ -47,18 +49,18 @@ export const TaskPropertyForm: React.FC<TaskPropertyFormProps> = ({ data, onChan
                 ))}
             </Select>
 
-            <Input label="重试次数" type="number" size="sm" value={String(data.retryCount || 0)} onChange={e => onChange({ retryCount: parseInt(e.target.value) || 0 })} />
+            <Input label="重试次数" size="sm" type="number" value={String(data.retryCount || 0)} onChange={e => onChange({ retryCount: parseInt(e.target.value) || 0 })} />
 
             <Input
+                description="0 表示无超时限制"
                 label="超时时间 (毫秒)"
-                type="number"
                 size="sm"
+                type="number"
                 value={String(data.timeoutMs || 0)}
                 onChange={e => onChange({ timeoutMs: parseInt(e.target.value) || 0 })}
-                description="0 表示无超时限制"
             />
 
-            <Switch size="sm" isSelected={data.skipOnFailure || false} onValueChange={checked => onChange({ skipOnFailure: checked })}>
+            <Switch isSelected={data.skipOnFailure || false} size="sm" onValueChange={checked => onChange({ skipOnFailure: checked })}>
                 失败后跳过（不终止流程）
             </Switch>
         </div>

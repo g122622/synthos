@@ -4,10 +4,11 @@
  * 使用 Monaco Editor 编辑脚本代码
  */
 
+import type { WorkflowNodeData } from "../../types/index";
+
 import React from "react";
 import { Input } from "@heroui/react";
 import Editor from "@monaco-editor/react";
-import type { WorkflowNodeData } from "../../types/index";
 
 interface ScriptPropertyFormProps {
     data: WorkflowNodeData;
@@ -28,9 +29,6 @@ export const ScriptPropertyForm: React.FC<ScriptPropertyFormProps> = ({ data, on
                     <Editor
                         height="300px"
                         language="javascript"
-                        theme="vs-dark"
-                        value={data.scriptCode || "// 在此编写脚本代码\nconsole.log('Hello, World!');"}
-                        onChange={value => onChange({ scriptCode: value || "" })}
                         options={{
                             minimap: { enabled: false },
                             fontSize: 12,
@@ -38,6 +36,9 @@ export const ScriptPropertyForm: React.FC<ScriptPropertyFormProps> = ({ data, on
                             scrollBeyondLastLine: false,
                             automaticLayout: true
                         }}
+                        theme="vs-dark"
+                        value={data.scriptCode || "// 在此编写脚本代码\nconsole.log('Hello, World!');"}
+                        onChange={value => onChange({ scriptCode: value || "" })}
                     />
                 </div>
             </div>

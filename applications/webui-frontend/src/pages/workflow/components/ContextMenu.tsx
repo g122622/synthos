@@ -46,7 +46,9 @@ export interface ContextMenuProps {
 export const ContextMenu: React.FC<ContextMenuProps> = ({ position, targetType, onClose, onDelete, onCopy }) => {
     React.useEffect(() => {
         const handleClick = () => onClose();
+
         document.addEventListener("click", handleClick);
+
         return () => document.removeEventListener("click", handleClick);
     }, [onClose]);
 
@@ -55,7 +57,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({ position, targetType, 
     }
 
     return (
-        <Card className="fixed z-50 min-w-40" style={{ left: position.x, top: position.y }} shadow="lg">
+        <Card className="fixed z-50 min-w-40" shadow="lg" style={{ left: position.x, top: position.y }}>
             <CardBody className="p-1">
                 <ul className="space-y-1">
                     {targetType === "node" && onCopy && (

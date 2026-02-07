@@ -16,7 +16,7 @@ export const ConditionNode: React.FC<NodeProps> = ({ data, selected }) => {
     return (
         <div className="relative">
             {/* 左侧入口 handle */}
-            <Handle type="target" position={Position.Left} className="w-3 h-3 !bg-secondary-500" />
+            <Handle className="w-3 h-3 !bg-secondary-500" position={Position.Left} type="target" />
 
             {/* 菱形主体 */}
             <div
@@ -39,10 +39,10 @@ export const ConditionNode: React.FC<NodeProps> = ({ data, selected }) => {
             </div>
 
             {/* 右上出口 handle (true) */}
-            <Handle type="source" position={Position.Top} id="true" className="w-3 h-3 !bg-success-500 !right-8 !top-0" style={{ left: "auto" }} />
+            <Handle className="w-3 h-3 !bg-success-500 !right-8 !top-0" id="true" position={Position.Top} style={{ left: "auto" }} type="source" />
 
             {/* 右下出口 handle (false) */}
-            <Handle type="source" position={Position.Bottom} id="false" className="w-3 h-3 !bg-danger-500 !right-8 !bottom-0" style={{ left: "auto" }} />
+            <Handle className="w-3 h-3 !bg-danger-500 !right-8 !bottom-0" id="false" position={Position.Bottom} style={{ left: "auto" }} type="source" />
         </div>
     );
 };
