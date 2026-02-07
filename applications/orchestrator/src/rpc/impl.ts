@@ -33,6 +33,7 @@ import Logger from "@root/common/util/Logger";
 import { WorkflowExecutor } from "../core/WorkflowExecutor";
 import { ExecutionPersistence } from "../core/ExecutionPersistence";
 import { AgendaNodeExecutorAdapter } from "../adapters/AgendaNodeExecutorAdapter";
+import { TaskParamsResolver } from "../core/TaskParamsResolver";
 
 const LOGGER = Logger.withTag("🎭 OrchestratorRPCImpl");
 
@@ -108,8 +109,11 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
 
             LOGGER.info(`触发工作流执行: ${workflow.name} (ID: ${executionId})`);
 
+            // 创建参数解析器
+            const paramsResolver = new TaskParamsResolver(this.configManagerService);
+
             // 创建适配器
-            const adapter = new AgendaNodeExecutorAdapter();
+            const adapter = new AgendaNodeExecutorAdapter(5000, 90 * 60 * 1000, paramsResolver);
 
             // 创建执行器
             const executor = new WorkflowExecutor(workflow, executionId, adapter, this.persistence);
@@ -224,7 +228,10 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
 
             LOGGER.info(`断点续跑: ${input.executionId} → ${newExecutionId}`);
 
-            const adapter = new AgendaNodeExecutorAdapter();
+            // 创建参数解析器
+            const paramsResolver = new TaskParamsResolver(this.configManagerService);
+
+            const adapter = new AgendaNodeExecutorAdapter(5000, 90 * 60 * 1000, paramsResolver);
             const executor = new WorkflowExecutor(execution.snapshot, newExecutionId, adapter, this.persistence);
 
             this._executors.set(newExecutionId, executor);

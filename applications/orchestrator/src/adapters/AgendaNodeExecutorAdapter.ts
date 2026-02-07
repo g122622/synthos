@@ -4,6 +4,7 @@ import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 
 import { ExecutionContext } from "../core/ExecutionContext";
+import { TaskParamsResolver } from "../core/TaskParamsResolver";
 
 import { NodeExecutorAdapter } from "./NodeExecutorAdapter";
 
@@ -16,15 +17,22 @@ const LOGGER = Logger.withTag("🔌 AgendaNodeExecutorAdapter");
 export class AgendaNodeExecutorAdapter implements NodeExecutorAdapter {
     private readonly _pollIntervalMs: number;
     private readonly _taskTimeoutMs: number;
+    private readonly _paramsResolver: TaskParamsResolver;
 
     /**
      * 构造函数
      * @param pollIntervalMs 轮询间隔（毫秒）
      * @param taskTimeoutMs 任务超时时间（毫秒）
+     * @param paramsResolver 任务参数解析器
      */
-    public constructor(pollIntervalMs: number = 5000, taskTimeoutMs: number = 90 * 60 * 1000) {
+    public constructor(
+        pollIntervalMs: number = 5000,
+        taskTimeoutMs: number = 90 * 60 * 1000,
+        paramsResolver: TaskParamsResolver
+    ) {
         this._pollIntervalMs = pollIntervalMs;
         this._taskTimeoutMs = taskTimeoutMs;
+        this._paramsResolver = paramsResolver;
     }
 
     /**
@@ -46,10 +54,19 @@ export class AgendaNodeExecutorAdapter implements NodeExecutorAdapter {
         LOGGER.info(`节点 [${nodeId}] 开始执行任务类型: ${taskType}`);
 
         try {
+            // 解析任务参数（合并默认参数和节点配置参数）
+            const resolvedParams = await this._paramsResolver.resolveParams(
+                taskType as TaskHandlerTypes,
+                params,
+                context
+            );
+
+            LOGGER.debug(`节点 [${nodeId}] 已解析参数: ${JSON.stringify(resolvedParams)}`);
+
             // 调用 Agenda 调度任务并等待完成
             const success = await scheduleAndWaitForJob(
                 taskType as TaskHandlerTypes,
-                params as any,
+                resolvedParams as any,
                 this._pollIntervalMs,
                 this._taskTimeoutMs
             );
@@ -63,7 +80,7 @@ export class AgendaNodeExecutorAdapter implements NodeExecutorAdapter {
 
                 return {
                     success: true,
-                    output: { taskType, params },
+                    output: { taskType, params: resolvedParams },
                     startedAt,
                     completedAt
                 };
