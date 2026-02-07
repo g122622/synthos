@@ -33,7 +33,11 @@ export const siteConfig = {
             href: "/groups"
         },
         {
-            label: "🛠️配置面板",
+            label: "�流程编排",
+            href: "/workflow"
+        },
+        {
+            label: "�🛠️配置面板",
             href: "/config"
         },
         {
@@ -71,7 +75,11 @@ export const siteConfig = {
             href: "/groups"
         },
         {
-            label: "🛠️配置面板",
+            label: "�流程编排",
+            href: "/workflow"
+        },
+        {
+            label: "�🛠️配置面板",
             href: "/config"
         },
         {

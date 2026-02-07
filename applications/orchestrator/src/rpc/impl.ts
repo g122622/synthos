@@ -128,21 +128,27 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
             });
 
             executor.on("nodeCompleted", (event: any) => {
+                // 从执行器上下文中获取节点状态
+                const nodeState = executor.getExecutionContext().getNodeState(event.nodeId);
+
                 this._eventEmitter.emit(`exec:${executionId}`, {
                     type: "nodeCompleted",
                     executionId,
                     nodeId: event.nodeId,
-                    nodeState: this._convertNodeState(event.nodeState),
+                    nodeState: nodeState ? this._convertNodeState(nodeState) : undefined,
                     timestamp: Date.now()
                 } as ExecutionUpdateEvent);
             });
 
             executor.on("nodeFailed", (event: any) => {
+                // 从执行器上下文中获取节点状态
+                const nodeState = executor.getExecutionContext().getNodeState(event.nodeId);
+
                 this._eventEmitter.emit(`exec:${executionId}`, {
                     type: "nodeFailed",
                     executionId,
                     nodeId: event.nodeId,
-                    nodeState: this._convertNodeState(event.nodeState),
+                    nodeState: nodeState ? this._convertNodeState(nodeState) : undefined,
                     timestamp: Date.now()
                 } as ExecutionUpdateEvent);
             });

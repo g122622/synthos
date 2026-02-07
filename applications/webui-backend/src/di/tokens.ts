@@ -58,5 +58,6 @@ export const TOKENS = {
     ReportController: Symbol.for("ReportController"),
     SystemMonitorController: Symbol.for("SystemMonitorController"),
     AgentController: Symbol.for("AgentController"),
-    LogsController: Symbol.for("LogsController")
+    LogsController: Symbol.for("LogsController"),
+    WorkflowController: Symbol.for("WorkflowController")
 } as const;

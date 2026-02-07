@@ -48,6 +48,7 @@ import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
 import { LogsController } from "../controllers/LogsController";
+import { WorkflowController } from "../controllers/WorkflowController";
 
 import { TOKENS } from "./tokens";
 
@@ -149,6 +150,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.SystemMonitorController, SystemMonitorController);
     container.registerSingleton(TOKENS.AgentController, AgentController);
     container.registerSingleton(TOKENS.LogsController, LogsController);
+    container.registerSingleton(TOKENS.WorkflowController, WorkflowController);
 }
 
 /**

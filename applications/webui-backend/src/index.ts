@@ -21,6 +21,7 @@ import {
     registerStatusManagers,
     registerRagChatHistoryManager,
     registerRAGClient,
+    registerOrchestratorClient,
     registerServices,
     registerControllers,
     registerConfigManagerService,
@@ -143,15 +144,24 @@ export class WebUILocalServer {
 
         // 3. 注册 RAG RPC 客户端
         const config = await ConfigManagerService.getCurrentConfig();
-        const rpcPort = config.ai.rpc.port;
-        const rpcBaseUrl = (process.env.SYNTHOS_AI_RPC_BASE_URL || "").trim() || `http://localhost:${rpcPort}`;
+        const ragRpcPort = config.ai.rpc.port;
+        const ragRpcBaseUrl =
+            (process.env.SYNTHOS_AI_RPC_BASE_URL || "").trim() || `http://localhost:${ragRpcPort}`;
 
-        registerRAGClient(rpcBaseUrl);
+        registerRAGClient(ragRpcBaseUrl);
 
-        // 4. 注册 Services
+        // 4. 注册 Orchestrator RPC 客户端
+        const orchestratorRpcPort = config.orchestrator.rpcPort;
+        const orchestratorRpcBaseUrl =
+            (process.env.SYNTHOS_ORCHESTRATOR_RPC_BASE_URL || "").trim() ||
+            `http://localhost:${orchestratorRpcPort}`;
+
+        registerOrchestratorClient(orchestratorRpcBaseUrl);
+
+        // 5. 注册 Services
         registerServices();
 
-        // 5. 注册 Controllers
+        // 6. 注册 Controllers
         registerControllers();
     }
 

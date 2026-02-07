@@ -19,6 +19,7 @@ import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
 import { LogsController } from "../controllers/LogsController";
+import { WorkflowController } from "../controllers/WorkflowController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -35,6 +36,7 @@ export const setupApiRoutes = (app: Express): void => {
     const systemMonitorController = container.resolve<SystemMonitorController>(TOKENS.SystemMonitorController);
     const agentController = container.resolve<AgentController>(TOKENS.AgentController);
     const logsController = container.resolve<LogsController>(TOKENS.LogsController);
+    const workflowController = container.resolve<WorkflowController>(TOKENS.WorkflowController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -309,5 +311,66 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/agent/conversations/:id/messages",
         asyncHandler((req, res) => agentController.getMessages(req, res))
+    );
+
+    // ==================== 工作流 ====================
+    // 获取工作流列表
+    app.get(
+        "/api/workflow/list",
+        asyncHandler((req, res) => workflowController.listWorkflows(req, res))
+    );
+
+    // 获取执行历史（必须放在 /api/workflow/:id 前面，避免 executions 被当作 id）
+    app.get(
+        "/api/workflow/executions",
+        asyncHandler((req, res) => workflowController.listExecutions(req, res))
+    );
+
+    // 获取单次执行详情（必须放在订阅路由前面）
+    app.get(
+        "/api/workflow/execution/:executionId",
+        asyncHandler((req, res) => workflowController.getExecution(req, res))
+    );
+
+    // 订阅执行状态（SSE）（必须放在 /api/workflow/:id 前面）
+    app.get(
+        "/api/workflow/execution/:executionId/subscribe",
+        asyncHandler((req, res) => workflowController.subscribeExecution(req, res))
+    );
+
+    // 触发工作流执行（必须放在 /api/workflow/:id 前面）
+    app.post(
+        "/api/workflow/execute/:id",
+        asyncHandler((req, res) => workflowController.triggerWorkflow(req, res))
+    );
+
+    // 取消执行
+    app.post(
+        "/api/workflow/execution/:executionId/cancel",
+        asyncHandler((req, res) => workflowController.cancelExecution(req, res))
+    );
+
+    // 断点续跑
+    app.post(
+        "/api/workflow/execution/:executionId/resume",
+        asyncHandler((req, res) => workflowController.resumeExecution(req, res))
+    );
+
+    // 保存工作流
+    app.post(
+        "/api/workflow/save",
+        asyncHandler((req, res) => workflowController.saveWorkflow(req, res))
+    );
+
+    // 获取单个工作流（通配符路由，必须放在具体路由后面）
+    app.get(
+        "/api/workflow/:id",
+        asyncHandler((req, res) => workflowController.getWorkflow(req, res))
+    );
+
+    // 删除工作流（通配符路由，必须放在具体路由后面）
+    app.delete(
+        "/api/workflow/:id",
+        asyncHandler((req, res) => workflowController.deleteWorkflow(req, res))
     );
 };
