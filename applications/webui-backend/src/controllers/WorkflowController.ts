@@ -70,15 +70,20 @@ export class WorkflowController {
                 return;
             }
 
-            // TODO: 实际保存到数据库的逻辑需要在orchestrator中实现
-            // 暂时返回原数据并添加时间戳
-            const savedWorkflow = {
-                ...workflow,
-                id: workflow.id || `wf-${Date.now()}`,
-                updatedAt: Date.now()
-            };
+            // 确保工作流有ID
+            if (!workflow.id) {
+                workflow.id = `wf-${Date.now()}`;
+            }
 
-            res.json(savedWorkflow);
+            // 调用 orchestrator RPC 保存到配置文件
+            // @ts-ignore - tRPC 类型推断问题，运行时正常
+            const result = await this.orchestratorClient.saveWorkflow.mutate(workflow);
+
+            if (result.success) {
+                res.json(result.workflow);
+            } else {
+                res.status(500).json({ error: result.message });
+            }
         } catch (error) {
             LOGGER.error(`保存工作流失败: ${error}`);
             res.status(500).json({ error: "保存工作流失败" });

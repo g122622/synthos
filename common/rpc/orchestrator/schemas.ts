@@ -33,6 +33,19 @@ export const GetWorkflowOutputSchema = WorkflowDefinitionSchema;
 export type GetWorkflowInput = z.infer<typeof GetWorkflowInputSchema>;
 export type GetWorkflowOutput = z.infer<typeof GetWorkflowOutputSchema>;
 
+// ========== saveWorkflow 接口 ==========
+
+export const SaveWorkflowInputSchema = WorkflowDefinitionSchema;
+
+export const SaveWorkflowOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+    workflow: WorkflowDefinitionSchema.optional()
+});
+
+export type SaveWorkflowInput = z.infer<typeof SaveWorkflowInputSchema>;
+export type SaveWorkflowOutput = z.infer<typeof SaveWorkflowOutputSchema>;
+
 // ========== triggerWorkflow 接口 ==========
 
 export const TriggerWorkflowInputSchema = z.object({

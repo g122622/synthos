@@ -25,7 +25,7 @@ import {
     ExecutionSummary,
     NodeStateDTO
 } from "@root/common/rpc/orchestrator/index";
-import { NodeState } from "@root/common/contracts/workflow/index";
+import { NodeState, WorkflowDefinition } from "@root/common/contracts/workflow/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import Logger from "@root/common/util/Logger";
@@ -85,6 +85,52 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
         }
 
         return workflow;
+    }
+
+    /**
+     * 保存工作流定义到配置文件
+     * @param input 工作流定义
+     * @returns 保存结果
+     */
+    public async saveWorkflow(input: WorkflowDefinition): Promise<{
+        success: boolean;
+        message: string;
+        workflow?: WorkflowDefinition;
+    }> {
+        try {
+            const config = await this.configManagerService.getCurrentConfig();
+            const workflows = config.orchestrator.workflows || [];
+
+            // 查找是否已存在该工作流
+            const existingIndex = workflows.findIndex(wf => wf.id === input.id);
+
+            if (existingIndex >= 0) {
+                // 更新现有工作流
+                (workflows as any)[existingIndex] = input;
+                LOGGER.info(`更新工作流: ${input.name} (${input.id})`);
+            } else {
+                // 添加新工作流
+                (workflows as any).push(input);
+                LOGGER.info(`添加新工作流: ${input.name} (${input.id})`);
+            }
+
+            // 保存配置
+            config.orchestrator.workflows = workflows;
+            await this.configManagerService.saveBaseConfig(config);
+
+            return {
+                success: true,
+                message: existingIndex >= 0 ? "工作流更新成功" : "工作流保存成功",
+                workflow: input
+            };
+        } catch (error) {
+            LOGGER.error(`保存工作流失败: ${(error as Error).message}`);
+
+            return {
+                success: false,
+                message: `保存工作流失败: ${(error as Error).message}`
+            };
+        }
     }
 
     /**

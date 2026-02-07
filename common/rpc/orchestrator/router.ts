@@ -9,6 +9,8 @@ import {
     ListWorkflowsOutput,
     GetWorkflowInput,
     GetWorkflowOutput,
+    SaveWorkflowInput,
+    SaveWorkflowOutput,
     TriggerWorkflowInput,
     TriggerWorkflowOutput,
     CancelExecutionInput,
@@ -22,6 +24,7 @@ import {
     OnExecutionUpdateInput,
     ExecutionUpdateEvent,
     GetWorkflowInputSchema,
+    SaveWorkflowInputSchema,
     TriggerWorkflowInputSchema,
     CancelExecutionInputSchema,
     RetryExecutionInputSchema,
@@ -57,6 +60,13 @@ export interface OrchestratorRPCImplementation {
      * @returns 工作流定义
      */
     getWorkflow(input: GetWorkflowInput): Promise<GetWorkflowOutput>;
+
+    /**
+     * 保存工作流定义到配置文件
+     * @param input 工作流定义
+     * @returns 保存结果
+     */
+    saveWorkflow(input: SaveWorkflowInput): Promise<SaveWorkflowOutput>;
 
     /**
      * 手动触发流程执行
@@ -117,6 +127,10 @@ export const createOrchestratorRouter = (impl: OrchestratorRPCImplementation) =>
 
         getWorkflow: t.procedure.input(GetWorkflowInputSchema).query(async ({ input }) => {
             return impl.getWorkflow(input);
+        }),
+
+        saveWorkflow: t.procedure.input(SaveWorkflowInputSchema).mutation(async ({ input }) => {
+            return impl.saveWorkflow(input);
         }),
 
         triggerWorkflow: t.procedure.input(TriggerWorkflowInputSchema).mutation(async ({ input }) => {
