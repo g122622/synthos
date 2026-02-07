@@ -22,6 +22,7 @@ import { fetchWorkflows, saveWorkflow, fetchWorkflowById, triggerWorkflow, cance
 import { useExecutionStatus, type ExecutionUpdateEvent } from "./hooks/useExecutionStatus";
 
 import { Notification } from "@/util/Notification";
+import DefaultLayout from "@/layouts/default";
 
 /**
  * 工作流页面组件
@@ -290,74 +291,83 @@ const WorkflowPage: React.FC = () => {
     };
 
     return (
-        <div className="flex flex-col h-screen w-full bg-background">
-            {/* 顶部工具栏 */}
-            <div className="flex items-center justify-between px-4 py-2 border-b border-divider bg-content1 gap-4">
-                <h1 className="text-lg font-semibold shrink-0">🔀 流程编排</h1>
+        <DefaultLayout>
+            <div className="flex flex-col h-screen w-full bg-background">
+                {/* 顶部工具栏 */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-divider bg-content1 gap-4">
+                    <h1 className="text-lg font-semibold shrink-0">🔀 流程编排</h1>
 
-                {/* 工作流选择器 */}
-                <Select className="max-w-xs" label="当前工作流" placeholder="选择工作流" selectedKeys={currentWorkflowId ? [currentWorkflowId] : []} size="sm" onSelectionChange={handleWorkflowChange}>
-                    {workflows.map(wf => (
-                        <SelectItem key={wf.id}>{wf.name}</SelectItem>
-                    ))}
-                </Select>
+                    {/* 工作流选择器 */}
+                    <Select
+                        className="max-w-xs"
+                        label="当前工作流"
+                        placeholder="选择工作流"
+                        selectedKeys={currentWorkflowId ? [currentWorkflowId] : []}
+                        size="sm"
+                        onSelectionChange={handleWorkflowChange}
+                    >
+                        {workflows.map(wf => (
+                            <SelectItem key={wf.id}>{wf.name}</SelectItem>
+                        ))}
+                    </Select>
 
-                {/* 操作按钮组 */}
-                <div className="flex gap-2 shrink-0">
-                    <Button size="sm" startContent={<FolderOpen size={16} />} variant="flat" onPress={loadWorkflowList}>
-                        刷新列表
-                    </Button>
-                    <Button color="primary" size="sm" startContent={<Save size={16} />} onPress={handleSaveClick}>
-                        保存
-                    </Button>
-                    <Button color="success" isDisabled={!currentWorkflowId || isConnected} size="sm" startContent={<Play size={16} />} onPress={handleTrigger}>
-                        手动触发
-                    </Button>
-                    <Button color="danger" isDisabled={!isConnected} size="sm" startContent={<StopCircle size={16} />} onPress={handleCancel}>
-                        取消执行
-                    </Button>
-                    <Button color="warning" isDisabled={!currentExecutionId} size="sm" startContent={<RotateCcw size={16} />} onPress={handleResume}>
-                        断点续跑
-                    </Button>
-                    {isConnecting && <span className="text-xs text-warning self-center">连接中...</span>}
-                    {isConnected && <span className="text-xs text-success self-center">● 执行中</span>}
-                </div>
-            </div>
-
-            {/* 主内容区 */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* 左侧节点面板 */}
-                <NodePalette />
-
-                {/* 中间画布 */}
-                <div className="flex-1">
-                    <ReactFlowProvider>
-                        <WorkflowCanvas />
-                    </ReactFlowProvider>
+                    {/* 操作按钮组 */}
+                    <div className="flex gap-2 shrink-0">
+                        <Button size="sm" startContent={<FolderOpen size={16} />} variant="flat" onPress={loadWorkflowList}>
+                            刷新列表
+                        </Button>
+                        <Button color="primary" size="sm" startContent={<Save size={16} />} onPress={handleSaveClick}>
+                            保存
+                        </Button>
+                        <Button color="success" isDisabled={!currentWorkflowId || isConnected} size="sm" startContent={<Play size={16} />} onPress={handleTrigger}>
+                            手动触发
+                        </Button>
+                        <Button color="danger" isDisabled={!isConnected} size="sm" startContent={<StopCircle size={16} />} onPress={handleCancel}>
+                            取消执行
+                        </Button>
+                        <Button color="warning" isDisabled={!currentExecutionId} size="sm" startContent={<RotateCcw size={16} />} onPress={handleResume}>
+                            断点续跑
+                        </Button>
+                        {isConnecting && <span className="text-xs text-warning self-center">连接中...</span>}
+                        {isConnected && <span className="text-xs text-success self-center">● 执行中</span>}
+                    </div>
                 </div>
 
-                {/* 右侧属性面板 */}
-                <PropertyPanel />
-            </div>
+                {/* 主内容区 */}
+                <div className="flex flex-1 overflow-hidden">
+                    {/* 左侧节点面板 */}
+                    <NodePalette />
 
-            {/* 底部执行面板 */}
-            <div className="h-48 border-t border-divider bg-content1 p-4">
-                <ExecutionPanel
-                    currentPage={executionPage}
-                    executions={executions}
-                    isLoading={isLoadingHistory}
-                    pageSize={PAGE_SIZE}
-                    totalCount={totalExecutions}
-                    onLoadSnapshot={handleLoadSnapshot}
-                    onPageChange={handlePageChange}
-                />
-            </div>
+                    {/* 中间画布 */}
+                    <div className="flex-1">
+                        <ReactFlowProvider>
+                            <WorkflowCanvas />
+                        </ReactFlowProvider>
+                    </div>
 
-            {/* Diff 预览模态框 */}
-            {modifiedWorkflow && (
-                <WorkflowDiffModal isOpen={isOpen} isSaving={isSaving} modifiedWorkflow={modifiedWorkflow} originalWorkflow={originalWorkflow} onClose={onClose} onConfirm={handleConfirmSave} />
-            )}
-        </div>
+                    {/* 右侧属性面板 */}
+                    <PropertyPanel />
+                </div>
+
+                {/* 底部执行面板 */}
+                <div className="h-48 border-t border-divider bg-content1 p-4">
+                    <ExecutionPanel
+                        currentPage={executionPage}
+                        executions={executions}
+                        isLoading={isLoadingHistory}
+                        pageSize={PAGE_SIZE}
+                        totalCount={totalExecutions}
+                        onLoadSnapshot={handleLoadSnapshot}
+                        onPageChange={handlePageChange}
+                    />
+                </div>
+
+                {/* Diff 预览模态框 */}
+                {modifiedWorkflow && (
+                    <WorkflowDiffModal isOpen={isOpen} isSaving={isSaving} modifiedWorkflow={modifiedWorkflow} originalWorkflow={originalWorkflow} onClose={onClose} onConfirm={handleConfirmSave} />
+                )}
+            </div>
+        </DefaultLayout>
     );
 };
 
