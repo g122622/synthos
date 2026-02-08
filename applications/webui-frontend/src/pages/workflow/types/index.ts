@@ -31,7 +31,7 @@ export type NodeExecutionStatus =
 /**
  * 任务类型（对应后端 TaskHandlerTypes）
  */
-export type TaskHandlerType = "ProvideData" | "Preprocess" | "AISummarize" | "GenerateEmbedding" | "InterestScore" | "LLMInterestEvaluationAndNotification";
+export type TaskHandlerType = "ProvideData" | "Preprocess" | "AISummarize" | "GenerateEmbedding" | "InterestScore" | "LLMInterestEvaluationAndNotification" | "RunPipeline" | "GenerateReport";
 
 /**
  * 条件表达式类型

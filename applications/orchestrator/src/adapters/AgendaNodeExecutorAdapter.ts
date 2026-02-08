@@ -1,6 +1,5 @@
 import { NodeExecutionResult, HttpConfig } from "@root/common/contracts/workflow/index";
 import { scheduleAndWaitForJob } from "@root/common/scheduler/jobUtils";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 
 import { ExecutionContext } from "../core/ExecutionContext";
@@ -55,18 +54,14 @@ export class AgendaNodeExecutorAdapter implements NodeExecutorAdapter {
 
         try {
             // 解析任务参数（合并默认参数和节点配置参数）
-            const resolvedParams = await this._paramsResolver.resolveParams(
-                taskType as TaskHandlerTypes,
-                params,
-                context
-            );
+            const resolvedParams = await this._paramsResolver.resolveParams(taskType, params, context);
 
             LOGGER.debug(`节点 [${nodeId}] 已解析参数: ${JSON.stringify(resolvedParams)}`);
 
             // 调用 Agenda 调度任务并等待完成
             const success = await scheduleAndWaitForJob(
-                taskType as TaskHandlerTypes,
-                resolvedParams as any,
+                taskType,
+                resolvedParams,
                 this._pollIntervalMs,
                 this._taskTimeoutMs
             );

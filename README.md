@@ -112,9 +112,9 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 | `data-provider` | 从 QQ 等 IM 平台获取原始聊天记录 |
 | `preprocessing` | 清洗、分组、上下文拼接、引用解析 |
 | `ai-model` | 文本向量化、主题提取、摘要生成、兴趣度计算、向量嵌入存储与检索（RAG） |
-| `orchestrator` | **可视化工作流引擎**，支持 DAG 工作流定义、tRPC 远程管理，提供流程触发、暂停、重试、断点续跑等能力，默认包含标准数据处理流程（ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore） |
+| `orchestrator` | **可视化工作流引擎**，支持 DAG 工作流定义、tRPC 远程管理，提供流程触发、暂停、重试、断点续跑等能力，默认包含标准数据处理流程（ProvideData → Preprocess → AISummarize → GenerateEmbedding → InterestScore）。采用 **装饰器 + TaskRegistry** 模式，新增任务只需修改一个文件，前后端自动同步 |
 | `webui-backend` | 提供 RESTful API，支持群组管理、消息查询、结果获取；作为 tRPC 客户端转发 orchestrator 和 ai-model 的 RPC 调用 |
-| `common` | 共享类型定义、配置管理、数据库工具、日志系统 |
+| `common` | 共享类型定义、配置管理、数据库工具、日志系统、**任务注册机制（TaskRegistry）** |
 
 ---
 

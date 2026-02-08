@@ -25,7 +25,9 @@ import {
     registerServices,
     registerControllers,
     registerConfigManagerService,
-    registerCommonDBService
+    registerCommonDBService,
+    registerRedisService,
+    registerTaskRegistry
 } from "./di/container";
 import { TopicFavoriteStatusManager } from "./repositories/TopicFavoriteStatusManager";
 import { TopicReadStatusManager } from "./repositories/TopicReadStatusManager";
@@ -169,6 +171,8 @@ export class WebUILocalServer {
         // 1. 注册基础 DI 服务（必须最先）
         registerConfigManagerService();
         registerCommonDBService();
+        registerRedisService();
+        registerTaskRegistry();
 
         // 2. 初始化数据库（需要 CommonDBService）
         await this.initializeDatabases();

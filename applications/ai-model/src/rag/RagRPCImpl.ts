@@ -17,11 +17,9 @@ import {
     SendReportEmailOutput
 } from "@root/common/rpc/ai-model/index";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
-import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
@@ -55,9 +53,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
         @inject(AI_MODEL_TOKENS.VectorDBManagerService) private vectorDB: VectorDBManagerService,
         @inject(COMMON_TOKENS.AgcDbAccessService) private agcDB: AgcDbAccessService,
-        @inject(COMMON_TOKENS.ImDbAccessService) private imDB: ImDbAccessService,
         @inject(COMMON_TOKENS.ReportDbAccessService) private reportDB: ReportDbAccessService,
-        @inject(AI_MODEL_TOKENS.TextGeneratorService) private TextGeneratorService: TextGeneratorService,
+        @inject(AI_MODEL_TOKENS.TextGeneratorService) private textGeneratorService: TextGeneratorService,
         @inject(AI_MODEL_TOKENS.RAGCtxBuilder) private ragCtxBuilder: RAGCtxBuilder,
         @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService,
         @inject(AI_MODEL_TOKENS.LangGraphAgentExecutor) private agentExecutor: LangGraphAgentExecutor,
@@ -77,7 +74,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         this.defaultModelName = config.ai.defaultModelName;
         // 创建 QueryRewriter 实例
-        this.queryRewriter = new QueryRewriter(this.TextGeneratorService, this.defaultModelName);
+        this.queryRewriter = new QueryRewriter(this.textGeneratorService, this.defaultModelName);
         // 初始化 RAGCtxBuilder
         await this.ragCtxBuilder.init();
     }
@@ -179,7 +176,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
-        const { content: answer } = await this.TextGeneratorService.generateTextWithModelCandidates(
+        const { content: answer } = await this.textGeneratorService.generateTextWithModelCandidates(
             [this.defaultModelName],
             prompt
         );
@@ -263,7 +260,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             onChunk({ type: "references", references });
 
             // 7. 调用 LLM 生成回答（流式）
-            await this.TextGeneratorService.generateTextStreamWithModelCandidates(
+            await this.textGeneratorService.generateTextStreamWithModelCandidates(
                 [this.defaultModelName],
                 prompt,
                 chunk => {

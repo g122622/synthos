@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { TaskHandlerTypes } from "../../scheduler/@types/Tasks";
-
 /**
  * 工作流节点类型枚举
  */
@@ -100,7 +98,7 @@ export interface WorkflowNodeData {
     /** 节点显示标签 */
     label: string;
     /** 任务类型（仅 type="task" 时有效） */
-    taskType?: TaskHandlerTypes;
+    taskType?: string;
     /** 节点参数 */
     params?: Record<string, any>;
     /** 重试次数 */
@@ -240,7 +238,7 @@ export const HttpConfigSchema = z.object({
  */
 export const WorkflowNodeDataSchema = z.object({
     label: z.string(),
-    taskType: z.nativeEnum(TaskHandlerTypes).optional(),
+    taskType: z.string().optional(),
     params: z.record(z.any()).optional(),
     retryCount: z.number().int().min(0).optional(),
     timeoutMs: z.number().int().min(0).optional(),

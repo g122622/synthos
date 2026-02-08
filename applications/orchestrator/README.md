@@ -205,4 +205,71 @@ A:
 
 ---
 
+## 任务注册机制（装饰器模式）
+
+Synthos 工作流引擎采用 **装饰器 + TaskRegistry** 模式实现任务的自动注册和元数据管理，无需手动维护任务枚举。
+
+### 添加新任务
+
+1. 创建任务处理器类并定义 Zod Schema：
+
+```typescript
+import { z } from "zod";
+import { Task } from "@root/common/scheduler/registry";
+
+// 1. 定义参数 Schema（运行时校验）
+const NewTaskParamsSchema = z.object({
+    param1: z.string(),
+    param2: z.number().int().positive()
+});
+
+// 2. 使用 @Task 装饰器注册
+@injectable()
+@Task({
+    displayName: "新任务",
+    description: "这是一个示例任务",
+    paramsSchema: NewTaskParamsSchema,
+    generateDefaultParams: async (context, config) => ({
+        param1: "默认值",
+        param2: 42
+    }),
+    uiConfig: {
+        icon: "🚀",
+        category: "数据处理",
+        formFields: [
+            { name: "param1", type: "string", label: "参数1", required: true },
+            { name: "param2", type: "number", label: "参数2", description: "必须为正整数" }
+        ]
+    }
+})
+export class NewTaskHandler {
+    public static readonly TASK_NAME = "NewTask";
+    
+    async execute(params: z.infer<typeof NewTaskParamsSchema>) {
+        // 实现任务逻辑
+    }
+    
+    static register(agenda: Agenda) {
+        agenda.define(this.TASK_NAME, async (job) => {
+            // 注册到 Agenda
+        });
+    }
+}
+```
+
+2. 在 `applications/ai-model/src/tasks` 中创建文件并导出
+3. **完成！** 前端会自动显示新任务，无需修改任何其他文件
+
+### 技术细节
+
+- **TaskRegistry 单例**：所有任务元数据集中管理（`common/scheduler/registry/TaskRegistry.ts`）
+- **@Task 装饰器**：自动从类静态属性提取 `TASK_NAME` 并注册
+- **Zod Schema**：提供运行时参数校验和 JSON Schema 转换（供前端使用）
+- **前端动态 UI**：通过 `/api/tasks/registry` 接口获取任务列表和表单配置
+- **参数解析器**：`TaskParamsResolver` 使用 TaskRegistry 生成默认参数和校验
+
+详见技术文档：[docs/工作流编排技术报告.md](../../docs/工作流编排技术报告.md#13-任务注册机制重构装饰器模式)
+
+---
+
 **完整设计文档**：[docs/迭代历程/可视化编排.md](../../docs/迭代历程/可视化编排.md)

@@ -2,9 +2,9 @@ import "reflect-metadata";
 import { container } from "tsyringe";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
+import { TaskRegistry, registerPendingTasks } from "@root/common/scheduler/registry/index";
 import { cleanupStaleJobs } from "@root/common/scheduler/jobUtils";
-import { registerConfigManagerService } from "@root/common/di/container";
+import { registerConfigManagerService, registerRedisService, registerTaskRegistry } from "@root/common/di/container";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { sleep } from "@root/common/util/promisify/sleep";
@@ -22,6 +22,8 @@ class OrchestratorApplication {
     public async main(): Promise<void> {
         // 初始化 DI 容器
         registerConfigManagerService();
+        registerRedisService();
+        registerTaskRegistry();
 
         const config = await ConfigManagerService.getCurrentConfig();
 
@@ -42,16 +44,19 @@ class OrchestratorApplication {
 
         LOGGER.info(`✅ 已加载 ${workflows.length} 个工作流定义`);
 
-        // 清理残留任务
-        await cleanupStaleJobs([
-            TaskHandlerTypes.ProvideData,
-            TaskHandlerTypes.Preprocess,
-            TaskHandlerTypes.AISummarize,
-            TaskHandlerTypes.GenerateEmbedding,
-            TaskHandlerTypes.InterestScore,
-            TaskHandlerTypes.LLMInterestEvaluationAndNotification,
-            TaskHandlerTypes.GenerateReport
-        ]);
+        // 注册所有通过装饰器收集的任务
+        await registerPendingTasks();
+
+        // 清理残留任务（使用 TaskRegistry 获取所有已注册任务）
+        const taskRegistry = container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
+        const registeredTaskNames = await taskRegistry.getAllTaskNames();
+
+        if (registeredTaskNames.length > 0) {
+            LOGGER.info(`🧹 清理以下任务的残留 Job: ${registeredTaskNames.join(", ")}`);
+            await cleanupStaleJobs(registeredTaskNames);
+        } else {
+            LOGGER.warning("⚠️ TaskRegistry 中未找到已注册的任务，跳过清理");
+        }
 
         // 创建 RPC 实现
         const rpcImpl = new OrchestratorRPCImpl(

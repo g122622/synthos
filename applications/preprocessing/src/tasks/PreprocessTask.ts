@@ -1,11 +1,14 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
+import { z } from "zod";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
 import { ProcessedChatMessage } from "@root/common/contracts/data-provider";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
+import { Task } from "@root/common/scheduler/registry/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { GroupIdsSchema } from "@root/common/scheduler/schemas/composables/GroupIdsSchema";
+import { TimeRangeSchema } from "@root/common/scheduler/schemas/composables/TimeRangeSchema";
 
 import { formatMsg } from "../formatMsg";
 import { ISplitter } from "../splitters/contracts/ISplitter";
@@ -13,11 +16,38 @@ import { COMMON_TOKENS } from "../di/tokens";
 import { getAccumulativeSplitter, getTimeoutSplitter } from "../di/container";
 
 /**
+ * 预处理任务参数 Schema
+ */
+export const PreprocessParamsSchema = z.object({
+    /** 群组 ID 列表 */
+    ...GroupIdsSchema.shape,
+    /** 起始时间戳（毫秒） */
+    ...TimeRangeSchema.shape
+});
+export type PreprocessParams = z.infer<typeof PreprocessParamsSchema>;
+
+/**
  * 预处理任务处理器
  * 负责对消息进行分割和预处理
  */
 @injectable()
+@Task<PreprocessParams>({
+    displayName: "消息预处理",
+    description: "对群聊消息进行分割和 session 分配",
+    paramsSchema: PreprocessParamsSchema,
+    generateDefaultParams: async (context, config) => {
+        const now = Date.now();
+        const defaultTimeRange = config.orchestrator?.defaultTimeRangeInHours ?? 24;
+
+        return {
+            groupIds: config.orchestrator?.defaultGroupIds ?? [],
+            startTimeStamp: now - defaultTimeRange * 60 * 60 * 1000,
+            endTimeStamp: now
+        };
+    }
+})
 export class PreprocessTaskHandler {
+    public static readonly TASK_NAME = "Preprocess";
     private LOGGER = Logger.withTag("🏭 PreprocessTask");
 
     /**

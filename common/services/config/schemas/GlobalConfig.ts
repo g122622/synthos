@@ -212,7 +212,22 @@ export const GlobalConfigSchema = z.object({
                 .object({
                     imMessageDBPath: z.string().describe("IM 消息全文检索（FTS）数据库路径")
                 })
-                .describe("FTS 数据库配置")
+                .describe("FTS 数据库配置"),
+            redis: z
+                .object({
+                    enabled: z.boolean().describe("是否启用 Redis 服务"),
+                    enableRedlock: z.boolean().describe("是否启用 Redlock 分布式锁"),
+                    enablePubSub: z.boolean().describe("是否启用 Pub/Sub 功能"),
+                    connection: z
+                        .object({
+                            host: z.string().describe("Redis 服务器地址"),
+                            port: z.number().int().positive().describe("Redis 服务器端口"),
+                            password: z.string().optional().describe("Redis 服务器密码"),
+                            db: z.number().int().nonnegative().describe("Redis 数据库编号")
+                        })
+                        .describe("Redis 连接配置")
+                })
+                .describe("Redis 配置")
         })
         .describe("公共数据库配置"),
 

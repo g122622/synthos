@@ -7,6 +7,7 @@ import { container } from "tsyringe";
 
 import ConfigManagerService from "../services/config/ConfigManagerService";
 import { EmailService } from "../services/email/EmailService";
+import { RedisService } from "../services/redis/RedisService";
 import { CommonDBService } from "../services/database/infra/CommonDBService";
 import { AgcDbAccessService } from "../services/database/AgcDbAccessService";
 import { ImDbAccessService } from "../services/database/ImDbAccessService";
@@ -14,6 +15,7 @@ import { ImDbFtsService } from "../services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "../services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "../services/database/AgentDbAccessService";
+import { TaskRegistry } from "../scheduler/registry/TaskRegistry";
 
 import { COMMON_TOKENS } from "./tokens";
 
@@ -47,6 +49,38 @@ export function registerEmailService(): void {
  */
 export function getEmailService(): EmailService {
     return container.resolve<EmailService>(COMMON_TOKENS.EmailService);
+}
+
+/**
+ * 初始化并注册 RedisService 到 DI 容器
+ * 在需要使用 Redis 的应用启动时调用
+ */
+export function registerRedisService(): void {
+    container.registerSingleton(COMMON_TOKENS.RedisService, RedisService);
+}
+
+/**
+ * 从 DI 容器获取 RedisService 实例
+ * @returns RedisService 实例
+ */
+export function getRedisService(): RedisService {
+    return container.resolve<RedisService>(COMMON_TOKENS.RedisService);
+}
+
+/**
+ * 初始化并注册 TaskRegistry 到 DI 容器
+ * 在需要使用任务注册中心的应用启动时调用
+ */
+export function registerTaskRegistry(): void {
+    container.registerSingleton(COMMON_TOKENS.TaskRegistry, TaskRegistry);
+}
+
+/**
+ * 从 DI 容器获取 TaskRegistry 实例
+ * @returns TaskRegistry 实例
+ */
+export function getTaskRegistry(): TaskRegistry {
+    return container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
 }
 
 /**

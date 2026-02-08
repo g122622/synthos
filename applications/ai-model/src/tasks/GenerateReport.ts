@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";

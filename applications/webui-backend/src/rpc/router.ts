@@ -6,6 +6,7 @@ import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 import { initTRPC } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { container } from "tsyringe";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import {
     AgentAskInputSchema,
     AskInputSchema,
@@ -21,6 +22,8 @@ import {
     GetExecutionInputSchema,
     OnExecutionUpdateInputSchema
 } from "@root/common/rpc/orchestrator/index";
+import { TaskRegistry, SerializableTaskMetadata } from "@root/common/scheduler/registry/index";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { TOKENS } from "../di/tokens";
 
@@ -253,6 +256,28 @@ export const appRouter = t.router({
 
             return () => sub.unsubscribe();
         });
+    }),
+
+    /**
+     * 获取所有已注册任务的元数据
+     * 返回任务名称、显示名称、参数 JSON Schema 等
+     */
+    getTaskRegistry: t.procedure.query(async () => {
+        const taskRegistry = container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
+        const allTasks = await taskRegistry.getAllRegisteredTasks();
+
+        // 将 Zod Schema 转换为 JSON Schema 以便前端使用
+        const serializedTasks: SerializableTaskMetadata[] = allTasks.map(task => ({
+            internalName: task.internalName,
+            displayName: task.displayName,
+            description: task.description,
+            paramsJsonSchema: zodToJsonSchema(task.paramsSchema, {
+                name: `${task.internalName}Params`,
+                errorMessages: true
+            })
+        }));
+
+        return { tasks: serializedTasks };
     })
 });
 

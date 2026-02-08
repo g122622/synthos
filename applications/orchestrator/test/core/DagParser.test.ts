@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowDefinition, WorkflowNodeType } from "@root/common/contracts/workflow/index";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 
 import { DagParser } from "../../src/core/DagParser";
 
@@ -22,13 +21,13 @@ describe("DagParser", () => {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
-                        data: { label: "任务1", taskType: TaskHandlerTypes.ProvideData }
+                        data: { label: "任务1", taskType: "ProvideData" }
                     },
                     {
                         id: "task2",
                         type: WorkflowNodeType.Task,
                         position: { x: 200, y: 0 },
-                        data: { label: "任务2", taskType: TaskHandlerTypes.Preprocess }
+                        data: { label: "任务2", taskType: "Preprocess" }
                     },
                     {
                         id: "end",

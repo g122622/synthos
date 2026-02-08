@@ -1,8 +1,8 @@
-/**
- * API 路由配置
- */
 import { Express } from "express";
 import { container } from "tsyringe";
+import { zodToJsonSchema } from "zod-to-json-schema";
+import { TaskRegistry } from "@root/common/scheduler/registry/index";
+import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { TOKENS } from "../di/tokens";
 import { asyncHandler } from "../errors/errorHandler";
@@ -372,5 +372,28 @@ export const setupApiRoutes = (app: Express): void => {
     app.delete(
         "/api/workflow/:id",
         asyncHandler((req, res) => workflowController.deleteWorkflow(req, res))
+    );
+
+    // ==================== 任务注册表 ====================
+    // 获取所有已注册任务的元数据
+    app.get(
+        "/api/tasks/registry",
+        asyncHandler(async (req, res) => {
+            const taskRegistry = container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
+            const allTasks = await taskRegistry.getAllRegisteredTasks();
+
+            // 将 Zod Schema 转换为 JSON Schema
+            const serializedTasks = allTasks.map(task => ({
+                name: task.internalName,
+                displayName: task.displayName,
+                description: task.description,
+                paramsJsonSchema: zodToJsonSchema(task.paramsSchema, {
+                    name: `${task.internalName}Params`,
+                    errorMessages: true
+                })
+            }));
+
+            res.json({ tasks: serializedTasks });
+        })
     );
 };

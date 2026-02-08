@@ -5,7 +5,6 @@ import Logger from "../util/Logger";
 import { retryAsync } from "../util/retryAsync";
 
 import { agendaInstance } from "./agenda";
-import { TaskHandlerTypes, TaskParamsMap } from "./@types/Tasks";
 
 const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
 
@@ -13,13 +12,13 @@ const LOGGER = Logger.withTag("🕗 common/scheduler/jobUtils");
  * 等待指定任务名称的 Job 完成
  * 通过轮询 MongoDB 中的 Job 状态来判断任务是否完成
  *
- * @param taskName - 任务名称（TaskHandlerTypes 枚举值）
+ * @param taskName - 任务名称
  * @param pollIntervalMs - 轮询间隔（毫秒）
  * @param timeoutMs - 超时时间（毫秒）
  * @returns Promise<boolean> - 任务成功完成返回 true，超时或失败返回 false
  */
 export async function waitForJobCompletionV1(
-    taskName: TaskHandlerTypes,
+    taskName: string,
     pollIntervalMs: number,
     timeoutMs: number
 ): Promise<boolean> {
@@ -82,7 +81,7 @@ export async function waitForJobCompletionV1(
 
 // 修改后的 waitForJobCompletion
 export function waitForJobCompletionV2(
-    taskName: TaskHandlerTypes,
+    taskName: string,
     jobId: string, // 需要传入具体任务ID
     timeoutMs: number = 30 * 60 * 1000
 ): Promise<boolean> {
@@ -180,9 +179,9 @@ export async function waitForJobCompletionByIdV3(
  * @param timeoutMs - 超时时间（毫秒）
  * @returns Promise<boolean> - 任务成功完成返回 true，超时或失败返回 false
  */
-export async function scheduleAndWaitForJob<T extends TaskHandlerTypes>(
-    taskName: T,
-    data: TaskParamsMap[T],
+export async function scheduleAndWaitForJob(
+    taskName: string,
+    data: Record<string, any>,
     pollIntervalMs: number,
     timeoutMs: number
 ): Promise<boolean> {
@@ -209,7 +208,7 @@ export async function scheduleAndWaitForJob<T extends TaskHandlerTypes>(
  *
  * @param taskNames - 可选，指定要清理的任务名称列表；不传则清理所有任务
  */
-export async function cleanupStaleJobs(taskNames?: TaskHandlerTypes[]): Promise<void> {
+export async function cleanupStaleJobs(taskNames?: string[]): Promise<void> {
     await retryAsync(
         async () => {
             LOGGER.info("🧹 开始清理启动前残留的任务...");

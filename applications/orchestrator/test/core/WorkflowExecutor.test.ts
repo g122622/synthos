@@ -6,22 +6,19 @@ import {
     NodeExecutionStatus,
     WorkflowExecutionStatus
 } from "@root/common/contracts/workflow/index";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 
 import { WorkflowExecutor } from "../../src/core/WorkflowExecutor";
 import { NodeExecutorAdapter } from "../../src/adapters/NodeExecutorAdapter";
 import { ExecutionContext } from "../../src/core/ExecutionContext";
 
 /**
- * Mock 节点执行器适配器（用于测试）
- */
+ * Mock 节点执行器适配器（用于测试�? */
 class MockNodeExecutorAdapter implements NodeExecutorAdapter {
     private _taskResults: Map<string, NodeExecutionResult> = new Map();
     private _executionDelay: number = 0;
 
     /**
-     * 设置任务节点的执行结果
-     */
+     * 设置任务节点的执行结�?     */
     public setTaskResult(taskType: string, result: NodeExecutionResult): void {
         this._taskResults.set(taskType, result);
     }
@@ -105,25 +102,25 @@ describe("WorkflowExecutor", () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-1",
                 name: "简单线性工作流",
-                description: "测试简单线性流程",
+                description: "测试简单线性流�?,
                 nodes: [
                     {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
-                        data: { label: "任务1", taskType: TaskHandlerTypes.ProvideData }
+                        data: { label: "任务1", taskType: "ProvideData" }
                     },
                     {
                         id: "task2",
                         type: WorkflowNodeType.Task,
                         position: { x: 200, y: 0 },
-                        data: { label: "任务2", taskType: TaskHandlerTypes.Preprocess }
+                        data: { label: "任务2", taskType: "Preprocess" }
                     },
                     {
                         id: "end",
@@ -145,8 +142,7 @@ describe("WorkflowExecutor", () => {
             expect(execution.status).toBe(WorkflowExecutionStatus.Success);
             expect(execution.nodeStates.size).toBe(4);
 
-            // 检查所有节点状态
-            expect(execution.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
+            // 检查所有节点状�?            expect(execution.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("task1")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("task2")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("end")?.status).toBe(NodeExecutionStatus.Success);
@@ -155,26 +151,26 @@ describe("WorkflowExecutor", () => {
         it("应该正确执行并行分支", async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-2",
-                name: "并行工作流",
+                name: "并行工作�?,
                 description: "测试并行分支",
                 nodes: [
                     {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
-                        data: { label: "任务1", taskType: TaskHandlerTypes.AISummarize }
+                        data: { label: "任务1", taskType: "AISummarize" }
                     },
                     {
                         id: "task2",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 100 },
-                        data: { label: "任务2", taskType: TaskHandlerTypes.GenerateEmbedding }
+                        data: { label: "任务2", taskType: "GenerateEmbedding" }
                     },
                     {
                         id: "end",
@@ -191,8 +187,7 @@ describe("WorkflowExecutor", () => {
                 ]
             };
 
-            // 设置执行延迟，模拟异步
-            mockAdapter.setExecutionDelay(50);
+            // 设置执行延迟，模拟异�?            mockAdapter.setExecutionDelay(50);
 
             const executor = new WorkflowExecutor(workflow, "exec-2", mockAdapter);
             const startTime = Date.now();
@@ -201,14 +196,12 @@ describe("WorkflowExecutor", () => {
 
             expect(execution.status).toBe(WorkflowExecutionStatus.Success);
 
-            // 检查所有节点状态
-            expect(execution.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
+            // 检查所有节点状�?            expect(execution.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("task1")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("task2")?.status).toBe(NodeExecutionStatus.Success);
             expect(execution.nodeStates.get("end")?.status).toBe(NodeExecutionStatus.Success);
 
-            // 验证并行执行（总时间应该小于串行执行的时间）
-            // 串行执行需要 150ms（3层 × 50ms），并行应该 < 150ms
+            // 验证并行执行（总时间应该小于串行执行的时间�?            // 串行执行需�?150ms�?�?× 50ms），并行应该 < 150ms
             const totalTime = endTime - startTime;
 
             expect(totalTime).toBeLessThan(150);
@@ -216,7 +209,7 @@ describe("WorkflowExecutor", () => {
     });
 
     describe("失败处理", () => {
-        it("应该在节点失败时终止流程（skipOnFailure=false）", async () => {
+        it("应该在节点失败时终止流程（skipOnFailure=false�?, async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-3",
                 name: "失败测试",
@@ -226,7 +219,7 @@ describe("WorkflowExecutor", () => {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
@@ -234,7 +227,7 @@ describe("WorkflowExecutor", () => {
                         position: { x: 100, y: 0 },
                         data: {
                             label: "任务1（失败）",
-                            taskType: TaskHandlerTypes.ProvideData,
+                            taskType: "ProvideData",
                             skipOnFailure: false
                         }
                     },
@@ -242,7 +235,7 @@ describe("WorkflowExecutor", () => {
                         id: "task2",
                         type: WorkflowNodeType.Task,
                         position: { x: 200, y: 0 },
-                        data: { label: "任务2", taskType: TaskHandlerTypes.Preprocess }
+                        data: { label: "任务2", taskType: "Preprocess" }
                     },
                     {
                         id: "end",
@@ -259,7 +252,7 @@ describe("WorkflowExecutor", () => {
             };
 
             // 设置 task1 失败
-            mockAdapter.setTaskResult(TaskHandlerTypes.ProvideData, {
+            mockAdapter.setTaskResult("ProvideData", {
                 success: false,
                 error: "模拟失败",
                 startedAt: Date.now(),
@@ -272,11 +265,10 @@ describe("WorkflowExecutor", () => {
             expect(execution.status).toBe(WorkflowExecutionStatus.Failed);
             expect(execution.nodeStates.get("task1")?.status).toBe(NodeExecutionStatus.Failed);
 
-            // task2 应该被取消
-            expect(execution.nodeStates.get("task2")?.status).toBe(NodeExecutionStatus.Cancelled);
+            // task2 应该被取�?            expect(execution.nodeStates.get("task2")?.status).toBe(NodeExecutionStatus.Cancelled);
         });
 
-        it("应该在节点失败时跳过并继续（skipOnFailure=true）", async () => {
+        it("应该在节点失败时跳过并继续（skipOnFailure=true�?, async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-4",
                 name: "跳过失败测试",
@@ -286,15 +278,15 @@ describe("WorkflowExecutor", () => {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
                         data: {
-                            label: "任务1（失败但跳过）",
-                            taskType: TaskHandlerTypes.ProvideData,
+                            label: "任务1（失败但跳过�?,
+                            taskType: "ProvideData",
                             skipOnFailure: true
                         }
                     },
@@ -302,7 +294,7 @@ describe("WorkflowExecutor", () => {
                         id: "task2",
                         type: WorkflowNodeType.Task,
                         position: { x: 200, y: 0 },
-                        data: { label: "任务2", taskType: TaskHandlerTypes.Preprocess }
+                        data: { label: "任务2", taskType: "Preprocess" }
                     },
                     {
                         id: "end",
@@ -319,7 +311,7 @@ describe("WorkflowExecutor", () => {
             };
 
             // 设置 task1 失败
-            mockAdapter.setTaskResult(TaskHandlerTypes.ProvideData, {
+            mockAdapter.setTaskResult("ProvideData", {
                 success: false,
                 error: "模拟失败",
                 startedAt: Date.now(),
@@ -337,7 +329,7 @@ describe("WorkflowExecutor", () => {
     });
 
     describe("事件发射", () => {
-        it("应该发射 executionStarted 和 executionCompleted 事件", async () => {
+        it("应该发射 executionStarted �?executionCompleted 事件", async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-5",
                 name: "事件测试",
@@ -347,7 +339,7 @@ describe("WorkflowExecutor", () => {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "end",
@@ -376,7 +368,7 @@ describe("WorkflowExecutor", () => {
             expect(events).toContain("nodeCompleted");
         });
 
-        it("应该发射 nodeFailed 和 executionFailed 事件", async () => {
+        it("应该发射 nodeFailed �?executionFailed 事件", async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-6",
                 name: "失败事件测试",
@@ -386,13 +378,13 @@ describe("WorkflowExecutor", () => {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
-                        data: { label: "失败任务", taskType: TaskHandlerTypes.ProvideData, skipOnFailure: false }
+                        data: { label: "失败任务", taskType: "ProvideData", skipOnFailure: false }
                     },
                     {
                         id: "end",
@@ -408,7 +400,7 @@ describe("WorkflowExecutor", () => {
             };
 
             // 设置失败
-            mockAdapter.setTaskResult(TaskHandlerTypes.ProvideData, {
+            mockAdapter.setTaskResult("ProvideData", {
                 success: false,
                 error: "测试失败",
                 startedAt: Date.now(),
@@ -429,24 +421,24 @@ describe("WorkflowExecutor", () => {
         });
     });
 
-    describe("执行上下文", () => {
-        it("应该正确保存和传递节点执行结果", async () => {
+    describe("执行上下�?, () => {
+        it("应该正确保存和传递节点执行结�?, async () => {
             const workflow: WorkflowDefinition = {
                 id: "wf-7",
-                name: "上下文测试",
-                description: "测试执行上下文",
+                name: "上下文测�?,
+                description: "测试执行上下�?,
                 nodes: [
                     {
                         id: "start",
                         type: WorkflowNodeType.Start,
                         position: { x: 0, y: 0 },
-                        data: { label: "开始" }
+                        data: { label: "开�? }
                     },
                     {
                         id: "task1",
                         type: WorkflowNodeType.Task,
                         position: { x: 100, y: 0 },
-                        data: { label: "任务1", taskType: TaskHandlerTypes.ProvideData }
+                        data: { label: "任务1", taskType: "ProvideData" }
                     },
                     {
                         id: "end",
@@ -467,13 +459,11 @@ describe("WorkflowExecutor", () => {
 
             const context = executor.getExecutionContext();
 
-            // 检查节点结果
-            expect(context.getNodeResult("start")).toBeDefined();
+            // 检查节点结�?            expect(context.getNodeResult("start")).toBeDefined();
             expect(context.getNodeResult("task1")).toBeDefined();
             expect(context.getNodeResult("end")).toBeDefined();
 
-            // 检查节点状态
-            expect(context.isNodeSuccess("start")).toBe(true);
+            // 检查节点状�?            expect(context.isNodeSuccess("start")).toBe(true);
             expect(context.isNodeSuccess("task1")).toBe(true);
             expect(context.isNodeSuccess("end")).toBe(true);
         });

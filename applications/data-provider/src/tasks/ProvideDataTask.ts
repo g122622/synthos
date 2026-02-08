@@ -1,11 +1,15 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
+import { z } from "zod";
 import Logger from "@root/common/util/Logger";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
+import { registerTask } from "@root/common/scheduler/registry/index";
 import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { GroupIdsSchema } from "@root/common/scheduler/schemas/composables/GroupIdsSchema";
+import { TimeRangeSchema } from "@root/common/scheduler/schemas/composables/TimeRangeSchema";
+import { Runnable } from "@root/common/util/type/Runnable";
 
 import { IIMProvider } from "../providers/contracts/IIMProvider";
 import { COMMON_TOKENS } from "../di/tokens";
@@ -16,7 +20,31 @@ import { getQQProvider } from "../di/container";
  * 负责从各种 IM 平台获取消息并存储到数据库
  */
 @injectable()
-export class ProvideDataTaskHandler {
+@registerTask({
+    internalName: "ProvideData",
+    displayName: "提供初始数据",
+    description: "从 IM 平台获取聊天消息并存储到数据库",
+    paramsSchema: z.object({
+        /** IM 类型 */
+        IMType: z.enum(["QQ", "WeChat"]),
+        /** 群组 ID 列表 */
+        ...GroupIdsSchema.shape,
+        /** 起始时间戳（毫秒） */
+        ...TimeRangeSchema.shape
+    }),
+    generateDefaultParams: async (context, config) => {
+        const now = Date.now();
+        const defaultTimeRange = config.orchestrator?.defaultTimeRangeInHours ?? 24;
+
+        return {
+            IMType: config.orchestrator?.defaultIMType ?? "QQ",
+            groupIds: config.orchestrator?.defaultGroupIds ?? [],
+            startTimeStamp: now - defaultTimeRange * 60 * 60 * 1000,
+            endTimeStamp: now
+        };
+    }
+})
+export class ProvideDataTaskHandler implements Runnable {
     private LOGGER = Logger.withTag("🌏 ProvideDataTask");
 
     /**
@@ -32,7 +60,7 @@ export class ProvideDataTaskHandler {
     /**
      * 注册任务到 Agenda 调度器
      */
-    public async register(): Promise<void> {
+    public async run(): Promise<void> {
         await agendaInstance
             .create(TaskHandlerTypes.ProvideData)
             .unique({ name: TaskHandlerTypes.ProvideData }, { insertOnly: true })

@@ -9,7 +9,7 @@ import type { WorkflowDefinition, ExecutionSummary } from "./types/index";
 import React from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { Button, Select, SelectItem, useDisclosure } from "@heroui/react";
-import { Save, FolderOpen, Play, StopCircle, RotateCcw } from "lucide-react";
+import { Save, FolderOpen, Play, StopCircle, RotateCcw, Settings } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { WorkflowCanvas } from "./components/WorkflowCanvas";
@@ -17,12 +17,14 @@ import { PropertyPanel } from "./components/PropertyPanel";
 import { NodePalette } from "./components/NodePalette";
 import { WorkflowDiffModal } from "./components/WorkflowDiffModal";
 import { ExecutionPanel } from "./components/ExecutionPanel";
+import { GlobalParamsModal } from "./components/GlobalParamsModal";
 import { useWorkflowStore } from "./stores/workflowStore";
 import { fetchWorkflows, saveWorkflow, fetchWorkflowById, triggerWorkflow, cancelExecution, resumeExecution, fetchExecutionHistory, fetchExecutionById } from "./api/workflowApi";
 import { useExecutionStatus, type ExecutionUpdateEvent } from "./hooks/useExecutionStatus";
 
 import { Notification } from "@/util/Notification";
 import DefaultLayout from "@/layouts/default";
+import { getCurrentConfig, saveBaseConfig } from "@/api/configApi";
 
 /**
  * 工作流页面组件
@@ -40,6 +42,14 @@ const WorkflowPage: React.FC = () => {
     // Diff 模态框
     const { isOpen, onOpen, onClose } = useDisclosure();
     const [modifiedWorkflow, setModifiedWorkflow] = React.useState<WorkflowDefinition | null>(null);
+
+    // 全局参数模态框
+    const { isOpen: isGlobalParamsOpen, onOpen: onGlobalParamsOpen, onClose: onGlobalParamsClose } = useDisclosure();
+    const [globalParams, setGlobalParams] = React.useState({
+        defaultTimeRangeInHours: 100,
+        defaultGroupIds: [] as string[],
+        defaultIMType: "QQ"
+    });
 
     // 执行状态订阅
     const handleExecutionUpdate = React.useCallback(
@@ -89,7 +99,31 @@ const WorkflowPage: React.FC = () => {
     // 页面初始化：加载工作流列表
     React.useEffect(() => {
         loadWorkflowList();
+        loadGlobalParams();
     }, [loadWorkflowList]);
+
+    /**
+     * 加载全局参数配置
+     */
+    const loadGlobalParams = async () => {
+        try {
+            const response = await getCurrentConfig();
+
+            if (response.success && response.data) {
+                const orchestratorConfig = (response.data as any).orchestrator;
+
+                if (orchestratorConfig) {
+                    setGlobalParams({
+                        defaultTimeRangeInHours: orchestratorConfig.defaultTimeRangeInHours || 100,
+                        defaultGroupIds: orchestratorConfig.defaultGroupIds || [],
+                        defaultIMType: orchestratorConfig.defaultIMType || "QQ"
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("加载全局参数失败:", error);
+        }
+    };
 
     /**
      * 加载执行历史
@@ -290,6 +324,46 @@ const WorkflowPage: React.FC = () => {
         setExecutionPage(page);
     };
 
+    /**
+     * 保存全局参数
+     */
+    const handleSaveGlobalParams = async (params: { defaultTimeRangeInHours: number; defaultGroupIds: string[]; defaultIMType: string }) => {
+        try {
+            // 获取当前完整配置
+            const response = await getCurrentConfig();
+
+            if (!response.success || !response.data) {
+                throw new Error("无法获取当前配置");
+            }
+
+            const currentConfig = response.data as any;
+
+            // 更新 orchestrator 配置
+            const updatedConfig = {
+                ...currentConfig,
+                orchestrator: {
+                    ...currentConfig.orchestrator,
+                    defaultTimeRangeInHours: params.defaultTimeRangeInHours,
+                    defaultGroupIds: params.defaultGroupIds,
+                    defaultIMType: params.defaultIMType
+                }
+            };
+
+            // 保存配置
+            const saveResponse = await saveBaseConfig(updatedConfig);
+
+            if (!saveResponse.success) {
+                throw new Error(saveResponse.message || "保存配置失败");
+            }
+
+            // 更新本地状态
+            setGlobalParams(params);
+        } catch (error) {
+            console.error("保存全局参数失败:", error);
+            throw error;
+        }
+    };
+
     return (
         <DefaultLayout>
             <div className="flex flex-col h-screen w-full bg-background">
@@ -313,6 +387,9 @@ const WorkflowPage: React.FC = () => {
 
                     {/* 操作按钮组 */}
                     <div className="flex gap-2 shrink-0">
+                        <Button size="sm" startContent={<Settings size={16} />} variant="flat" onPress={onGlobalParamsOpen}>
+                            全局参数
+                        </Button>
                         <Button size="sm" startContent={<FolderOpen size={16} />} variant="flat" onPress={loadWorkflowList}>
                             刷新列表
                         </Button>
@@ -366,6 +443,16 @@ const WorkflowPage: React.FC = () => {
                 {modifiedWorkflow && (
                     <WorkflowDiffModal isOpen={isOpen} isSaving={isSaving} modifiedWorkflow={modifiedWorkflow} originalWorkflow={originalWorkflow} onClose={onClose} onConfirm={handleConfirmSave} />
                 )}
+
+                {/* 全局参数设置模态框 */}
+                <GlobalParamsModal
+                    defaultGroupIds={globalParams.defaultGroupIds}
+                    defaultIMType={globalParams.defaultIMType}
+                    defaultTimeRangeInHours={globalParams.defaultTimeRangeInHours}
+                    isOpen={isGlobalParamsOpen}
+                    onClose={onGlobalParamsClose}
+                    onSave={handleSaveGlobalParams}
+                />
             </div>
         </DefaultLayout>
     );

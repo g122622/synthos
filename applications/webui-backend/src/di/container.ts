@@ -7,7 +7,9 @@ import {
     registerConfigManagerService,
     registerCommonDBService,
     registerEmailService,
-    registerDbAccessServices
+    registerDbAccessServices,
+    registerRedisService as registerCommonRedisService,
+    registerTaskRegistry as registerCommonTaskRegistry
 } from "@root/common/di/container";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
@@ -167,6 +169,20 @@ export function registerConfigPanelDependencies(): void {
  */
 export function getContainer() {
     return container;
+}
+
+/**
+ * 注册 Redis 服务
+ */
+export function registerRedisService(): void {
+    registerCommonRedisService();
+}
+
+/**
+ * 注册任务注册中心
+ */
+export function registerTaskRegistry(): void {
+    registerCommonTaskRegistry();
 }
 
 export { container, registerConfigManagerService, registerCommonDBService };

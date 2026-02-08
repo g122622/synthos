@@ -19,5 +19,11 @@ export const COMMON_TOKENS = {
     AgentDbAccessService: Symbol.for("AgentDbAccessService"),
 
     // 邮件服务
-    EmailService: Symbol.for("EmailService")
+    EmailService: Symbol.for("EmailService"),
+
+    // Redis 服务
+    RedisService: Symbol.for("RedisService"),
+
+    // 任务注册中心
+    TaskRegistry: Symbol.for("TaskRegistry")
 } as const;
