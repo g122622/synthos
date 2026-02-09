@@ -29,10 +29,11 @@ import { NodeState, WorkflowDefinition } from "@root/common/contracts/workflow/i
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import Logger from "@root/common/util/Logger";
+import { TaskRegistry } from "@root/common/scheduler/registry/TaskRegistry";
 
 import { WorkflowExecutor } from "../core/WorkflowExecutor";
 import { ExecutionPersistence } from "../core/ExecutionPersistence";
-import { AgendaNodeExecutorAdapter } from "../adapters/AgendaNodeExecutorAdapter";
+import { EventBasedNodeExecutorAdapter } from "../adapters/EventBasedNodeExecutorAdapter";
 import { TaskParamsResolver } from "../core/TaskParamsResolver";
 
 const LOGGER = Logger.withTag("🎭 OrchestratorRPCImpl");
@@ -52,6 +53,7 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
      */
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
+        @inject(COMMON_TOKENS.TaskRegistry) private taskRegistry: TaskRegistry,
         private persistence: ExecutionPersistence
     ) {}
 
@@ -156,10 +158,10 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
             LOGGER.info(`触发工作流执行: ${workflow.name} (ID: ${executionId})`);
 
             // 创建参数解析器
-            const paramsResolver = new TaskParamsResolver(this.configManagerService);
+            const paramsResolver = new TaskParamsResolver(this.configManagerService, this.taskRegistry);
 
             // 创建适配器
-            const adapter = new AgendaNodeExecutorAdapter(5000, 90 * 60 * 1000, paramsResolver);
+            const adapter = new EventBasedNodeExecutorAdapter(90 * 60 * 1000, paramsResolver);
 
             // 创建执行器
             const executor = new WorkflowExecutor(workflow, executionId, adapter, this.persistence);
@@ -246,8 +248,8 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
      * @param input 执行 ID
      * @returns 取消结果
      */
-    public async cancelExecution(input: CancelExecutionInput): Promise<CancelExecutionOutput> {
-        // TODO: 实现取消逻辑
+    public async cancelExecution(_input: CancelExecutionInput): Promise<CancelExecutionOutput> {
+        // TODO 实现取消逻辑
         return {
             success: false,
             message: "取消执行功能暂未实现"
@@ -275,9 +277,10 @@ export class OrchestratorRPCImpl implements OrchestratorRPCImplementation {
             LOGGER.info(`断点续跑: ${input.executionId} → ${newExecutionId}`);
 
             // 创建参数解析器
-            const paramsResolver = new TaskParamsResolver(this.configManagerService);
-
-            const adapter = new AgendaNodeExecutorAdapter(5000, 90 * 60 * 1000, paramsResolver);
+            const adapter = new EventBasedNodeExecutorAdapter(
+                90 * 60 * 1000, // TODO 这里不要硬编码
+                new TaskParamsResolver(this.configManagerService, this.taskRegistry)
+            );
             const executor = new WorkflowExecutor(execution.snapshot, newExecutionId, adapter, this.persistence);
 
             this._executors.set(newExecutionId, executor);

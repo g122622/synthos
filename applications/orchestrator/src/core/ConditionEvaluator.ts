@@ -1,7 +1,6 @@
 import { ConditionExpression, ConditionExpressionType } from "@root/common/contracts/workflow/index";
 import Logger from "@root/common/util/Logger";
-
-import { ExecutionContext } from "./ExecutionContext";
+import { ExecutionContext } from "@root/common/scheduler/helpers/ExecutionContext";
 
 const LOGGER = Logger.withTag("🔍 ConditionEvaluator");
 

@@ -1,17 +1,21 @@
 import "reflect-metadata";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
 import {
     registerConfigManagerService,
     registerCommonDBService,
-    registerImDbAccessService
+    registerImDbAccessService,
+    registerRedisService,
+    registerEventService,
+    registerTaskRegistry,
+    getEventService,
+    getTaskRegistry
 } from "@root/common/di/container";
+import { activateTaskHandlers } from "@root/common/scheduler/registry/index";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 import {
     registerTaskHandlers,
-    getPreprocessTaskHandler,
     registerAccumulativeSplitter,
     registerTimeoutSplitter
 } from "./di/container";
@@ -32,6 +36,9 @@ class PreprocessingApplication {
         // 1. 初始化 DI 容器 - 注册基础服务
         registerConfigManagerService();
         registerCommonDBService();
+        registerRedisService();
+        registerEventService();
+        registerTaskRegistry();
 
         // 2. 初始化数据库服务
         const imDbAccessService = new ImDbAccessService();
@@ -48,13 +55,17 @@ class PreprocessingApplication {
         // 5. 注册任务处理器
         registerTaskHandlers();
 
-        // 6. 获取任务处理器并注册到 Agenda
-        const preprocessTaskHandler = getPreprocessTaskHandler();
+        // 6. 初始化事件服务与任务注册中心，并激活任务处理器
+        await getEventService().init();
+        await getTaskRegistry().init();
+        await activateTaskHandlers();
 
-        await preprocessTaskHandler.register();
+        LOGGER.success("任务执行器已就绪，等待调度事件");
 
-        LOGGER.success("Ready to start agenda scheduler");
-        await agendaInstance.start(); // 启动调度器
+        // 常驻进程
+        await new Promise<void>(() => {
+            // noop
+        });
     }
 }
 

@@ -9,7 +9,7 @@
 - **DAG 执行引擎**：`WorkflowExecutor` - 基于拓扑排序的事件驱动引擎，支持任意复杂的 DAG 结构
 - **执行持久化**：`ExecutionPersistence` - SQLite 持久化工作流执行状态，支持断点续跑和历史回溯
 - **条件分支**：`ConditionEvaluator` - 支持上游节点状态判断、键值匹配、自定义表达式
-- **节点适配器**：`NodeExecutorAdapter` - 解耦引擎与任务执行，生产环境使用 `AgendaNodeExecutorAdapter`（调用 Agenda 任务队列）
+- **节点适配器**：`INodeExecutorAdapter` - 解耦引擎与任务执行，生产环境使用 `AgendaNodeExecutorAdapter`（调用 Agenda 任务队列）
 - **重试策略**：支持节点级别的重试次数、超时时间、失败跳过等配置
 
 ### 🔌 **tRPC 远程管理（P1 已完成）**
@@ -44,7 +44,7 @@ applications/orchestrator/src/
 │   ├── ConditionEvaluator.ts  # 条件分支逻辑
 │   └── NodeExecutionStrategy.ts # 节点执行策略（重试/超时/跳过）
 ├── adapters/                  # 节点执行适配器
-│   ├── NodeExecutorAdapter.ts # 适配器接口
+│   ├── INodeExecutorAdapter.ts # 适配器接口
 │   └── AgendaNodeExecutorAdapter.ts # Agenda 任务队列适配器
 ├── rpc/                       # P1：tRPC 远程管理
 │   ├── server.ts              # tRPC HTTP + WebSocket 服务器
@@ -162,7 +162,7 @@ client.onExecutionUpdate.subscribe({ executionId: "exec_xxx" }, {
 
 ## 设计原则
 
-1. **依赖倒置**：引擎不依赖具体任务实现，通过 `NodeExecutorAdapter` 解耦
+1. **依赖倒置**：引擎不依赖具体任务实现，通过 `INodeExecutorAdapter` 解耦
 2. **事件驱动**：`WorkflowExecutor` 继承自 `EventEmitter`，支持 `nodeStarted`、`nodeCompleted`、`workflowCompleted` 等事件
 3. **状态持久化**：所有执行状态保存到 SQLite，支持随时恢复
 4. **类型安全**：工作流定义使用 Zod Schema 校验，运行时类型检查

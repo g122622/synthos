@@ -6,6 +6,9 @@
 
 import { z } from "zod";
 
+import { GlobalConfig } from "../../services/config/schemas/GlobalConfig";
+import { ExecutionContext } from "../helpers/ExecutionContext";
+
 /**
  * 任务元数据定义
  */
@@ -20,10 +23,15 @@ export interface TaskMetadata<TParams = any> {
     paramsSchema: z.ZodType<TParams>;
     /**
      * 默认参数生成函数
-     * @param context 执行上下文（可能为 null，用于前端获取元数据时）
+     * @param context 整条workflow的执行上下文（可能为 null，用于前端获取元数据时）
      * @param config 配置对象
      */
-    generateDefaultParams?: (context: any, config: any) => Promise<Partial<TParams>>;
+    generateDefaultParams?: (context: ExecutionContext, config: GlobalConfig) => Promise<Partial<TParams>>;
+}
+
+export interface TaskDispatchContext<TParams = any> {
+    metadata: TaskMetadata<TParams>;
+    params: TParams;
 }
 
 /**

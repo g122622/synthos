@@ -19,7 +19,6 @@ import {
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
 import { ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
@@ -291,48 +290,49 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.info(`收到手动触发日报生成请求: type=${input.type}`);
 
         try {
-            // 计算时间范围
-            const now = Date.now();
-            let timeStart: number;
-            let timeEnd: number;
+            // TODO 由于去除 Agenda，暂时注释掉日报生成调度逻辑，以后再补充
+            // // 计算时间范围
+            // const now = Date.now();
+            // let timeStart: number;
+            // let timeEnd: number;
 
-            if (input.timeStart !== undefined && input.timeEnd !== undefined) {
-                // 使用用户指定的时间范围
-                timeStart = input.timeStart;
-                timeEnd = input.timeEnd;
-            } else {
-                // 使用默认时间范围
-                timeEnd = now;
-                switch (input.type) {
-                    case "half-daily":
-                        timeStart = now - 12 * 60 * 60 * 1000; // 过去 12 小时
-                        break;
-                    case "weekly":
-                        timeStart = now - 7 * 24 * 60 * 60 * 1000; // 过去 7 天
-                        break;
-                    case "monthly":
-                        timeStart = now - 30 * 24 * 60 * 60 * 1000; // 过去 30 天
-                        break;
-                }
-            }
+            // if (input.timeStart !== undefined && input.timeEnd !== undefined) {
+            //     // 使用用户指定的时间范围
+            //     timeStart = input.timeStart;
+            //     timeEnd = input.timeEnd;
+            // } else {
+            //     // 使用默认时间范围
+            //     timeEnd = now;
+            //     switch (input.type) {
+            //         case "half-daily":
+            //             timeStart = now - 12 * 60 * 60 * 1000; // 过去 12 小时
+            //             break;
+            //         case "weekly":
+            //             timeStart = now - 7 * 24 * 60 * 60 * 1000; // 过去 7 天
+            //             break;
+            //         case "monthly":
+            //             timeStart = now - 30 * 24 * 60 * 60 * 1000; // 过去 30 天
+            //             break;
+            //     }
+            // }
 
-            this.LOGGER.info(
-                `日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`
-            );
+            // this.LOGGER.info(
+            //     `日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`
+            // );
 
-            // 调度即时任务
-            const taskData: TaskParameters<TaskHandlerTypes.GenerateReport> = {
-                reportType: input.type as ReportType,
-                timeStart,
-                timeEnd
-            };
+            // // 调度即时任务
+            // const taskData: TaskParameters<TaskHandlerTypes.GenerateReport> = {
+            //     reportType: input.type as ReportType,
+            //     timeStart,
+            //     timeEnd
+            // };
 
-            await agendaInstance.now<TaskParameters<TaskHandlerTypes.GenerateReport>>(
-                TaskHandlerTypes.GenerateReport,
-                taskData
-            );
+            // await agendaInstance.now<TaskParameters<TaskHandlerTypes.GenerateReport>>(
+            //     TaskHandlerTypes.GenerateReport,
+            //     taskData
+            // );
 
-            this.LOGGER.success(`日报生成任务已调度: ${input.type}`);
+            // this.LOGGER.success(`日报生成任务已调度: ${input.type}`);
 
             return {
                 success: true,

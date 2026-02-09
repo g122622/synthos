@@ -189,10 +189,7 @@ export const GlobalConfigSchema = z.object({
             pipelineIntervalInMinutes: z.number().positive().int().describe("Pipeline 执行间隔（分钟）"),
             dataSeekTimeWindowInHours: z.number().positive().int().describe("数据时间窗口（小时）"),
             rpcPort: z.number().int().positive().describe("RPC 服务端口"),
-            workflows: z.array(WorkflowDefinitionSchema).describe("工作流定义列表"),
-            defaultTimeRangeInHours: z.number().positive().int().default(24).describe("默认时间范围（小时）"),
-            defaultGroupIds: z.array(z.string()).default([]).describe("默认群组 ID 列表"),
-            defaultIMType: z.string().default("QQ").describe("默认 IM 类型")
+            workflows: z.array(WorkflowDefinitionSchema).describe("工作流定义列表")
         })
         .describe("调度器配置"),
 

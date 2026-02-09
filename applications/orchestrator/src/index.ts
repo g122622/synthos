@@ -1,10 +1,15 @@
 import "reflect-metadata";
 import { container } from "tsyringe";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskRegistry, registerPendingTasks } from "@root/common/scheduler/registry/index";
-import { cleanupStaleJobs } from "@root/common/scheduler/jobUtils";
-import { registerConfigManagerService, registerRedisService, registerTaskRegistry } from "@root/common/di/container";
+import { TaskRegistry } from "@root/common/scheduler/registry/index";
+import {
+    registerConfigManagerService,
+    registerRedisService,
+    registerEventService,
+    registerTaskRegistry
+} from "@root/common/di/container";
+import { getEventService, getTaskRegistry } from "@root/common/di/container";
+import { BUILTIN_TASK_DEFINITIONS } from "@root/common/scheduler/taskDefinitions/index";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { sleep } from "@root/common/util/promisify/sleep";
@@ -23,7 +28,17 @@ class OrchestratorApplication {
         // 初始化 DI 容器
         registerConfigManagerService();
         registerRedisService();
+        registerEventService();
         registerTaskRegistry();
+
+        // 初始化事件服务与任务注册中心（必须在使用前 init）
+        await getEventService().init();
+        await getTaskRegistry().init();
+
+        // 将内置任务定义注册到本进程内存（含 Schema / defaultParams）
+        for (const def of BUILTIN_TASK_DEFINITIONS) {
+            await getTaskRegistry().registerSingleTask(def);
+        }
 
         const config = await ConfigManagerService.getCurrentConfig();
 
@@ -44,23 +59,10 @@ class OrchestratorApplication {
 
         LOGGER.info(`✅ 已加载 ${workflows.length} 个工作流定义`);
 
-        // 注册所有通过装饰器收集的任务
-        await registerPendingTasks();
-
-        // 清理残留任务（使用 TaskRegistry 获取所有已注册任务）
-        const taskRegistry = container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
-        const registeredTaskNames = await taskRegistry.getAllTaskNames();
-
-        if (registeredTaskNames.length > 0) {
-            LOGGER.info(`🧹 清理以下任务的残留 Job: ${registeredTaskNames.join(", ")}`);
-            await cleanupStaleJobs(registeredTaskNames);
-        } else {
-            LOGGER.warning("⚠️ TaskRegistry 中未找到已注册的任务，跳过清理");
-        }
-
         // 创建 RPC 实现
         const rpcImpl = new OrchestratorRPCImpl(
             container.resolve(COMMON_TOKENS.ConfigManagerService),
+            container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry),
             persistence
         );
 
@@ -71,56 +73,7 @@ class OrchestratorApplication {
 
         await sleep(10 * 1000); // 等其他 apps 启动后再开始
 
-        // 注册定时触发（对于主流程，按配置的 pipelineIntervalInMinutes 触发）
-        const defaultWorkflow = workflows.find(wf => wf.id === "default-pipeline");
-
-        if (defaultWorkflow) {
-            const intervalMinutes = config.orchestrator.pipelineIntervalInMinutes;
-
-            LOGGER.info(`📋 注册默认流程定时触发: 每 ${intervalMinutes} 分钟`);
-
-            // 使用 Agenda 注册定时任务
-            agendaInstance.define("TriggerDefaultWorkflow", async () => {
-                LOGGER.info("⏰ 定时触发默认流程");
-                await rpcImpl.triggerWorkflow({ workflowId: "default-pipeline" });
-            });
-
-            await agendaInstance.every(`${intervalMinutes} minutes`, "TriggerDefaultWorkflow");
-
-            // 立即执行一次
-            await rpcImpl.triggerWorkflow({ workflowId: "default-pipeline" });
-        }
-
-        // 注册报告定时任务
-        const reportWorkflows = workflows.filter(wf => wf.id.startsWith("half-daily-report-"));
-
-        for (const workflow of reportWorkflows) {
-            const timeStr = workflow.name.match(/\((\d{2}:\d{2})\)/)?.[1];
-
-            if (!timeStr) {
-                continue;
-            }
-
-            const [hour, minute] = timeStr.split(":").map(Number);
-            const cronExpression = `${minute} ${hour} * * *`;
-
-            LOGGER.info(`📰 注册报告流程定时触发: ${workflow.name} (cron: ${cronExpression})`);
-
-            agendaInstance.define(`TriggerWorkflow_${workflow.id}`, async () => {
-                LOGGER.info(`⏰ 定时触发报告流程: ${workflow.name}`);
-                await rpcImpl.triggerWorkflow({ workflowId: workflow.id });
-            });
-
-            await agendaInstance.every(
-                cronExpression,
-                `TriggerWorkflow_${workflow.id}`,
-                {},
-                { skipImmediate: true }
-            );
-        }
-
-        LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
-        await agendaInstance.start();
+        // TODO 可能需要在这里触发主流程的自动执行（是否自动执行应该由配置决定）
 
         LOGGER.success("🎭 Orchestrator 服务已完全启动");
     }

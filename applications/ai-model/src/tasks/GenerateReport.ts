@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
-import { agendaInstance } from "@root/common/scheduler/agenda";
+import z from "zod";
 import Logger from "@root/common/util/Logger";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { checkConnectivity } from "@root/common/util/network/checkConnectivity";
@@ -10,6 +10,9 @@ import { InterestScoreDbAccessService } from "@root/common/services/database/Int
 import { Report, ReportStatistics, ReportType } from "@root/common/contracts/report";
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
+import { registerTask } from "@root/common/scheduler/registry/index";
+import { GenerateReportParamsSchema, GenerateReportTaskDefinition } from "@root/common/scheduler/taskDefinitions/index";
+import { Runnable } from "@root/common/util/type/Runnable";
 
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import { AI_MODEL_TOKENS } from "../di/tokens";
@@ -21,7 +24,8 @@ import { TextGeneratorService } from "../services/generators/text/TextGeneratorS
  * 负责生成各类日报（半日报、周报、月报）
  */
 @injectable()
-export class GenerateReportTaskHandler {
+@registerTask(GenerateReportTaskDefinition)
+export class GenerateReportTaskHandler implements Runnable {
     private LOGGER = Logger.withTag("📰 GenerateReportTask");
 
     public constructor(
@@ -35,47 +39,36 @@ export class GenerateReportTaskHandler {
     ) {}
 
     /**
-     * 注册任务到 Agenda 调度器
+     * 执行任务
      */
-    public async register(): Promise<void> {
-        let config = await this.configManagerService.getCurrentConfig();
+    public async run(params: z.infer<typeof GenerateReportParamsSchema>): Promise<void> {
+        this.LOGGER.info("📰 开始处理日报生成任务");
 
-        await agendaInstance
-            .create(TaskHandlerTypes.GenerateReport)
-            .unique({ name: TaskHandlerTypes.GenerateReport }, { insertOnly: true })
-            .save();
+        const config = await this.configManagerService.getCurrentConfig();
 
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.GenerateReport>>(
-            TaskHandlerTypes.GenerateReport,
-            async job => {
-                this.LOGGER.info(`📰 开始处理日报生成任务: ${job.attrs.name}`);
-                const attrs = job.attrs.data;
+        // 检查日报功能是否启用
+        if (!config.report.enabled) {
+            this.LOGGER.info("日报功能未启用，跳过任务");
 
-                config = await this.configManagerService.getCurrentConfig();
+            return;
+        }
 
-                // 检查日报功能是否启用
-                if (!config.report.enabled) {
-                    this.LOGGER.info("日报功能未启用，跳过任务");
+        const { reportType, timeStart, timeEnd } = params;
 
-                    return;
-                }
+        // 检查是否已存在该时间段的日报
+        if (await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)) {
+            this.LOGGER.info(
+                `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
+            );
 
-                const { reportType, timeStart, timeEnd } = attrs;
+            return;
+        }
 
-                // 检查是否已存在该时间段的日报
-                if (await this.reportDbAccessService.isReportExists(reportType, timeStart, timeEnd)) {
-                    this.LOGGER.info(
-                        `${reportType} 日报已存在 (${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()})，跳过`
-                    );
+        const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
 
-                    return;
-                }
+        this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
-                const periodDescription = this.formatPeriodDescription(reportType, timeStart, timeEnd);
-
-                this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
-
-                try {
+        try {
                     // 1. 获取该时间段内的所有 AI 摘要结果
                     const allDigestResults = await this.agcDbAccessService.selectAll();
                     const digestResults = allDigestResults.filter(
@@ -268,17 +261,10 @@ export class GenerateReportTaskHandler {
                             this.LOGGER.error(`发送日报邮件失败: ${emailError}`);
                         }
                     }
-                } catch (error) {
-                    this.LOGGER.error(`日报生成失败: ${error}`);
-                    throw error;
-                }
-            },
-            {
-                concurrency: 1,
-                priority: "normal",
-                lockLifetime: 10 * 60 * 1000 // 10分钟
-            }
-        );
+        } catch (error) {
+            this.LOGGER.error(`日报生成失败: ${error}`);
+            throw error;
+        }
     }
 
     /**

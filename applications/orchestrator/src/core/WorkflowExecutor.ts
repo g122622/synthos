@@ -10,14 +10,17 @@ import {
     WorkflowExecution
 } from "@root/common/contracts/workflow/index";
 import Logger from "@root/common/util/Logger";
+import { ExecutionContext } from "@root/common/scheduler/helpers/ExecutionContext";
 
-import { NodeExecutorAdapter } from "../adapters/NodeExecutorAdapter";
+import { INodeExecutorAdapter } from "../adapters/INodeExecutorAdapter";
 
-import { ExecutionContext } from "./ExecutionContext";
 import { DagParser } from "./DagParser";
 import { ConditionEvaluator } from "./ConditionEvaluator";
 import { NodeExecutionStrategy } from "./NodeExecutionStrategy";
 import { ExecutionPersistence } from "./ExecutionPersistence";
+
+import { executeScriptNode } from "@/utils/executeScriptNode";
+import { executeHttpNode } from "@/utils/executeHttpNode";
 
 const LOGGER = Logger.withTag("🎯 WorkflowExecutor");
 
@@ -29,7 +32,7 @@ export class WorkflowExecutor extends EventEmitter {
     private _workflowDefinition: WorkflowDefinition;
     private _executionSnapshot: WorkflowDefinition;
     private _executionContext: ExecutionContext;
-    private _adapter: NodeExecutorAdapter;
+    private _adapter: INodeExecutorAdapter;
     private _conditionEvaluator: ConditionEvaluator;
     private _executionStrategy: NodeExecutionStrategy;
     private _executionId: string;
@@ -46,7 +49,7 @@ export class WorkflowExecutor extends EventEmitter {
     public constructor(
         workflowDefinition: WorkflowDefinition,
         executionId: string,
-        adapter: NodeExecutorAdapter,
+        adapter: INodeExecutorAdapter,
         persistence: ExecutionPersistence | null = null
     ) {
         super();
@@ -471,7 +474,7 @@ export class WorkflowExecutor extends EventEmitter {
         };
 
         return await this._executionStrategy.executeWithStrategy(config, async () => {
-            return await this._adapter.executeScriptNode(node.id, node.data.scriptCode!, this._executionContext);
+            return await executeScriptNode(node.id, node.data.scriptCode!, this._executionContext);
         });
     }
 
@@ -493,7 +496,7 @@ export class WorkflowExecutor extends EventEmitter {
         };
 
         return await this._executionStrategy.executeWithStrategy(config, async () => {
-            return await this._adapter.executeHttpNode(node.id, node.data.httpConfig!, this._executionContext);
+            return await executeHttpNode(node.id, node.data.httpConfig!, this._executionContext);
         });
     }
 

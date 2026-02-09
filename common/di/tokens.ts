@@ -24,6 +24,9 @@ export const COMMON_TOKENS = {
     // Redis 服务
     RedisService: Symbol.for("RedisService"),
 
+    // 事件服务
+    EventService: Symbol.for("EventService"),
+
     // 任务注册中心
     TaskRegistry: Symbol.for("TaskRegistry")
 } as const;

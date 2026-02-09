@@ -3,5 +3,6 @@
  */
 
 export { TaskRegistry } from "./TaskRegistry";
-export { registerTask, registerPendingTasks } from "./decorators";
+export { registerTask } from "./decorators";
+export { activateTaskHandlers } from "./decorators";
 export type { TaskMetadata, SerializableTaskMetadata } from "./types";

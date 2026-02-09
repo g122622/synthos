@@ -34,14 +34,6 @@ export function registerTaskHandlers(): void {
 }
 
 /**
- * 从 DI 容器获取 ProvideDataTaskHandler 实例
- * @returns ProvideDataTaskHandler 实例
- */
-export function getProvideDataTaskHandler(): ProvideDataTaskHandler {
-    return container.resolve<ProvideDataTaskHandler>(DATA_PROVIDER_TOKENS.ProvideDataTaskHandler);
-}
-
-/**
  * 获取容器实例
  */
 export function getContainer() {

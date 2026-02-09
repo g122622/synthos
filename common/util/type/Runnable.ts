@@ -8,5 +8,5 @@ export abstract class Runnable<T = unknown> {
      * 任务执行主逻辑
      * @returns 任务执行结果
      */
-    public abstract run(): Promise<T> | T;
+    public abstract run(args: any): Promise<T> | T;
 }

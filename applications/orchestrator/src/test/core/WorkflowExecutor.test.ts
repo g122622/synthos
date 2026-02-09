@@ -7,13 +7,13 @@ import {
     WorkflowExecutionStatus
 } from "@root/common/contracts/workflow/index";
 
-import { WorkflowExecutor } from "../../src/core/WorkflowExecutor";
-import { NodeExecutorAdapter } from "../../src/adapters/NodeExecutorAdapter";
-import { ExecutionContext } from "../../src/core/ExecutionContext";
+import { WorkflowExecutor } from "../../core/WorkflowExecutor";
+import { INodeExecutorAdapter } from "../../adapters/INodeExecutorAdapter";
+import { ExecutionContext } from "@root/common/scheduler/helpers/ExecutionContext";
 
 /**
  * Mock 节点执行器适配器（用于测试�? */
-class MockNodeExecutorAdapter implements NodeExecutorAdapter {
+class MockNodeExecutorAdapter implements INodeExecutorAdapter {
     private _taskResults: Map<string, NodeExecutionResult> = new Map();
     private _executionDelay: number = 0;
 

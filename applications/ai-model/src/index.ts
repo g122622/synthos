@@ -1,18 +1,23 @@
 import "reflect-metadata";
-import { container } from "tsyringe";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
+import {
+    registerEventService,
+    registerRedisService,
+    registerTaskRegistry,
+    getEventService,
+    getTaskRegistry
+} from "@root/common/di/container";
+import { activateTaskHandlers } from "@root/common/scheduler/registry/index";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 import { setupRPC } from "./rpc/setupRPC";
 import "./context/middleware/registerAll";
 import { registerAllDependencies } from "./di/container";
-import { AI_MODEL_TOKENS } from "./di/tokens";
-import { AISummarizeTaskHandler } from "./tasks/AISummarize";
-import { GenerateEmbeddingTaskHandler } from "./tasks/GenerateEmbedding";
-import { GenerateReportTaskHandler } from "./tasks/GenerateReport";
-import { InterestScoreTaskHandler } from "./tasks/InterestScore";
-import { LLMInterestEvaluationAndNotificationTaskHandler } from "./tasks/LLMInterestEvaluationAndNotification";
+import "./tasks/AISummarize";
+import "./tasks/GenerateEmbedding";
+import "./tasks/GenerateReport";
+import "./tasks/InterestScore";
+import "./tasks/LLMInterestEvaluationAndNotification";
 
 const LOGGER = Logger.withTag("🤖 ai-model-root-script");
 
@@ -30,24 +35,24 @@ class AIModelApplication {
         // 1. 注册所有依赖到 DI 容器
         await registerAllDependencies();
 
-        // 2. 注册各大任务到 Agenda 调度器
-        await container.resolve<AISummarizeTaskHandler>(AI_MODEL_TOKENS.AISummarizeTaskHandler).register();
-        await container.resolve<InterestScoreTaskHandler>(AI_MODEL_TOKENS.InterestScoreTaskHandler).register();
-        await container
-            .resolve<LLMInterestEvaluationAndNotificationTaskHandler>(
-                AI_MODEL_TOKENS.LLMInterestEvaluationAndNotificationTaskHandler
-            )
-            .register();
-        await container
-            .resolve<GenerateEmbeddingTaskHandler>(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler)
-            .register();
-        await container.resolve<GenerateReportTaskHandler>(AI_MODEL_TOKENS.GenerateReportTaskHandler).register();
+        // 2. 初始化事件服务与任务注册中心，并激活任务处理器
+        registerRedisService();
+        registerEventService();
+        registerTaskRegistry();
+
+        await getEventService().init();
+        await getTaskRegistry().init();
+        await activateTaskHandlers();
 
         // 初始化 RPC 服务
         await setupRPC();
 
-        LOGGER.success("Ready to start agenda scheduler");
-        await agendaInstance.start(); // 启动调度器
+        LOGGER.success("任务执行器已就绪，等待调度事件");
+
+        // 常驻进程（RPC + 任务事件监听）
+        await new Promise<void>(() => {
+            // noop
+        });
     }
 }
 

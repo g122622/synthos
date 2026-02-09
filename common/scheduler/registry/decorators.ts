@@ -4,55 +4,91 @@
  * 用于自动注册任务到全局注册中心
  */
 
-import { container } from "../../../common/di/container";
-import { COMMON_TOKENS } from "../../di/tokens";
-import { TaskRegistry } from "./TaskRegistry";
-import { TaskMetadata } from "./types";
+import { getContainer, getEventService, getTaskRegistry } from "../../../common/di/container";
+import { EventChannels } from "../../services/event/contracts/channels";
+import Logger from "../../util/Logger";
 
-/**
- * 待注册任务队列（装饰器执行时收集）
- */
-const pendingTaskMetadata: TaskMetadata[] = [];
+import { TaskDispatchContext, TaskMetadata } from "./types";
+
+const LOGGER = Logger.withTag("📋 TaskRegistry");
+
+const pendingTaskHandlerTypes: Map<string, new (...args: any[]) => any> = new Map();
+const pendingTaskMetadatas: Map<string, TaskMetadata<any>> = new Map();
+
+let isTaskDispatchSubscribed = false;
 
 /**
  * @registerTask 装饰器
  *
- * 用于类装饰器，收集任务元数据待后续注册
- * 实际注册由 TaskRegistry.registerPendingTasks() 完成
+ * 用于类装饰器，注册任务元数据和任务处理器实例
  *
  * 具体使用可以参考已有任务实现
  */
 export function registerTask<TParams = any>(metadata: TaskMetadata<TParams>): ClassDecorator {
     return function <T extends Function>(target: T): T {
-        // 收集待注册的任务元数据
-        pendingTaskMetadata.push(metadata);
+        // 仅收集待注册的任务元数据与处理器类型。
+        // 注意：不要在装饰器执行阶段访问 EventService/TaskRegistry 的方法。
+        // 因为它们通常在应用启动后才会 init()，且会被 mustInitBeforeUse 保护。
+        pendingTaskMetadatas.set(metadata.internalName, metadata as TaskMetadata<any>);
+
+        // 收集任务处理器类型（不要在此处 new，否则依赖注入会失效）
+        pendingTaskHandlerTypes.set(metadata.internalName, target as any);
 
         return target;
     };
 }
 
 /**
- * 批量注册所有通过装饰器收集的任务
- * 应在服务启动时调用
+ * 激活所有通过 @registerTask 收集到的任务。
+ *
+ * 调用方必须确保：
+ * 1) 已完成依赖注入注册（尤其是 ConfigManagerService、RedisService、EventService、TaskRegistry）。
+ * 2) 已执行 await getEventService().init()（否则 subscribe/publish 会抛错）。
  */
-export async function registerPendingTasks(): Promise<void> {
-    const taskRegistry = container.resolve<TaskRegistry>(COMMON_TOKENS.TaskRegistry);
+export async function activateTaskHandlers(): Promise<void> {
+    // 1) 注册任务元数据到 TaskRegistry（含 schema 与 defaultParams）
+    const taskRegistry = getTaskRegistry();
 
     await taskRegistry.init();
 
-    for (const metadata of pendingTaskMetadata) {
+    for (const metadata of pendingTaskMetadatas.values()) {
         try {
             await taskRegistry.registerSingleTask(metadata);
         } catch (error) {
-            // 忽略重复注册错误，其他错误继续抛出
-            const errorMsg = (error as Error).message;
-
-            if (!errorMsg.includes("已被其他实例注册")) {
-                throw error;
-            }
+            LOGGER.error(`注册任务元数据失败: ${metadata.internalName}, error=${error}`);
+            throw error;
         }
     }
 
-    // 清空队列
-    pendingTaskMetadata.length = 0;
+    // 2) 订阅调度事件（全局只订阅一次）
+    if (isTaskDispatchSubscribed) {
+        return;
+    }
+
+    const eventService = getEventService();
+
+    await eventService.subscribe<TaskDispatchContext>(EventChannels.DispatchTask, async data => {
+        const internalName = data.metadata.internalName;
+        const handlerType = pendingTaskHandlerTypes.get(internalName);
+
+        if (!handlerType) {
+            throw new Error(`未找到任务处理器类型: ${internalName}`);
+        }
+
+        const handlerInstance = getContainer().resolve<any>(handlerType as any);
+
+        if (!handlerInstance || typeof handlerInstance.run !== "function") {
+            throw new Error(`任务处理器 [${internalName}] 未实现 run(params) 方法`);
+        }
+
+        LOGGER.info(`😋开始处理任务: ${internalName} ( ${data.metadata.displayName} )`);
+        await handlerInstance.run(data.params);
+        LOGGER.success(`🥳任务完成: ${internalName} ( ${data.metadata.displayName} )`);
+
+        await eventService.publish(EventChannels.CompleteTask, {
+            metadata: data.metadata
+        });
+    });
+
+    isTaskDispatchSubscribed = true;
 }

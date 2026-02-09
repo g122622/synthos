@@ -8,6 +8,7 @@ import { container } from "tsyringe";
 import ConfigManagerService from "../services/config/ConfigManagerService";
 import { EmailService } from "../services/email/EmailService";
 import { RedisService } from "../services/redis/RedisService";
+import { EventService } from "../services/event/EventService";
 import { CommonDBService } from "../services/database/infra/CommonDBService";
 import { AgcDbAccessService } from "../services/database/AgcDbAccessService";
 import { ImDbAccessService } from "../services/database/ImDbAccessService";
@@ -65,6 +66,22 @@ export function registerRedisService(): void {
  */
 export function getRedisService(): RedisService {
     return container.resolve<RedisService>(COMMON_TOKENS.RedisService);
+}
+
+/**
+ * 初始化并注册 EventService 到 DI 容器
+ * 在需要使用事件服务的应用启动时调用
+ */
+export function registerEventService(): void {
+    container.registerSingleton(COMMON_TOKENS.EventService, EventService);
+}
+
+/**
+ * 从 DI 容器获取 EventService 实例
+ * @returns EventService 实例
+ */
+export function getEventService(): EventService {
+    return container.resolve<EventService>(COMMON_TOKENS.EventService);
 }
 
 /**

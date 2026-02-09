@@ -51,14 +51,6 @@ export function registerTaskHandlers(): void {
 }
 
 /**
- * 从 DI 容器获取 PreprocessTaskHandler 实例
- * @returns PreprocessTaskHandler 实例
- */
-export function getPreprocessTaskHandler(): PreprocessTaskHandler {
-    return container.resolve<PreprocessTaskHandler>(PREPROCESSING_TOKENS.PreprocessTaskHandler);
-}
-
-/**
  * 获取容器实例
  */
 export function getContainer() {

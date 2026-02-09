@@ -11,10 +11,10 @@ import { injectable, inject } from "tsyringe";
 import Logger from "../../util/Logger";
 import { RedisService } from "../../services/redis/RedisService";
 import { COMMON_TOKENS } from "../../di/tokens";
-
-import { TaskMetadata, SerializableTaskMetadata } from "./types";
 import { mustInitBeforeUse } from "../../util/lifecycle/mustInitBeforeUse";
 import { Disposable } from "../../util/lifecycle/Disposable";
+
+import { TaskMetadata, SerializableTaskMetadata } from "./types";
 
 /**
  * 任务注册中心
@@ -82,11 +82,40 @@ export class TaskRegistry extends Disposable {
      * @param metadata 任务元数据
      */
     public async registerSingleTask<TParams>(metadata: TaskMetadata<TParams>): Promise<void> {
+        // 先保证内存里一定可用（含 Schema 与 generateDefaultParams）
+        this.tasks.set(metadata.internalName, metadata);
+
+        // Redis 未启用或未就绪时，退化为仅内存注册
+        try {
+            const redisEnabled = await this.redisService.isEnabled();
+
+            if (!redisEnabled) {
+                this.LOGGER.info(`✅ 已注册任务(仅内存): ${metadata.internalName} (${metadata.displayName})`);
+
+                return;
+            }
+            if (!this.redisService.isReady()) {
+                this.LOGGER.warning(
+                    `Redis 未就绪，任务将仅注册到内存: ${metadata.internalName} (${metadata.displayName})`
+                );
+
+                return;
+            }
+        } catch (error) {
+            this.LOGGER.warning(
+                `检测 Redis 状态失败，任务将仅注册到内存: ${metadata.internalName} (${metadata.displayName})，原因: ${error}`
+            );
+
+            return;
+        }
+
         const lockKey = this._getLockKey(metadata.internalName);
         const lock = await this.redisService.acquireLock(lockKey, 5000);
 
         if (!lock) {
-            throw new Error(`无法获取任务 ${metadata.internalName} 的注册锁，注册失败`);
+            this.LOGGER.warning(`无法获取任务 ${metadata.internalName} 的注册锁，跳过 Redis 注册（仅内存可用）`);
+
+            return;
         }
 
         try {
@@ -94,14 +123,14 @@ export class TaskRegistry extends Disposable {
             const existingData = await this.redisService.get(redisKey);
 
             if (existingData) {
-                throw new Error(`任务 ${metadata.internalName} 已被其他实例注册，禁止重复注册`);
+                // 幂等：允许重复启动/多实例，把 Schema 保留在内存即可
+                this.LOGGER.info(`✅ 任务已存在于 Redis，跳过重复注册: ${metadata.internalName}`);
+
+                return;
             }
 
             // 存储到 Redis（仅存储可序列化字段）
             await this.redisService.set(redisKey, this._serializeMetadata(metadata));
-
-            // 存储到内存（包含完整的 Schema）
-            this.tasks.set(metadata.internalName, metadata);
 
             this.LOGGER.info(`✅ 已注册任务: ${metadata.internalName} (${metadata.displayName})`);
         } finally {
@@ -159,7 +188,7 @@ export class TaskRegistry extends Disposable {
      * 检查任务是否已注册
      * @param taskName 任务名称
      */
-    public async has(taskName: string): Promise<boolean> {
+    public async isTaskRegistered(taskName: string): Promise<boolean> {
         const redisKey = this._getRedisKey(taskName);
         const exists = await this.redisService.get(redisKey);
 
@@ -173,7 +202,7 @@ export class TaskRegistry extends Disposable {
      * @param params 参数对象
      * @returns 校验结果
      */
-    public async validate(
+    public async validateTaskParamSchema(
         taskName: string,
         params: unknown
     ): Promise<{ success: boolean; data?: any; error?: string }> {

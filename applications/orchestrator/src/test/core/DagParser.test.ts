@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { WorkflowDefinition, WorkflowNodeType } from "@root/common/contracts/workflow/index";
 
-import { DagParser } from "../../src/core/DagParser";
+import { DagParser } from "../../core/DagParser";
 
 describe("DagParser", () => {
     describe("基本拓扑排序", () => {

@@ -8,7 +8,7 @@ export enum WorkflowNodeType {
     Start = "start",
     /** 结束节点 */
     End = "end",
-    /** 任务节点（调用 Agenda task） */
+    /** 任务节点 */
     Task = "task",
     /** 条件分支节点 */
     Condition = "condition",
