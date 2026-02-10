@@ -24,13 +24,11 @@
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
-    "@hokify/agenda": "^6.3.0",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "@types/express": "^5.0.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.0",
-    "agendash": "^4.0.0",
     "bson": "^7.0.0",
     "dotenv": "^17.2.3",
     "duck-duck-scrape": "^2.2.7",
