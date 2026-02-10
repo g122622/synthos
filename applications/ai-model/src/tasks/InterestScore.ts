@@ -9,8 +9,12 @@ import { AIDigestResult } from "@root/common/contracts/ai-model";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { registerTask } from "@root/common/scheduler/registry/index";
-import { InterestScoreTaskDefinition, GroupedTimeRangeParamsSchema } from "@root/common/scheduler/taskDefinitions/index";
+import {
+    InterestScoreTaskDefinition,
+    GroupedTimeRangeParamsSchema
+} from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { SemanticRater } from "../misc/SemanticRater";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
@@ -37,12 +41,13 @@ export class InterestScoreTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof GroupedTimeRangeParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof GroupedTimeRangeParamsSchema>>): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
 
         // 检查 Ollama 服务是否可用
         if (!(await this.embeddingService.isAvailable())) {
             this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
+
             return;
         }
 
@@ -69,7 +74,9 @@ export class InterestScoreTaskHandler implements Runnable {
         const filteredDigestResults: AIDigestResult[] = [];
 
         for (const digestResult of digestResults) {
-            const exists = await this.interestScoreDbAccessService.isInterestScoreResultExist(digestResult.topicId);
+            const exists = await this.interestScoreDbAccessService.isInterestScoreResultExist(
+                digestResult.topicId
+            );
 
             if (!exists) {
                 filteredDigestResults.push(digestResult);
@@ -79,6 +86,7 @@ export class InterestScoreTaskHandler implements Runnable {
         this.LOGGER.info(`还剩 ${filteredDigestResults.length} 条需要打分的摘要结果`);
         if (filteredDigestResults.length === 0) {
             this.LOGGER.info("没有需要打分的摘要结果，跳过当前任务");
+
             return;
         }
 
@@ -104,14 +112,19 @@ export class InterestScoreTaskHandler implements Runnable {
         );
 
         // 构建所有话题详情文本
-        const topics = filteredDigestResults.map(digestResult => `话题：${digestResult.topic} 正文内容：${digestResult.detail}`);
+        const topics = filteredDigestResults.map(
+            digestResult => `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
+        );
 
         // 批量获取所有话题的分数
         const scores = await rater.scoreTopics(argArr, topics);
 
         // 存储所有分数结果
         for (let i = 0; i < filteredDigestResults.length; i++) {
-            await this.interestScoreDbAccessService.storeInterestScoreResult(filteredDigestResults[i].topicId, scores[i]);
+            await this.interestScoreDbAccessService.storeInterestScoreResult(
+                filteredDigestResults[i].topicId,
+                scores[i]
+            );
         }
     }
 }

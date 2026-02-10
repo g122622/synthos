@@ -11,8 +11,12 @@ import { Report, ReportStatistics, ReportType } from "@root/common/contracts/rep
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { registerTask } from "@root/common/scheduler/registry/index";
-import { GenerateReportParamsSchema, GenerateReportTaskDefinition } from "@root/common/scheduler/taskDefinitions/index";
+import {
+    GenerateReportParamsSchema,
+    GenerateReportTaskDefinition
+} from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { ReportPromptStore } from "../context/prompts/ReportPromptStore";
 import { AI_MODEL_TOKENS } from "../di/tokens";
@@ -41,7 +45,7 @@ export class GenerateReportTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof GenerateReportParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof GenerateReportParamsSchema>>): Promise<void> {
         this.LOGGER.info("📰 开始处理日报生成任务");
 
         const config = await this.configManagerService.getCurrentConfig();
@@ -69,198 +73,198 @@ export class GenerateReportTaskHandler implements Runnable {
         this.LOGGER.info(`正在生成 ${periodDescription} 的日报...`);
 
         try {
-                    // 1. 获取该时间段内的所有 AI 摘要结果
-                    const allDigestResults = await this.agcDbAccessService.selectAll();
-                    const digestResults = allDigestResults.filter(
-                        result => result.updateTime >= timeStart && result.updateTime <= timeEnd
+            // 1. 获取该时间段内的所有 AI 摘要结果
+            const allDigestResults = await this.agcDbAccessService.selectAll();
+            const digestResults = allDigestResults.filter(
+                result => result.updateTime >= timeStart && result.updateTime <= timeEnd
+            );
+
+            // 2. 获取兴趣度评分，过滤掉负分话题
+            const topicIds = digestResults.map(r => r.topicId);
+            const interestScores = new Map<string, number>();
+
+            for (const topicId of topicIds) {
+                const score = await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
+
+                if (score !== null) {
+                    interestScores.set(topicId, score);
+                }
+            }
+
+            // 过滤掉兴趣度低于阈值的话题（若不存在兴趣度评分，则保留）
+            const interestScoreThreshold = config.report.generation.interestScoreThreshold;
+            const filteredResults = digestResults.filter(result => {
+                const score = interestScores.get(result.topicId);
+
+                return score === undefined || score >= interestScoreThreshold;
+            });
+
+            // 3. 检查是否有话题
+            if (filteredResults.length === 0) {
+                this.LOGGER.info(`${periodDescription} 没有有效话题，生成空日报`);
+
+                const emptyReport: Report = {
+                    reportId: getRandomHash(16),
+                    type: reportType,
+                    timeStart,
+                    timeEnd,
+                    isEmpty: true,
+                    summary: ReportPromptStore.getEmptyReportText(periodDescription),
+                    summaryGeneratedAt: Date.now(),
+                    summaryStatus: "success",
+                    model: "",
+                    statistics: { topicCount: 0, mostActiveGroups: [], mostActiveHour: 0 },
+                    topicIds: [],
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                };
+
+                await this.reportDbAccessService.storeReport(emptyReport);
+                this.LOGGER.success(`${periodDescription} 空日报生成完成`);
+
+                // 发送空日报邮件
+                try {
+                    await this.reportEmailService.sendReportEmail(emptyReport);
+                } catch (emailError) {
+                    this.LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
+                }
+
+                return;
+            }
+
+            // 4. 按兴趣度排序，取 Top N
+            const topN = config.report.generation.topNTopics;
+            const sortedResults = [...filteredResults]
+                .sort((a, b) => {
+                    const scoreA = interestScores.get(a.topicId) ?? 0;
+                    const scoreB = interestScores.get(b.topicId) ?? 0;
+
+                    return scoreB - scoreA;
+                })
+                .slice(0, topN);
+
+            // 5. 构建 sessionId -> groupId 映射（用于统计）
+            const sessionGroupMap = new Map<string, string>();
+            // 从配置中获取所有群组
+            const groupIds = Object.keys(config.groupConfigs);
+
+            for (const result of sortedResults) {
+                // TODO 修正这部分逻辑
+                // 暂时将 sessionId 的前缀作为 groupId（简化实现）
+                // 实际项目中可能需要从 ImDbAccessService 查询
+                for (const groupId of groupIds) {
+                    if (result.sessionId.includes(groupId)) {
+                        sessionGroupMap.set(result.sessionId, groupId);
+                        break;
+                    }
+                }
+            }
+
+            // 6. 计算统计数据
+            const topicsWithGroupId = sortedResults.map(r => ({
+                ...r,
+                groupId: sessionGroupMap.get(r.sessionId)
+            }));
+            const statistics = this.calculateStatistics(topicsWithGroupId, sessionGroupMap);
+
+            // 7. 准备话题数据给 LLM
+            const topicsData = sortedResults.map(r => ({
+                topic: r.topic,
+                detail: r.detail
+            }));
+
+            // 8. 检查网络连接
+            if (!(await checkConnectivity())) {
+                this.LOGGER.error("网络连接不可用，跳过 LLM 综述生成");
+
+                const report: Report = {
+                    reportId: getRandomHash(16),
+                    type: reportType,
+                    timeStart,
+                    timeEnd,
+                    isEmpty: false,
+                    summary: "",
+                    summaryGeneratedAt: 0,
+                    summaryStatus: "pending",
+                    model: "",
+                    statistics,
+                    topicIds: sortedResults.map(r => r.topicId),
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                };
+
+                await this.reportDbAccessService.storeReport(report);
+
+                return;
+            }
+
+            // 9. 调用 LLM 生成综述
+            const prompt = (
+                await ReportPromptStore.getReportSummaryPrompt(
+                    reportType,
+                    periodDescription,
+                    topicsData,
+                    statistics
+                )
+            ).serializeToString();
+            let summary = "";
+            let selectedModelName = "";
+            let summaryStatus: "success" | "failed" = "failed";
+            const retryCount = config.report.generation.llmRetryCount;
+            const modelCandidates = config.report.generation.aiModels;
+
+            this.LOGGER.info(`开始调用 LLM 生成日报综述，prompt长度：${prompt.length}`);
+
+            for (let attempt = 0; attempt <= retryCount; attempt++) {
+                try {
+                    const result = await this.textGeneratorService.generateTextWithModelCandidates(
+                        modelCandidates,
+                        prompt
                     );
 
-                    // 2. 获取兴趣度评分，过滤掉负分话题
-                    const topicIds = digestResults.map(r => r.topicId);
-                    const interestScores = new Map<string, number>();
-
-                    for (const topicId of topicIds) {
-                        const score = await this.interestScoreDbAccessService.getInterestScoreResult(topicId);
-
-                        if (score !== null) {
-                            interestScores.set(topicId, score);
-                        }
+                    summary = result.content;
+                    selectedModelName = result.selectedModelName;
+                    summaryStatus = "success";
+                    this.LOGGER.success(`日报综述生成成功，使用模型: ${selectedModelName}`);
+                    break;
+                } catch (error) {
+                    this.LOGGER.warning(`第 ${attempt + 1} 次尝试生成综述失败: ${error}`);
+                    if (attempt === retryCount) {
+                        this.LOGGER.error(`所有重试均失败，日报综述生成失败`);
                     }
+                }
+            }
 
-                    // 过滤掉兴趣度低于阈值的话题（若不存在兴趣度评分，则保留）
-                    const interestScoreThreshold = config.report.generation.interestScoreThreshold;
-                    const filteredResults = digestResults.filter(result => {
-                        const score = interestScores.get(result.topicId);
+            this.textGeneratorService.dispose();
 
-                        return score === undefined || score >= interestScoreThreshold;
-                    });
+            // 10. 保存日报
+            const report: Report = {
+                reportId: getRandomHash(16),
+                type: reportType,
+                timeStart,
+                timeEnd,
+                isEmpty: false,
+                summary,
+                summaryGeneratedAt: Date.now(),
+                summaryStatus,
+                model: selectedModelName,
+                statistics,
+                topicIds: sortedResults.map(r => r.topicId),
+                createdAt: Date.now(),
+                updatedAt: Date.now()
+            };
 
-                    // 3. 检查是否有话题
-                    if (filteredResults.length === 0) {
-                        this.LOGGER.info(`${periodDescription} 没有有效话题，生成空日报`);
+            await this.reportDbAccessService.storeReport(report);
+            this.LOGGER.success(`📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`);
 
-                        const emptyReport: Report = {
-                            reportId: getRandomHash(16),
-                            type: reportType,
-                            timeStart,
-                            timeEnd,
-                            isEmpty: true,
-                            summary: ReportPromptStore.getEmptyReportText(periodDescription),
-                            summaryGeneratedAt: Date.now(),
-                            summaryStatus: "success",
-                            model: "",
-                            statistics: { topicCount: 0, mostActiveGroups: [], mostActiveHour: 0 },
-                            topicIds: [],
-                            createdAt: Date.now(),
-                            updatedAt: Date.now()
-                        };
-
-                        await this.reportDbAccessService.storeReport(emptyReport);
-                        this.LOGGER.success(`${periodDescription} 空日报生成完成`);
-
-                        // 发送空日报邮件
-                        try {
-                            await this.reportEmailService.sendReportEmail(emptyReport);
-                        } catch (emailError) {
-                            this.LOGGER.warning(`发送空日报邮件失败: ${emailError}`);
-                        }
-
-                        return;
-                    }
-
-                    // 4. 按兴趣度排序，取 Top N
-                    const topN = config.report.generation.topNTopics;
-                    const sortedResults = [...filteredResults]
-                        .sort((a, b) => {
-                            const scoreA = interestScores.get(a.topicId) ?? 0;
-                            const scoreB = interestScores.get(b.topicId) ?? 0;
-
-                            return scoreB - scoreA;
-                        })
-                        .slice(0, topN);
-
-                    // 5. 构建 sessionId -> groupId 映射（用于统计）
-                    const sessionGroupMap = new Map<string, string>();
-                    // 从配置中获取所有群组
-                    const groupIds = Object.keys(config.groupConfigs);
-
-                    for (const result of sortedResults) {
-                        // TODO 修正这部分逻辑
-                        // 暂时将 sessionId 的前缀作为 groupId（简化实现）
-                        // 实际项目中可能需要从 ImDbAccessService 查询
-                        for (const groupId of groupIds) {
-                            if (result.sessionId.includes(groupId)) {
-                                sessionGroupMap.set(result.sessionId, groupId);
-                                break;
-                            }
-                        }
-                    }
-
-                    // 6. 计算统计数据
-                    const topicsWithGroupId = sortedResults.map(r => ({
-                        ...r,
-                        groupId: sessionGroupMap.get(r.sessionId)
-                    }));
-                    const statistics = this.calculateStatistics(topicsWithGroupId, sessionGroupMap);
-
-                    // 7. 准备话题数据给 LLM
-                    const topicsData = sortedResults.map(r => ({
-                        topic: r.topic,
-                        detail: r.detail
-                    }));
-
-                    // 8. 检查网络连接
-                    if (!(await checkConnectivity())) {
-                        this.LOGGER.error("网络连接不可用，跳过 LLM 综述生成");
-
-                        const report: Report = {
-                            reportId: getRandomHash(16),
-                            type: reportType,
-                            timeStart,
-                            timeEnd,
-                            isEmpty: false,
-                            summary: "",
-                            summaryGeneratedAt: 0,
-                            summaryStatus: "pending",
-                            model: "",
-                            statistics,
-                            topicIds: sortedResults.map(r => r.topicId),
-                            createdAt: Date.now(),
-                            updatedAt: Date.now()
-                        };
-
-                        await this.reportDbAccessService.storeReport(report);
-
-                        return;
-                    }
-
-                    // 9. 调用 LLM 生成综述
-                    const prompt = (
-                        await ReportPromptStore.getReportSummaryPrompt(
-                            reportType,
-                            periodDescription,
-                            topicsData,
-                            statistics
-                        )
-                    ).serializeToString();
-                    let summary = "";
-                    let selectedModelName = "";
-                    let summaryStatus: "success" | "failed" = "failed";
-                    const retryCount = config.report.generation.llmRetryCount;
-                    const modelCandidates = config.report.generation.aiModels;
-
-                    this.LOGGER.info(`开始调用 LLM 生成日报综述，prompt长度：${prompt.length}`);
-
-                    for (let attempt = 0; attempt <= retryCount; attempt++) {
-                        try {
-                            const result = await this.textGeneratorService.generateTextWithModelCandidates(
-                                modelCandidates,
-                                prompt
-                            );
-
-                            summary = result.content;
-                            selectedModelName = result.selectedModelName;
-                            summaryStatus = "success";
-                            this.LOGGER.success(`日报综述生成成功，使用模型: ${selectedModelName}`);
-                            break;
-                        } catch (error) {
-                            this.LOGGER.warning(`第 ${attempt + 1} 次尝试生成综述失败: ${error}`);
-                            if (attempt === retryCount) {
-                                this.LOGGER.error(`所有重试均失败，日报综述生成失败`);
-                            }
-                        }
-                    }
-
-                    this.textGeneratorService.dispose();
-
-                    // 10. 保存日报
-                    const report: Report = {
-                        reportId: getRandomHash(16),
-                        type: reportType,
-                        timeStart,
-                        timeEnd,
-                        isEmpty: false,
-                        summary,
-                        summaryGeneratedAt: Date.now(),
-                        summaryStatus,
-                        model: selectedModelName,
-                        statistics,
-                        topicIds: sortedResults.map(r => r.topicId),
-                        createdAt: Date.now(),
-                        updatedAt: Date.now()
-                    };
-
-                    await this.reportDbAccessService.storeReport(report);
-                    this.LOGGER.success(`📰 ${periodDescription} 日报生成完成！话题数: ${statistics.topicCount}`);
-
-                    // 发送日报邮件（仅当综述生成成功时）
-                    if (summaryStatus === "success") {
-                        try {
-                            await this.reportEmailService.sendReportEmail(report);
-                        } catch (emailError) {
-                            this.LOGGER.error(`发送日报邮件失败: ${emailError}`);
-                        }
-                    }
+            // 发送日报邮件（仅当综述生成成功时）
+            if (summaryStatus === "success") {
+                try {
+                    await this.reportEmailService.sendReportEmail(report);
+                } catch (emailError) {
+                    this.LOGGER.error(`发送日报邮件失败: ${emailError}`);
+                }
+            }
         } catch (error) {
             this.LOGGER.error(`日报生成失败: ${error}`);
             throw error;

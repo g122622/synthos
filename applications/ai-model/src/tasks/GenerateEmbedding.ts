@@ -13,6 +13,7 @@ import {
     GroupedTimeRangeParamsSchema
 } from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
@@ -39,7 +40,7 @@ export class GenerateEmbeddingTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof GroupedTimeRangeParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof GroupedTimeRangeParamsSchema>>): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
 
         this.LOGGER.success(`Ollama 服务初始化完成，模型: ${config.ai.embedding.model}`);
@@ -47,6 +48,7 @@ export class GenerateEmbeddingTaskHandler implements Runnable {
         // 检查 Ollama 服务是否可用
         if (!(await this.embeddingService.isAvailable())) {
             this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
+
             return;
         }
 
@@ -78,6 +80,7 @@ export class GenerateEmbeddingTaskHandler implements Runnable {
         this.LOGGER.info(`其中 ${topicIdsWithoutEmbedding.length} 条需要生成嵌入向量`);
         if (topicIdsWithoutEmbedding.length === 0) {
             this.LOGGER.info("没有需要生成嵌入的话题，任务完成");
+
             return;
         }
 
@@ -124,8 +127,6 @@ export class GenerateEmbeddingTaskHandler implements Runnable {
             }
         }
 
-        this.LOGGER.success(
-            `🥳任务完成：向量数据库当前共 ${this.vectorDBManagerService.getCount()} 条记录`
-        );
+        this.LOGGER.success(`🥳任务完成：向量数据库当前共 ${this.vectorDBManagerService.getCount()} 条记录`);
     }
 }

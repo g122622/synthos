@@ -7,6 +7,7 @@ import { IMTypes } from "@root/common/contracts/data-provider/index";
 import { ProvideDataParamsSchema, ProvideDataTaskDefinition } from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
 import z from "zod";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { IIMProvider } from "../providers/contracts/IIMProvider";
 import { COMMON_TOKENS } from "../di/tokens";
@@ -31,7 +32,7 @@ export class ProvideDataTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof ProvideDataParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof ProvideDataParamsSchema>>): Promise<void> {
         // 根据 IM 类型从 DI 容器获取对应的 IM 提供者
         let activeProvider: IIMProvider;
 

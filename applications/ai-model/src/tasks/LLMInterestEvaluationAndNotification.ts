@@ -17,6 +17,7 @@ import {
     LLMInterestEvaluationAndNotificationTaskDefinition
 } from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { InterestPromptStore } from "../context/prompts/InterestPromptStore";
@@ -43,7 +44,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler implements Runnable
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof GroupedTimeRangeParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof GroupedTimeRangeParamsSchema>>): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
 
         // 获取配置
@@ -54,6 +55,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler implements Runnable
         // 检查配置是否有效
         if (!llmEvaluationDescriptions || llmEvaluationDescriptions.length === 0) {
             this.LOGGER.warning("未配置 llmEvaluationDescriptions，跳过任务");
+
             return;
         }
 
@@ -88,6 +90,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler implements Runnable
 
             if (allDigestResults.length === 0) {
                 this.LOGGER.info("没有可评估的摘要结果，跳过任务");
+
                 return;
             }
 
@@ -100,6 +103,7 @@ export class LLMInterestEvaluationAndNotificationTaskHandler implements Runnable
 
             if (unevaluatedTopics.length === 0) {
                 this.LOGGER.info("所有话题都已评估过，跳过任务");
+
                 return;
             }
 
@@ -157,7 +161,9 @@ export class LLMInterestEvaluationAndNotificationTaskHandler implements Runnable
                         try {
                             await notificationKVStore.put(topic.topicId, true);
                         } catch (error) {
-                            this.LOGGER.error(`写入通知记录到 KV Store 失败: topicId=${topic.topicId}, error=${error}`);
+                            this.LOGGER.error(
+                                `写入通知记录到 KV Store 失败: topicId=${topic.topicId}, error=${error}`
+                            );
                             throw error;
                         }
                     }

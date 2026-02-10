@@ -11,8 +11,12 @@ import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/math/getRandomHash";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { registerTask } from "@root/common/scheduler/registry/index";
-import { AISummarizeTaskDefinition, GroupedTimeRangeParamsSchema } from "@root/common/scheduler/taskDefinitions/index";
+import {
+    AISummarizeTaskDefinition,
+    GroupedTimeRangeParamsSchema
+} from "@root/common/scheduler/taskDefinitions/index";
 import { Runnable } from "@root/common/util/type/Runnable";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
 import {
@@ -39,11 +43,12 @@ export class AISummarizeTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof GroupedTimeRangeParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof GroupedTimeRangeParamsSchema>>): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
 
         if (!(await checkConnectivity())) {
             this.LOGGER.error("网络连接不可用，跳过当前任务");
+
             return;
         }
 
@@ -75,6 +80,7 @@ export class AISummarizeTaskHandler implements Runnable {
                 // 过滤掉 sessionId 为空的消息
                 if (!msg.sessionId) {
                     this.LOGGER.warning(`消息 ${msg.msgId} 的 sessionId 为空，跳过`);
+
                     return false;
                 }
 
@@ -122,10 +128,15 @@ export class AISummarizeTaskHandler implements Runnable {
 
             /* 4. 构建任务列表 */
             for (const sessionId in sessions) {
-                this.LOGGER.info(`准备处理 session ${sessionId}，该 session 内共 ${sessions[sessionId].length} 条消息`);
+                this.LOGGER.info(
+                    `准备处理 session ${sessionId}，该 session 内共 ${sessions[sessionId].length} 条消息`
+                );
 
                 // 构建上下文
-                const ctx = await ctxBuilder.buildCtx(sessions[sessionId], config.groupConfigs[groupId].groupIntroduction);
+                const ctx = await ctxBuilder.buildCtx(
+                    sessions[sessionId],
+                    config.groupConfigs[groupId].groupIntroduction
+                );
 
                 this.LOGGER.info(`session ${sessionId} 构建上下文成功，长度为 ${ctx.length}`);
 
@@ -143,50 +154,57 @@ export class AISummarizeTaskHandler implements Runnable {
         // 并行处理所有任务，每个任务完成时回调
         let completedCount = 0;
 
-        await pooledTextGeneratorService.submitTasks<TaskContext>(allTasks, async (result: PooledTaskResult<TaskContext>) => {
-            completedCount++;
-            const { sessionId } = result.context;
+        await pooledTextGeneratorService.submitTasks<TaskContext>(
+            allTasks,
+            async (result: PooledTaskResult<TaskContext>) => {
+                completedCount++;
+                const { sessionId } = result.context;
 
-            if (!result.isSuccess) {
-                this.LOGGER.error(
-                    `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要失败，错误信息为：${result.error}, 跳过该 session`
-                );
-                return;
-            }
+                if (!result.isSuccess) {
+                    this.LOGGER.error(
+                        `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要失败，错误信息为：${result.error}, 跳过该 session`
+                    );
 
-            try {
-                const resultStr = result.content!;
-                const selectedModelName = result.selectedModelName!;
-
-                // 解析 llm 回传的 json 结果
-                let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
-
-                results = JSON.parse(resultStr);
-                this.LOGGER.success(
-                    `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
-                );
-                if (resultStr.length < 30) {
-                    this.LOGGER.warning(`session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`);
-                    console.log(resultStr);
                     return;
                 }
 
-                // 遍历 ai 生成的结果数组，添加 sessionId、topicId，并解析 contributors
-                for (const resultItem of results) {
-                    Object.assign(resultItem, { sessionId });
-                    resultItem.contributors = JSON.stringify(resultItem.contributors);
-                    Object.assign(resultItem, { topicId: getRandomHash(16) });
-                    Object.assign(resultItem, { modelName: selectedModelName });
-                    Object.assign(resultItem, { updateTime: Date.now() });
-                }
+                try {
+                    const resultStr = result.content!;
+                    const selectedModelName = result.selectedModelName!;
 
-                // 存储摘要结果
-                await this.agcDbAccessService.storeAIDigestResults(results as AIDigestResult[]);
-                this.LOGGER.success(`session ${sessionId} 存储摘要成功！`);
-            } catch (error) {
-                this.LOGGER.error(`session ${sessionId} 处理结果失败，错误信息为：${error}, 跳过该 session`);
+                    // 解析 llm 回传的 json 结果
+                    let results: Omit<Omit<AIDigestResult, "sessionId">, "topicId">[] = [];
+
+                    results = JSON.parse(resultStr);
+                    this.LOGGER.success(
+                        `[${completedCount}/${allTasks.length}] session ${sessionId} 生成摘要成功，长度为 ${resultStr.length}`
+                    );
+                    if (resultStr.length < 30) {
+                        this.LOGGER.warning(
+                            `session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`
+                        );
+                        console.log(resultStr);
+
+                        return;
+                    }
+
+                    // 遍历 ai 生成的结果数组，添加 sessionId、topicId，并解析 contributors
+                    for (const resultItem of results) {
+                        Object.assign(resultItem, { sessionId });
+                        resultItem.contributors = JSON.stringify(resultItem.contributors);
+                        Object.assign(resultItem, { topicId: getRandomHash(16) });
+                        Object.assign(resultItem, { modelName: selectedModelName });
+                        Object.assign(resultItem, { updateTime: Date.now() });
+                    }
+
+                    // 存储摘要结果
+                    await this.agcDbAccessService.storeAIDigestResults(results as AIDigestResult[]);
+                    this.LOGGER.success(`session ${sessionId} 存储摘要成功！`);
+                } catch (error) {
+                    this.LOGGER.error(`session ${sessionId} 处理结果失败，错误信息为：${error}, 跳过该 session`);
+                }
             }
-        });
+        );
 
         pooledTextGeneratorService.dispose();
         ctxBuilder.dispose();

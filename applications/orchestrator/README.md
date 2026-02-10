@@ -245,7 +245,7 @@ const NewTaskParamsSchema = z.object({
 export class NewTaskHandler {
     public static readonly TASK_NAME = "NewTask";
     
-    async execute(params: z.infer<typeof NewTaskParamsSchema>) {
+    async execute(params: DeepRequired<z.infer<typeof NewTaskParamsSchema>>) {
         // 实现任务逻辑
     }
     

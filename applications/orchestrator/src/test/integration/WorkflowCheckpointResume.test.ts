@@ -5,7 +5,11 @@ import * as fs from "node:fs/promises";
 import os from "node:os";
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { WorkflowNodeType, NodeExecutionStatus } from "@root/common/contracts/workflow/index";
+import {
+    WorkflowExecutionStatus,
+    WorkflowNodeType,
+    NodeExecutionStatus
+} from "@root/common/contracts/workflow/index";
 import { ExecutionContext } from "@root/common/scheduler/helpers/ExecutionContext";
 
 import { ExecutionPersistence } from "../../core/ExecutionPersistence";
@@ -32,6 +36,8 @@ class TestNodeExecutorAdapter implements INodeExecutorAdapter {
         params: Record<string, any>,
         context: ExecutionContext
     ): Promise<NodeExecutionResult> {
+        void params;
+        void context;
         if (this._failingNodes.has(nodeId)) {
             return {
                 success: false,
@@ -54,6 +60,10 @@ class TestNodeExecutorAdapter implements INodeExecutorAdapter {
         script: string,
         context: ExecutionContext
     ): Promise<NodeExecutionResult> {
+        void nodeId;
+        void script;
+        void context;
+
         return {
             success: true,
             output: { result: "script executed" },
@@ -67,6 +77,10 @@ class TestNodeExecutorAdapter implements INodeExecutorAdapter {
         config: any,
         context: ExecutionContext
     ): Promise<NodeExecutionResult> {
+        void nodeId;
+        void config;
+        void context;
+
         return {
             success: true,
             output: { status: 200, data: "ok" },
@@ -93,37 +107,40 @@ describe("WorkflowExecutor 断点续跑集成测试", () => {
                 {
                     id: "start",
                     type: WorkflowNodeType.Start,
+                    position: { x: 0, y: 0 },
                     data: { label: "开始" }
                 },
                 {
                     id: "task1",
                     type: WorkflowNodeType.Task,
+                    position: { x: 100, y: 0 },
                     data: { label: "任务1", taskType: "test.task1" }
                 },
                 {
                     id: "task2",
                     type: WorkflowNodeType.Task,
+                    position: { x: 200, y: 0 },
                     data: { label: "任务2", taskType: "test.task2" }
                 },
                 {
                     id: "task3",
                     type: WorkflowNodeType.Task,
+                    position: { x: 300, y: 0 },
                     data: { label: "任务3", taskType: "test.task3" }
                 },
                 {
                     id: "end",
                     type: WorkflowNodeType.End,
+                    position: { x: 400, y: 0 },
                     data: { label: "结束" }
                 }
             ],
             edges: [
-                { source: "start", target: "task1" },
-                { source: "task1", target: "task2" },
-                { source: "task2", target: "task3" },
-                { source: "task3", target: "end" }
-            ],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
+                { id: "e1", source: "start", target: "task1" },
+                { id: "e2", source: "task1", target: "task2" },
+                { id: "e3", source: "task2", target: "task3" },
+                { id: "e4", source: "task3", target: "end" }
+            ]
         };
     };
 
@@ -182,13 +199,14 @@ describe("WorkflowExecutor 断点续跑集成测试", () => {
         const result1 = await executor1.execute(false); // 不恢复，从头开始
 
         // 验证执行失败
-        expect(result1.status).toBe("failed");
+        expect(result1.status).toBe(WorkflowExecutionStatus.Failed);
 
         // 验证 task1 成功，task2 失败，task3 未执行
         expect(result1.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
         expect(result1.nodeStates.get("task1")?.status).toBe(NodeExecutionStatus.Success);
         expect(result1.nodeStates.get("task2")?.status).toBe(NodeExecutionStatus.Failed);
         expect(result1.nodeStates.get("task3")?.status).toBe(NodeExecutionStatus.Cancelled);
+        expect(result1.nodeStates.get("end")?.status).toBe(NodeExecutionStatus.Cancelled);
 
         // 第二次执行：修复问题，task2 不再失败
         adapter.setFailingNodes([]); // 清空失败节点
@@ -198,7 +216,7 @@ describe("WorkflowExecutor 断点续跑集成测试", () => {
         const result2 = await executor2.execute(true); // 从断点恢复
 
         // 验证执行成功
-        expect(result2.status).toBe("success");
+        expect(result2.status).toBe(WorkflowExecutionStatus.Success);
 
         // 验证所有节点成功
         expect(result2.nodeStates.get("start")?.status).toBe(NodeExecutionStatus.Success);
@@ -211,7 +229,7 @@ describe("WorkflowExecutor 断点续跑集成测试", () => {
         const savedExecution = await persistence.loadExecution(executionId);
 
         expect(savedExecution).not.toBeNull();
-        expect(savedExecution!.status).toBe("success");
+        expect(savedExecution!.status).toBe(WorkflowExecutionStatus.Success);
         expect(savedExecution!.nodeStates.size).toBe(5);
     });
 

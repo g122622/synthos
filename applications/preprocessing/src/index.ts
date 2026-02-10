@@ -14,11 +14,7 @@ import {
 import { activateTaskHandlers } from "@root/common/scheduler/registry/index";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
-import {
-    registerTaskHandlers,
-    registerAccumulativeSplitter,
-    registerTimeoutSplitter
-} from "./di/container";
+import { registerTaskHandlers, registerAccumulativeSplitter, registerTimeoutSplitter } from "./di/container";
 
 const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 

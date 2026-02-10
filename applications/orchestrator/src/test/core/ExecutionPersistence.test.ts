@@ -29,6 +29,7 @@ describe("ExecutionPersistence", () => {
                 {
                     id: "start",
                     type: WorkflowNodeType.Start,
+                    position: { x: 0, y: 0 },
                     data: {
                         label: "开始"
                     }
@@ -36,25 +37,25 @@ describe("ExecutionPersistence", () => {
                 {
                     id: "task1",
                     type: WorkflowNodeType.Task,
+                    position: { x: 100, y: 0 },
                     data: {
                         label: "任务1",
-                        taskName: "testTask"
+                        taskType: "testTask"
                     }
                 },
                 {
                     id: "end",
                     type: WorkflowNodeType.End,
+                    position: { x: 200, y: 0 },
                     data: {
                         label: "结束"
                     }
                 }
             ],
             edges: [
-                { source: "start", target: "task1" },
-                { source: "task1", target: "end" }
-            ],
-            createdAt: Date.now(),
-            updatedAt: Date.now()
+                { id: "e1", source: "start", target: "task1" },
+                { id: "e2", source: "task1", target: "end" }
+            ]
         };
     };
 

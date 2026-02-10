@@ -19,7 +19,6 @@ import {
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { AgentDbAccessService, AgentMessage } from "@root/common/services/database/AgentDbAccessService";

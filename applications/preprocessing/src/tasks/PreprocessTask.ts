@@ -8,6 +8,7 @@ import { PreprocessParamsSchema, PreprocessTaskDefinition } from "@root/common/s
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { Runnable } from "@root/common/util/type/Runnable";
 import z from "zod";
+import { DeepRequired } from "@root/common/util/type/DeepRequired";
 
 import { formatMsg } from "../formatMsg";
 import { ISplitter } from "../splitters/contracts/ISplitter";
@@ -36,7 +37,7 @@ export class PreprocessTaskHandler implements Runnable {
     /**
      * 执行任务
      */
-    public async run(params: z.infer<typeof PreprocessParamsSchema>): Promise<void> {
+    public async run(params: DeepRequired<z.infer<typeof PreprocessParamsSchema>>): Promise<void> {
         const config = await this.configManagerService.getCurrentConfig();
 
         for (const groupId of params.groupIds) {
