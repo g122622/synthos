@@ -9,7 +9,7 @@
 - **DAG 执行引擎**：`WorkflowExecutor` - 基于拓扑排序的事件驱动引擎，支持任意复杂的 DAG 结构
 - **执行持久化**：`ExecutionPersistence` - SQLite 持久化工作流执行状态，支持断点续跑和历史回溯
 - **条件分支**：`ConditionEvaluator` - 支持上游节点状态判断、键值匹配、自定义表达式
-- **节点适配器**：`INodeExecutorAdapter` - 解耦引擎与任务执行，生产环境使用 `AgendaNodeExecutorAdapter`（调用 Agenda 任务队列）
+- **节点适配器**：`INodeExecutorAdapter` - 解耦引擎与任务执行，生产环境使用 `EventBasedNodeExecutorAdapter`（通过事件驱动调度任务）
 - **重试策略**：支持节点级别的重试次数、超时时间、失败跳过等配置
 
 ### 🔌 **tRPC 远程管理（P1 已完成）**
@@ -28,9 +28,8 @@
 
 ### 📅 **定时触发**
 
-- 通过 Agenda 定时任务实现工作流的 cron 触发
-- 默认每小时触发一次标准数据处理流程（`default-pipeline`）
-- 支持半日报定时生成（`HalfDailyReport_morning` / `HalfDailyReport_afternoon`）
+- 当前版本未内置 cron 触发器，建议通过外部定时器（系统任务 / CI / 运维平台）调用 `triggerWorkflow` 实现定时触发
+- 工作流执行的状态与节点结果仍由 `ExecutionPersistence` 持久化，可用于故障重试与回溯
 
 ## 项目结构
 
@@ -45,7 +44,7 @@ applications/orchestrator/src/
 │   └── NodeExecutionStrategy.ts # 节点执行策略（重试/超时/跳过）
 ├── adapters/                  # 节点执行适配器
 │   ├── INodeExecutorAdapter.ts # 适配器接口
-│   └── AgendaNodeExecutorAdapter.ts # Agenda 任务队列适配器
+│   └── EventBasedNodeExecutorAdapter.ts # 事件驱动任务执行适配器
 ├── rpc/                       # P1：tRPC 远程管理
 │   ├── server.ts              # tRPC HTTP + WebSocket 服务器
 │   └── impl.ts                # RPC 接口实现（OrchestratorRPCImpl）
@@ -88,7 +87,7 @@ applications/orchestrator/src/
 |------|------|---------|
 | `start` | 开始节点 | DAG 入口（非必需） |
 | `end` | 结束节点 | DAG 出口（非必需） |
-| `task` | Agenda 任务节点 | 调用 Agenda 任务队列（如 `ProvideData`、`Preprocess`） |
+| `task` | 任务节点 | 通过事件驱动调度任务（如 `ProvideData`、`Preprocess`） |
 | `condition` | 条件分支节点 | 根据上游节点结果决定分支路径 |
 | `parallel` | 并行节点 | 多个下游节点并发执行 |
 | `script` | 脚本节点 | 执行自定义 JavaScript 代码 |
@@ -178,7 +177,8 @@ client.onExecutionUpdate.subscribe({ executionId: "exec_xxx" }, {
 
 - **引擎依赖**：`common/contracts/workflow` - 工作流类型定义
 - **持久化依赖**：`common/services/database` - SQLite 数据库服务
-- **任务队列依赖**：`common/scheduler/agenda` - Agenda 任务调度
+- **任务调度依赖**：`common/scheduler/registry` - TaskRegistry（任务元数据与 Schema）
+- **事件调度依赖**：`common/services/event` - EventService（任务派发与完成事件）
 - **RPC 通信**：`common/rpc/orchestrator` - tRPC 路由与 Schema 定义
 
 ## 故障排查
@@ -188,7 +188,7 @@ client.onExecutionUpdate.subscribe({ executionId: "exec_xxx" }, {
 A: 
 1. 查看 `getExecution` 返回的 `snapshot.nodeStates`，找到失败节点
 2. 检查失败节点的 `error` 字段获取错误信息
-3. 查看对应 Agenda 任务的日志（如果是 `task` 类型节点）
+3. 查看对应微服务的日志（`task` 节点会在具体任务处理器进程内执行）
 
 ### Q: 如何修改默认的数据处理流程？
 
@@ -211,11 +211,13 @@ Synthos 工作流引擎采用 **装饰器 + TaskRegistry** 模式实现任务的
 
 ### 添加新任务
 
-1. 创建任务处理器类并定义 Zod Schema：
+1. 创建任务定义（元数据 + 参数 Schema）与任务处理器：
 
 ```typescript
 import { z } from "zod";
-import { Task } from "@root/common/scheduler/registry";
+import { injectable } from "tsyringe";
+import { registerTask } from "@root/common/scheduler/registry/index";
+import type { TaskMetadata } from "@root/common/scheduler/registry/types";
 
 // 1. 定义参数 Schema（运行时校验）
 const NewTaskParamsSchema = z.object({
@@ -223,41 +225,28 @@ const NewTaskParamsSchema = z.object({
     param2: z.number().int().positive()
 });
 
-// 2. 使用 @Task 装饰器注册
+export const NewTaskDefinition: TaskMetadata<z.infer<typeof NewTaskParamsSchema>> = {
+  internalName: "NewTask",
+  displayName: "新任务",
+  description: "这是一个示例任务",
+  paramsSchema: NewTaskParamsSchema,
+  generateDefaultParams: async (context, config) => ({
+    param1: "默认值",
+    param2: 42
+  })
+};
+
+// 2. 使用 @registerTask 注册任务（事件驱动调度）
 @injectable()
-@Task({
-    displayName: "新任务",
-    description: "这是一个示例任务",
-    paramsSchema: NewTaskParamsSchema,
-    generateDefaultParams: async (context, config) => ({
-        param1: "默认值",
-        param2: 42
-    }),
-    uiConfig: {
-        icon: "🚀",
-        category: "数据处理",
-        formFields: [
-            { name: "param1", type: "string", label: "参数1", required: true },
-            { name: "param2", type: "number", label: "参数2", description: "必须为正整数" }
-        ]
-    }
-})
+@registerTask(NewTaskDefinition)
 export class NewTaskHandler {
-    public static readonly TASK_NAME = "NewTask";
-    
-    async execute(params: DeepRequired<z.infer<typeof NewTaskParamsSchema>>) {
-        // 实现任务逻辑
-    }
-    
-    static register(agenda: Agenda) {
-        agenda.define(this.TASK_NAME, async (job) => {
-            // 注册到 Agenda
-        });
-    }
+  public async run(params: z.infer<typeof NewTaskParamsSchema>): Promise<void> {
+    // 实现任务逻辑
+  }
 }
 ```
 
-2. 在 `applications/ai-model/src/tasks` 中创建文件并导出
+2. 在对应微服务的入口文件中 `import "./tasks/NewTask"`，并在启动阶段执行 `activateTaskHandlers()` 激活任务事件订阅
 3. **完成！** 前端会自动显示新任务，无需修改任何其他文件
 
 ### 技术细节

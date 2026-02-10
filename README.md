@@ -97,8 +97,8 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 - **🐳容器化/部署（WIP）**：Docker Compose + Nginx（前端静态托管 & /api 反代）
 - **💬RPC库**：tRPC
 - **💉依赖注入框架**：TSyringe
-- **🕗任务调度与编排框架**：Agenda + 自研工作流引擎（DAG 执行器）
-- **📚数据库**：MongoDB（任务调度） + SQLite（聊天记录 & ai生成数据存储 & 工作流执行状态） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
+- **🕗任务调度与编排框架**：基于 Redis 的分布式事件驱动任务调度（EventService + TaskRegistry）+ 自研工作流引擎（DAG 执行器）
+- **📚数据库**：SQLite（聊天记录 & AI 生成数据存储 & 工作流执行状态） + LevelDB（KV元数据存储） + sqlite-vec（向量索引存储）
 - **📦向量数据库**：基于 better-sqlite3 + sqlite-vec 的轻量级向量存储方案
 - **🤖LLM框架**：Langchain，支持任意云端 LLM or 本地的 Ollama
 - **🧪测试框架**：Vitest  
@@ -122,7 +122,7 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 
 > ⚠️ **推荐硬件配置**  
 >
-> - 由于需运行 Ollama 服务（选配），加上 MongoDB、Node 进程和 SQLite 实例，**建议内存 ≥16GB**。
+> - 由于需运行 Ollama 服务（选配），加上多个 Node 进程与 SQLite/LevelDB 实例，**建议内存 ≥16GB**。
 > - 中端 CPU
 > - 【选配】支持 CUDA 的 GPU（如果 llm 和嵌入模型都使用云端服务，则无需本地 GPU）
 > - 10G以上剩余硬盘空间。
@@ -130,10 +130,6 @@ Deepwiki: [https://deepwiki.com/g122622/synthos](https://deepwiki.com/g122622/sy
 ![硬件要求](./docs/assets/hardware.png)
 
 ### 1. 环境准备
-
-#### 安装 MongoDB
-
-项目依赖 Agenda 进行任务调度，需提前安装 [MongoDB 社区版](https://www.mongodb.com/try/download/community) 并确保服务正在运行。
 
 #### 安装 Ollama 并下载 bge-m3 模型（用于 RAG 向量检索）
 
@@ -216,8 +212,10 @@ pnpm dev:forwarder
 
 ## Docker 部署（WIP，暂不推荐）
 
-该方案将 `orchestrator` / `preprocessing` / `ai-model` / `webui-backend` / `webui-frontend` / `MongoDB` 容器化，
+该方案将 `orchestrator` / `preprocessing` / `ai-model` / `webui-backend` / `webui-frontend` 容器化，
 `data-provider` 仍在宿主机运行（因为其依赖本机 QQNT 数据库与 VFS DLL）。
+
+> 注意：当前主链路不再依赖 MongoDB；`docker-compose.yml` 中的 MongoDB 配置属于历史遗留（后续会清理），不影响本地 HMR 开发模式。
 
 ### 1) 启动容器
 
@@ -231,19 +229,11 @@ docker compose up -d --build
 docker compose --profile ollama up -d --build
 ```
 
-### 2) 在宿主机启动 data-provider（连接容器 Mongo）
+### 2) 在宿主机启动 data-provider
 
 > 注意：`docker-compose.yml` 中提供了一个 `host-only` profile 下的 `data-provider` 占位服务，仅用于提示该组件需在宿主机运行，并不会真正容器化该进程。
 
 ```bash
-set SYNTHOS_MONGODB_URL=mongodb://localhost:27017/synthos
-pnpm --filter data-provider dev
-```
-
-PowerShell：
-
-```powershell
-$env:SYNTHOS_MONGODB_URL="mongodb://localhost:27017/synthos"
 pnpm --filter data-provider dev
 ```
 
