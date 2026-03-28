@@ -61,19 +61,29 @@ export class ProvideDataTaskHandler {
                 }
 
                 await activeProvider.init();
-                this.LOGGER.debug(`IM provider initialized for ${attrs.IMType}`);
+                this.LOGGER.info(`IM provider initialized for ${attrs.IMType}`);
 
                 for (const groupId of attrs.groupIds) {
                     this.LOGGER.debug(`开始获取群 ${groupId} 的消息`);
 
-                    const results = await activeProvider.getMsgByTimeRange(
-                        attrs.startTimeStamp < 0 // 如果是负数则代表自动获取时间范围
-                            ? (await this.imDbAccessService.getNewestRawChatMessageByGroupId(groupId)).timestamp -
-                                  1000 // 避免漏掉最后一条消息，回溯1秒
-                            : attrs.startTimeStamp,
-                        attrs.endTimeStamp,
-                        groupId
-                    );
+                    let results = [];
+
+                    if (attrs.startTimeStamp < 0) {
+                        const newestMsg = await this.imDbAccessService.getNewestRawChatMessageByGroupId(groupId);
+                        const startTimeStamp = newestMsg ? newestMsg.timestamp - 1000 : 0; // 如果数据库中没有消息，则从时间戳0开始获取
+
+                        results = await activeProvider.getMsgByTimeRange(
+                            startTimeStamp,
+                            attrs.endTimeStamp,
+                            groupId
+                        );
+                    } else {
+                        results = await activeProvider.getMsgByTimeRange(
+                            attrs.startTimeStamp,
+                            attrs.endTimeStamp,
+                            groupId
+                        );
+                    }
 
                     this.LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
                     await this.imDbAccessService.storeRawChatMessages(results);

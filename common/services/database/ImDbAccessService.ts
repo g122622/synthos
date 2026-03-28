@@ -209,8 +209,8 @@ export class ImDbAccessService extends Disposable {
      * @param groupId 群组ID
      * @returns 消息对象
      */
-    public async getNewestRawChatMessageByGroupId(groupId: string): Promise<RawChatMessage> {
-        return await this.db.get<RawChatMessage>(
+    public async getNewestRawChatMessageByGroupId(groupId: string): Promise<RawChatMessage | undefined> {
+        return await this.db.get<RawChatMessage | undefined>(
             `SELECT * FROM chat_messages WHERE groupId =? ORDER BY timestamp DESC LIMIT 1`,
             [groupId]
         );

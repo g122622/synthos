@@ -7,6 +7,8 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
     plugins: [react(), tsconfigPaths(), tailwindcss()],
     server: {
+        host: "127.0.0.1", // 强制使用 IPv4，避免 IPv6 权限问题
+        port: 3011, // 避开 Windows Hyper-V 保留端口范围
         allowedHosts: ["intimiste-patriotically-addyson.ngrok-free.dev"],
         proxy: {
             // SSE 长连接：禁用超时，避免首 token 慢或长时间无事件导致 504
