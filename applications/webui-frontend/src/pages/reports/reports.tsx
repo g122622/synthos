@@ -417,6 +417,28 @@ export default function ReportsPage() {
     const handleGenerateReport = async () => {
         setGenerating(true);
         try {
+            const configResponse = await getCurrentConfig();
+
+            if (!configResponse.success || !configResponse.data) {
+                Notification.error({
+                    title: "获取配置失败",
+                    description: configResponse.message || "无法确认日报功能状态"
+                });
+
+                return;
+            }
+
+            const config = configResponse.data as { report?: { enabled?: boolean } };
+
+            if (config.report?.enabled === false) {
+                Notification.error({
+                    title: "日报功能未开启",
+                    description: "请在控制页面打开report功能"
+                });
+
+                return;
+            }
+
             const response = await triggerReportGenerate(generateType);
 
             if (response.success && response.data.success) {
