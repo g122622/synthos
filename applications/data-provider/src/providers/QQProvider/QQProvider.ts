@@ -164,7 +164,7 @@ export class QQProvider extends Disposable implements IIMProvider {
             timeEnd = Math.ceil(timeEnd / 1000);
             // 生成SQL语句
             const sql = `
-                SELECT 
+                SELECT
                     CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
                     "${GMC.msgTime}",
                     "${GMC.groupUin}",
@@ -175,8 +175,8 @@ export class QQProvider extends Disposable implements IIMProvider {
                     "${GMC.sendNickName}",
                     "${GMC.msgType}",
                     "${GMC.extraData}"
-                FROM group_msg_table 
-                WHERE ${await this._getPatchSQL()} 
+                FROM group_msg_table
+                WHERE ${await this._getPatchSQL()}
                 AND ("${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd})
                 ${groupId ? `AND "${GMC.groupUin}" = ${groupId}` : ""}
             `;
@@ -245,9 +245,23 @@ export class QQProvider extends Disposable implements IIMProvider {
                 }
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
-                processedMsg.messageContent = await this._parseMessageContent(
-                    this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
-                );
+                try {
+                    processedMsg.messageContent = await this._parseMessageContent(
+                        this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
+                    );
+                } catch (error) {
+                    if (error === ErrorReasons.PROTOBUF_ERROR) {
+                        this.LOGGER.warning(
+                            `msgId: ${result[GMC.msgId]}的消息内容protobuf解析出错：${error}，放弃获取该条消息。
+                            发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}, 错误: ${error}`
+                        );
+                    } else {
+                        this.LOGGER.error(
+                            `msgId: ${result[GMC.msgId]}的消息内容解析出错，发生了意料之外的错误，终止程序。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}, 错误: ${error}`
+                        );
+                        throw error;
+                    }
+                }
                 if (processedMsg.messageContent === "") {
                     this.LOGGER.debug(
                         `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。
@@ -275,8 +289,8 @@ export class QQProvider extends Disposable implements IIMProvider {
         if (this.db) {
             const sql = `SELECT CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
                             "${GMC.msgContent}"
-                         FROM group_msg_table 
-                         WHERE ${await this._getPatchSQL()} 
+                         FROM group_msg_table
+                         WHERE ${await this._getPatchSQL()}
                          AND "${GMC.msgSeq}" = ${msgSeq}
                          AND "${GMC.groupUin}" = ${groupNumber}`;
 
