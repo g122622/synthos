@@ -12,5 +12,7 @@ export const DATA_PROVIDER_TOKENS = {
     /** 数据提供任务处理器 */
     ProvideDataTaskHandler: Symbol.for("ProvideDataTaskHandler"),
     /** QQ 消息提供者 */
-    QQProvider: Symbol.for("QQProvider")
+    QQProvider: Symbol.for("QQProvider"),
+    /** OneBot/NapCat 群文件提供者 */
+    OneBotFileProvider: Symbol.for("OneBotFileProvider")
 } as const;

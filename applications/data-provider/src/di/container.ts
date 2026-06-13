@@ -7,6 +7,7 @@ import { container } from "tsyringe";
 
 import { ProvideDataTaskHandler } from "../tasks/ProvideDataTask";
 import { QQProvider } from "../providers/QQProvider/QQProvider";
+import { OneBotFileProvider } from "../providers/OneBotProvider/OneBotFileProvider";
 
 import { DATA_PROVIDER_TOKENS } from "./tokens";
 
@@ -24,6 +25,22 @@ export function registerQQProvider(): void {
  */
 export function getQQProvider(): QQProvider {
     return container.resolve<QQProvider>(DATA_PROVIDER_TOKENS.QQProvider);
+}
+
+/**
+ * 注册 OneBotFileProvider 到 DI 容器
+ */
+export function registerOneBotFileProvider(): void {
+    container.register(DATA_PROVIDER_TOKENS.OneBotFileProvider, { useClass: OneBotFileProvider });
+}
+
+/**
+ * 从 DI 容器获取 OneBotFileProvider 实例
+ * 每次调用返回新实例（非单例）
+ * @returns OneBotFileProvider 实例
+ */
+export function getOneBotFileProvider(): OneBotFileProvider {
+    return container.resolve<OneBotFileProvider>(DATA_PROVIDER_TOKENS.OneBotFileProvider);
 }
 
 /**

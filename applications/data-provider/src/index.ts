@@ -9,7 +9,12 @@ import {
 } from "@root/common/di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
-import { registerTaskHandlers, getProvideDataTaskHandler, registerQQProvider } from "./di/container";
+import {
+    registerTaskHandlers,
+    getProvideDataTaskHandler,
+    registerQQProvider,
+    registerOneBotFileProvider
+} from "./di/container";
 
 const LOGGER = Logger.withTag("🌏 data-provider-root-script");
 
@@ -38,6 +43,7 @@ class DataProviderApplication {
 
         // 4. 注册 QQProvider
         registerQQProvider();
+        registerOneBotFileProvider();
 
         // 5. 注册任务处理器
         registerTaskHandlers();

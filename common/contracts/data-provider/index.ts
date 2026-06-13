@@ -19,6 +19,22 @@ export interface ProcessedChatMessage {
 
 export type ProcessedChatMessageWithRawMessage = RawChatMessage & ProcessedChatMessage;
 
+export interface GroupFileInfo {
+    groupId: string;
+    fileId: string;
+    fileName: string;
+    fileSize: number;
+    uploadTime?: number;
+    busid?: number;
+    folderId?: string;
+}
+
+export interface DownloadedGroupFile {
+    fileInfo: GroupFileInfo;
+    localPath: string;
+    sizeBytes: number;
+}
+
 // IM类型
 export enum IMTypes {
     QQ = "QQ",

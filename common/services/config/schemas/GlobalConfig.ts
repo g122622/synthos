@@ -99,7 +99,17 @@ export const GlobalConfigSchema = z.object({
                         })
                         .describe("数据库补丁配置")
                 })
-                .describe("QQ 数据源配置")
+                .describe("QQ 数据源配置"),
+            OneBot: z
+                .object({
+                    enabled: z.boolean().describe("是否启用 OneBot/NapCat 文件 Provider"),
+                    baseURL: z.string().url().describe("OneBot/NapCat HTTP API 基础地址"),
+                    accessToken: z.string().describe("OneBot 访问令牌，未配置鉴权时为空字符串"),
+                    downloadDirectory: z.string().describe("群文件下载保存目录"),
+                    requestTimeoutMs: z.number().positive().int().describe("OneBot HTTP 请求超时时间（毫秒）")
+                })
+                .optional()
+                .describe("OneBot/NapCat 文件 Provider 配置")
         })
         .describe("dataProviders配置"),
 
