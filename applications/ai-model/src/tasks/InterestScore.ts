@@ -118,20 +118,36 @@ export class InterestScoreTaskHandler {
                     })
                 );
 
+                const batchSize = config.ai.embedding.batchSize;
+                const totalBatchCount = Math.ceil(filteredDigestResults.length / batchSize);
+
                 // 构建所有话题详情文本
                 const topics = filteredDigestResults.map(
                     digestResult => `话题：${digestResult.topic} 正文内容：${digestResult.detail}`
                 );
 
-                // 批量获取所有话题的分数
-                await job.touch(); // 保证任务存活
-                const scores = await rater.scoreTopics(argArr, topics);
+                for (let i = 0; i < filteredDigestResults.length; i += batchSize) {
+                    const currentBatchDigestResults = filteredDigestResults.slice(i, i + batchSize);
+                    const currentBatchTopics = topics.slice(i, i + batchSize);
+                    const currentBatchIndex = Math.floor(i / batchSize) + 1;
 
-                // 存储所有分数结果
-                for (let i = 0; i < filteredDigestResults.length; i++) {
-                    await this.interestScoreDbAccessService.storeInterestScoreResult(
-                        filteredDigestResults[i].topicId,
-                        scores[i]
+                    this.LOGGER.info(
+                        `处理兴趣度评分批次 ${currentBatchIndex}/${totalBatchCount}，当前批次共 ${currentBatchTopics.length} 条`
+                    );
+
+                    await job.touch();
+                    const scores = await rater.scoreTopics(argArr, currentBatchTopics);
+
+                    for (let j = 0; j < currentBatchDigestResults.length; j++) {
+                        await this.interestScoreDbAccessService.storeInterestScoreResult(
+                            currentBatchDigestResults[j].topicId,
+                            scores[j]
+                        );
+                    }
+
+                    await job.touch();
+                    this.LOGGER.info(
+                        `兴趣度评分批次 ${currentBatchIndex}/${totalBatchCount} 已写入 ${currentBatchDigestResults.length} 条结果`
                     );
                 }
 

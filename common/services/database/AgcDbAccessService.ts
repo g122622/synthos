@@ -10,6 +10,18 @@ import { COMMON_TOKENS } from "../../di/tokens";
 import { CommonDBService } from "./infra/CommonDBService";
 import { createAGCTableSQL } from "./constants/InitialSQL";
 
+export interface SessionDigestMetadata {
+    sessionId: string;
+    summarizedUntil: number;
+    summarizedMessageCount: number;
+    updatedAt: number;
+}
+
+export interface SessionDigestCoverage {
+    summarizedUntil: number;
+    summarizedMessageCount: number | null;
+}
+
 /**
  * AI 生成内容数据库访问服务
  * 负责 AI 摘要结果的存储和查询
@@ -34,7 +46,6 @@ export class AgcDbAccessService extends Disposable {
      * @param result 摘要结果
      */
     public async storeAIDigestResult(result: AIDigestResult) {
-        // to fix
         await this.db.run(
             `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime) VALUES (?,?,?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
@@ -68,23 +79,39 @@ export class AgcDbAccessService extends Disposable {
     }
 
     /**
-     * 更新一个sessionId的摘要结果。会先删除该sessionId对应的所有摘要结果（topics），然后再插入新的摘要结果
+     * 追加存储一个 session 的摘要结果，并更新该 session 已摘要的消息范围
      * @param sessionId 会话id
      * @param results 摘要结果
+     * @param metadata 摘要覆盖范围
      */
-    public async updateAIDigestResultBySessionId(sessionId: string, results: AIDigestResult[]): Promise<void> {
-        // 1. 防御性检查：results中所有result的sessionId都必须是指定的sessionId
+    public async storeAIDigestResultsWithSessionMetadata(
+        sessionId: string,
+        results: AIDigestResult[],
+        metadata: Omit<SessionDigestMetadata, "sessionId" | "updatedAt">
+    ): Promise<void> {
+        if (results.length === 0) {
+            throw new Error(`session ${sessionId} 的摘要结果不能为空`);
+        }
+
         for (const result of results) {
             if (result.sessionId !== sessionId) {
                 throw new Error(`result的sessionId必须是${sessionId}，但实际为${result.sessionId}`);
             }
         }
 
-        // 2. 删除该sessionId对应的所有摘要结果（topics）
-        await this.db.run(`DELETE FROM ai_digest_results WHERE sessionId = ?`, [sessionId]);
-
-        // 3. 插入新的摘要结果
-        await this.storeAIDigestResults(results);
+        await this.db.run(`BEGIN IMMEDIATE TRANSACTION`);
+        try {
+            await this.storeAIDigestResults(results);
+            await this.upsertSessionDigestMetadata(
+                sessionId,
+                metadata.summarizedUntil,
+                metadata.summarizedMessageCount
+            );
+            await this.db.run(`COMMIT`);
+        } catch (error) {
+            await this.db.run(`ROLLBACK`);
+            throw error;
+        }
     }
 
     /**
@@ -126,6 +153,99 @@ export class AgcDbAccessService extends Disposable {
         ]);
 
         return result[Object.keys(result)[0]] === 1;
+    }
+
+    /**
+     * 获取 session 摘要覆盖范围元数据
+     * @param sessionId 会话id
+     * @returns 摘要覆盖范围元数据
+     */
+    public async getSessionDigestMetadata(sessionId: string): Promise<SessionDigestMetadata | null> {
+        const result = await this.db.get<SessionDigestMetadata>(
+            `SELECT * FROM ai_digest_session_metadata WHERE sessionId = ?`,
+            [sessionId]
+        );
+
+        return result || null;
+    }
+
+    /**
+     * 获取 session 摘要覆盖范围。老数据没有覆盖范围元数据时，用摘要生成时间兼容判断。
+     * @param sessionId 会话id
+     * @returns 摘要覆盖范围
+     */
+    public async getSessionDigestCoverage(sessionId: string): Promise<SessionDigestCoverage | null> {
+        const metadata = await this.getSessionDigestMetadata(sessionId);
+
+        if (metadata) {
+            return {
+                summarizedUntil: metadata.summarizedUntil,
+                summarizedMessageCount: metadata.summarizedMessageCount
+            };
+        }
+
+        const latestDigest = await this.db.get<{ latestUpdateTime: number | null }>(
+            `SELECT MAX(updateTime) AS latestUpdateTime FROM ai_digest_results WHERE sessionId = ?`,
+            [sessionId]
+        );
+
+        if (!latestDigest || latestDigest.latestUpdateTime === null) {
+            return null;
+        }
+
+        return {
+            summarizedUntil: latestDigest.latestUpdateTime,
+            summarizedMessageCount: null
+        };
+    }
+
+    /**
+     * 保存 session 摘要覆盖范围元数据
+     * @param sessionId 会话id
+     * @param summarizedUntil 摘要覆盖到的最新消息时间戳
+     * @param summarizedMessageCount 摘要覆盖的消息数量
+     */
+    public async upsertSessionDigestMetadata(
+        sessionId: string,
+        summarizedUntil: number,
+        summarizedMessageCount: number
+    ): Promise<void> {
+        await this.db.run(
+            `INSERT INTO ai_digest_session_metadata (sessionId, summarizedUntil, summarizedMessageCount, updatedAt)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(sessionId) DO UPDATE SET
+                summarizedUntil = max(ai_digest_session_metadata.summarizedUntil, excluded.summarizedUntil),
+                summarizedMessageCount = max(ai_digest_session_metadata.summarizedMessageCount, excluded.summarizedMessageCount),
+                updatedAt = excluded.updatedAt`,
+            [sessionId, summarizedUntil, summarizedMessageCount, Date.now()]
+        );
+    }
+
+    /**
+     * 判断当前 session 摘要是否覆盖了给定消息范围
+     * @param sessionId 会话id
+     * @param latestMessageTimestamp 当前 session 最新消息时间戳
+     * @param messageCount 当前 session 消息数量
+     * @returns 当前摘要是否仍然有效
+     */
+    public async isSessionDigestFresh(
+        sessionId: string,
+        latestMessageTimestamp: number,
+        messageCount: number
+    ): Promise<boolean> {
+        const coverage = await this.getSessionDigestCoverage(sessionId);
+
+        if (!coverage) {
+            return false;
+        }
+
+        if (coverage.summarizedMessageCount === null) {
+            return coverage.summarizedUntil >= latestMessageTimestamp;
+        }
+
+        return (
+            coverage.summarizedUntil >= latestMessageTimestamp && coverage.summarizedMessageCount >= messageCount
+        );
     }
 
     // 获取数据消息，用于数据库迁移、导出、备份等操作

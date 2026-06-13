@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import type { SessionDigestCoverage } from "@root/common/services/database/AgcDbAccessService";
+
 import { injectable, inject } from "tsyringe";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
@@ -18,6 +20,15 @@ import {
     PooledTask,
     PooledTaskResult
 } from "../services/generators/text/PooledTextGeneratorService";
+
+const MIN_SUMMARY_MESSAGE_COUNT = 10;
+
+interface TaskContext {
+    groupId: string;
+    sessionId: string;
+    latestMessageTimestamp: number;
+    messageCount: number;
+}
 
 /**
  * AI 摘要任务处理器
@@ -65,14 +76,9 @@ export class AISummarizeTaskHandler {
 
                 await ctxBuilder.init();
 
-                // 任务上下文类型定义
-                interface TaskContext {
-                    groupId: string;
-                    sessionId: string;
-                }
-
                 // 收集所有需要处理的任务
                 const allTasks: PooledTask<TaskContext>[] = [];
+                const activeSessionGraceMs = config.preprocessors.TimeoutSplitter.timeoutInMinutes * 60 * 1000;
 
                 for (const groupId of attrs.groupIds) {
                     /* 1. 获取指定时间范围内的消息 */
@@ -102,44 +108,104 @@ export class AISummarizeTaskHandler {
                     for (const msg of msgs) {
                         const { sessionId } = msg;
 
-                        // 如果 sessionId 已经被生成过摘要，跳过
-                        if (!(await this.agcDbAccessService.isSessionIdSummarized(sessionId))) {
-                            if (!sessions[sessionId]) {
-                                sessions[sessionId] = [];
-                            }
-                            sessions[sessionId].push(msg);
+                        if (!sessions[sessionId]) {
+                            sessions[sessionId] = [];
                         }
+                        sessions[sessionId].push(msg);
                     }
                     if (Object.keys(sessions).length === 0) {
                         this.LOGGER.info(`群 ${groupId} 在指定时间范围内无消息，跳过`);
                         continue;
                     }
-                    // 考虑到最后一个session可能正在发生，还没有闭合，因此需要删掉
+
+                    // 最新 session 在静默时间不足时先跳过，避免把仍在发生的对话截断。
+                    // 网络恢复补跑需要尽快追上断网期间遗漏的消息，因此允许调用方显式跳过这层保护。
                     const newestSessionId = msgs[msgs.length - 1].sessionId;
+                    const newestSessionMessages = sessions[newestSessionId];
 
-                    delete sessions[newestSessionId];
-                    this.LOGGER.debug(`删掉了最后一个sessionId为 ${newestSessionId} 的session`);
-                    this.LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个需要处理的session`);
+                    if (newestSessionMessages) {
+                        const newestSessionLatestTimestamp =
+                            newestSessionMessages[newestSessionMessages.length - 1].timestamp;
+                        const idleTime = attrs.endTimeStamp - newestSessionLatestTimestamp;
 
-                    // 3. 删掉消息量不够的session
-                    for (const sessionId in sessions) {
-                        if (sessions[sessionId].length <= 10) {
-                            this.LOGGER.warning(
-                                `session ${sessionId} 消息数量不足，消息数量为${sessions[sessionId].length}，跳过`
+                        if (attrs.ignoreActiveSessionGrace) {
+                            this.LOGGER.info(
+                                `已启用网络恢复补跑模式，最新 session ${newestSessionId} 即使静默时间不足也纳入摘要`
                             );
-                            delete sessions[sessionId];
+                        } else if (idleTime < activeSessionGraceMs) {
+                            delete sessions[newestSessionId];
+                            this.LOGGER.debug(
+                                `最新 session ${newestSessionId} 静默时间不足 ${Math.ceil(activeSessionGraceMs / 60000)} 分钟，暂不摘要`
+                            );
+                        } else {
+                            this.LOGGER.debug(`最新 session ${newestSessionId} 已静默足够久，纳入摘要`);
                         }
+                    }
+                    this.LOGGER.info(`分组完成，共 ${Object.keys(sessions).length} 个候选 session`);
+
+                    const sessionMessagesToSummarize: Record<string, ProcessedChatMessageWithRawMessage[]> = {};
+                    const sessionDigestMetadata: Record<
+                        string,
+                        {
+                            latestMessageTimestamp: number;
+                            messageCount: number;
+                        }
+                    > = {};
+
+                    // 3. 过滤掉摘要已经覆盖的 session，并只保留新增消息片段
+                    for (const sessionId in sessions) {
+                        const fullSessionMessages =
+                            await this.imDbAccessService.getProcessedChatMessagesBySessionId(sessionId);
+
+                        if (fullSessionMessages.length === 0) {
+                            this.LOGGER.warning(`session ${sessionId} 未找到完整消息，跳过`);
+                            continue;
+                        }
+
+                        const latestMessageTimestamp =
+                            fullSessionMessages[fullSessionMessages.length - 1].timestamp;
+                        const messageCount = fullSessionMessages.length;
+
+                        if (
+                            await this.agcDbAccessService.isSessionDigestFresh(
+                                sessionId,
+                                latestMessageTimestamp,
+                                messageCount
+                            )
+                        ) {
+                            this.LOGGER.info(`session ${sessionId} 已经摘要到最新消息，跳过`);
+                            continue;
+                        }
+
+                        const coverage = await this.agcDbAccessService.getSessionDigestCoverage(sessionId);
+                        const messagesToSummarize = this._getMessagesToSummarizeByCoverage(
+                            fullSessionMessages,
+                            coverage
+                        );
+
+                        if (messagesToSummarize.length <= MIN_SUMMARY_MESSAGE_COUNT) {
+                            this.LOGGER.warning(
+                                `session ${sessionId} 新增可摘要消息数量不足，消息数量为 ${messagesToSummarize.length}，跳过`
+                            );
+                            continue;
+                        }
+
+                        sessionMessagesToSummarize[sessionId] = messagesToSummarize;
+                        sessionDigestMetadata[sessionId] = {
+                            latestMessageTimestamp,
+                            messageCount
+                        };
                     }
 
                     /* 4. 构建任务列表 */
-                    for (const sessionId in sessions) {
+                    for (const sessionId in sessionMessagesToSummarize) {
                         this.LOGGER.info(
-                            `准备处理session ${sessionId} ，该session内共 ${sessions[sessionId].length} 条消息`
+                            `准备处理 session ${sessionId}，本次新增可摘要消息共 ${sessionMessagesToSummarize[sessionId].length} 条`
                         );
 
                         // 构建上下文
                         const ctx = await ctxBuilder.buildCtx(
-                            sessions[sessionId],
+                            sessionMessagesToSummarize[sessionId],
                             config.groupConfigs[groupId].groupIntroduction
                         );
 
@@ -148,13 +214,29 @@ export class AISummarizeTaskHandler {
                         allTasks.push({
                             input: ctx,
                             modelNames: config.groupConfigs[groupId].aiModels,
-                            context: { groupId, sessionId },
+                            context: {
+                                groupId,
+                                sessionId,
+                                latestMessageTimestamp: sessionDigestMetadata[sessionId].latestMessageTimestamp,
+                                messageCount: sessionDigestMetadata[sessionId].messageCount
+                            },
                             checkJsonFormat: true
                         });
                     }
                 }
 
-                this.LOGGER.info(`共收集到 ${allTasks.length} 个任务，开始并行处理（并行度=5）`);
+                this.LOGGER.info(
+                    `共收集到 ${allTasks.length} 个任务，开始并行处理（并行度=${config.ai.maxConcurrentRequests}）`
+                );
+
+                if (allTasks.length === 0) {
+                    this.LOGGER.info("没有需要生成摘要的 session，任务完成");
+                    pooledTextGeneratorService.dispose();
+                    ctxBuilder.dispose();
+                    this.LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
+
+                    return;
+                }
 
                 // 并行处理所有任务，每个任务完成时回调
                 let completedCount = 0;
@@ -164,7 +246,7 @@ export class AISummarizeTaskHandler {
                     async (result: PooledTaskResult<TaskContext>) => {
                         await job.touch(); // 保证任务存活
                         completedCount++;
-                        const { sessionId } = result.context;
+                        const { sessionId, latestMessageTimestamp, messageCount } = result.context;
 
                         if (!result.isSuccess) {
                             this.LOGGER.error(
@@ -189,7 +271,12 @@ export class AISummarizeTaskHandler {
                                 this.LOGGER.warning(
                                     `session ${sessionId} 生成摘要长度过短，长度为 ${resultStr.length}，跳过`
                                 );
-                                console.log(resultStr);
+
+                                return;
+                            }
+
+                            if (results.length === 0) {
+                                this.LOGGER.warning(`session ${sessionId} 生成摘要为空，跳过`);
 
                                 return;
                             }
@@ -203,8 +290,15 @@ export class AISummarizeTaskHandler {
                                 Object.assign(resultItem, { updateTime: Date.now() });
                             }
 
-                            // 存储摘要结果
-                            await this.agcDbAccessService.storeAIDigestResults(results as AIDigestResult[]);
+                            // 存储摘要结果，并记录本次摘要覆盖到的消息范围
+                            await this.agcDbAccessService.storeAIDigestResultsWithSessionMetadata(
+                                sessionId,
+                                results as AIDigestResult[],
+                                {
+                                    summarizedUntil: latestMessageTimestamp,
+                                    summarizedMessageCount: messageCount
+                                }
+                            );
                             this.LOGGER.success(`session ${sessionId} 存储摘要成功！`);
                         } catch (error) {
                             this.LOGGER.error(
@@ -225,5 +319,32 @@ export class AISummarizeTaskHandler {
                 lockLifetime: 20 * 60 * 1000 // 20分钟
             }
         );
+    }
+
+    /**
+     * 根据摘要覆盖范围切出本次需要摘要的消息
+     * @param messages 完整 session 消息
+     * @param coverage 摘要覆盖范围
+     * @returns 本次需要摘要的消息
+     */
+    private _getMessagesToSummarizeByCoverage(
+        messages: ProcessedChatMessageWithRawMessage[],
+        coverage: SessionDigestCoverage | null
+    ): ProcessedChatMessageWithRawMessage[] {
+        if (!coverage) {
+            return messages;
+        }
+
+        const messagesAfterTimestamp = messages.filter(msg => msg.timestamp > coverage.summarizedUntil);
+
+        if (messagesAfterTimestamp.length > 0) {
+            return messagesAfterTimestamp;
+        }
+
+        if (coverage.summarizedMessageCount !== null && coverage.summarizedMessageCount < messages.length) {
+            return messages.slice(coverage.summarizedMessageCount);
+        }
+
+        return [];
     }
 }

@@ -22,6 +22,13 @@ export const createAGCTableSQL = `
                     detail TEXT,
                     modelName TEXT,
                     updateTime INTEGER
+                );
+
+                CREATE TABLE IF NOT EXISTS ai_digest_session_metadata (
+                    sessionId TEXT NOT NULL PRIMARY KEY,
+                    summarizedUntil INTEGER NOT NULL,
+                    summarizedMessageCount INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
                 );`;
 
 export const createInterestScoreTableSQL = `

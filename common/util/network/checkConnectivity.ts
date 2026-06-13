@@ -8,6 +8,7 @@ async function checkConnectivityV1(timeout: number = 5000): Promise<boolean> {
 
         const req = http.get(url, res => {
             // Google 的该端点应返回 204 No Content
+            res.resume();
             resolve(res.statusCode === 204);
         });
 
@@ -29,16 +30,21 @@ async function checkConnectivityV2(timeout: number = 5000): Promise<boolean> {
         const url = "http://www.msftconnecttest.com/connecttest.txt";
         const req = http.get(url, res => {
             // Microsoft 的该端点应返回"Microsoft Connect Test"
-            if (res.statusCode === 200) {
-                let data = "";
+            if (res.statusCode !== 200) {
+                res.resume();
+                resolve(false);
 
-                res.on("data", chunk => {
-                    data += chunk;
-                });
-                res.on("end", () => {
-                    resolve(data.includes("Microsoft Connect Test"));
-                });
+                return;
             }
+
+            let data = "";
+
+            res.on("data", chunk => {
+                data += chunk;
+            });
+            res.on("end", () => {
+                resolve(data.includes("Microsoft Connect Test"));
+            });
         });
 
         req.setTimeout(timeout, () => {

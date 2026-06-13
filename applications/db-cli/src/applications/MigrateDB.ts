@@ -68,6 +68,13 @@ export class MigrateDB extends Disposable implements IApplication {
                     modelName TEXT,
                     updateTime INTEGER
                 );`;
+        const createAGCMetadataTableSQL = `
+                CREATE TABLE IF NOT EXISTS ai_digest_session_metadata (
+                    sessionId TEXT NOT NULL PRIMARY KEY,
+                    summarizedUntil INTEGER NOT NULL,
+                    summarizedMessageCount INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                );`;
         const createInterestScoreTableSQL = `
                 CREATE TABLE IF NOT EXISTS interset_score_results (
                     topicId TEXT NOT NULL PRIMARY KEY,
@@ -80,6 +87,7 @@ export class MigrateDB extends Disposable implements IApplication {
 
         await newDB.run(createIMDBTableSQL);
         await newDB.run(createAGCTableSQL);
+        await newDB.run(createAGCMetadataTableSQL);
         await newDB.run(createInterestScoreTableSQL);
         this.LOGGER.info("创建表结构成功");
 

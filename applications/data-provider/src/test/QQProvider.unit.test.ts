@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, Mock } from "vitest";
+import ErrorReasons from "@root/common/contracts/ErrorReasons";
 
 import { MsgElementType } from "../providers/QQProvider/@types/mappers/MsgElementType";
 import { GroupMsgColumn as GMC } from "../providers/QQProvider/@types/mappers/GroupMsgColumn";
@@ -354,6 +355,41 @@ describe("QQProvider", () => {
             expect(result).toHaveLength(0);
         });
 
+        it("主消息 protobuf 解析失败时应跳过单条异常消息", async () => {
+            const brokenRow = createMockDbRow({
+                [GMC.msgId]: "1111111111111111111",
+                [GMC.msgContent]: Buffer.from("broken content")
+            });
+            const validRow = createMockDbRow({
+                [GMC.msgId]: "2222222222222222222",
+                [GMC.msgContent]: Buffer.from("valid content")
+            });
+
+            mockDbMethods.all.mockResolvedValue([brokenRow, validRow]);
+            mockParserMethods.parseMessageSegment
+                .mockImplementationOnce(() => {
+                    throw ErrorReasons.PROTOBUF_ERROR;
+                })
+                .mockReturnValueOnce({
+                    messages: [
+                        {
+                            messageId: "elem_1",
+                            elementType: MsgElementType.TEXT,
+                            messageText: "正常消息"
+                        }
+                    ]
+                });
+
+            const result = await qqProvider.getMsgByTimeRange(mockTimestamp - 1000, mockTimestamp + 1000);
+
+            expect(result).toHaveLength(1);
+            expect(result[0]).toMatchObject({
+                msgId: "2222222222222222222",
+                messageContent: "正常消息"
+            });
+            expect(mockLogger.warning).toHaveBeenCalledWith(expect.stringContaining("已跳过该条异常消息"));
+        });
+
         it("指定群号时应在 SQL 中包含群号条件", async () => {
             mockDbMethods.all.mockResolvedValue([]);
             mockParserMethods.parseMessageSegment.mockReturnValue({ messages: [] });
@@ -403,7 +439,7 @@ describe("QQProvider", () => {
                 [GMC.msgTime]: Math.floor(mockTimestamp / 1000),
                 [GMC.groupUin]: mockGroupId,
                 [GMC.senderUin]: "987654321",
-                [GMC.replyMsgSeq]: null,
+                [GMC.replyMsgSeq]: 12345,
                 [GMC.msgContent]: Buffer.from("mock"),
                 [GMC.msgType]: MsgType.REPLY,
                 [GMC.extraData]: Buffer.from("mock extra data"),

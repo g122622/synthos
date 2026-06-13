@@ -33,6 +33,7 @@ export interface TaskParamsMap {
         groupIds: string[];
         startTimeStamp: number;
         endTimeStamp: number;
+        ignoreActiveSessionGrace?: boolean;
     };
     [TaskHandlerTypes.InterestScore]: {
         startTimeStamp: number;
@@ -47,7 +48,9 @@ export interface TaskParamsMap {
         endTimeStamp: number;
     };
     // Pipeline 任务参数
-    [TaskHandlerTypes.RunPipeline]: {};
+    [TaskHandlerTypes.RunPipeline]: {
+        ignoreActiveSessionGrace?: boolean;
+    };
     // 日报生成任务参数
     [TaskHandlerTypes.GenerateReport]: {
         reportType: ReportType;

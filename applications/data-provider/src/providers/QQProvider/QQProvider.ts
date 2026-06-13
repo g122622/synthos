@@ -66,7 +66,7 @@ export class QQProvider extends Disposable implements IIMProvider {
         this.db = this._registerDisposable(db);
 
         // 加密相关配置
-        this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
+        this.LOGGER.info("已读取 QQ 数据库密钥配置");
         await db.exec(`
             PRAGMA key = '${config.dbKey}';
             PRAGMA cipher_page_size = 4096;
@@ -245,9 +245,22 @@ export class QQProvider extends Disposable implements IIMProvider {
                 }
 
                 // 获取消息正文：解析40800中的所有element（或者叫做fragment）
-                processedMsg.messageContent = await this._parseMessageContent(
-                    this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
-                );
+                try {
+                    processedMsg.messageContent = await this._parseMessageContent(
+                        this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
+                    );
+                } catch (error) {
+                    if (error === ErrorReasons.PROTOBUF_ERROR) {
+                        this.LOGGER.warning(
+                            `msgId: ${result[GMC.msgId]} 的消息正文解析失败，已跳过该条异常消息。群号: ${
+                                result[GMC.groupUin]
+                            }，发送者: ${result[GMC.sendMemberName] ?? result[GMC.sendNickName]}`
+                        );
+                        continue;
+                    }
+
+                    throw error;
+                }
                 if (processedMsg.messageContent === "") {
                     this.LOGGER.debug(
                         `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。

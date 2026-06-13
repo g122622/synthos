@@ -164,6 +164,24 @@ export class ImDbAccessService extends Disposable {
         return results;
     }
 
+    /**
+     * 获取指定 session 的所有消息，包含预处理后的消息
+     * @param sessionId 会话ID
+     * @returns 消息列表，已经按照时间从早到晚排序
+     */
+    public async getProcessedChatMessagesBySessionId(
+        sessionId: string
+    ): Promise<ProcessedChatMessageWithRawMessage[]> {
+        const results = await this.db.all<ProcessedChatMessageWithRawMessage>(
+            `SELECT * FROM chat_messages WHERE sessionId = ?`,
+            [sessionId]
+        );
+
+        results.sort((a, b) => a.timestamp - b.timestamp);
+
+        return results;
+    }
+
     public async getSessionIdsByGroupIdAndTimeRange(
         groupId: string,
         timeStart: number,

@@ -11,6 +11,7 @@ import { sleep } from "@root/common/util/promisify/sleep";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
 import { setupReportScheduler } from "./schedulers/reportScheduler";
+import { NetworkRecoveryPipelineScheduler } from "./schedulers/networkRecoveryPipelineScheduler";
 
 /**
  * Pipeline 执行顺序（严格串行）:
@@ -25,6 +26,7 @@ import { setupReportScheduler } from "./schedulers/reportScheduler";
 // 注意：日报生成任务由 reportScheduler 负责，独立于主 Pipeline
 
 const LOGGER = Logger.withTag("🎭 orchestrator-root-script");
+const networkRecoveryPipelineScheduler = new NetworkRecoveryPipelineScheduler();
 
 @bootstrap
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,6 +58,14 @@ class OrchestratorApplication {
             TaskHandlerTypes.RunPipeline,
             async job => {
                 LOGGER.info(`🚀 开始执行 Pipeline 任务: ${job.attrs.name}`);
+                const attrs = job.attrs.data || {};
+
+                if (await networkRecoveryPipelineScheduler.shouldSkipPipelineDueToNetwork()) {
+                    await job.touch();
+
+                    return;
+                }
+
                 config = await ConfigManagerService.getCurrentConfig(); // 刷新配置
                 const startTimeStamp = getHoursAgoTimestamp(config.orchestrator.dataSeekTimeWindowInHours); // 如果是负数则代表自动获取时间范围
                 const endTimeStamp = Date.now();
@@ -113,12 +123,13 @@ class OrchestratorApplication {
 
                 // ==================== 步骤 3: AISummarize ====================
                 LOGGER.info("🤖 [3/5] 开始执行 AISummarize 任务...");
-                const aiSummarizeSuccess = await scheduleAndWaitForJob(
+                const aiSummarizeSuccess = await scheduleAndWaitForJob<TaskHandlerTypes.AISummarize>(
                     TaskHandlerTypes.AISummarize,
                     {
                         groupIds,
                         startTimeStamp,
-                        endTimeStamp
+                        endTimeStamp,
+                        ignoreActiveSessionGrace: attrs.ignoreActiveSessionGrace
                     },
                     POLL_INTERVAL,
                     TASK_TIMEOUT
@@ -192,6 +203,7 @@ class OrchestratorApplication {
                 }
 
                 LOGGER.success(`🎉 Pipeline 任务全部完成！`);
+                networkRecoveryPipelineScheduler.markPipelineRan();
             },
             {
                 concurrency: 1,
@@ -203,7 +215,7 @@ class OrchestratorApplication {
         await sleep(10 * 1000); // 等其他apps启动后再开始流水线 TODO: 换成更优雅的方式
 
         // 读取配置，设置定时执行 Pipeline
-        const pipelineIntervalMinutes = config.orchestrator?.pipelineIntervalInMinutes;
+        const pipelineIntervalMinutes = config.orchestrator.pipelineIntervalInMinutes;
 
         LOGGER.debug(`Pipeline 任务将每隔 ${pipelineIntervalMinutes} 分钟执行一次`);
         await agendaInstance.every(pipelineIntervalMinutes + " minutes", TaskHandlerTypes.RunPipeline);
@@ -211,6 +223,7 @@ class OrchestratorApplication {
 
         LOGGER.success("✅ Orchestrator 准备就绪，启动 Agenda 调度器");
         await agendaInstance.start();
+        networkRecoveryPipelineScheduler.start();
 
         // 设置日报定时任务
         await setupReportScheduler();
