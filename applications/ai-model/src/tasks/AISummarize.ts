@@ -160,7 +160,7 @@ export class AISummarizeTaskHandler {
                 let completedCount = 0;
 
                 await pooledTextGeneratorService.submitTasks<TaskContext>(
-                    allTasks,
+                    allTasks.reverse(), // 反转任务列表，优先处理后加入的任务（通常是更近的消息）
                     async (result: PooledTaskResult<TaskContext>) => {
                         await job.touch(); // 保证任务存活
                         completedCount++;
