@@ -7,15 +7,14 @@ import { Button } from "@heroui/button";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
 import { Spinner } from "@heroui/spinner";
-import { ScrollShadow } from "@heroui/scroll-shadow";
-import { DateRangePicker, Tooltip, Input, Checkbox, Select, SelectItem } from "@heroui/react";
+import { DateRangePicker, Tooltip, Input, Checkbox, ScrollShadow, Select, SelectItem, Popover, PopoverTrigger, PopoverContent } from "@heroui/react";
 import { Check, Search } from "lucide-react";
 import { today, getLocalTimeZone, CalendarDate } from "@internationalized/date";
 
 import TopicCard from "@/components/topic/TopicCard";
 import { parseContributors } from "@/components/topic/utils";
 import QQAvatar from "@/components/QQAvatar";
-import { getGroupDetails, getSessionIdsByGroupIdsAndTimeRange, getSessionTimeDurations, getAIDigestResultsBySessionIds } from "@/api/basicApi";
+import { getGroupDetails, getSessionIdsByGroupIdsAndTimeRange, getSessionTimeDurations, getAIDigestResultsBySessionIds, getMessageHourlyStats } from "@/api/basicApi";
 import { getInterestScoreResults } from "@/api/interestScoreApi";
 import { markTopicAsRead, getTopicsReadStatus, markTopicAsFavorite, removeTopicFromFavorites, getTopicsFavoriteStatus } from "@/api/readAndFavApi";
 import { title } from "@/components/primitives";
@@ -23,6 +22,108 @@ import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import ResponsivePopover from "@/components/ResponsivePopover";
 import throttle from "@/util/throttle";
+
+interface GroupSelectorListProps {
+    groups: GroupDetailsRecord;
+    selectedGroupIds: string[];
+    onSelectionChange: (ids: string[]) => void;
+    groupMessageCounts: Record<string, number>;
+}
+
+function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupMessageCounts }: GroupSelectorListProps) {
+    const allGroupIds = Object.keys(groups);
+
+    // 按消息量降序排列群组
+    const sortedGroupIds = useMemo(() => {
+        return [...allGroupIds].sort((a, b) => {
+            const countA = groupMessageCounts[a] ?? 0;
+            const countB = groupMessageCounts[b] ?? 0;
+            return countB - countA;
+        });
+    }, [allGroupIds, groupMessageCounts]);
+
+    // 最大消息量（用于进度条比例计算）
+    const maxCount = useMemo(() => {
+        const counts = Object.values(groupMessageCounts);
+        return counts.length > 0 ? Math.max(...counts, 0) : 0;
+    }, [groupMessageCounts]);
+
+    const handleToggle = (groupId: string) => {
+        if (selectedGroupIds.includes(groupId)) {
+            onSelectionChange(selectedGroupIds.filter(id => id !== groupId));
+        } else {
+            onSelectionChange([...selectedGroupIds, groupId]);
+        }
+    };
+
+    const selectAll = () => onSelectionChange([...allGroupIds]);
+    const deselectAll = () => onSelectionChange([]);
+
+    // 触发按钮文字
+    const allSelected = selectedGroupIds.length === allGroupIds.length;
+    const triggerLabel = allGroupIds.length === 0 ? "群组" : allSelected ? `全部群组 (${allGroupIds.length})` : `群组 (${selectedGroupIds.length}/${allGroupIds.length})`;
+
+    return (
+        <Popover placement="bottom-start">
+            <PopoverTrigger>
+                <Button variant="flat" size="sm" className="w-full lg:w-auto">
+                    {triggerLabel}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="p-0">
+                <div className="flex flex-col w-72">
+                    {/* 头部：计数器 + 全选/清除 */}
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-divider">
+                        <span className="text-xs text-default-500">
+                            群组 ({selectedGroupIds.length}/{allGroupIds.length})
+                        </span>
+                    </div>
+
+                    {/* 可滚动群组列表 */}
+                    <ScrollShadow className="max-h-64" size={40}>
+                        <div className="flex flex-col gap-0.5 p-1">
+                            {/* 全选/全不选 选项 */}
+                            <div
+                                className="relative flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-default-100 cursor-pointer border-b border-divider mb-0.5"
+                                onClick={allSelected ? deselectAll : selectAll}
+                            >
+                                <div className="relative z-10 flex items-center gap-2 w-full min-w-0">
+                                    <Checkbox isSelected={allSelected} isIndeterminate={selectedGroupIds.length > 0 && !allSelected} size="sm" />
+                                    <span className="text-sm font-medium">{allSelected ? "全不选" : "全选"}</span>
+                                </div>
+                            </div>
+
+                            {sortedGroupIds.map(groupId => {
+                                const count = groupMessageCounts[groupId] ?? 0;
+                                const barWidth = maxCount > 0 ? (count / maxCount) * 90 : 0;
+                                const isSelected = selectedGroupIds.includes(groupId);
+
+                                return (
+                                    <div key={groupId} className="relative flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-default-100 cursor-pointer" onClick={() => handleToggle(groupId)}>
+                                        {/* 进度条背景 */}
+                                        {maxCount > 0 && count > 0 && (
+                                            <div
+                                                className="absolute inset-y-0 left-0 rounded-md bg-primary-100 dark:bg-primary-900/30 pointer-events-none transition-all duration-300"
+                                                style={{ width: `${barWidth}%` }}
+                                            />
+                                        )}
+
+                                        {/* 内容层 */}
+                                        <div className="relative z-10 flex items-center gap-2 w-full min-w-0">
+                                            <Checkbox isSelected={isSelected} size="sm" />
+                                            <QQAvatar qqId={groupId} type="group" sizeClassName="w-5 h-5" />
+                                            <span className="text-sm truncate">{groupId}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </ScrollShadow>
+                </div>
+            </PopoverContent>
+        </Popover>
+    );
+}
 
 export default function LatestTopicsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -36,7 +137,8 @@ export default function LatestTopicsPage() {
 
     // 群组筛选状态
     const [groups, setGroups] = useState<GroupDetailsRecord>({});
-    const [selectedGroupId, setSelectedGroupId] = useState<string>(""); // 空字符串表示"全部群组"
+    const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]); // 空数组表示尚未初始化，初始化后默认全选
+    const [groupMessageCounts, setGroupMessageCounts] = useState<Record<string, number>>({}); // 群组消息量统计
 
     // 筛选状态
     const [filterRead, setFilterRead] = useState<boolean>(true); // 过滤已读
@@ -64,7 +166,7 @@ export default function LatestTopicsPage() {
                     const groupIds = Object.keys(response.data);
 
                     // 从URL获取参数
-                    const urlGroupId = searchParams.get("groupId");
+                    const urlGroupIds = searchParams.get("groupIds");
                     const urlFilterRead = searchParams.get("filterRead");
                     const urlFilterFavorite = searchParams.get("filterFavorite");
                     const urlSortByInterest = searchParams.get("sortByInterest");
@@ -73,17 +175,13 @@ export default function LatestTopicsPage() {
                     const urlStartDate = searchParams.get("startDate");
                     const urlEndDate = searchParams.get("endDate");
 
-                    // 处理群组ID
-                    if (urlGroupId) {
-                        if (groupIds.includes(urlGroupId)) {
-                            setSelectedGroupId(urlGroupId);
-                        } else {
-                            // URL中的groupId不存在于群组列表中，提示用户
-                            Notification.error({
-                                title: "群组不存在",
-                                description: `URL中指定的群组ID "${urlGroupId}" 不存在`
-                            });
-                        }
+                    // 处理群组ID（多选）
+                    if (urlGroupIds) {
+                        const parsedIds = urlGroupIds.split(",").filter(id => groupIds.includes(id));
+                        setSelectedGroupIds(parsedIds.length > 0 ? parsedIds : groupIds);
+                    } else {
+                        // 无URL参数 = 全选所有群组
+                        setSelectedGroupIds(groupIds);
                     }
 
                     // 处理筛选开关
@@ -127,6 +225,22 @@ export default function LatestTopicsPage() {
                             // 日期解析失败，使用默认值
                         }
                     }
+
+                    // 获取消息统计（用于群组选择器进度条）
+                    try {
+                        const statsResponse = await getMessageHourlyStats(groupIds);
+                        if (statsResponse.success) {
+                            const counts: Record<string, number> = {};
+                            for (const gid of groupIds) {
+                                const groupData = statsResponse.data.data[gid];
+                                counts[gid] = groupData ? groupData.current.reduce((sum, c) => sum + c, 0) : 0;
+                            }
+                            setGroupMessageCounts(counts);
+                        }
+                    } catch (e) {
+                        console.error("获取消息统计失败:", e);
+                        // 优雅降级：不显示进度条
+                    }
                 }
             } catch (error) {
                 console.error("获取群组信息失败:", error);
@@ -147,8 +261,9 @@ export default function LatestTopicsPage() {
 
         const newParams = new URLSearchParams();
 
-        if (selectedGroupId) {
-            newParams.set("groupId", selectedGroupId);
+        const allGroupIds = Object.keys(groups);
+        if (selectedGroupIds.length > 0 && selectedGroupIds.length < allGroupIds.length) {
+            newParams.set("groupIds", selectedGroupIds.join(","));
         }
         if (!filterRead) {
             // 默认是true，所以只有为false时才写入URL
@@ -184,7 +299,7 @@ export default function LatestTopicsPage() {
         }
 
         setSearchParams(newParams, { replace: true });
-    }, [selectedGroupId, filterRead, filterFavorite, sortByInterest, searchText, page, dateRange, isInitializedFromUrl, setSearchParams]);
+    }, [selectedGroupIds, filterRead, filterFavorite, sortByInterest, searchText, page, dateRange, isInitializedFromUrl, setSearchParams]);
 
     // 加载收藏状态
     useEffect(() => {
@@ -291,12 +406,12 @@ export default function LatestTopicsPage() {
     // 当筛选条件改变时，重置页码
     useEffect(() => {
         setPage(1);
-    }, [filterRead, filterFavorite, searchText, selectedGroupId]);
+    }, [filterRead, filterFavorite, searchText, selectedGroupIds]);
 
     // 应用筛选器
     const filteredTopics = topics.filter(topic => {
         // 群组筛选
-        if (selectedGroupId && topic.groupId !== selectedGroupId) {
+        if (selectedGroupIds.length > 0 && !selectedGroupIds.includes(topic.groupId)) {
             return false;
         }
 
@@ -460,33 +575,11 @@ export default function LatestTopicsPage() {
                         {/* 顶栏右侧 */}
                         <ResponsivePopover buttonText="筛选...">
                             <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-3 lg:p-0">
-                                {/* 群组选择器 */}
-                                <Select
-                                    className="w-full lg:w-60"
-                                    isClearable={true}
-                                    label="群组"
-                                    placeholder="全部群组"
-                                    selectedKeys={selectedGroupId ? [selectedGroupId] : []}
-                                    size="sm"
-                                    onSelectionChange={keys => {
-                                        if (keys === "all" || (keys instanceof Set && keys.size === 0)) {
-                                            setSelectedGroupId("");
-                                        } else {
-                                            const selectedKey = Array.from(keys)[0] as string;
-
-                                            setSelectedGroupId(selectedKey || "");
-                                        }
-                                    }}
-                                >
-                                    {Object.keys(groups).map(groupId => (
-                                        <SelectItem key={groupId} startContent={<QQAvatar qqId={groupId} type="group" />}>
-                                            {groupId}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
+                                {/* 群组选择器（Popover） */}
+                                <GroupSelectorList groups={groups} selectedGroupIds={selectedGroupIds} onSelectionChange={setSelectedGroupIds} groupMessageCounts={groupMessageCounts} />
 
                                 {/* 筛选控件 */}
-                                <div className="flex gap-3 items-center">
+                                <div className="flex gap-3 items-center flex-wrap">
                                     <Select
                                         className="w-27"
                                         label="每页话题数"
@@ -505,46 +598,46 @@ export default function LatestTopicsPage() {
                                         <SelectItem key="9">9</SelectItem>
                                         <SelectItem key="12">12</SelectItem>
                                     </Select>
+
+                                    <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
+                                        只看未读
+                                    </Checkbox>
+
+                                    <Checkbox className="w-110" isSelected={filterFavorite} onValueChange={setFilterFavorite}>
+                                        只看收藏
+                                    </Checkbox>
+
+                                    <Checkbox className="w-150" isSelected={sortByInterest} onValueChange={setSortByInterest}>
+                                        按兴趣度排序
+                                    </Checkbox>
+
+                                    {/* 日期选择器 + 刷新按钮 */}
+                                    <DateRangePicker
+                                        className="w-full lg:w-70"
+                                        label="时间范围"
+                                        value={dateRange}
+                                        onChange={range => {
+                                            if (range) {
+                                                setDateRange({
+                                                    start: range.start,
+                                                    end: range.end
+                                                });
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        color="primary"
+                                        isLoading={loading}
+                                        onPress={() => {
+                                            const start = dateRange.start.toDate(getLocalTimeZone());
+                                            const end = dateRange.end.toDate(getLocalTimeZone());
+
+                                            fetchLatestTopics(start, end);
+                                        }}
+                                    >
+                                        刷新
+                                    </Button>
                                 </div>
-
-                                <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
-                                    只看未读
-                                </Checkbox>
-
-                                <Checkbox className="w-110" isSelected={filterFavorite} onValueChange={setFilterFavorite}>
-                                    只看收藏
-                                </Checkbox>
-
-                                <Checkbox className="w-150" isSelected={sortByInterest} onValueChange={setSortByInterest}>
-                                    按兴趣度排序
-                                </Checkbox>
-
-                                {/* 日期选择器 + 刷新按钮 */}
-                                <DateRangePicker
-                                    className="w-full lg:w-70"
-                                    label="时间范围"
-                                    value={dateRange}
-                                    onChange={range => {
-                                        if (range) {
-                                            setDateRange({
-                                                start: range.start,
-                                                end: range.end
-                                            });
-                                        }
-                                    }}
-                                />
-                                <Button
-                                    color="primary"
-                                    isLoading={loading}
-                                    onPress={() => {
-                                        const start = dateRange.start.toDate(getLocalTimeZone());
-                                        const end = dateRange.end.toDate(getLocalTimeZone());
-
-                                        fetchLatestTopics(start, end);
-                                    }}
-                                >
-                                    刷新
-                                </Button>
                             </div>
                         </ResponsivePopover>
                     </CardHeader>
