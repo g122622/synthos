@@ -27,6 +27,15 @@ export class AgcDbAccessService extends Disposable {
         // 从 DI 容器获取 CommonDBService 实例
         this.db = container.resolve<CommonDBService>(COMMON_TOKENS.CommonDBService);
         await this.db.init(createAGCTableSQL);
+
+        // 迁移：添加 hasEmbedding 列（如不存在）
+        const columns = await this.db.all(`PRAGMA table_info(ai_digest_results)`);
+        const hasHasEmbedding = columns.some((col: any) => col.name === "hasEmbedding");
+
+        if (!hasHasEmbedding) {
+            await this.db.run(`ALTER TABLE ai_digest_results ADD COLUMN hasEmbedding INTEGER NOT NULL DEFAULT 0`);
+            this.LOGGER.info("已为 ai_digest_results 表补齐 hasEmbedding 字段");
+        }
     }
 
     /**
@@ -34,16 +43,16 @@ export class AgcDbAccessService extends Disposable {
      * @param result 摘要结果
      */
     public async storeAIDigestResult(result: AIDigestResult) {
-        // to fix
         await this.db.run(
-            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime) VALUES (?,?,?,?,?,?,?)
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime, hasEmbedding) VALUES (?,?,?,?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
                 sessionId = excluded.sessionId,
                 topic = excluded.topic,
                 contributors = excluded.contributors,
                 detail = excluded.detail,
                 modelName = excluded.modelName,
-                updateTime = excluded.updateTime
+                updateTime = excluded.updateTime,
+                hasEmbedding = CASE WHEN hasEmbedding = 1 THEN 1 ELSE excluded.hasEmbedding END
             `,
             [
                 result.topicId,
@@ -52,7 +61,8 @@ export class AgcDbAccessService extends Disposable {
                 result.contributors,
                 result.detail,
                 result.modelName,
-                result.updateTime
+                result.updateTime,
+                result.hasEmbedding ? 1 : 0
             ]
         );
     }
@@ -131,5 +141,32 @@ export class AgcDbAccessService extends Disposable {
     // 获取数据消息，用于数据库迁移、导出、备份等操作
     public async selectAll(): Promise<AIDigestResult[]> {
         return this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results`);
+    }
+
+    /**
+     * 获取所有未生成嵌入向量的摘要结果
+     * @returns hasEmbedding = 0 的 AIDigestResult 数组
+     */
+    public async getAIDigestResultsWithoutEmbedding(): Promise<AIDigestResult[]> {
+        return this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE hasEmbedding = 0`);
+    }
+
+    /**
+     * 将指定 topicId 标记为已生成嵌入向量
+     * @param topicIds 已生成嵌入向量的 topicId 数组
+     */
+    public async markEmbeddingGenerated(topicIds: string[]): Promise<void> {
+        if (topicIds.length === 0) return;
+        const BATCH_SIZE = 500;
+
+        for (let i = 0; i < topicIds.length; i += BATCH_SIZE) {
+            const batch = topicIds.slice(i, i + BATCH_SIZE);
+            const placeholders = batch.map(() => "?").join(",");
+
+            await this.db.run(
+                `UPDATE ai_digest_results SET hasEmbedding = 1 WHERE topicId IN (${placeholders})`,
+                batch
+            );
+        }
     }
 }

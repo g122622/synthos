@@ -318,6 +318,7 @@ const generateTopicsForSession = (
     detail: string;
     modelName: string;
     updateTime: number;
+    hasEmbedding: boolean;
 }[] => {
     const seed = sessionId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const topicCount = 2 + Math.floor(seededRandom(seed) * 4); // 2-5 个话题
@@ -354,7 +355,8 @@ const generateTopicsForSession = (
             contributors,
             detail: template.detail,
             modelName,
-            updateTime
+            updateTime,
+            hasEmbedding: true
         });
     }
 
@@ -370,7 +372,7 @@ export const mockGetAIDigestResultsBySessionIds = async (
     ApiResponse<
         {
             sessionId: string;
-            result: { topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }[];
+            result: { topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number; hasEmbedding: boolean }[];
         }[]
     >
 > => {
@@ -393,7 +395,7 @@ export const mockGetAIDigestResultsBySessionIds = async (
  */
 export const mockGetAIDigestResultsBySessionId = async (
     sessionId: string
-): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }[]>> => {
+): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number; hasEmbedding: boolean }[]>> => {
     const response = await mockGetAIDigestResultsBySessionIds([sessionId]);
 
     if (!response.success) {
@@ -418,7 +420,7 @@ export const mockGetAIDigestResultsBySessionId = async (
  */
 export const mockGetAIDigestResultByTopicId = async (
     topicId: string
-): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number }>> => {
+): Promise<ApiResponse<{ topicId: string; sessionId: string; topic: string; contributors: string; detail: string; modelName: string; updateTime: number; hasEmbedding: boolean }>> => {
     await delay(250 + Math.random() * 150);
 
     // topicId 规则：topic_${sessionId}_${i}
@@ -434,7 +436,8 @@ export const mockGetAIDigestResultByTopicId = async (
                 contributors: "",
                 detail: "",
                 modelName: "",
-                updateTime: 0
+                updateTime: 0,
+                hasEmbedding: false
             },
             message: "topicId格式不正确"
         };
@@ -454,7 +457,8 @@ export const mockGetAIDigestResultByTopicId = async (
                 contributors: "",
                 detail: "",
                 modelName: "",
-                updateTime: 0
+                updateTime: 0,
+                hasEmbedding: false
             },
             message: "topicId解析失败"
         };
@@ -473,7 +477,8 @@ export const mockGetAIDigestResultByTopicId = async (
                 contributors: "",
                 detail: "",
                 modelName: "",
-                updateTime: 0
+                updateTime: 0,
+                hasEmbedding: false
             },
             message: "未找到对应的topic摘要"
         };

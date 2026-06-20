@@ -63,7 +63,8 @@ describe("RAGCtxBuilder", () => {
                     sessionId: "session1",
                     topic: "机器学习基础",
                     detail: "机器学习是人工智能的一个分支",
-                    contributors: "用户1, 用户2"
+                    contributors: "用户1, 用户2",
+                    hasEmbedding: true
                 } as any);
             }
             if (topicId === "topic2") {
@@ -71,7 +72,8 @@ describe("RAGCtxBuilder", () => {
                     sessionId: "session2",
                     topic: "深度学习应用",
                     detail: "深度学习在图像识别中的应用",
-                    contributors: "用户3, 用户4"
+                    contributors: "用户3, 用户4",
+                    hasEmbedding: true
                 } as any);
             }
 
@@ -154,7 +156,8 @@ describe("RAGCtxBuilder", () => {
                     sessionId: "session1",
                     topic: "机器学习基础",
                     detail: "机器学习是人工智能的一个分支",
-                    contributors: "用户1, 用户2"
+                    contributors: "用户1, 用户2",
+                    hasEmbedding: true
                 } as any);
             }
 

@@ -13,6 +13,7 @@ export interface AIDigestResult {
     detail: string;
     modelName: string;
     updateTime: number; // UNIX毫秒级时间戳
+    hasEmbedding: boolean;
 }
 
 /**

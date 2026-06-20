@@ -201,6 +201,7 @@ export class AISummarizeTaskHandler {
                                 Object.assign(resultItem, { topicId: getRandomHash(16) });
                                 Object.assign(resultItem, { modelName: selectedModelName });
                                 Object.assign(resultItem, { updateTime: Date.now() });
+                                Object.assign(resultItem, { hasEmbedding: false }); // 新生成的摘要尚未生成嵌入向量
                             }
 
                             // 存储摘要结果

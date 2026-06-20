@@ -21,7 +21,8 @@ export const createAGCTableSQL = `
                     contributors TEXT,
                     detail TEXT,
                     modelName TEXT,
-                    updateTime INTEGER
+                    updateTime INTEGER,
+                    hasEmbedding INTEGER NOT NULL DEFAULT 0
                 );`;
 
 export const createInterestScoreTableSQL = `
