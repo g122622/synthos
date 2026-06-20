@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "tsc --build",
+    "build": "tsc --build && node -e \"const fs=require('fs'),p=require('path');const src=p.join(__dirname,'src/providers/QQProvider/parsers/messageSegment.proto');const dst=p.join(__dirname,'dist/providers/QQProvider/parsers/messageSegment.proto');if(fs.existsSync(src)){fs.mkdirSync(p.dirname(dst),{recursive:true});fs.copyFileSync(src,dst);console.log('Copied messageSegment.proto to dist')}\"",
     "dev": "node ../../scripts/devRunner.cjs --name data-provider --entry dist/index.js --watch src",
     "dev:build": "rimraf tsconfig.tsbuildinfo && npm run build && node ../../scripts/redirectRequire.js && node ../../scripts/fixESMExtensions.mjs && node dist/index.js"
   },

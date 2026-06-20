@@ -1,37 +1,37 @@
 import "reflect-metadata";
+import { resolve, dirname } from "node:path";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { RawChatMessage } from "@root/common/contracts/data-provider/index";
 import Logger from "@root/common/util/Logger";
-import { PromisifiedSQLite } from "@root/common/util/promisify/PromisifiedSQLite";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
-import { ASSERT, ASSERT_NOT_FATAL } from "@root/common/util/ASSERT";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
-import sqlite3 from "@journeyapps/sqlcipher";
+
+// ESM 环境下获取当前文件所在目录
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 import { IIMProvider } from "../contracts/IIMProvider";
 import { COMMON_TOKENS } from "../../di/tokens";
 
-import { GroupMsgColumn as GMC } from "./@types/mappers/GroupMsgColumn";
-import { RawGroupMsgFromDB } from "./@types/RawGroupMsgFromDB";
-import { MessagePBParser } from "./parsers/MessagePBParser";
-import { MsgElementType } from "./@types/mappers/MsgElementType";
-import { MsgElement } from "./@types/RawMsgContentParseResult";
-import { MsgType } from "./@types/mappers/MsgType";
+import { WorkerPool } from "./workers/WorkerPool";
 
-sqlite3.verbose();
+import type { WorkerConfig } from "./workers/types";
 
 /**
  * QQ 消息提供者
  * 负责从 QQNT 数据库中读取消息数据
+ * 使用 Worker 线程池实现多线程并发查询
  */
 @injectable()
 @mustInitBeforeUse
 export class QQProvider extends Disposable implements IIMProvider {
-    private db: PromisifiedSQLite | null = null;
+    private pool: WorkerPool | null = null;
     private LOGGER = Logger.withTag("QQProvider");
-    private messagePBParser = this._registerDisposable(new MessagePBParser());
 
     /**
      * 构造函数
@@ -45,109 +45,74 @@ export class QQProvider extends Disposable implements IIMProvider {
 
     /**
      * 初始化 QQ 消息提供者
+     * 创建 Worker 线程池，每个 Worker 持有独立的数据库连接
      */
     public async init() {
         const config = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
-        // 1. 创建一个临时内存数据库（仅用于加载扩展）
-        const tempDb = new PromisifiedSQLite(sqlite3);
-
-        await tempDb.open(":memory:"); // 内存数据库，瞬间打开
-        // 2. 通过这个临时连接加载扩展 → 全局注册 offset_vfs
-        await tempDb.loadExtension(config.VFSExtPath);
-        // 3. 关闭临时数据库
-        await tempDb.dispose();
-
         const dbPath = config.dbBasePath + "/nt_msg.db";
-        // 打开QQNT数据库（原地读取，不复制）
-        // @see https://docs.aaqwq.top/decrypt/decode_db.html#%E9%80%9A%E7%94%A8%E9%85%8D%E7%BD%AE%E9%80%89%E9%A1%B9
-        const db = new PromisifiedSQLite(sqlite3);
 
-        await db.open(dbPath);
-        this.db = this._registerDisposable(db);
+        // 预计算 patchSQL
+        const patchSQL = config.dbPatch.enabled ? `(${config.dbPatch.patchSQL})` : "";
 
-        // 加密相关配置
-        this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
-        await db.exec(`
-            PRAGMA key = '${config.dbKey}';
-            PRAGMA cipher_page_size = 4096;
-            PRAGMA kdf_iter = 4000;
-            PRAGMA cipher_hmac_algorithm = HMAC_SHA1;
-            PRAGMA cipher_kdf_algorithm = PBKDF2_HMAC_SHA512;
-        `);
+        // 计算 Worker 脚本的绝对路径
+        // __dirname 在编译后指向 dist/providers/QQProvider，workers 目录在其下
+        const workerScriptPath = resolve(__dirname, "workers", "qqQueryWorker.js");
 
-        // 尝试读取数据库表数量，看看解密是否成功
-        const sql = `SELECT count(*) FROM sqlite_master`;
-        const stmt = await db.prepare(sql);
-        const result = await stmt.get();
+        // 计算 proto 文件的绝对路径
+        // 优先使用 dist 目录下的 proto 文件（构建时复制），回退到源码目录
+        let protoFilePath = resolve(__dirname, "parsers", "messageSegment.proto");
 
-        this.LOGGER.success(`解密成功，数据库表数量: ${result["count(*)"]}`);
-        await stmt.finalize();
-
-        // 初始化消息解析器
-        await this.messagePBParser.init();
-
-        this.LOGGER.success("初始化完成！");
-    }
-
-    /**
-     * 获取数据库补丁SQL
-     * @returns 数据库补丁SQL
-     */
-    private async _getPatchSQL() {
-        const qqConfig = (await this.configManagerService.getCurrentConfig()).dataProviders.QQ;
-        const patchSQL = qqConfig.dbPatch.enabled ? `(${qqConfig.dbPatch.patchSQL})` : "";
-
-        return patchSQL;
-    }
-
-    private async _parseMessageContent(rawMsgElements: MsgElement[]): Promise<string> {
-        let result = "";
-
-        for (const rawMsgElement of rawMsgElements) {
-            switch (rawMsgElement.elementType) {
-                case MsgElementType.TEXT: {
-                    result += rawMsgElement.messageText;
-                    break;
-                }
-                case MsgElementType.EMOJI: {
-                    if (rawMsgElement.emojiText) {
-                        result += `[${rawMsgElement.emojiText}]`;
-                    }
-                    break;
-                }
-                case MsgElementType.IMAGE: {
-                    // TODO: 处理图片消息
-                    if (rawMsgElement.imageText) {
-                        result += rawMsgElement.imageText;
-                    } else {
-                        result += `[图片]`;
-                    }
-                    break;
-                }
-                case MsgElementType.VOICE: {
-                    // TODO: 处理语音消息
-                    result += `[语音]`;
-                    break;
-                }
-                case MsgElementType.FILE: {
-                    // TODO: 处理文件消息
-                    result += `[文件][文件名：${rawMsgElement.fileName}]`;
-                    break;
-                }
-                // TODO: 处理其他消息类型，比如外链、小程序分享、转发的聊天记录等
-                default: {
-                    // 忽略其他类型的消息，不加入messages
-                    this.LOGGER.debug(`未知的element类型: ${rawMsgElement.elementType}，忽略该element。`);
-                    break;
-                }
-            }
+        if (!existsSync(protoFilePath)) {
+            // 回退到源码目录
+            protoFilePath = resolve(
+                __dirname,
+                "..",
+                "..",
+                "src",
+                "providers",
+                "QQProvider",
+                "parsers",
+                "messageSegment.proto"
+            );
+            this.LOGGER.warning(`dist 目录下未找到 proto 文件，回退到源码路径: ${protoFilePath}`);
         }
 
-        return result;
+        // 构建 Worker 配置
+        const workerConfig: WorkerConfig = {
+            dbPath,
+            dbKey: config.dbKey,
+            VFSExtPath: config.VFSExtPath,
+            patchSQL,
+            protoFilePath,
+            cipherPageSize: 4096,
+            kdfIter: 4000,
+            cipherHmacAlgorithm: "HMAC_SHA1",
+            cipherKdfAlgorithm: "PBKDF2_HMAC_SHA512"
+        };
+
+        this.LOGGER.info(`当前的dbKey: ${config.dbKey}`);
+        this.LOGGER.info(`Worker 脚本路径: ${workerScriptPath}`);
+        this.LOGGER.info(`Proto 文件路径: ${protoFilePath}`);
+
+        // 创建并初始化 Worker 线程池
+        const poolSize = config.poolSize ?? 12;
+
+        this.pool = this._registerDisposable(
+            new WorkerPool({
+                poolSize,
+                config: workerConfig,
+                workerScriptPath
+            })
+        );
+
+        await this.pool.init();
+
+        this.LOGGER.success(`QQProvider 初始化完成！Worker 线程池大小: ${poolSize}`);
     }
 
     /**
      * 从QQNT数据库中获取指定时间范围内的消息
+     * 通过 Worker 线程池并发查询
      * @param timeStart 开始时间（毫秒级时间戳）
      * @param timeEnd 结束时间（毫秒级时间戳）
      * @param groupId 群号（可选）
@@ -158,186 +123,10 @@ export class QQProvider extends Disposable implements IIMProvider {
         timeEnd: number,
         groupId: string = ""
     ): Promise<RawChatMessage[]> {
-        if (this.db) {
-            // 转换为秒级时间戳
-            timeStart = Math.floor(timeStart / 1000);
-            timeEnd = Math.ceil(timeEnd / 1000);
-            // 生成SQL语句
-            const sql = `
-                SELECT
-                    CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
-                    "${GMC.msgTime}",
-                    "${GMC.groupUin}",
-                    "${GMC.senderUin}",
-                    "${GMC.replyMsgSeq}",
-                    "${GMC.msgContent}",
-                    "${GMC.sendMemberName}",
-                    "${GMC.sendNickName}",
-                    "${GMC.msgType}",
-                    "${GMC.extraData}"
-                FROM group_msg_table
-                WHERE ${await this._getPatchSQL()}
-                AND ("${GMC.msgTime}" BETWEEN ${timeStart} AND ${timeEnd})
-                ${groupId ? `AND "${GMC.groupUin}" = ${groupId}` : ""}
-            `;
-
-            this.LOGGER.debug(`执行的SQL: ${sql}`);
-            const results = await this.db.all(sql);
-
-            this.LOGGER.debug(`结果数量: ${results.length}`);
-
-            // 解析查询到的全部消息内容
-            const messages: RawChatMessage[] = [];
-
-            for (const result of results) {
-                // 生成消息对象
-                const processedMsg: RawChatMessage = {
-                    msgId: String(result[GMC.msgId]),
-                    messageContent: "",
-                    groupId: String(result[GMC.groupUin]),
-                    timestamp: result[GMC.msgTime] * 1000, // 转换为毫秒级时间戳
-                    senderId: String(result[GMC.senderUin]),
-                    senderGroupNickname: result[GMC.sendMemberName],
-                    senderNickname: result[GMC.sendNickName]
-                };
-
-                // 处理引用消息，首先尝试获取被引用消息的消息正文而不是id，减少一次开销极大的数据库查询，极大提升性能
-                if (result[GMC.msgType] === MsgType.REPLY) {
-                    this.LOGGER.debug(`这是一条引用消息！`);
-                    ASSERT(!!result[GMC.replyMsgSeq], "MsgType为REPLY时，对应的replyMsgSeq应该也是有效的");
-                    try {
-                        const quotedMsgContent = await this._parseMessageContent(
-                            this.messagePBParser.parseMessageSegment(result[GMC.extraData]).extraMessage.messages
-                        );
-
-                        if (!quotedMsgContent) {
-                            this.LOGGER.warning(
-                                `msgId: ${result[GMC.msgId]}的引用消息内容为空。放弃获取该条消息的引用。
-                                发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
-                            );
-                            throw ErrorReasons.EMPTY_VALUE_ERROR;
-                        }
-                        processedMsg.quotedMsgContent = quotedMsgContent;
-                    } catch (error) {
-                        if (error === ErrorReasons.EMPTY_VALUE_ERROR || error === ErrorReasons.PROTOBUF_ERROR) {
-                            // ⚠️⚠️⚠️实验发现如果消息的消息正文为空，那么大概率其id也是找不到的，所以这里直接忽略该条消息，下面代码不执行了
-                            // // 引用消息内容为空或者protobuf解析出错，尝试获取其id
-                            // this.LOGGER.warning(
-                            //     `msgId: ${result[GMC.msgId]}的引用消息内容为空或者protobuf解析出错，尝试获取其id。
-                            // 发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
-                            // );
-                            // // 获取引用的消息 quotedMsgId
-                            // let quotedMsgId: string | undefined = undefined;
-                            // quotedMsgId = await this._getMsgIdByGroupNumberAndMsgSeq(
-                            //     result[GMC.groupUin],
-                            //     result[GMC.replyMsgSeq]
-                            // );
-                            // if (!quotedMsgId) {
-                            //     this.LOGGER.warning(
-                            //         `无法找到被引用的消息的msgId。本条消息的msgId: ${result[GMC.msgId]}`
-                            //     );
-                            // }
-                            // processedMsg.quotedMsgId = quotedMsgId;
-                        } else {
-                            throw error;
-                        }
-                    }
-                }
-
-                // 获取消息正文：解析40800中的所有element（或者叫做fragment）
-                try {
-                    processedMsg.messageContent = await this._parseMessageContent(
-                        this.messagePBParser.parseMessageSegment(result[GMC.msgContent]).messages
-                    );
-                } catch (error) {
-                    if (error === ErrorReasons.PROTOBUF_ERROR) {
-                        this.LOGGER.warning(
-                            `msgId: ${result[GMC.msgId]}的消息内容protobuf解析出错：${error}，放弃获取该条消息。
-                            发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}, 错误: ${error}`
-                        );
-                    } else {
-                        this.LOGGER.error(
-                            `msgId: ${result[GMC.msgId]}的消息内容解析出错，发生了意料之外的错误，终止程序。发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}, 错误: ${error}`
-                        );
-                        throw error;
-                    }
-                }
-                if (processedMsg.messageContent === "") {
-                    this.LOGGER.debug(
-                        `msgId: ${result[GMC.msgId]}的消息内容为空，忽略该消息。
-                        发送者: ${result[GMC.sendMemberName ?? result[GMC.sendNickName]]}`
-                    );
-                } else {
-                    messages.push(processedMsg);
-                }
-            }
-
-            return messages;
-        } else {
+        if (!this.pool) {
             throw ErrorReasons.UNINITIALIZED_ERROR;
         }
-    }
 
-    /**
-     * 根据群号（40030）和消息序号（40003）获取消息
-     * @returns 消息数组
-     */
-    private async _getMsgIdByGroupNumberAndMsgSeq(
-        groupNumber: number,
-        msgSeq: number
-    ): Promise<string | undefined> {
-        if (this.db) {
-            const sql = `SELECT CAST("${GMC.msgId}" AS TEXT) AS "${GMC.msgId}",
-                            "${GMC.msgContent}"
-                         FROM group_msg_table
-                         WHERE ${await this._getPatchSQL()}
-                         AND "${GMC.msgSeq}" = ${msgSeq}
-                         AND "${GMC.groupUin}" = ${groupNumber}`;
-
-            this.LOGGER.debug(`执行的SQL: ${sql}`);
-            const results = await this.db.all(sql);
-
-            this.LOGGER.debug(`结果数量: ${results.length}`);
-            ASSERT_NOT_FATAL(
-                results.length <= 1,
-                `查询到多条消息，msgSeq: ${msgSeq}, groupNumber: ${groupNumber}，
-                查询结果数: ${results.length}, results: ${JSON.stringify(results)}`
-            );
-            if (results.length === 0) {
-                return undefined;
-            } else {
-                return results[0][GMC.msgId];
-            }
-        } else {
-            throw ErrorReasons.UNINITIALIZED_ERROR;
-        }
-    }
-
-    /**
-     * 根据消息ID（40001）获取消息
-     * @param msgId 消息ID (由于id过长，超过Math.MAX_SAFE_INTEGER，因此使用字符串)
-     * @returns 消息数组
-     */
-    private async _getMsgByMsgId(msgId: string): Promise<RawGroupMsgFromDB | null> {
-        if (this.db) {
-            // 生成SQL语句
-            const sql = `SELECT * FROM group_msg_table WHERE ${await this._getPatchSQL()} and "${GMC.msgId}" = ${msgId}`;
-
-            this.LOGGER.debug(`执行的SQL: ${sql}`);
-            const results = await this.db.all(sql);
-
-            this.LOGGER.debug(`结果数量: ${results.length}`);
-            ASSERT(
-                results.length <= 1,
-                `查询到多条消息，查询结果数: ${results.length}, msgId: ${msgId}, results: ${JSON.stringify(results)}`
-            );
-            if (results.length === 0) {
-                return null;
-            }
-
-            return results[0];
-        } else {
-            throw ErrorReasons.UNINITIALIZED_ERROR;
-        }
+        return this.pool.submit(timeStart, timeEnd, groupId);
     }
 }

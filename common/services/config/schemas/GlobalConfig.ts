@@ -97,7 +97,8 @@ export const GlobalConfigSchema = z.object({
                             enabled: z.boolean().describe("是否启用数据库补丁"),
                             patchSQL: z.string().optional().describe("数据库补丁的 SQL 语句")
                         })
-                        .describe("数据库补丁配置")
+                        .describe("数据库补丁配置"),
+                    poolSize: z.number().positive().int().default(12).describe("Worker 线程池大小")
                 })
                 .describe("QQ 数据源配置")
         })

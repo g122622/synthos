@@ -14,7 +14,11 @@ export class MessagePBParser extends Disposable {
     private LOGGER = Logger.withTag("MessagePBParser");
     private protobuf: any = null;
 
-    public async init() {
+    /**
+     * 初始化 MessagePBParser
+     * @param protoFilePath 可选的 .proto 文件绝对路径。在 Worker 线程中需要传入，因为工作目录可能不同。
+     */
+    public async init(protoFilePath?: string) {
         this.LOGGER.debug("Initializing MessagePBParser...");
 
         // 动态导入protobufjs库，确保在不同环境下都能正常工作
@@ -30,10 +34,12 @@ export class MessagePBParser extends Disposable {
         }
 
         // 1. 加载 .proto 文件
-        const pathCandidates = [
-            "./src/providers/QQProvider/parsers/messageSegment.proto",
-            "./applications/data-provider/src/providers/QQProvider/parsers/messageSegment.proto"
-        ];
+        const pathCandidates = protoFilePath
+            ? [protoFilePath]
+            : [
+                  "./src/providers/QQProvider/parsers/messageSegment.proto",
+                  "./applications/data-provider/src/providers/QQProvider/parsers/messageSegment.proto"
+              ];
         let protoContent: string | undefined = undefined;
 
         for (const path of pathCandidates) {
