@@ -153,43 +153,43 @@ class OrchestratorApplication {
                 await job.touch();
 
                 // ==================== 步骤 5: InterestScore ====================
-                LOGGER.info("⭐ [5/6] 开始执行 InterestScore 任务...");
-                const interestScoreSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.InterestScore,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
+                // LOGGER.info("⭐ [5/6] 开始执行 InterestScore 任务...");
+                // const interestScoreSuccess = await scheduleAndWaitForJob(
+                //     TaskHandlerTypes.InterestScore,
+                //     {
+                //         startTimeStamp,
+                //         endTimeStamp
+                //     },
+                //     POLL_INTERVAL,
+                //     TASK_TIMEOUT
+                // );
 
-                if (!interestScoreSuccess) {
-                    LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
-                    job.fail("InterestScore task failed");
+                // if (!interestScoreSuccess) {
+                //     LOGGER.error("❌ InterestScore 任务失败，Pipeline 终止");
+                //     job.fail("InterestScore task failed");
 
-                    return;
-                }
-                await job.touch();
+                //     return;
+                // }
+                // await job.touch();
 
                 // ==================== 步骤 6: LLMInterestEvaluationAndNotification ====================
-                LOGGER.info("🔔 [6/6] 开始执行 LLMInterestEvaluationAndNotification 任务...");
-                const llmInterestEvaluationSuccess = await scheduleAndWaitForJob(
-                    TaskHandlerTypes.LLMInterestEvaluationAndNotification,
-                    {
-                        startTimeStamp,
-                        endTimeStamp
-                    },
-                    POLL_INTERVAL,
-                    TASK_TIMEOUT
-                );
+                // LOGGER.info("🔔 [6/6] 开始执行 LLMInterestEvaluationAndNotification 任务...");
+                // const llmInterestEvaluationSuccess = await scheduleAndWaitForJob(
+                //     TaskHandlerTypes.LLMInterestEvaluationAndNotification,
+                //     {
+                //         startTimeStamp,
+                //         endTimeStamp
+                //     },
+                //     POLL_INTERVAL,
+                //     TASK_TIMEOUT
+                // );
 
-                if (!llmInterestEvaluationSuccess) {
-                    LOGGER.error("❌ LLMInterestEvaluationAndNotification 任务失败，Pipeline 终止");
-                    job.fail("LLMInterestEvaluationAndNotification task failed");
+                // if (!llmInterestEvaluationSuccess) {
+                //     LOGGER.error("❌ LLMInterestEvaluationAndNotification 任务失败，Pipeline 终止");
+                //     job.fail("LLMInterestEvaluationAndNotification task failed");
 
-                    return;
-                }
+                //     return;
+                // }
 
                 LOGGER.success(`🎉 Pipeline 任务全部完成！`);
             },

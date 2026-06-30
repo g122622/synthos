@@ -17,7 +17,6 @@ import QQAvatar from "@/components/QQAvatar";
 import { getGroupDetails, getSessionIdsByGroupIdsAndTimeRange, getSessionTimeDurations, getAIDigestResultsBySessionIds, getMessageHourlyStats } from "@/api/basicApi";
 import { getInterestScoreResults } from "@/api/interestScoreApi";
 import { markTopicAsRead, getTopicsReadStatus, markTopicAsFavorite, removeTopicFromFavorites, getTopicsFavoriteStatus } from "@/api/readAndFavApi";
-import { title } from "@/components/primitives";
 import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import ResponsivePopover from "@/components/ResponsivePopover";
@@ -548,14 +547,14 @@ export default function LatestTopicsPage() {
 
     return (
         <DefaultLayout>
-            <section className="flex flex-col gap-4 py-0 md:py-10">
-                <div className="hidden sm:flex items-center justify-center">
+            <section className="flex flex-col gap-4 py-0 md:py-10" style={{ paddingTop: "0px" }}>
+                {/* <div className="hidden sm:flex items-center justify-center">
                     <img alt="logo" className="w-21 mr-5" src="./logo.webp" />
                     <div className="flex flex-col items-center justify-center gap-4">
                         <h1 className={title()}>最新话题</h1>
                         <p className="text-default-600 max-w-2xl text-center">按时间排序的最新聊天话题摘要</p>
                     </div>
-                </div>
+                </div> */}
 
                 <Card className="mt-0 md:mt-6">
                     <CardHeader className="flex flex-row justify-between items-center pl-7 pr-7 gap-4">

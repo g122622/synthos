@@ -47,14 +47,14 @@ export default function AskPanel({
         try {
             answerCardRef.current.style.padding = "20px"; // 增加内边距，提升观感
 
-            const dataUrl = await domtoimage.toPng(answerCardRef.current, {
-                quality: 1.0,
+            const dataUrl = await domtoimage.toJpeg(answerCardRef.current, {
+                quality: 0.8,
                 bgcolor: theme === "dark" ? "#1e1e1e" : "#ffffff"
             });
 
             const link = document.createElement("a");
 
-            link.download = `AI回答_${new Date().getTime()}.png`;
+            link.download = `AI回答_${new Date().getTime()}.jpg`;
             link.href = dataUrl;
             link.click();
         } catch (error) {
