@@ -57,7 +57,12 @@ export interface RAGRPCImplementation {
      * @param input 问答输入
      * @returns AI 回答及引用来源
      */
-    ask(input: { question: string; topK: number; enableQueryRewriter: boolean }): Promise<AskOutput>;
+    ask(input: {
+        question: string;
+        topK: number;
+        enableQueryRewriter: boolean;
+        modelName?: string;
+    }): Promise<AskOutput>;
 
     /**
      * RAG 问答（流式）
@@ -65,7 +70,7 @@ export interface RAGRPCImplementation {
      * @param onChunk 流式 chunk 回调
      */
     askStream(
-        input: { question: string; topK: number; enableQueryRewriter: boolean },
+        input: { question: string; topK: number; enableQueryRewriter: boolean; modelName?: string },
         onChunk: (chunk: AskStreamChunk) => void
     ): Promise<void>;
 
@@ -102,6 +107,7 @@ export interface RAGRPCImplementation {
             maxToolRounds?: number;
             temperature?: number;
             maxTokens?: number;
+            modelName?: string;
         },
         onChunk: (chunk: any) => void
     ): Promise<AgentAskOutput>;
@@ -162,10 +168,16 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
 
         ask: t.procedure.input(AskInputSchema).query(async ({ input }) => {
             // Zod schema 验证后，确保类型匹配（topK 有默认值，但类型推断可能为可选）
-            const validatedInput: { question: string; topK: number; enableQueryRewriter: boolean } = {
+            const validatedInput: {
+                question: string;
+                topK: number;
+                enableQueryRewriter: boolean;
+                modelName?: string;
+            } = {
                 question: input.question,
                 topK: input.topK ?? 5,
-                enableQueryRewriter: input.enableQueryRewriter ?? true
+                enableQueryRewriter: input.enableQueryRewriter ?? true,
+                modelName: input.modelName
             };
 
             return impl.ask(validatedInput);
@@ -175,7 +187,8 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
             const validatedInput = {
                 question: input.question,
                 topK: input.topK ?? 5,
-                enableQueryRewriter: input.enableQueryRewriter ?? true
+                enableQueryRewriter: input.enableQueryRewriter ?? true,
+                modelName: input.modelName
             };
 
             return observable<AskStreamChunk>(emit => {
@@ -236,7 +249,8 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 enabledTools: input.enabledTools ?? ["rag_search", "sql_query"],
                 maxToolRounds: input.maxToolRounds ?? 5,
                 temperature: input.temperature ?? 0.7,
-                maxTokens: input.maxTokens ?? 2048
+                maxTokens: input.maxTokens ?? 2048,
+                modelName: input.modelName
             };
 
             return impl.agentAsk(validatedInput, () => {});
@@ -266,7 +280,8 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                 enabledTools: input.enabledTools ?? ["rag_search", "sql_query"],
                 maxToolRounds: input.maxToolRounds ?? 5,
                 temperature: input.temperature ?? 0.7,
-                maxTokens: input.maxTokens ?? 2048
+                maxTokens: input.maxTokens ?? 2048,
+                modelName: input.modelName
             };
 
             return observable<AgentEvent>(emit => {

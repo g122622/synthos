@@ -42,4 +42,5 @@ export interface AgentAskRequest {
     maxToolRounds?: number;
     temperature?: number;
     maxTokens?: number;
+    modelName?: string;
 }

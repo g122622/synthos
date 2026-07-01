@@ -253,6 +253,7 @@ export class LangGraphAgentExecutor {
         temperature: number | undefined;
         maxTokens: number | undefined;
         abortSignal: AbortSignal | undefined;
+        modelName?: string;
     }): Promise<{ content: string; toolCalls: ToolCall[]; usage?: TokenUsage }> {
         let fullContent = "";
         const toolCalls: ToolCall[] = [];
@@ -263,7 +264,7 @@ export class LangGraphAgentExecutor {
         const seenToolCallNoIdKeys = new Set<string>();
 
         const stream = await this.textGeneratorService.streamWithMessages(
-            undefined,
+            args.modelName,
             args.messages,
             args.tools,
             args.temperature,
@@ -389,7 +390,6 @@ export class LangGraphAgentExecutor {
         modelName?: string
     ): Promise<AgentResult> {
         void historyMessages;
-        void modelName;
 
         const maxToolRounds = config.maxToolRounds ?? 5;
         const enabledTools = config.enabledTools ?? [];
@@ -447,7 +447,8 @@ export class LangGraphAgentExecutor {
                 onChunk,
                 temperature: config.temperature,
                 maxTokens: config.maxTokens,
-                abortSignal: config.abortSignal
+                abortSignal: config.abortSignal,
+                modelName
             });
 
             const aiMessage = new AIMessage({

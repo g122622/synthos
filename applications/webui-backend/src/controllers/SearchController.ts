@@ -48,7 +48,12 @@ export class SearchController {
         const resolvedTopK = params.topK;
         const resolvedEnableQueryRewriter = params.enableQueryRewriter;
 
-        const result = await this.searchService.ask(question, resolvedTopK, resolvedEnableQueryRewriter);
+        const result = await this.searchService.ask(
+            question,
+            resolvedTopK,
+            resolvedEnableQueryRewriter,
+            params.modelName
+        );
 
         const answer = result.answer;
         const references: ReferenceItem[] = Array.isArray(

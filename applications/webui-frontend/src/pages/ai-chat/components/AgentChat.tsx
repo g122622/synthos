@@ -15,6 +15,8 @@ interface AgentChatProps {
     conversationId?: string;
     // 会话ID
     sessionId?: string;
+    // 选中的模型名称
+    modelName?: string;
 
     // 当服务端创建/切换对话时通知父组件
     onConversationIdChange?: (conversationId: string | undefined) => void;
@@ -91,7 +93,7 @@ const AgentMessageItem: React.FC<AgentMessageItemProps> = ({ message }) => {
 /**
  * Agent 聊天主组件
  */
-export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId, onConversationIdChange }) => {
+export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId, modelName, onConversationIdChange }) => {
     // 消息列表
     const [messages, setMessages] = useState<AgentMessage[]>([]);
     // 输入内容
@@ -351,7 +353,8 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
                     enabledTools: ["rag_search", "sql_query"],
                     maxToolRounds: 5,
                     temperature: 0.7,
-                    maxTokens: 2048
+                    maxTokens: 2048,
+                    modelName
                 },
                 {
                     signal: abortController.signal,
@@ -389,7 +392,7 @@ export const AgentChat: React.FC<AgentChatProps> = ({ conversationId, sessionId,
         } finally {
             // loading 由订阅 done/error 关闭
         }
-    }, [inputValue, loading, currentConversationId, sessionId]);
+    }, [inputValue, loading, currentConversationId, sessionId, modelName]);
 
     // 处理键盘事件
     const handleKeyDown = (e: React.KeyboardEvent) => {

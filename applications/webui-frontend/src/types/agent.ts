@@ -47,6 +47,7 @@ export interface AgentAskRequest {
     maxToolRounds?: number;
     temperature?: number;
     maxTokens?: number;
+    modelName?: string;
 }
 
 /**
@@ -138,4 +139,5 @@ export interface AskStreamInput {
     question: string;
     topK?: number;
     enableQueryRewriter?: boolean;
+    modelName?: string;
 }

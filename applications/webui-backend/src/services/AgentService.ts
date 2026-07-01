@@ -57,7 +57,8 @@ export class AgentService {
                 enabledTools: request.enabledTools || ["rag_search", "sql_query"],
                 maxToolRounds: request.maxToolRounds || 5,
                 temperature: request.temperature || 0.7,
-                maxTokens: request.maxTokens || 2048
+                maxTokens: request.maxTokens || 2048,
+                modelName: request.modelName
             });
 
             this.LOGGER.info(
@@ -117,7 +118,8 @@ export class AgentService {
                     enabledTools: request.enabledTools || ["rag_search", "sql_query"],
                     maxToolRounds: request.maxToolRounds || 5,
                     temperature: request.temperature || 0.7,
-                    maxTokens: request.maxTokens || 2048
+                    maxTokens: request.maxTokens || 2048,
+                    modelName: request.modelName
                 },
                 {
                     onData: (evt: AgentEvent) => {

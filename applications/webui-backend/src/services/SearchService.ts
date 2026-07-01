@@ -45,14 +45,22 @@ export class SearchService {
      * @param enableQueryRewriter 是否启用查询重写器
      * @returns AI 回答及引用来源
      */
-    async ask(question: string, topK: number = 5, enableQueryRewriter: boolean = true): Promise<AskOutput> {
-        this.LOGGER.info(`执行 RAG 问答: "${question}", topK=${topK}, enableQueryRewriter=${enableQueryRewriter}`);
+    async ask(
+        question: string,
+        topK: number = 5,
+        enableQueryRewriter: boolean = true,
+        modelName?: string
+    ): Promise<AskOutput> {
+        this.LOGGER.info(
+            `执行 RAG 问答: "${question}", topK=${topK}, enableQueryRewriter=${enableQueryRewriter}, modelName=${modelName || "(默认)"}`
+        );
 
         try {
             const result = await this.ragClient.ask.query({
                 question,
                 topK,
-                enableQueryRewriter
+                enableQueryRewriter,
+                modelName
             } as any);
 
             if (!result.answer) {

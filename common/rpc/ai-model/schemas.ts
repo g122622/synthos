@@ -26,7 +26,8 @@ export const SearchOutputSchema = z.array(SearchResultItemSchema);
 export const AskInputSchema = z.object({
     question: z.string().min(1, "问题不能为空"),
     topK: z.number().int().positive().default(5),
-    enableQueryRewriter: z.boolean().default(true)
+    enableQueryRewriter: z.boolean().default(true),
+    modelName: z.string().optional()
 });
 
 export const ReferenceItemSchema = z.object({
@@ -89,7 +90,8 @@ export const AgentAskInputSchema = z.object({
     enabledTools: z.array(z.enum(["rag_search", "sql_query", "web_search"])).default(["rag_search", "sql_query"]),
     maxToolRounds: z.number().int().positive().default(5),
     temperature: z.number().min(0).max(2).default(0.7),
-    maxTokens: z.number().int().positive().default(2048)
+    maxTokens: z.number().int().positive().default(2048),
+    modelName: z.string().optional()
 });
 
 // ==================== Agent SSE 事件协议（稳定业务事件）====================

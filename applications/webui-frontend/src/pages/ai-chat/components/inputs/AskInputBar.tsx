@@ -1,7 +1,7 @@
 /**
  * AI 问答输入栏
  */
-import { Button, Checkbox, cn } from "@heroui/react";
+import { Button, Checkbox, Select, SelectItem, cn } from "@heroui/react";
 import { Input, Textarea } from "@heroui/input";
 import { Send } from "lucide-react";
 
@@ -9,14 +9,29 @@ interface AskInputBarProps {
     question: string;
     topK: number;
     enableQueryRewriter: boolean;
+    modelName: string;
+    models: string[];
     askLoading: boolean;
     onQuestionChange: (value: string) => void;
     onTopKChange: (value: number) => void;
     onEnableQueryRewriterChange: (value: boolean) => void;
+    onModelNameChange: (value: string) => void;
     onAsk: () => void;
 }
 
-export default function AskInputBar({ question, topK, enableQueryRewriter, askLoading, onQuestionChange, onTopKChange, onEnableQueryRewriterChange, onAsk }: AskInputBarProps) {
+export default function AskInputBar({
+    question,
+    topK,
+    enableQueryRewriter,
+    modelName,
+    models,
+    askLoading,
+    onQuestionChange,
+    onTopKChange,
+    onEnableQueryRewriterChange,
+    onModelNameChange,
+    onAsk
+}: AskInputBarProps) {
     return (
         <form
             className={cn("relative w-full rounded-medium bg-default-100", "flex flex-col items-start", "transition-border border-2 border-default-300 focus-within:border-primary")}
@@ -52,6 +67,33 @@ export default function AskInputBar({ question, topK, enableQueryRewriter, askLo
                     <Checkbox className="ml-2" isSelected={enableQueryRewriter} size="md" onValueChange={onEnableQueryRewriterChange}>
                         查询扩展
                     </Checkbox>
+                    {models.length > 0 && (
+                        <Select
+                            className="ml-2 w-48"
+                            classNames={{
+                                trigger: "h-8 min-h-8",
+                                value: "text-xs"
+                            }}
+                            items={models.map(m => ({ key: m, label: m }))}
+                            placeholder="选择模型"
+                            selectedKeys={modelName ? [modelName] : []}
+                            size="sm"
+                            variant="bordered"
+                            onSelectionChange={keys => {
+                                const selected = Array.from(keys)[0];
+
+                                if (selected) {
+                                    onModelNameChange(selected.toString());
+                                }
+                            }}
+                        >
+                            {item => (
+                                <SelectItem key={item.key} className="text-xs">
+                                    {item.label}
+                                </SelectItem>
+                            )}
+                        </Select>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">

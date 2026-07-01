@@ -125,9 +125,14 @@ export class RagRPCImpl implements RAGRPCImplementation {
     /**
      * RAG 问答
      */
-    public async ask(input: { question: string; topK: number; enableQueryRewriter: boolean }): Promise<AskOutput> {
+    public async ask(input: {
+        question: string;
+        topK: number;
+        enableQueryRewriter: boolean;
+        modelName?: string;
+    }): Promise<AskOutput> {
         this.LOGGER.info(
-            `收到问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}`
+            `收到问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}, modelName=${input.modelName || "(默认)"}`
         );
 
         let deduplicatedResults: SearchOutput;
@@ -179,8 +184,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.LOGGER.success(`RAG prompt 构建完成，长度: ${prompt.length}`);
 
         // 6. 调用 LLM 生成回答
+        const modelName = input.modelName || this.defaultModelName;
         const { content: answer } = await this.TextGeneratorService.generateTextWithModelCandidates(
-            [this.defaultModelName],
+            [modelName],
             prompt
         );
 
@@ -203,11 +209,11 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * RAG 问答（流式）
      */
     public async askStream(
-        input: { question: string; topK: number; enableQueryRewriter: boolean },
+        input: { question: string; topK: number; enableQueryRewriter: boolean; modelName?: string },
         onChunk: (chunk: AskStreamChunk) => void
     ): Promise<void> {
         this.LOGGER.info(
-            `收到流式问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}`
+            `收到流式问答请求: "${input.question}", topK=${input.topK}, enableQueryRewriter=${input.enableQueryRewriter}, modelName=${input.modelName || "(默认)"}`
         );
 
         try {
@@ -263,13 +269,11 @@ export class RagRPCImpl implements RAGRPCImplementation {
             onChunk({ type: "references", references });
 
             // 7. 调用 LLM 生成回答（流式）
-            await this.TextGeneratorService.generateTextStreamWithModelCandidates(
-                [this.defaultModelName],
-                prompt,
-                chunk => {
-                    onChunk({ type: "content", content: chunk });
-                }
-            );
+            const modelName = input.modelName || this.defaultModelName;
+
+            await this.TextGeneratorService.generateTextStreamWithModelCandidates([modelName], prompt, chunk => {
+                onChunk({ type: "content", content: chunk });
+            });
 
             this.LOGGER.success(`流式问答完成`);
         } catch (error) {
@@ -490,6 +494,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
             maxToolRounds?: number;
             temperature?: number;
             maxTokens?: number;
+            modelName?: string;
         },
         onChunk: (chunk: AgentStreamChunk) => void
     ): Promise<{
@@ -559,7 +564,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 maxTokens: input.maxTokens
             },
             chatHistory,
-            systemPrompt
+            systemPrompt,
+            input.modelName
         );
 
         // 7. 保存 Assistant 消息

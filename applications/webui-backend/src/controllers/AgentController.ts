@@ -37,7 +37,8 @@ export class AgentController {
             enabledTools: params.enabledTools,
             maxToolRounds: params.maxToolRounds,
             temperature: params.temperature,
-            maxTokens: params.maxTokens
+            maxTokens: params.maxTokens,
+            modelName: params.modelName
         });
 
         res.json({ success: true, data: result });
@@ -112,7 +113,8 @@ export class AgentController {
                     enabledTools: params.enabledTools,
                     maxToolRounds: params.maxToolRounds,
                     temperature: params.temperature,
-                    maxTokens: params.maxTokens
+                    maxTokens: params.maxTokens,
+                    modelName: params.modelName
                 },
                 {
                     abortSignal: abortController.signal,

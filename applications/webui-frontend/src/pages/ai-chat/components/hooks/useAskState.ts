@@ -43,8 +43,8 @@ export function useAskState({ onReferences, onDone }: UseAskStateOptions) {
     }, [stopAsk]);
 
     const handleAsk = useCallback(
-        async (params: { question: string; topK: number; enableQueryRewriter: boolean }) => {
-            const { question, topK, enableQueryRewriter } = params;
+        async (params: { question: string; topK: number; enableQueryRewriter: boolean; modelName?: string }) => {
+            const { question, topK, enableQueryRewriter, modelName } = params;
 
             if (!question.trim()) {
                 return;
@@ -67,7 +67,8 @@ export function useAskState({ onReferences, onDone }: UseAskStateOptions) {
                     {
                         question,
                         topK,
-                        enableQueryRewriter
+                        enableQueryRewriter,
+                        modelName
                     },
                     chunk => {
                         if (chunk.type === "content" && chunk.content) {

@@ -163,7 +163,8 @@ export type ToggleSessionPinParams = z.infer<typeof ToggleSessionPinSchema>;
 export const RagAskSchema = z.object({
     question: z.string({ message: "缺少question参数" }).min(1, "问题不能为空"),
     topK: z.number().int().positive().max(100).optional().default(5),
-    enableQueryRewriter: z.boolean().optional().default(true)
+    enableQueryRewriter: z.boolean().optional().default(true),
+    modelName: z.string().optional()
 });
 export type RagAskParams = z.infer<typeof RagAskSchema>;
 
@@ -226,7 +227,8 @@ export const AgentAskRequestSchema = z.object({
     enabledTools: z.array(z.enum(["rag_search", "sql_query", "web_search"])).optional(),
     maxToolRounds: z.number().int().positive().optional(),
     temperature: z.number().min(0).max(2).optional(),
-    maxTokens: z.number().int().positive().optional()
+    maxTokens: z.number().int().positive().optional(),
+    modelName: z.string().optional()
 });
 export type AgentAskRequestParams = z.infer<typeof AgentAskRequestSchema>;
 

@@ -21,6 +21,7 @@ import AskInputBar from "./components/inputs/AskInputBar";
 import SearchInputBar from "./components/inputs/SearchInputBar";
 import { useAskState } from "./components/hooks/useAskState";
 import { useMobileLayout } from "./components/hooks/useMobileLayout";
+import { useModelList } from "./components/hooks/useModelList";
 import { useSemanticSearch } from "./components/hooks/useSemanticSearch";
 import { useSessionActions } from "./components/hooks/useSessionActions";
 import { useTopicStatus } from "./components/hooks/useTopicStatus";
@@ -39,6 +40,17 @@ export default function AiChatPage() {
     const [question, setQuestion] = useState("");
     const [topK, setTopK] = useState(DEFAULT_TOP_K);
     const [enableQueryRewriter, setEnableQueryRewriter] = useState(DEFAULT_ENABLE_QUERY_REWRITER);
+
+    // 模型选择
+    const { models, defaultModelName, loading: modelsLoading } = useModelList();
+    const [modelName, setModelName] = useState("");
+
+    // 默认模型加载后自动选中
+    useEffect(() => {
+        if (!modelsLoading && defaultModelName && !modelName) {
+            setModelName(defaultModelName);
+        }
+    }, [modelsLoading, defaultModelName]);
 
     // 历史会话状态
     const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
@@ -318,6 +330,7 @@ export default function AiChatPage() {
                     {activeTab === "agent" ? (
                         <AgentChat
                             conversationId={selectedAgentConversationId}
+                            modelName={modelName || undefined}
                             sessionId={selectedSessionId || undefined}
                             onConversationIdChange={cid => {
                                 setSelectedAgentConversationId(cid);
@@ -340,13 +353,16 @@ export default function AiChatPage() {
                                     <AskInputBar
                                         askLoading={askLoading}
                                         enableQueryRewriter={enableQueryRewriter}
+                                        modelName={modelName}
+                                        models={models}
                                         question={question}
                                         topK={topK}
                                         onAsk={() => {
-                                            void handleAsk({ question, topK, enableQueryRewriter });
+                                            void handleAsk({ question, topK, enableQueryRewriter, modelName: modelName || undefined });
                                             scrollToBottom();
                                         }}
                                         onEnableQueryRewriterChange={setEnableQueryRewriter}
+                                        onModelNameChange={setModelName}
                                         onQuestionChange={setQuestion}
                                         onTopKChange={setTopK}
                                     />
