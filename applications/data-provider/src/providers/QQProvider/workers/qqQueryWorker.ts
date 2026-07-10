@@ -275,6 +275,11 @@ function parseMessageContent(rawMsgElements: MsgElement[]): string {
 let db: PromisifiedSQLite | null = null;
 let patchSQL = "";
 
+// 是否有查询正在执行（用于优雅关闭：关闭流程必须等待查询完成后再关闭 DB）
+let queryInProgress = false;
+// 是否有待处理的关闭请求（查询完成后再执行）
+let shutdownPending = false;
+
 function post(msg: WorkerToMainMessage): void {
     if (parentPort) {
         parentPort.postMessage(msg);
@@ -333,6 +338,7 @@ async function handleQuery(msg: {
         return;
     }
 
+    queryInProgress = true;
     try {
         // 转换为秒级时间戳
         const timeStartSec = Math.floor(msg.timeStart / 1000);
@@ -410,10 +416,27 @@ async function handleQuery(msg: {
         post({ type: "query_result", taskId: msg.taskId, data: messages });
     } catch (error: any) {
         post({ type: "query_error", taskId: msg.taskId, error: error?.message ?? String(error) });
+    } finally {
+        // 查询已结束，清除进行中标志
+        queryInProgress = false;
+
+        // 若关闭流程在查询期间到达，现在安全执行关闭
+        if (shutdownPending) {
+            shutdownPending = false;
+            await handleShutdown();
+        }
     }
 }
 
 async function handleShutdown(): Promise<void> {
+    // 若有查询正在进行，延迟关闭到查询结束（在 handleQuery 的 finally 中触发）
+    // 这样可以避免在 db.all() 仍在执行时关闭 DB 连接，导致 N-API 资源处于不一致状态
+    if (queryInProgress) {
+        shutdownPending = true;
+
+        return;
+    }
+
     if (db) {
         try {
             await db.close();
@@ -425,7 +448,16 @@ async function handleShutdown(): Promise<void> {
     messageSegment = undefined;
     protobuf = null;
     post({ type: "shutdown_complete" });
-    process.exit(0);
+
+    // 主动退出 Worker 线程。
+    // 关键：此时 db.close() 已完成、查询已结束，N-API 原生代码不再活跃，
+    // 因此退出是安全的（不会触发 napi_fatal_error）。
+    // 必须主动退出，否则 @journeyapps/sqlcipher 的原生资源会保持事件循环活跃，
+    // Worker 永远不会自然退出，导致主线程的关闭流程一直等待直到超时。
+    //
+    // 用 setImmediate 让事件循环再走一轮，确保 postMessage 的 shutdown_complete
+    // 已派发、原生模块的收尾回调已排空后再退出。
+    setImmediate(() => process.exit(0));
 }
 
 // ==================== 消息监听 ====================

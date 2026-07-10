@@ -64,46 +64,56 @@ export class ProvideDataTaskHandler {
                 await activeProvider.init();
                 this.LOGGER.info(`IM provider initialized for ${attrs.IMType}`);
 
-                // 并发处理所有群组的消息获取
-                const groupPromises = attrs.groupIds.map(async (groupId: string) => {
-                    this.LOGGER.debug(`开始获取群 ${groupId} 的消息`);
+                try {
+                    // 并发处理所有群组的消息获取
+                    const groupPromises = attrs.groupIds.map(async (groupId: string) => {
+                        this.LOGGER.debug(`开始获取群 ${groupId} 的消息`);
 
-                    let results: RawChatMessage[] = [];
+                        let results: RawChatMessage[] = [];
 
-                    if (attrs.startTimeStamp < 0) {
-                        const newestMsg = await this.imDbAccessService.getNewestRawChatMessageByGroupId(groupId);
-                        const startTimeStamp = newestMsg ? newestMsg.timestamp - 1000 : 0;
+                        if (attrs.startTimeStamp < 0) {
+                            const newestMsg =
+                                await this.imDbAccessService.getNewestRawChatMessageByGroupId(groupId);
+                            const startTimeStamp = newestMsg ? newestMsg.timestamp - 1000 : 0;
 
-                        results = await activeProvider.getMsgByTimeRange(
-                            startTimeStamp,
-                            attrs.endTimeStamp,
-                            groupId
-                        );
-                    } else {
-                        results = await activeProvider.getMsgByTimeRange(
-                            attrs.startTimeStamp,
-                            attrs.endTimeStamp,
-                            groupId
+                            results = await activeProvider.getMsgByTimeRange(
+                                startTimeStamp,
+                                attrs.endTimeStamp,
+                                groupId
+                            );
+                        } else {
+                            results = await activeProvider.getMsgByTimeRange(
+                                attrs.startTimeStamp,
+                                attrs.endTimeStamp,
+                                groupId
+                            );
+                        }
+
+                        this.LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
+
+                        return { groupId, results };
+                    });
+
+                    const settled = await Promise.allSettled(groupPromises);
+
+                    for (const result of settled) {
+                        if (result.status === "fulfilled") {
+                            await this.imDbAccessService.storeRawChatMessages(result.value.results);
+                        } else {
+                            this.LOGGER.error(`群消息获取失败: ${result.reason}`);
+                        }
+                        await job.touch(); // 保证任务存活
+                    }
+                } finally {
+                    // 保证线程池总是被销毁，避免 Worker 线程及其原生 DB 连接泄漏
+                    try {
+                        await activeProvider.dispose();
+                    } catch (disposeError: any) {
+                        this.LOGGER.error(
+                            `Provider dispose 失败: ${disposeError?.message ?? String(disposeError)}`
                         );
                     }
-
-                    this.LOGGER.success(`群 ${groupId} 成功获取到 ${results.length} 条有效消息`);
-
-                    return { groupId, results };
-                });
-
-                const settled = await Promise.allSettled(groupPromises);
-
-                for (const result of settled) {
-                    if (result.status === "fulfilled") {
-                        await this.imDbAccessService.storeRawChatMessages(result.value.results);
-                    } else {
-                        this.LOGGER.error(`群消息获取失败: ${result.reason}`);
-                    }
-                    await job.touch(); // 保证任务存活
                 }
-
-                await activeProvider.dispose();
 
                 this.LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
             },

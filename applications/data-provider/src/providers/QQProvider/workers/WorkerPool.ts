@@ -46,6 +46,8 @@ export interface WorkerPoolOptions {
     taskTimeoutMs?: number;
     /** Worker 初始化超时时间（毫秒），默认 30000 */
     initTimeoutMs?: number;
+    /** 关闭超时时间（毫秒），默认 90000（90秒），宽松等待 Worker 完成正在执行的查询并关闭 */
+    shutdownTimeoutMs?: number;
 }
 
 export class WorkerPool extends Disposable {
@@ -60,12 +62,15 @@ export class WorkerPool extends Disposable {
     private options: Required<WorkerPoolOptions>;
     private initialized = false;
     private initPromise: Promise<void> | null = null;
+    // 是否正在关闭线程池（关闭期间不再接受新任务）
+    private disposing = false;
 
     constructor(options: WorkerPoolOptions) {
         super();
         this.options = {
             taskTimeoutMs: 120000,
             initTimeoutMs: 30000,
+            shutdownTimeoutMs: 10 * 60 * 1000, // 10分钟
             ...options
         };
         this._registerDisposableFunction(() => this.disposeAll());
@@ -151,6 +156,9 @@ export class WorkerPool extends Disposable {
     public submit(timeStart: number, timeEnd: number, groupId: string): Promise<RawChatMessage[]> {
         if (!this.initialized) {
             throw new Error("WorkerPool 尚未初始化");
+        }
+        if (this.disposing) {
+            throw new Error("Worker 线程池正在关闭，不接受新任务");
         }
 
         const taskId = randomUUID();
@@ -289,33 +297,72 @@ export class WorkerPool extends Disposable {
 
     /**
      * 关闭所有 Worker 线程
+     *
+     * 三阶段关闭，确保在调用 terminate() 之前所有 Worker 已空闲、
+     * N-API 原生代码已执行完毕，从而避免 napi_fatal_error 崩溃。
      */
     private async disposeAll(): Promise<void> {
         this.LOGGER.info("正在关闭 Worker 线程池...");
+        this.disposing = true;
 
-        // 拒绝队列中所有等待的任务
+        // ===== 阶段一：停止接收新任务，拒绝尚未派发的排队任务 =====
         for (const task of this.taskQueue) {
             task.reject(new Error("Worker 线程池正在关闭"));
         }
         this.taskQueue = [];
 
-        // 拒绝所有 Worker 上待处理的任务
-        for (const handle of this.workers) {
-            for (const [taskId, pending] of handle.pendingTasks) {
-                clearTimeout(pending.timer);
-                pending.reject(new Error("Worker 线程池正在关闭"));
+        // ===== 阶段二：等待正在执行的查询完成 =====
+        // 注意：此处不拒绝 pendingTasks——它们代表正在 Worker 中执行的查询。
+        // 拒绝它们无法停止原生代码，只会孤立结果。必须让 Worker 自然完成查询，
+        // 否则在原生代码仍活跃时调用 terminate() 会触发 napi_fatal_error。
+        // 同时清除任务超时定时器，避免 120s 任务超时在关闭期间提前触发并打断流程。
+        const inflightTaskCount = this.workers.reduce((sum, h) => sum + h.pendingTasks.size, 0);
+
+        if (inflightTaskCount > 0) {
+            this.LOGGER.info(`等待 ${inflightTaskCount} 个正在执行的查询完成...`);
+
+            // 清除进行中任务的超时定时器
+            for (const handle of this.workers) {
+                for (const [, pending] of handle.pendingTasks) {
+                    clearTimeout(pending.timer);
+                }
             }
-            handle.pendingTasks.clear();
+
+            // 轮询等待所有 Worker 空闲，带宽松超时
+            const drainComplete = new Promise<void>(resolve => {
+                const checkInterval = setInterval(() => {
+                    const stillBusy = this.workers.some(h => h.pendingTasks.size > 0);
+
+                    if (!stillBusy) {
+                        clearInterval(checkInterval);
+                        resolve();
+                    }
+                }, 50);
+            });
+
+            const drainTimeout = new Promise<void>(resolve => {
+                setTimeout(() => {
+                    this.LOGGER.warning(
+                        `等待正在执行的查询超时（${this.options.shutdownTimeoutMs}ms），继续关闭流程`
+                    );
+                    resolve();
+                }, this.options.shutdownTimeoutMs);
+            });
+
+            await Promise.race([drainComplete, drainTimeout]);
+            this.LOGGER.info("所有正在执行的查询已完成");
         }
 
-        // 向所有 Worker 发送关闭消息
+        // ===== 阶段三：发送 shutdown 并等待干净退出 =====
+        // 此时 Worker 应已空闲（queryInProgress === false），handleShutdown 会立即
+        // 关闭 DB、发送 shutdown_complete 并自然退出，不会与 terminate() 竞态。
         const shutdownPromises = this.workers.map(handle => {
             return new Promise<void>(resolve => {
                 const timeout = setTimeout(() => {
-                    this.LOGGER.warning("Worker 关闭超时，强制终止");
+                    this.LOGGER.warning("Worker 关闭超时，强制终止（可能导致 napi_fatal_error）");
                     handle.worker.terminate();
                     resolve();
-                }, 5000);
+                }, this.options.shutdownTimeoutMs);
 
                 handle.worker.on("exit", () => {
                     clearTimeout(timeout);
@@ -334,13 +381,22 @@ export class WorkerPool extends Disposable {
 
         await Promise.allSettled(shutdownPromises);
 
-        // 强制终止所有剩余的 Worker
+        // 安全网：对仍存活的 Worker 强制终止
         for (const handle of this.workers) {
             await handle.worker.terminate();
         }
 
+        // 拒绝任何仍待处理的任务（正常情况下应已为空）
+        for (const handle of this.workers) {
+            for (const [, pending] of handle.pendingTasks) {
+                pending.reject(new Error("Worker 线程池已关闭"));
+            }
+            handle.pendingTasks.clear();
+        }
+
         this.workers = [];
         this.initialized = false;
+        this.disposing = false;
         this.LOGGER.success("Worker 线程池已关闭");
     }
 }
