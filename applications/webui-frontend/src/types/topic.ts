@@ -14,6 +14,7 @@ export interface AIDigestResult {
     modelName: string;
     updateTime: number; // UNIX毫秒级时间戳
     hasEmbedding: boolean;
+    contributorIDs?: string; // 与 contributors 昵称数组一一对应的 QQ 号数组，JSON 字符串；存量数据或暂未计算时为 undefined
 }
 
 /**

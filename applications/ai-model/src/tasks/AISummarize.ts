@@ -10,6 +10,7 @@ import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
 import getRandomHash from "@root/common/util/math/getRandomHash";
+import { resolveContributorIds } from "@root/common/util/topic/resolveContributorIds";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { IMSummaryCtxBuilder } from "../context/ctxBuilders/IMSummaryCtxBuilder";
@@ -69,6 +70,8 @@ export class AISummarizeTaskHandler {
                 interface TaskContext {
                     groupId: string;
                     sessionId: string;
+                    // 该 session 的全部消息，用于回调内即时反查 contributorIDs（昵称→QQ号）
+                    messages: ProcessedChatMessageWithRawMessage[];
                 }
 
                 // 收集所有需要处理的任务
@@ -148,7 +151,7 @@ export class AISummarizeTaskHandler {
                         allTasks.push({
                             input: ctx,
                             modelNames: config.groupConfigs[groupId].aiModels,
-                            context: { groupId, sessionId },
+                            context: { groupId, sessionId, messages: sessions[sessionId] },
                             checkJsonFormat: true
                         });
                     }
@@ -197,7 +200,20 @@ export class AISummarizeTaskHandler {
                             // 遍历ai生成的结果数组，添加sessionId、topicId，并解析contributors
                             for (const resultItem of results) {
                                 Object.assign(resultItem, { sessionId }); // 添加 sessionId
+                                // 抓取参与者昵称数组（此时仍为数组），用于即时反查 QQ 号
+                                const rawContributors = resultItem.contributors as unknown;
+                                const contributorNames: string[] = Array.isArray(rawContributors)
+                                    ? rawContributors.filter((n: unknown) => typeof n === "string")
+                                    : [];
+
                                 resultItem.contributors = JSON.stringify(resultItem.contributors); // 转换为字符串
+                                // 即时反查 contributorIDs：与 contributors 昵称数组等长、顺序一一对应的 QQ 号数组
+                                const contributorIdsArray = resolveContributorIds(
+                                    result.context.messages,
+                                    contributorNames
+                                );
+
+                                Object.assign(resultItem, { contributorIDs: JSON.stringify(contributorIdsArray) });
                                 Object.assign(resultItem, { topicId: getRandomHash(16) });
                                 Object.assign(resultItem, { modelName: selectedModelName });
                                 Object.assign(resultItem, { updateTime: Date.now() });

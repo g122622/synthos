@@ -80,6 +80,12 @@ export const setupApiRoutes = (app: Express): void => {
         asyncHandler((req, res) => chatMessageController.getMessageHourlyStats(req, res))
     );
 
+    // 根据会话ID和昵称数组批量反查发送者QQ号（用于群友头像展示）
+    app.post(
+        "/api/qq-ids-by-nicknames",
+        asyncHandler((req, res) => chatMessageController.getQQIdsByNicknames(req, res))
+    );
+
     // ==================== AI 摘要 ====================
     // 获取AI摘要结果
     app.get(

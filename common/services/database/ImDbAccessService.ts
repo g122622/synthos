@@ -205,6 +205,46 @@ export class ImDbAccessService extends Disposable {
     }
 
     /**
+     * 根据会话ID和昵称数组反查对应的发送者QQ号
+     *
+     * 用于"群友个人画像"前置功能：摘要的 contributors 仅含昵称，需反查 QQ 号以展示头像。
+     * 昵称来源与喂给 LLM 的预处理消息一致（优先 senderGroupNickname，回落 senderNickname，
+     * 见 preprocessing/src/formatMsg.ts），故匹配条件为两者任一命中。
+     *
+     * 多对一处理：同一昵称可能匹配多个 senderId（撞昵称、改名、群昵称与QQ昵称重名），
+     * 此时取时间最早的那条消息的 senderId，最可能是本人。
+     *
+     * @param sessionId 会话ID
+     * @param nicknames 参与者昵称数组
+     * @returns 昵称 → QQ号 映射；未命中的昵称不出现在结果中（调用方视为无头像）
+     */
+    public async getEarliestSenderIdsBySessionIdAndNicknames(
+        sessionId: string,
+        nicknames: string[]
+    ): Promise<Record<string, string>> {
+        if (nicknames.length === 0) {
+            return {};
+        }
+
+        const result: Record<string, string> = {};
+
+        for (const nickname of nicknames) {
+            const row = await this.db.get<{ senderId: string }>(
+                `SELECT senderId FROM chat_messages
+                 WHERE sessionId = ? AND (senderGroupNickname = ? OR senderNickname = ?)
+                 ORDER BY timestamp ASC LIMIT 1`,
+                [sessionId, nickname, nickname]
+            );
+
+            if (row && row.senderId) {
+                result[nickname] = row.senderId;
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * 获取指定群组最新的一条已入库消息
      * @param groupId 群组ID
      * @returns 消息对象

@@ -55,7 +55,7 @@ const QQAvatar: React.FC<QQAvatarProps> = ({ type, qqId, sizeClassName = "w-6 h-
         target.src = DEFAULT_AVATAR_PLACEHOLDER;
     };
 
-    return <img alt={alt || defaultAlt} className={`${sizeClassName} rounded-full ${className}`.trim()} src={getAvatarUrl(type, qqId)} onError={handleError} />;
+    return <img alt={alt || defaultAlt} className={`${sizeClassName} rounded-full ${className}`.trim()} src={getAvatarUrl(type, qqId)} onError={handleError} style={{ display: "inline" }} />;
 };
 
 export default QQAvatar;

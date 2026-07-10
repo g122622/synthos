@@ -11,7 +11,8 @@ import {
     mockGetSessionTimeDurations,
     mockGetAIDigestResultByTopicId,
     mockGetAIDigestResultsBySessionId,
-    mockGetAIDigestResultsBySessionIds
+    mockGetAIDigestResultsBySessionIds,
+    mockGetQQIdsByNicknames
 } from "@/mock/latestTopicsMock";
 
 // 健康检查接口
@@ -212,6 +213,22 @@ export const getAIDigestResultsBySessionId = async (sessionId: string): Promise<
 export const isSessionSummarized = async (sessionId: string): Promise<ApiResponse<{ isSummarized: boolean }>> => {
     const params = new URLSearchParams({ sessionId });
     const response = await fetchWrapper(`${API_BASE_URL}/api/is-session-summarized?${params}`);
+
+    return response.json();
+};
+
+// 根据会话ID和昵称数组批量反查发送者QQ号（用于群友头像展示）
+export const getQQIdsByNicknames = async (sessionId: string, nicknames: string[]): Promise<ApiResponse<Record<string, string>>> => {
+    // 使用 mock 数据
+    if (mockConfig.latestTopics) {
+        return mockGetQQIdsByNicknames(sessionId, nicknames);
+    }
+
+    const response = await fetchWrapper(`${API_BASE_URL}/api/qq-ids-by-nicknames`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId, nicknames })
+    });
 
     return response.json();
 };

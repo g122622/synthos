@@ -16,6 +16,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "@root/common/services/database/AgentDbAccessService";
+import { backfillContributorIds } from "@root/common/services/database/backfillContributorIds";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { ReportEmailService } from "../services/email/ReportEmailService";
@@ -65,6 +66,10 @@ export async function registerAllDependencies(): Promise<void> {
     const agentDbAccessService = new AgentDbAccessService();
 
     await agentDbAccessService.init();
+
+    // 存量补全 contributorIDs（需 imDb 与 agc 均初始化完成）
+    await backfillContributorIds(agcDbAccessService, imDbAccessService);
+
     // 3. 注册数据库服务到 DI 容器
     registerDbAccessServices({
         agcDbAccessService,

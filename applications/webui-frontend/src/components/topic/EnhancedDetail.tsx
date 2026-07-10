@@ -3,14 +3,18 @@ import { Link } from "@heroui/react";
 
 import { generateColorFromName } from "./utils";
 import AnchorIcon from "./AnchorIcon";
+import QQAvatar from "@/components/QQAvatar";
+import { isLikelyQQId } from "@/util/isLikelyQQId";
 
 interface EnhancedDetailProps {
     detail: string;
     contributors: string[];
+    /** 参与者昵称 → QQ号 映射，用于在昵称 chip 前展示头像；缺失的昵称不展示头像 */
+    contributorToQQId?: Map<string, string>;
 }
 
 // 渲染带有高亮和链接的详情文本
-const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors }) => {
+const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, contributorToQQId }) => {
     if (!detail) return <div className="text-default-700 mb-3">摘要正文为空，无法加载数据 😭😭😭</div>;
 
     // 创建正则表达式来匹配所有参与者名称
@@ -35,11 +39,13 @@ const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors })
             const contributorIndex = names.indexOf(part);
 
             if (contributorIndex !== -1) {
-                // 如果是参与者名称，直接返回Chip组件
+                // 如果是参与者名称，渲染为昵称前带头像的 Chip
+                const qqId = contributorToQQId?.get(part);
+
                 finalParts.push(
                     <Chip
                         key={`name-${partIndex}`}
-                        className="mx-1"
+                        className="mx-1 inline-flex items-center gap-1"
                         size="sm"
                         style={{
                             backgroundColor: generateColorFromName(part),
@@ -48,6 +54,7 @@ const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors })
                         }}
                         variant="flat"
                     >
+                        {qqId && isLikelyQQId(qqId) ? <QQAvatar qqId={qqId} sizeClassName="w-5 h-5 mr-1 mb-0" type="user" /> : null}
                         {part}
                     </Chip>
                 );

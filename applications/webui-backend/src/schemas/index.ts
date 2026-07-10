@@ -64,6 +64,12 @@ export const GetMessageHourlyStatsSchema = z.object({
 });
 export type GetMessageHourlyStatsParams = z.infer<typeof GetMessageHourlyStatsSchema>;
 
+export const GetQQIdsByNicknamesSchema = z.object({
+    sessionId: z.string({ message: "缺少sessionId参数" }),
+    nicknames: z.array(z.string(), { message: "缺少nicknames参数" })
+});
+export type GetQQIdsByNicknamesParams = z.infer<typeof GetQQIdsByNicknamesSchema>;
+
 export const ChatMessageFtsSearchSchema = z.object({
     query: z.string({ message: "缺少query参数" }).min(1, "query不能为空"),
     groupIds: z.array(z.string()).optional(),

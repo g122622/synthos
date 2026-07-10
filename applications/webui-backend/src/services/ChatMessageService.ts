@@ -60,6 +60,17 @@ export class ChatMessageService {
     }
 
     /**
+     * 根据会话ID和昵称数组批量反查发送者QQ号
+     * 用于群友头像展示：摘要 contributors 仅含昵称，需反查 QQ 号
+     * @param sessionId 会话ID
+     * @param nicknames 参与者昵称数组
+     * @returns 昵称 → QQ号 映射；未命中的昵称不在结果中
+     */
+    async getQQIdsByNicknames(sessionId: string, nicknames: string[]): Promise<Record<string, string>> {
+        return await this.imDbAccessService.getEarliestSenderIdsBySessionIdAndNicknames(sessionId, nicknames);
+    }
+
+    /**
      * 获取多个群组的每小时消息统计（包括当前24小时和前一天24小时）
      * 时间槽采用整点对齐方式
      * @param groupIds 群组ID数组

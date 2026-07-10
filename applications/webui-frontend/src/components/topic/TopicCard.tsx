@@ -1,7 +1,7 @@
 import type React from "react";
 import type { AIDigestResult, TopicItem } from "@/types/topic";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Chip } from "@heroui/chip";
 import { Tooltip } from "@heroui/react";
@@ -10,12 +10,14 @@ import { Button as HeroUIButton } from "@heroui/button";
 import { MoreVertical, Check, Copy, Star, Download } from "lucide-react";
 import domtoimage from "dom-to-image";
 
-import { generateColorFromName, generateColorFromInterestScore, parseContributors } from "./utils";
+import { generateColorFromName, generateColorFromInterestScore, parseContributors, parseContributorIDs, zipContributorsWithIds } from "./utils";
 import EnhancedDetail from "./EnhancedDetail";
 
 import QQAvatar from "@/components/QQAvatar";
 import { Notification } from "@/util/Notification";
 import { formatRelativeTime } from "@/util/format";
+import { isLikelyQQId } from "@/util/isLikelyQQId";
+import { getQQIdsByNicknames } from "@/api/basicApi";
 
 // TopicCard 可接受的数据类型
 type TopicData = TopicItem | AIDigestResult;
@@ -40,6 +42,41 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
 
     // 解析参与者
     const contributorsArray = parseContributors(topic.contributors);
+    // 解析与 contributors 一一对应的 QQ 号数组，构建初始 昵称→QQ号 映射
+    const contributorIdsArray = parseContributorIDs(topic.contributorIDs);
+    const [qqIdMap, setQqIdMap] = useState<Map<string, string>>(() => zipContributorsWithIds(contributorsArray, contributorIdsArray));
+
+    // 兜底：对 contributorIDs 缺失或未命中的昵称，调用反查 API 补全 QQ 号
+    useEffect(() => {
+        const missing = contributorsArray.filter(nickname => !qqIdMap.get(nickname));
+
+        if (missing.length === 0 || !topic.sessionId) {
+            return;
+        }
+
+        let cancelled = false;
+        getQQIdsByNicknames(topic.sessionId, missing)
+            .then(response => {
+                if (cancelled || !response.success) {
+                    return;
+                }
+                setQqIdMap(prev => {
+                    const next = new Map(prev);
+                    for (const [nickname, qqId] of Object.entries(response.data)) {
+                        next.set(nickname, qqId);
+                    }
+                    return next;
+                });
+            })
+            .catch(error => {
+                console.error("反查QQ号失败:", error);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+        // 依赖 contributors 与 contributorIDs：topic 切换或数据补齐后重新评估缺失项
+    }, [topic.sessionId, topic.contributors, topic.contributorIDs]);
 
     // 判断是否包含扩展字段
     const hasTimeAndGroup = isTopicItemData(topic);
@@ -201,7 +238,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                     )}
                 </CardHeader>
                 <CardBody className="relative pb-9 overflow-hidden">
-                    <EnhancedDetail contributors={contributorsArray} detail={topic.detail} />
+                    <EnhancedDetail contributors={contributorsArray} contributorToQQId={qqIdMap} detail={topic.detail} />
                     {/* 群ID和群头像（仅当有群信息时显示） */}
                     <div className="absolute bottom-3 left-3 flex items-center gap-2">
                         {hasGroup && (
@@ -260,20 +297,28 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                                     <div className="flex flex-col gap-1">
                                                         <p className="font-medium">参与者</p>
                                                         <div className="flex flex-wrap gap-1">
-                                                            {contributorsArray.map((contributor, idx) => (
-                                                                <Chip
-                                                                    key={idx}
-                                                                    size="sm"
-                                                                    style={{
-                                                                        backgroundColor: generateColorFromName(contributor),
-                                                                        color: generateColorFromName(contributor, false),
-                                                                        fontWeight: "bold"
-                                                                    }}
-                                                                    variant="flat"
-                                                                >
-                                                                    {contributor}
-                                                                </Chip>
-                                                            ))}
+                                                            {contributorsArray.map((contributor, idx) => {
+                                                                const contributorQqId = qqIdMap.get(contributor);
+
+                                                                return (
+                                                                    <Chip
+                                                                        key={idx}
+                                                                        className="inline-flex items-center gap-1"
+                                                                        size="sm"
+                                                                        style={{
+                                                                            backgroundColor: generateColorFromName(contributor),
+                                                                            color: generateColorFromName(contributor, false),
+                                                                            fontWeight: "bold"
+                                                                        }}
+                                                                        variant="flat"
+                                                                    >
+                                                                        {contributorQqId && isLikelyQQId(contributorQqId) ? (
+                                                                            <QQAvatar qqId={contributorQqId} sizeClassName="w-4 h-4 mr-1 mt-[-1px]" type="user" />
+                                                                        ) : null}
+                                                                        {contributor}
+                                                                    </Chip>
+                                                                );
+                                                            })}
                                                         </div>
                                                     </div>
                                                     <CopyIconButton label="参与者" text={participantsText} />

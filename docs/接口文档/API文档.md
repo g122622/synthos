@@ -164,6 +164,25 @@ Body：
 
 ---
 
+### POST /api/qq-ids-by-nicknames
+
+说明：根据会话ID和昵称数组批量反查发送者QQ号。用于群友头像展示——话题摘要的 `contributors` 仅含昵称，需反查 `senderId`（QQ号）才能拼接 QQ 头像。多对一场景（同一昵称匹配多个 senderId，如撞昵称、改名）取时间最早的那条消息的 senderId。
+
+Body：
+
+| 参数 | 类型 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| sessionId | string | 是 | 会话ID |
+| nicknames | string[] | 是 | 参与者昵称数组 |
+
+响应 `data`：
+
+```ts
+Record<string, string> // 昵称 → QQ号 映射；未命中的昵称不出现在结果中（调用方视为无头像）
+```
+
+---
+
 ### POST /api/chat-messages-fts-search
 
 说明：聊天消息“全文检索（FTS）”查询接口。该接口查询的是独立的 FTS 数据库文件（由 db-cli 手动构建索引）。
@@ -242,10 +261,12 @@ Query：
   topicId: string;
   sessionId: string;
   topic: string;
-  contributors: string;
+  contributors: string;       // 参与者昵称数组，JSON 字符串
   detail: string;
   modelName: string;
   updateTime: number;
+  hasEmbedding: boolean;
+  contributorIDs?: string;    // 与 contributors 昵称数组一一对应的 QQ 号数组，JSON 字符串；存量数据或暂未计算时为 undefined
 }
 ```
 

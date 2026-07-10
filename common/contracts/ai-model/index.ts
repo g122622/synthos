@@ -7,4 +7,5 @@ export interface AIDigestResult {
     modelName: string; // 生成摘要所使用的AI模型名称
     updateTime: number; // 摘要更新时间，UNIX毫秒时间戳格式
     hasEmbedding: boolean; // 是否已生成嵌入向量
+    contributorIDs?: string; // 与 contributors 昵称数组一一对应的 QQ 号数组，JSON 字符串；存量数据或暂未计算时为 undefined
 }

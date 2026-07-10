@@ -11,6 +11,35 @@ const parseContributors = (contributorsStr: string): string[] => {
     }
 };
 
+// 解析contributorIDs字符串为QQ号数组（与contributors昵称数组一一对应，未命中位置为空串）
+const parseContributorIDs = (contributorIDsStr?: string): string[] => {
+    try {
+        if (!contributorIDsStr) return [];
+        const parsed = JSON.parse(contributorIDsStr);
+
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.error("解析参与者QQ号失败:", error);
+
+        return [];
+    }
+};
+
+// 将昵称数组与QQ号数组按下标对齐为 昵称→QQ号 映射；空QQ号不入映射
+const zipContributorsWithIds = (names: string[], ids: string[]): Map<string, string> => {
+    const map = new Map<string, string>();
+
+    for (let i = 0; i < names.length; i++) {
+        const id = ids[i] ?? "";
+
+        if (id) {
+            map.set(names[i], id);
+        }
+    }
+
+    return map;
+};
+
 // 生成基于名称的颜色
 const generateColorFromName = (name: string, isBackground: boolean = true): string => {
     const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#FFD700", "#F8B500", "#6C5CE7"];
@@ -40,4 +69,4 @@ const generateColorFromInterestScore = (interestScore: number, shouldContainAlph
     return `hsla(${hue}, 90%, 40%, 0.1)`;
 };
 
-export { parseContributors, generateColorFromName, generateColorFromInterestScore };
+export { parseContributors, parseContributorIDs, zipContributorsWithIds, generateColorFromName, generateColorFromInterestScore };

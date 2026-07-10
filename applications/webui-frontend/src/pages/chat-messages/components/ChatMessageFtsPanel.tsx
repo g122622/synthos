@@ -14,6 +14,7 @@ import { Search } from "lucide-react";
 import { chatMessagesFtsSearch, getChatMessagesFtsContext } from "@/api/basicApi";
 import QQAvatar from "@/components/QQAvatar";
 import { highlightTextByTokens } from "@/util/highlightText";
+import { isLikelyQQId } from "@/util/isLikelyQQId";
 
 export function ChatMessageFtsPanel(props: { selectedGroupId: string; startTimeMs: number; endTimeMs: number; groupNameResolver?: (groupId: string) => string | undefined }) {
     const [query, setQuery] = useState<string>("");
@@ -31,28 +32,6 @@ export function ChatMessageFtsPanel(props: { selectedGroupId: string; startTimeM
     const [contextMessages, setContextMessages] = useState<ChatMessage[] | null>(null);
 
     const canSearch = useMemo(() => query.trim().length > 0, [query]);
-
-    const isLikelyQQId = useCallback((value: string): boolean => {
-        if (!value) {
-            return false;
-        }
-
-        const trimmed = value.trim();
-
-        if (trimmed.length === 0) {
-            return false;
-        }
-
-        for (let i = 0; i < trimmed.length; i++) {
-            const code = trimmed.charCodeAt(i);
-
-            if (code < 48 || code > 57) {
-                return false;
-            }
-        }
-
-        return true;
-    }, []);
 
     const runSearch = useCallback(
         async (nextPage: number) => {

@@ -11,7 +11,8 @@ export const createIMDBTableSQL = `
                     quotedMsgContent TEXT,
                     sessionId TEXT,
                     preProcessedContent TEXT
-                );`;
+                );
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_sessionId ON chat_messages(sessionId);`;
 
 export const createAGCTableSQL = `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
@@ -22,7 +23,8 @@ export const createAGCTableSQL = `
                     detail TEXT,
                     modelName TEXT,
                     updateTime INTEGER,
-                    hasEmbedding INTEGER NOT NULL DEFAULT 0
+                    hasEmbedding INTEGER NOT NULL DEFAULT 0,
+                    contributorIDs TEXT
                 );`;
 
 export const createInterestScoreTableSQL = `

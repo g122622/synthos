@@ -3,6 +3,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { backfillContributorIds } from "@root/common/services/database/backfillContributorIds";
 import { registerDbAccessServices, registerImDbFtsService } from "@root/common/di/container";
 import Logger from "@root/common/util/Logger";
 
@@ -31,6 +32,9 @@ export const initializeDatabases = async (): Promise<{
         await imDbFtsService.init();
         await interestScoreDbAccessService.init();
         await reportDbAccessService.init();
+
+        // 存量补全 contributorIDs（需 imDb 与 agc 均初始化完成）
+        await backfillContributorIds(agcDbAccessService, imDbAccessService);
 
         // 注册到 DI 容器
         registerDbAccessServices({

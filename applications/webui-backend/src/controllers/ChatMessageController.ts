@@ -10,7 +10,8 @@ import {
     GetChatMessagesByGroupIdSchema,
     GetSessionIdsByGroupIdsAndTimeRangeSchema,
     GetSessionTimeDurationsSchema,
-    GetMessageHourlyStatsSchema
+    GetMessageHourlyStatsSchema,
+    GetQQIdsByNicknamesSchema
 } from "../schemas/index";
 
 @injectable()
@@ -64,5 +65,16 @@ export class ChatMessageController {
         const results = await this.chatMessageService.getMessageHourlyStats(params.groupIds);
 
         res.json({ success: true, data: results });
+    }
+
+    /**
+     * POST /api/qq-ids-by-nicknames
+     * 根据会话ID和昵称数组批量反查发送者QQ号
+     */
+    public async getQQIdsByNicknames(req: Request, res: Response): Promise<void> {
+        const params = GetQQIdsByNicknamesSchema.parse(req.body);
+        const result = await this.chatMessageService.getQQIdsByNicknames(params.sessionId, params.nicknames);
+
+        res.json({ success: true, data: result });
     }
 }

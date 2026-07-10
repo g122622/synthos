@@ -36,6 +36,15 @@ export class AgcDbAccessService extends Disposable {
             await this.db.run(`ALTER TABLE ai_digest_results ADD COLUMN hasEmbedding INTEGER NOT NULL DEFAULT 0`);
             this.LOGGER.info("已为 ai_digest_results 表补齐 hasEmbedding 字段");
         }
+
+        // 迁移：添加 contributorIDs 列（如不存在）
+        // 存储与 contributors 昵称数组一一对应的 QQ 号数组（JSON 字符串），用于群友头像等展示
+        const hasContributorIDs = columns.some((col: any) => col.name === "contributorIDs");
+
+        if (!hasContributorIDs) {
+            await this.db.run(`ALTER TABLE ai_digest_results ADD COLUMN contributorIDs TEXT`);
+            this.LOGGER.info("已为 ai_digest_results 表补齐 contributorIDs 字段");
+        }
     }
 
     /**
@@ -44,7 +53,7 @@ export class AgcDbAccessService extends Disposable {
      */
     public async storeAIDigestResult(result: AIDigestResult) {
         await this.db.run(
-            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime, hasEmbedding) VALUES (?,?,?,?,?,?,?,?)
+            `INSERT INTO ai_digest_results (topicId, sessionId, topic, contributors, detail, modelName, updateTime, hasEmbedding, contributorIDs) VALUES (?,?,?,?,?,?,?,?,?)
             ON CONFLICT(topicId) DO UPDATE SET
                 sessionId = excluded.sessionId,
                 topic = excluded.topic,
@@ -52,7 +61,8 @@ export class AgcDbAccessService extends Disposable {
                 detail = excluded.detail,
                 modelName = excluded.modelName,
                 updateTime = excluded.updateTime,
-                hasEmbedding = CASE WHEN hasEmbedding = 1 THEN 1 ELSE excluded.hasEmbedding END
+                hasEmbedding = CASE WHEN hasEmbedding = 1 THEN 1 ELSE excluded.hasEmbedding END,
+                contributorIDs = excluded.contributorIDs
             `,
             [
                 result.topicId,
@@ -62,7 +72,8 @@ export class AgcDbAccessService extends Disposable {
                 result.detail,
                 result.modelName,
                 result.updateTime,
-                result.hasEmbedding ? 1 : 0
+                result.hasEmbedding ? 1 : 0,
+                result.contributorIDs ?? null
             ]
         );
     }
@@ -149,6 +160,26 @@ export class AgcDbAccessService extends Disposable {
      */
     public async getAIDigestResultsWithoutEmbedding(): Promise<AIDigestResult[]> {
         return this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE hasEmbedding = 0`);
+    }
+
+    /**
+     * 获取所有尚未补全 contributorIDs 的摘要结果（用于启动时存量补全）
+     * @returns contributorIDs 为 NULL 的 AIDigestResult 数组
+     */
+    public async getAIDigestResultsWithoutContributorIds(): Promise<AIDigestResult[]> {
+        return this.db.all<AIDigestResult>(`SELECT * FROM ai_digest_results WHERE contributorIDs IS NULL`);
+    }
+
+    /**
+     * 补全指定 topicId 的 contributorIDs 字段
+     * @param topicId 主题id
+     * @param contributorIDs 与 contributors 昵称数组一一对应的 QQ 号数组的 JSON 字符串
+     */
+    public async updateContributorIds(topicId: string, contributorIDs: string): Promise<void> {
+        await this.db.run(`UPDATE ai_digest_results SET contributorIDs = ? WHERE topicId = ?`, [
+            contributorIDs,
+            topicId
+        ]);
     }
 
     /**
