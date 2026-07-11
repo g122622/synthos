@@ -890,3 +890,93 @@ Body：
   data: { valid: true } | { valid: false; errors: string[] }
 }
 ```
+
+## 16. 群友画像
+
+群友个人画像：输入群友 QQ号（`senderId`），聚合其参与的所有话题摘要（从 `ai_digest_results.contributorIDs` JSON 数组反查），由 LLM 生成结构化画像总结，落库复用。
+
+### GET /api/member-profile
+
+说明：按 QQ号查询缓存的画像记录（命中则非流式直接返回，未命中返回 `data: null`）。
+
+Query：
+
+```ts
+{ senderId: string } // QQ号
+```
+
+响应 `data`（命中）：
+
+```ts
+{
+  senderId: string;        // QQ号，主键
+  nickname: string | null; // 展示用昵称
+  profileJson: string;     // MemberProfileContent 的 JSON 字符串
+  modelName: string;       // 生成所用模型名
+  topicCount: number;      // 聚合依据的话题数
+  createdAt: number;       // 创建时间，UNIX ms
+  updatedAt: number;       // 更新时间，UNIX ms
+}
+```
+
+响应 `data`（未命中）：`null`
+
+其中 `profileJson` 解析后为：
+
+```ts
+{
+  school: string | null;             // 学校/教育背景
+  company: string | null;            // 公司/工作单位
+  domain: string | null;             // 专业领域/研究方向
+  experience: string | null;         // 经历（科研/实习/求职等）
+  interests: string | null;          // 兴趣/关注点
+  communicationStyle: string | null; // 沟通风格
+}
+```
+
+### GET /api/member-profile/topics
+
+说明：按 QQ号反查该群友参与的所有话题摘要（画像依据），跨所有群组、全量不限时间。
+
+Query：
+
+```ts
+{ senderId: string } // QQ号
+```
+
+响应 `data`：`AIDigestResult[]`（与 AI 摘要结果结构一致）
+
+### POST /api/member-profile/generate
+
+说明：群友画像生成接口（非流式）。聚合该群友参与的所有话题摘要，由 LLM 生成结构化画像并落库（upsert，覆盖同 `senderId` 旧记录），直接返回完整画像记录。未命中缓存时前端自动调用；"重新生成"按钮强制调用覆盖缓存。
+
+> 画像为结构化 JSON，在生成完成前无法解析，故不采用流式传输。
+
+Body：
+
+```ts
+{
+  senderId: string;     // QQ号，必填
+  nickname?: string;    // 展示用昵称，可选（仅用于 prompt）
+}
+```
+
+响应：
+
+```ts
+{
+  success: boolean;
+  data: MemberProfile | null; // 成功时为落库的画像记录，失败时为 null
+  message?: string;         // 失败原因（如未参与任何已摘要话题、JSON 解析失败等）
+}
+```
+
+`data`（成功时）结构同 `GET /api/member-profile` 的命中响应。
+
+常见失败场景（`success: false`）：
+
+- 该群友未参与任何已摘要话题：`message: "该群友未参与任何已摘要话题，无法生成画像"`
+- LLM 输出 JSON 解析失败：`message: "画像格式解析失败: ..."`
+- LLM 调用失败：`message: "画像生成失败: ..."`
+
+

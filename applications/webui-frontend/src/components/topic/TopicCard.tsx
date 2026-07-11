@@ -2,6 +2,7 @@ import type React from "react";
 import type { AIDigestResult, TopicItem } from "@/types/topic";
 
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardBody, CardHeader } from "@heroui/card";
 import { Chip } from "@heroui/chip";
 import { Tooltip } from "@heroui/react";
@@ -38,7 +39,13 @@ interface TopicCardProps {
 }
 
 const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favoriteTopics = {}, readTopics = {}, onToggleFavorite, onMarkAsRead }) => {
+    const navigate = useNavigate();
     const cardCaptureRef = useRef<HTMLDivElement>(null);
+
+    // 跳转到群友画像页
+    const navigateToMemberProfile = (qqId: string, nickname: string) => {
+        navigate(`/member-profile/${qqId}?nickname=${encodeURIComponent(nickname)}`);
+    };
 
     // 解析参与者
     const contributorsArray = parseContributors(topic.contributors);
@@ -238,7 +245,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                     )}
                 </CardHeader>
                 <CardBody className="relative pb-9 overflow-hidden">
-                    <EnhancedDetail contributors={contributorsArray} contributorToQQId={qqIdMap} detail={topic.detail} />
+                    <EnhancedDetail contributors={contributorsArray} contributorToQQId={qqIdMap} detail={topic.detail} onContributorClick={navigateToMemberProfile} />
                     {/* 群ID和群头像（仅当有群信息时显示） */}
                     <div className="absolute bottom-3 left-3 flex items-center gap-2">
                         {hasGroup && (
@@ -299,11 +306,13 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                                         <div className="flex flex-wrap gap-1">
                                                             {contributorsArray.map((contributor, idx) => {
                                                                 const contributorQqId = qqIdMap.get(contributor);
+                                                                const canNavigate = Boolean(contributorQqId) && isLikelyQQId(contributorQqId as string);
 
-                                                                return (
+                                                                const chip = (
                                                                     <Chip
                                                                         key={idx}
                                                                         className="inline-flex items-center gap-1"
+                                                                        isDisabled={!canNavigate}
                                                                         size="sm"
                                                                         style={{
                                                                             backgroundColor: generateColorFromName(contributor),
@@ -311,6 +320,7 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                                                             fontWeight: "bold"
                                                                         }}
                                                                         variant="flat"
+                                                                        onClick={canNavigate ? () => navigateToMemberProfile(contributorQqId as string, contributor) : undefined}
                                                                     >
                                                                         {contributorQqId && isLikelyQQId(contributorQqId) ? (
                                                                             <QQAvatar qqId={contributorQqId} sizeClassName="w-4 h-4 mr-1 mt-[-1px]" type="user" />
@@ -318,6 +328,16 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                                                         {contributor}
                                                                     </Chip>
                                                                 );
+
+                                                                if (!canNavigate) {
+                                                                    return (
+                                                                        <Tooltip key={idx} content="该群友无QQ号，无法生成画像" placement="top">
+                                                                            {chip}
+                                                                        </Tooltip>
+                                                                    );
+                                                                }
+
+                                                                return chip;
                                                             })}
                                                         </div>
                                                     </div>

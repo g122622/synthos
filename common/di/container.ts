@@ -14,6 +14,7 @@ import { ImDbFtsService } from "../services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "../services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "../services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "../services/database/AgentDbAccessService";
+import { MemberProfileDbAccessService } from "../services/database/MemberProfileDbAccessService";
 
 import { COMMON_TOKENS } from "./tokens";
 
@@ -146,6 +147,22 @@ export function getAgentDbAccessService(): AgentDbAccessService {
 }
 
 /**
+ * 注册 MemberProfileDbAccessService 实例到 DI 容器
+ * @param instance 已初始化的 MemberProfileDbAccessService 实例
+ */
+export function registerMemberProfileDbAccessService(instance: MemberProfileDbAccessService): void {
+    container.registerInstance(COMMON_TOKENS.MemberProfileDbAccessService, instance);
+}
+
+/**
+ * 从 DI 容器获取 MemberProfileDbAccessService 实例
+ * @returns MemberProfileDbAccessService 实例
+ */
+export function getMemberProfileDbAccessService(): MemberProfileDbAccessService {
+    return container.resolve<MemberProfileDbAccessService>(COMMON_TOKENS.MemberProfileDbAccessService);
+}
+
+/**
  * 批量注册所有数据库服务到 DI 容器
  * @param services 包含所有已初始化数据库服务的对象
  */
@@ -155,6 +172,7 @@ export function registerDbAccessServices(services: {
     interestScoreDbAccessService: InterestScoreDbAccessService;
     reportDbAccessService: ReportDbAccessService;
     agentDbAccessService?: AgentDbAccessService;
+    memberProfileDbAccessService?: MemberProfileDbAccessService;
 }): void {
     registerAgcDbAccessService(services.agcDbAccessService);
     registerImDbAccessService(services.imDbAccessService);
@@ -162,6 +180,9 @@ export function registerDbAccessServices(services: {
     registerReportDbAccessService(services.reportDbAccessService);
     if (services.agentDbAccessService) {
         registerAgentDbAccessService(services.agentDbAccessService);
+    }
+    if (services.memberProfileDbAccessService) {
+        registerMemberProfileDbAccessService(services.memberProfileDbAccessService);
     }
 }
 

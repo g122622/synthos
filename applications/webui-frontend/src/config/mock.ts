@@ -22,5 +22,7 @@ export const mockConfig = {
     // Config Panel 模块 mock 开关
     configPanel: import.meta.env.VITE_MOCK_CONFIG_PANEL === "true" || MOCK_ENABLED,
     // System Monitor 模块 mock 开关
-    systemMonitor: import.meta.env.VITE_MOCK_SYSTEM_MONITOR === "true" || MOCK_ENABLED
+    systemMonitor: import.meta.env.VITE_MOCK_SYSTEM_MONITOR === "true" || MOCK_ENABLED,
+    // 群友画像模块 mock 开关
+    memberProfile: import.meta.env.VITE_MOCK_MEMBER_PROFILE === "true" || MOCK_ENABLED
 };

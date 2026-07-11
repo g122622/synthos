@@ -32,6 +32,7 @@ import { ReportService } from "../services/ReportService";
 import { SystemMonitorService } from "../services/SystemMonitorService";
 import { AgentService } from "../services/AgentService";
 import { LogsService } from "../services/LogsService";
+import { MemberProfileService } from "../services/MemberProfileService";
 import { createRAGClient } from "../rpc/aiModelClient";
 import { AIDigestController } from "../controllers/AIDigestController";
 import { ChatMessageController } from "../controllers/ChatMessageController";
@@ -47,6 +48,7 @@ import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
 import { LogsController } from "../controllers/LogsController";
+import { MemberProfileController } from "../controllers/MemberProfileController";
 
 import { TOKENS } from "./tokens";
 
@@ -116,6 +118,7 @@ export function registerServices(): void {
     container.registerSingleton(TOKENS.SystemMonitorService, SystemMonitorService);
     container.registerSingleton(TOKENS.AgentService, AgentService);
     container.registerSingleton(TOKENS.LogsService, LogsService);
+    container.registerSingleton(TOKENS.MemberProfileService, MemberProfileService);
     // EmailService 现在从 common 注册
     registerEmailService();
 }
@@ -138,6 +141,7 @@ export function registerControllers(): void {
     container.registerSingleton(TOKENS.SystemMonitorController, SystemMonitorController);
     container.registerSingleton(TOKENS.AgentController, AgentController);
     container.registerSingleton(TOKENS.LogsController, LogsController);
+    container.registerSingleton(TOKENS.MemberProfileController, MemberProfileController);
 }
 
 /**

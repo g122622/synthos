@@ -231,6 +231,39 @@ export const AgentGetMessagesInputSchema = z.object({
 export const AgentGetConversationsOutputSchema = z.array(AgentConversationItemSchema);
 export const AgentGetMessagesOutputSchema = z.array(AgentMessageItemSchema);
 
+// ========== 群友画像生成接口 ==========
+
+export const MemberProfileGenerateInputSchema = z.object({
+    senderId: z.string().min(1, "senderId 不能为空"),
+    nickname: z.string().optional() // 仅用于 prompt 展示，可选
+});
+
+export const MemberProfileContentSchema = z.object({
+    school: z.string().nullable(),
+    company: z.string().nullable(),
+    domain: z.string().nullable(),
+    experience: z.string().nullable(),
+    interests: z.string().nullable(),
+    communicationStyle: z.string().nullable()
+});
+
+export const MemberProfileRecordSchema = z.object({
+    senderId: z.string(),
+    nickname: z.string().nullable(),
+    profileJson: z.string(),
+    modelName: z.string(),
+    topicCount: z.number(),
+    createdAt: z.number(),
+    updatedAt: z.number()
+});
+
+export const MemberProfileGenerateOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string().optional(),
+    profile: MemberProfileContentSchema.optional(), // 成功时携带解析后的画像内容
+    memberProfile: MemberProfileRecordSchema.optional() // 成功时携带落库的画像记录
+});
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -265,3 +298,8 @@ export type AgentGetConversationsInput = z.infer<typeof AgentGetConversationsInp
 export type AgentGetMessagesInput = z.infer<typeof AgentGetMessagesInputSchema>;
 export type AgentGetConversationsOutput = z.infer<typeof AgentGetConversationsOutputSchema>;
 export type AgentGetMessagesOutput = z.infer<typeof AgentGetMessagesOutputSchema>;
+
+export type MemberProfileGenerateInput = z.infer<typeof MemberProfileGenerateInputSchema>;
+export type MemberProfileContent = z.infer<typeof MemberProfileContentSchema>;
+export type MemberProfileRecord = z.infer<typeof MemberProfileRecordSchema>;
+export type MemberProfileGenerateOutput = z.infer<typeof MemberProfileGenerateOutputSchema>;

@@ -70,6 +70,19 @@ export const GetQQIdsByNicknamesSchema = z.object({
 });
 export type GetQQIdsByNicknamesParams = z.infer<typeof GetQQIdsByNicknamesSchema>;
 
+// ==================== Member Profile（群友画像）====================
+
+export const GetMemberProfileSchema = z.object({
+    senderId: z.string({ message: "缺少senderId参数" }).min(1, "senderId不能为空")
+});
+export type GetMemberProfileParams = z.infer<typeof GetMemberProfileSchema>;
+
+export const GenerateMemberProfileSchema = z.object({
+    senderId: z.string({ message: "缺少senderId参数" }).min(1, "senderId不能为空"),
+    nickname: z.string().optional()
+});
+export type GenerateMemberProfileParams = z.infer<typeof GenerateMemberProfileSchema>;
+
 export const ChatMessageFtsSearchSchema = z.object({
     query: z.string({ message: "缺少query参数" }).min(1, "query不能为空"),
     groupIds: z.array(z.string()).optional(),

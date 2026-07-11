@@ -19,6 +19,7 @@ import { ReportController } from "../controllers/ReportController";
 import { SystemMonitorController } from "../controllers/SystemMonitorController";
 import { AgentController } from "../controllers/AgentController";
 import { LogsController } from "../controllers/LogsController";
+import { MemberProfileController } from "../controllers/MemberProfileController";
 
 export const setupApiRoutes = (app: Express): void => {
     // 获取 controller 实例
@@ -35,6 +36,7 @@ export const setupApiRoutes = (app: Express): void => {
     const systemMonitorController = container.resolve<SystemMonitorController>(TOKENS.SystemMonitorController);
     const agentController = container.resolve<AgentController>(TOKENS.AgentController);
     const logsController = container.resolve<LogsController>(TOKENS.LogsController);
+    const memberProfileController = container.resolve<MemberProfileController>(TOKENS.MemberProfileController);
 
     // ==================== 群组 ====================
     // 获取所有群组详情
@@ -315,5 +317,24 @@ export const setupApiRoutes = (app: Express): void => {
     app.post(
         "/api/agent/conversations/:id/messages",
         asyncHandler((req, res) => agentController.getMessages(req, res))
+    );
+
+    // ==================== 群友画像 ====================
+    // 查询缓存画像
+    app.get(
+        "/api/member-profile",
+        asyncHandler((req, res) => memberProfileController.getMemberProfile(req, res))
+    );
+
+    // 反查该群友参与的所有话题（画像依据）
+    app.get(
+        "/api/member-profile/topics",
+        asyncHandler((req, res) => memberProfileController.getContributorTopics(req, res))
+    );
+
+    // 群友画像生成（非流式，直接返回完整画像）
+    app.post(
+        "/api/member-profile/generate",
+        asyncHandler((req, res) => memberProfileController.generate(req, res))
     );
 };

@@ -16,6 +16,7 @@ export const TOKENS = {
     ImDbFtsService: COMMON_TOKENS.ImDbFtsService,
     InterestScoreDbAccessService: COMMON_TOKENS.InterestScoreDbAccessService,
     ReportDbAccessService: COMMON_TOKENS.ReportDbAccessService,
+    MemberProfileDbAccessService: COMMON_TOKENS.MemberProfileDbAccessService,
 
     // Status Managers
     TopicFavoriteStatusManager: Symbol.for("TopicFavoriteStatusManager"),
@@ -41,6 +42,7 @@ export const TOKENS = {
     SystemMonitorService: Symbol.for("SystemMonitorService"),
     AgentService: Symbol.for("AgentService"),
     LogsService: Symbol.for("LogsService"),
+    MemberProfileService: Symbol.for("MemberProfileService"),
     EmailService: COMMON_TOKENS.EmailService,
 
     // Controllers
@@ -57,5 +59,6 @@ export const TOKENS = {
     ReportController: Symbol.for("ReportController"),
     SystemMonitorController: Symbol.for("SystemMonitorController"),
     AgentController: Symbol.for("AgentController"),
-    LogsController: Symbol.for("LogsController")
+    LogsController: Symbol.for("LogsController"),
+    MemberProfileController: Symbol.for("MemberProfileController")
 } as const;

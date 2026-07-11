@@ -12,7 +12,8 @@ export const createIMDBTableSQL = `
                     sessionId TEXT,
                     preProcessedContent TEXT
                 );
-                CREATE INDEX IF NOT EXISTS idx_chat_messages_sessionId ON chat_messages(sessionId);`;
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_sessionId ON chat_messages(sessionId);
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_senderId ON chat_messages(senderId);`;
 
 export const createAGCTableSQL = `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
@@ -86,3 +87,14 @@ export const createAgentTableSQL = `
             CREATE INDEX IF NOT EXISTS idx_agent_messages_conversation_id ON agent_messages(conversation_id);
             CREATE INDEX IF NOT EXISTS idx_agent_messages_timestamp ON agent_messages(timestamp);
         `;
+
+export const createMemberProfileTableSQL = `
+                CREATE TABLE IF NOT EXISTS member_profiles (
+                    senderId TEXT NOT NULL PRIMARY KEY,
+                    nickname TEXT,
+                    profileJson TEXT NOT NULL,
+                    modelName TEXT,
+                    topicCount INTEGER NOT NULL DEFAULT 0,
+                    createdAt INTEGER NOT NULL,
+                    updatedAt INTEGER NOT NULL
+                );`;

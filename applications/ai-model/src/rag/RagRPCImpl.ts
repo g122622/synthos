@@ -14,11 +14,13 @@ import {
     AskOutput,
     AskStreamChunk,
     TriggerReportGenerateOutput,
-    SendReportEmailOutput
+    SendReportEmailOutput,
+    MemberProfileGenerateOutput
 } from "@root/common/rpc/ai-model/index";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { MemberProfileDbAccessService } from "@root/common/services/database/MemberProfileDbAccessService";
 import Logger from "@root/common/util/Logger";
 import { agendaInstance } from "@root/common/scheduler/agenda";
 import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
@@ -32,6 +34,7 @@ import { ReportEmailService } from "../services/email/ReportEmailService";
 import { ToolContext, AgentStreamChunk, AgentResult } from "../agent/contracts/index";
 import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { MemberProfileCtxBuilder } from "../context/ctxBuilders/MemberProfileCtxBuilder";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
@@ -62,7 +65,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(AI_MODEL_TOKENS.EmbeddingService) private embeddingService: EmbeddingService,
         @inject(AI_MODEL_TOKENS.LangGraphAgentExecutor) private agentExecutor: LangGraphAgentExecutor,
         @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService,
-        @inject(AI_MODEL_TOKENS.AgentToolCatalog) private agentToolCatalog: AgentToolCatalog
+        @inject(AI_MODEL_TOKENS.AgentToolCatalog) private agentToolCatalog: AgentToolCatalog,
+        @inject(COMMON_TOKENS.MemberProfileDbAccessService) private memberProfileDB: MemberProfileDbAccessService,
+        @inject(AI_MODEL_TOKENS.MemberProfileCtxBuilder) private memberProfileCtxBuilder: MemberProfileCtxBuilder
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -80,6 +85,8 @@ export class RagRPCImpl implements RAGRPCImplementation {
         this.queryRewriter = new QueryRewriter(this.TextGeneratorService, this.defaultModelName);
         // 初始化 RAGCtxBuilder
         await this.ragCtxBuilder.init();
+        // 初始化 MemberProfileCtxBuilder
+        await this.memberProfileCtxBuilder.init();
     }
 
     /**
@@ -640,5 +647,119 @@ export class RagRPCImpl implements RAGRPCImplementation {
         await this.agentDB.createConversation(forked.conversationId, `Fork of ${input.conversationId}`, undefined);
 
         return forked;
+    }
+
+    /**
+     * 群友画像生成
+     * 根据 QQ号 反查该群友参与的所有话题摘要，聚合后由 LLM 生成结构化画像并落库
+     * 非流式：直接返回完整画像（JSON 在生成完成前无法解析，流式无展示价值）
+     * @param input 群友 QQ号 + 可选昵称
+     * @returns 生成结果（成功时携带画像内容与落库记录，失败时携带 message）
+     */
+    public async generateMemberProfile(input: {
+        senderId: string;
+        nickname?: string;
+    }): Promise<MemberProfileGenerateOutput> {
+        this.LOGGER.info(`收到群友画像生成请求: senderId=${input.senderId}`);
+
+        // 1. 反查该群友参与的所有话题（跨所有会话/群组）
+        const digestResults = await this.agcDB.getAIDigestResultsByContributorId(input.senderId);
+
+        if (digestResults.length === 0) {
+            this.LOGGER.warning(`senderId=${input.senderId} 未参与任何已摘要话题，无法生成画像`);
+
+            return { success: false, message: "该群友未参与任何已摘要话题，无法生成画像" };
+        }
+
+        // 2. 确定展示用昵称：优先入参，否则从话题摘要中按 contributorIDs/contributors 对齐提取
+        const nickname = input.nickname ?? this._extractNickname(digestResults, input.senderId) ?? input.senderId;
+
+        // 3. 构建画像 prompt
+        const prompt = await this.memberProfileCtxBuilder.buildCtx(nickname, digestResults);
+
+        // 4. 非流式生成（用默认模型）
+        let fullContent = "";
+        let selectedModelName = "";
+
+        try {
+            const result = await this.TextGeneratorService.generateTextWithModelCandidates(
+                [this.defaultModelName],
+                prompt
+            );
+
+            selectedModelName = result.selectedModelName;
+            fullContent = result.content;
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+
+            this.LOGGER.error(`群友画像生成失败: ${msg}`);
+
+            return { success: false, message: `画像生成失败: ${msg}` };
+        }
+
+        // 5. JSON 解析校验
+        let profile: unknown;
+
+        try {
+            profile = JSON.parse(fullContent);
+        } catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+
+            this.LOGGER.error(`群友画像 JSON 解析失败: ${msg}`);
+
+            return { success: false, message: `画像格式解析失败: ${msg}` };
+        }
+
+        // 6. 落库（upsert，重新生成时覆盖）
+        const now = Date.now();
+        const memberProfile = {
+            senderId: input.senderId,
+            nickname,
+            profileJson: fullContent,
+            modelName: selectedModelName,
+            topicCount: digestResults.length,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        await this.memberProfileDB.storeMemberProfile(memberProfile);
+
+        this.LOGGER.success(
+            `群友画像生成并落库成功: senderId=${input.senderId}, topicCount=${digestResults.length}`
+        );
+
+        return {
+            success: true,
+            profile: profile as MemberProfileGenerateOutput["profile"],
+            memberProfile
+        };
+    }
+
+    /**
+     * 从话题摘要中按 contributorIDs 与 contributors 对齐提取该群友的昵称
+     * 遍历所有话题，取首个命中的昵称；全部未命中返回 null
+     * @param digestResults 话题摘要数组
+     * @param senderId 目标 QQ号
+     */
+    private _extractNickname(
+        digestResults: { contributorIDs?: string; contributors?: string }[],
+        senderId: string
+    ): string | null {
+        for (const r of digestResults) {
+            try {
+                const ids = r.contributorIDs ? (JSON.parse(r.contributorIDs) as string[]) : [];
+                const names = r.contributors ? (JSON.parse(r.contributors) as string[]) : [];
+
+                const idx = ids.indexOf(senderId);
+
+                if (idx >= 0 && idx < names.length) {
+                    return names[idx];
+                }
+            } catch {
+                // contributorIDs/contributors 可能不是合法 JSON 数组，跳过该条
+            }
+        }
+
+        return null;
     }
 }

@@ -27,7 +27,9 @@ import {
     AgentGetConversationsInputSchema,
     AgentGetMessagesInputSchema,
     AgentGetConversationsOutput,
-    AgentGetMessagesOutput
+    AgentGetMessagesOutput,
+    MemberProfileGenerateInputSchema,
+    MemberProfileGenerateOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -147,6 +149,14 @@ export interface RAGRPCImplementation {
         checkpointId: string;
         newConversationId?: string;
     }): Promise<AgentForkFromCheckpointOutput>;
+
+    /**
+     * 群友画像生成
+     * 根据 QQ号 反查该群友参与的所有话题摘要，聚合后由 LLM 生成结构化画像并落库
+     * @param input 群友 QQ号 + 可选昵称
+     * @returns 生成结果（成功时携带画像内容与落库记录）
+     */
+    generateMemberProfile(input: { senderId: string; nickname?: string }): Promise<MemberProfileGenerateOutput>;
 }
 
 /**
@@ -357,7 +367,14 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
                     checkpointId: input.checkpointId,
                     newConversationId: input.newConversationId
                 });
-            })
+            }),
+
+        generateMemberProfile: t.procedure.input(MemberProfileGenerateInputSchema).mutation(async ({ input }) => {
+            return impl.generateMemberProfile({
+                senderId: input.senderId,
+                nickname: input.nickname
+            });
+        })
     });
 
     // 将 _config 放宽到 AnyRootConfig，便于跨包消费（如 webui-backend 客户端）

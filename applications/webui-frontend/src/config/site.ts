@@ -21,6 +21,10 @@ export const siteConfig = {
             href: "/latest-topics"
         },
         {
+            label: "👤群友画像",
+            href: "/member-profile"
+        },
+        {
             label: "📰日报中心",
             href: "/reports"
         },
@@ -57,6 +61,10 @@ export const siteConfig = {
         {
             label: "🔥最新话题",
             href: "/latest-topics"
+        },
+        {
+            label: "👤群友画像",
+            href: "/member-profile"
         },
         {
             label: "📰日报中心",

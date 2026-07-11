@@ -17,6 +17,8 @@ export const AI_MODEL_TOKENS = {
     TextGeneratorService: Symbol.for("TextGeneratorService"),
     /** RAG 上下文构建器 */
     RAGCtxBuilder: Symbol.for("RAGCtxBuilder"),
+    /** 群友画像上下文构建器 */
+    MemberProfileCtxBuilder: Symbol.for("MemberProfileCtxBuilder"),
     /** RAG RPC 实现 */
     RagRPCImpl: Symbol.for("RagRPCImpl"),
 

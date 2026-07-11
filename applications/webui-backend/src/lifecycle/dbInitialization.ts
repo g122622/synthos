@@ -3,6 +3,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { MemberProfileDbAccessService } from "@root/common/services/database/MemberProfileDbAccessService";
 import { backfillContributorIds } from "@root/common/services/database/backfillContributorIds";
 import { registerDbAccessServices, registerImDbFtsService } from "@root/common/di/container";
 import Logger from "@root/common/util/Logger";
@@ -19,6 +20,7 @@ export const initializeDatabases = async (): Promise<{
     imDbFtsService: ImDbFtsService;
     interestScoreDbAccessService: InterestScoreDbAccessService;
     reportDbAccessService: ReportDbAccessService;
+    memberProfileDbAccessService: MemberProfileDbAccessService;
 }> => {
     try {
         const agcDbAccessService = new AgcDbAccessService();
@@ -26,12 +28,14 @@ export const initializeDatabases = async (): Promise<{
         const imDbFtsService = new ImDbFtsService();
         const interestScoreDbAccessService = new InterestScoreDbAccessService();
         const reportDbAccessService = new ReportDbAccessService();
+        const memberProfileDbAccessService = new MemberProfileDbAccessService();
 
         await agcDbAccessService.init();
         await imDbAccessService.init();
         await imDbFtsService.init();
         await interestScoreDbAccessService.init();
         await reportDbAccessService.init();
+        await memberProfileDbAccessService.init();
 
         // 存量补全 contributorIDs（需 imDb 与 agc 均初始化完成）
         await backfillContributorIds(agcDbAccessService, imDbAccessService);
@@ -41,7 +45,8 @@ export const initializeDatabases = async (): Promise<{
             agcDbAccessService,
             imDbAccessService,
             interestScoreDbAccessService,
-            reportDbAccessService
+            reportDbAccessService,
+            memberProfileDbAccessService
         });
 
         registerImDbFtsService(imDbFtsService);
@@ -53,7 +58,8 @@ export const initializeDatabases = async (): Promise<{
             imDbAccessService,
             imDbFtsService,
             interestScoreDbAccessService,
-            reportDbAccessService
+            reportDbAccessService,
+            memberProfileDbAccessService
         };
     } catch (error) {
         LOGGER.error(`数据库初始化失败: ${error}`);
@@ -66,11 +72,13 @@ export const closeDatabases = async (
     imDbAccessService: ImDbAccessService | null,
     imDbFtsService: ImDbFtsService | null,
     interestScoreDbAccessService: InterestScoreDbAccessService | null,
-    reportDbAccessService: ReportDbAccessService | null
+    reportDbAccessService: ReportDbAccessService | null,
+    memberProfileDbAccessService: MemberProfileDbAccessService | null
 ): Promise<void> => {
     if (agcDbAccessService) await agcDbAccessService.dispose();
     if (imDbAccessService) await imDbAccessService.dispose();
     if (imDbFtsService) await imDbFtsService.dispose();
     if (interestScoreDbAccessService) await interestScoreDbAccessService.dispose();
     if (reportDbAccessService) await reportDbAccessService.dispose();
+    if (memberProfileDbAccessService) await memberProfileDbAccessService.dispose();
 };

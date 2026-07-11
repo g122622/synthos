@@ -8,118 +8,18 @@ import type { ApiResponse } from "@/types/api";
 import API_BASE_URL from "./constants/baseUrl";
 
 import fetchWrapper from "@/util/fetchWrapper";
+import { consumeSse, type SseMessage } from "@/util/sse";
 import { mockConfig } from "@/config/mock";
 import { mockAgentAsk, mockAgentAskStream, mockGetAgentConversations, mockGetAgentMessages } from "@/mock/agentMock";
 
 // 导出类型供mock和组件使用
 export type { AgentMessage, AgentConversation, AgentAskRequest, AgentAskResponse, AgentEvent };
 
-type SseMessage = {
-    event: string;
-    data: string;
-};
-
-function _parseSseBlock(block: string): SseMessage | null {
-    // 参考 SSE 规范：按空行分隔 event/data
-    const lines = block.split("\n");
-    let eventName = "message";
-    const dataLines: string[] = [];
-
-    for (const rawLine of lines) {
-        const line = rawLine.endsWith("\r") ? rawLine.slice(0, -1) : rawLine;
-
-        if (!line) {
-            continue;
-        }
-
-        // 注释行
-        if (line.startsWith(":")) {
-            continue;
-        }
-
-        if (line.startsWith("event:")) {
-            eventName = line.slice("event:".length).trim() || "message";
-            continue;
-        }
-
-        if (line.startsWith("data:")) {
-            dataLines.push(line.slice("data:".length).trimStart());
-            continue;
-        }
-    }
-
-    if (dataLines.length === 0) {
-        return null;
-    }
-
-    return {
-        event: eventName,
-        data: dataLines.join("\n")
-    };
-}
+// 保留 SseMessage 类型导出，供可能的外部引用
+export type { SseMessage };
 
 async function _consumeSse(response: Response, options: { signal: AbortSignal; onMessage: (msg: SseMessage) => void }): Promise<void> {
-    if (!response.body) {
-        throw new Error("SSE 响应体为空");
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    let buffer = "";
-
-    const handleAbort = () => {
-        try {
-            void reader.cancel();
-        } catch {
-            // ignore
-        }
-    };
-
-    if (options.signal.aborted) {
-        handleAbort();
-
-        return;
-    }
-
-    options.signal.addEventListener("abort", handleAbort, { once: true });
-
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-                break;
-            }
-
-            buffer += decoder.decode(value, { stream: true });
-
-            // SSE 事件以空行分隔（\n\n）
-            while (true) {
-                const sepIndex = buffer.indexOf("\n\n");
-
-                if (sepIndex < 0) {
-                    break;
-                }
-
-                const block = buffer.slice(0, sepIndex);
-
-                buffer = buffer.slice(sepIndex + 2);
-
-                const msg = _parseSseBlock(block);
-
-                if (msg) {
-                    options.onMessage(msg);
-                }
-            }
-        }
-    } finally {
-        options.signal.removeEventListener("abort", handleAbort);
-        try {
-            reader.releaseLock();
-        } catch {
-            // ignore
-        }
-    }
+    return consumeSse(response, options);
 }
 
 // ==================== API 接口 ====================

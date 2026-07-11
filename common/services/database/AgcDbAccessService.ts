@@ -171,6 +171,19 @@ export class AgcDbAccessService extends Disposable {
     }
 
     /**
+     * 根据 contributor QQ号 反查该群友参与的所有 AI 摘要话题
+     * 利用 SQLite json_each 展开 contributorIDs JSON 数组匹配
+     * @param senderId 群友 QQ号
+     * @returns 该群友参与的所有 AIDigestResult（跨所有会话/群组）
+     */
+    public async getAIDigestResultsByContributorId(senderId: string): Promise<AIDigestResult[]> {
+        return this.db.all<AIDigestResult>(
+            `SELECT * FROM ai_digest_results WHERE contributorIDs IS NOT NULL AND EXISTS(SELECT 1 FROM json_each(contributorIDs) WHERE value = ?)`,
+            [senderId]
+        );
+    }
+
+    /**
      * 补全指定 topicId 的 contributorIDs 字段
      * @param topicId 主题id
      * @param contributorIDs 与 contributors 昵称数组一一对应的 QQ 号数组的 JSON 字符串

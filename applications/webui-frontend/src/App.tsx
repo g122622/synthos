@@ -8,6 +8,7 @@ import ChatMessagesPage from "@/pages/chat-messages";
 import AIDigestPage from "@/pages/ai-digest";
 import GroupsPage from "@/pages/groups";
 import AiChatPage from "@/pages/ai-chat/ai-chat";
+import MemberProfilePage from "@/pages/member-profile/member-profile";
 import ConfigPage from "@/pages/config-panel/config";
 import SystemMonitorPage from "@/pages/system-monitor";
 import SystemLogsPage from "@/pages/system-monitor/logs";
@@ -23,6 +24,8 @@ function App() {
             <Route element={<ReportsPage />} path="/reports" />
             <Route element={<AiChatPage />} path="/ai-chat" />
             <Route element={<Navigate replace to="/ai-chat" />} path="/rag" />
+            <Route element={<MemberProfilePage />} path="/member-profile" />
+            <Route element={<MemberProfilePage />} path="/member-profile/:qqId" />
             <Route element={<ConfigPage />} path="/config" />
             <Route element={<SystemMonitorPage />} path="/system-monitor" />
             <Route element={<SystemLogsPage />} path="/system-monitor/logs" />

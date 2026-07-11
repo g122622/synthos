@@ -11,6 +11,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { ImDbFtsService } from "@root/common/services/database/fts/ImDbFtsService";
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
+import { MemberProfileDbAccessService } from "@root/common/services/database/MemberProfileDbAccessService";
 import Logger from "@root/common/util/Logger";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
@@ -49,6 +50,7 @@ export class WebUILocalServer {
     private imDbAccessService: ImDbAccessService | null = null;
     private interestScoreDbAccessService: InterestScoreDbAccessService | null = null;
     private reportDbAccessService: ReportDbAccessService | null = null;
+    private memberProfileDbAccessService: MemberProfileDbAccessService | null = null;
     private imDbFtsService: ImDbFtsService | null = null;
 
     constructor() {
@@ -78,7 +80,8 @@ export class WebUILocalServer {
             this.imDbAccessService,
             this.imDbFtsService,
             this.interestScoreDbAccessService,
-            this.reportDbAccessService
+            this.reportDbAccessService,
+            this.memberProfileDbAccessService
         );
     }
 
@@ -88,7 +91,8 @@ export class WebUILocalServer {
             imDbAccessService,
             imDbFtsService,
             interestScoreDbAccessService,
-            reportDbAccessService
+            reportDbAccessService,
+            memberProfileDbAccessService
         } = await initializeDatabases();
 
         this.agcDbAccessService = agcDbAccessService;
@@ -96,6 +100,7 @@ export class WebUILocalServer {
         this.imDbFtsService = imDbFtsService;
         this.interestScoreDbAccessService = interestScoreDbAccessService;
         this.reportDbAccessService = reportDbAccessService;
+        this.memberProfileDbAccessService = memberProfileDbAccessService;
     }
 
     private async initializeStatusManagers(): Promise<{

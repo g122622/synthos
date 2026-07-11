@@ -16,6 +16,7 @@ import { ImDbAccessService } from "@root/common/services/database/ImDbAccessServ
 import { InterestScoreDbAccessService } from "@root/common/services/database/InterestScoreDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { AgentDbAccessService } from "@root/common/services/database/AgentDbAccessService";
+import { MemberProfileDbAccessService } from "@root/common/services/database/MemberProfileDbAccessService";
 import { backfillContributorIds } from "@root/common/services/database/backfillContributorIds";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
@@ -24,6 +25,7 @@ import { InterestEmailService } from "../services/email/InterestEmailService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
+import { MemberProfileCtxBuilder } from "../context/ctxBuilders/MemberProfileCtxBuilder";
 import { RagRPCImpl } from "../rag/RagRPCImpl";
 import { AISummarizeTaskHandler } from "../tasks/AISummarize";
 import { InterestScoreTaskHandler } from "../tasks/InterestScore";
@@ -66,6 +68,9 @@ export async function registerAllDependencies(): Promise<void> {
     const agentDbAccessService = new AgentDbAccessService();
 
     await agentDbAccessService.init();
+    const memberProfileDbAccessService = new MemberProfileDbAccessService();
+
+    await memberProfileDbAccessService.init();
 
     // 存量补全 contributorIDs（需 imDb 与 agc 均初始化完成）
     await backfillContributorIds(agcDbAccessService, imDbAccessService);
@@ -76,7 +81,8 @@ export async function registerAllDependencies(): Promise<void> {
         imDbAccessService,
         interestScoreDbAccessService,
         reportDbAccessService,
-        agentDbAccessService
+        agentDbAccessService,
+        memberProfileDbAccessService
     });
 
     // 4. 初始化向量数据库管理器和嵌入服务
@@ -106,6 +112,7 @@ export async function registerAllDependencies(): Promise<void> {
 
     // 6. 注册 RAGCtxBuilder 和 RagRPCImpl
     container.registerSingleton(AI_MODEL_TOKENS.RAGCtxBuilder, RAGCtxBuilder);
+    container.registerSingleton(AI_MODEL_TOKENS.MemberProfileCtxBuilder, MemberProfileCtxBuilder);
     container.registerSingleton(AI_MODEL_TOKENS.RagRPCImpl, RagRPCImpl);
 
     // 7. 注册任务处理器

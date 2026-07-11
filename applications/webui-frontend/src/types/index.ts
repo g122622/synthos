@@ -11,6 +11,7 @@ export * from "./chat";
 export * from "./config";
 export * from "./group";
 export * from "./log";
+export * from "./memberProfile";
 export * from "./notification";
 export * from "./rag";
 export * from "./report";

@@ -1,5 +1,5 @@
 import { Chip } from "@heroui/chip";
-import { Link } from "@heroui/react";
+import { Link, Tooltip } from "@heroui/react";
 
 import { generateColorFromName } from "./utils";
 import AnchorIcon from "./AnchorIcon";
@@ -11,10 +11,12 @@ interface EnhancedDetailProps {
     contributors: string[];
     /** 参与者昵称 → QQ号 映射，用于在昵称 chip 前展示头像；缺失的昵称不展示头像 */
     contributorToQQId?: Map<string, string>;
+    /** 点击参与者 chip 的回调（携带 QQ号与昵称）；未提供则 chip 不可点击 */
+    onContributorClick?: (qqId: string, nickname: string) => void;
 }
 
 // 渲染带有高亮和链接的详情文本
-const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, contributorToQQId }) => {
+const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, contributorToQQId, onContributorClick }) => {
     if (!detail) return <div className="text-default-700 mb-3">摘要正文为空，无法加载数据 😭😭😭</div>;
 
     // 创建正则表达式来匹配所有参与者名称
@@ -41,11 +43,13 @@ const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, c
             if (contributorIndex !== -1) {
                 // 如果是参与者名称，渲染为昵称前带头像的 Chip
                 const qqId = contributorToQQId?.get(part);
+                const canNavigate = Boolean(onContributorClick) && Boolean(qqId) && isLikelyQQId(qqId as string);
 
-                finalParts.push(
+                const chip = (
                     <Chip
                         key={`name-${partIndex}`}
                         className="mx-1 inline-flex items-center gap-1"
+                        isDisabled={!canNavigate}
                         size="sm"
                         style={{
                             backgroundColor: generateColorFromName(part),
@@ -53,11 +57,22 @@ const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, c
                             fontWeight: "bold"
                         }}
                         variant="flat"
+                        onClick={canNavigate ? () => (onContributorClick as (qqId: string, nickname: string) => void)(qqId as string, part) : undefined}
                     >
                         {qqId && isLikelyQQId(qqId) ? <QQAvatar qqId={qqId} sizeClassName="w-5 h-5 mr-1 mb-0" type="user" /> : null}
                         {part}
                     </Chip>
                 );
+
+                if (onContributorClick && !canNavigate) {
+                    finalParts.push(
+                        <Tooltip key={`name-${partIndex}`} content="该群友无QQ号，无法生成画像" placement="top">
+                            {chip}
+                        </Tooltip>
+                    );
+                } else {
+                    finalParts.push(chip);
+                }
             } else {
                 // 如果不是参与者名称，则处理链接
                 if (typeof part === "string") {
