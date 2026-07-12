@@ -8,10 +8,18 @@ import { CtxTemplateNode } from "../template/CtxTemplate";
  * 零外部依赖、无状态，仅负责构建画像 prompt 的 CtxTemplateNode 树
  */
 export class MemberProfilePromptStore {
+    /**
+     * 构建群友画像 prompt
+     * @param nickname 群友昵称（展示用，通常为当前/最常用昵称）
+     * @param knownNicknames 该群友全部已知昵称（均指同一人，用于消除改名导致的身份歧义）
+     * @param topicsAggregate 该群友参与的话题摘要聚合文本（由 CtxBuilder 序列化）
+     * @returns 画像 prompt 的 CtxTemplateNode 树
+     */
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.INJECT_TIME)
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
     public static async getMemberProfilePrompt(
         nickname: string,
+        knownNicknames: string[],
         topicsAggregate: string
     ): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
@@ -20,7 +28,9 @@ export class MemberProfilePromptStore {
             new CtxTemplateNode()
                 .setTitle("你的任务")
                 .setContentText(
-                    `你是一个群聊用户画像分析助手。请根据以下某位群友（昵称：${nickname}）参与的所有话题摘要，总结出该群友的结构化个人画像。`
+                    `你是一个群聊用户画像分析助手。请根据以下某位群友（昵称：${nickname}）参与的所有话题摘要，总结出该群友的结构化个人画像。` +
+                        `该群友在不同时期/群组可能使用过不同昵称，其全部已知昵称如下（均指同一人）：${knownNicknames.join("、")}。` +
+                        `话题摘要的"参与者"列表中，标注「（本人）」的即为本人在该话题中使用的昵称；未标注的为其他群友。`
                 ),
             new CtxTemplateNode().setTitle("该群友参与的话题摘要聚合").setContentText(topicsAggregate),
             new CtxTemplateNode()
@@ -41,6 +51,7 @@ export class MemberProfilePromptStore {
                     ContentUtils.unorderedList([
                         "只根据上述话题摘要内容推断，不要臆测或编造",
                         "某字段信息不足时填 null，不要编造",
+                        "同一群友可能在不同话题中以不同昵称出现（已全部列出，均指同一人），需合并归属本人分析，不要因昵称不同误判为不同人",
                         "昵称可能是QQ昵称、群昵称或真实姓名，仅作展示参考",
                         "保留话题中出现的关键信息（学校名、公司名、研究方向等）",
                         "跨群组合信息：同一群友在不同群的话题都要纳入分析"
@@ -72,6 +83,7 @@ export class MemberProfilePromptStore {
      * 当话题过多分片生成多份子画像后，用本方法把各子画像聚合成汇总 prompt，
      * 交叉验证、去重、整合为一份最终画像；冲突信息全部保留并标注
      * @param nickname 群友昵称（仅展示）
+     * @param knownNicknames 该群友全部已知昵称（均指同一人）
      * @param subProfilesAggregate 各子画像的聚合文本（由 CtxBuilder 序列化为【子画像N】{...} 形式）
      * @returns 汇总 prompt 的 CtxTemplateNode 树
      */
@@ -79,6 +91,7 @@ export class MemberProfilePromptStore {
     @useMiddleware(CTX_MIDDLEWARE_TOKENS.ADD_BACKGROUND_KNOWLEDGE)
     public static async getMemberProfileMergePrompt(
         nickname: string,
+        knownNicknames: string[],
         subProfilesAggregate: string
     ): Promise<CtxTemplateNode> {
         const root = new CtxTemplateNode();
@@ -87,7 +100,8 @@ export class MemberProfilePromptStore {
             new CtxTemplateNode()
                 .setTitle("你的任务")
                 .setContentText(
-                    `你是一个群聊用户画像整合助手。由于群友（昵称：${nickname}）参与的话题过多，已先分组生成了多份子画像。请对以下多份子画像进行交叉验证、去重、整合，输出一份信息更完整、丰富、准确的最终个人画像。`
+                    `你是一个群聊用户画像整合助手。由于群友（昵称：${nickname}）参与的话题过多，已先分组生成了多份子画像。请对以下多份子画像进行交叉验证、去重、整合，输出一份信息更完整、丰富、准确的最终个人画像。` +
+                        `该群友全部已知昵称（均指同一人）：${knownNicknames.join("、")}。`
                 ),
             new CtxTemplateNode().setTitle("待整合的子画像").setContentText(subProfilesAggregate),
             new CtxTemplateNode()

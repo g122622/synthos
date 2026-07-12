@@ -680,12 +680,23 @@ export class RagRPCImpl implements RAGRPCImplementation {
             return { success: false, message: "该群友未参与任何已摘要话题，无法生成画像" };
         }
 
-        // 2. 确定展示用昵称：优先入参，否则从话题摘要中按 contributorIDs/contributors 对齐提取
-        const nickname = input.nickname ?? this._extractNickname(digestResults, input.senderId) ?? input.senderId;
+        // 2. 收集该群友的全部已知昵称（改名前后均含），确定展示用昵称
+        const knownNicknames = this._collectNicknames(digestResults, input.senderId);
+        // 入参昵称优先且补进已知列表（前端可能传入更准确的当前昵称）
+        const nickname = input.nickname ?? knownNicknames[0] ?? input.senderId;
+        const fullNicknames =
+            input.nickname && !knownNicknames.includes(input.nickname)
+                ? [input.nickname, ...knownNicknames]
+                : knownNicknames;
+
+        this.LOGGER.info(
+            `群友画像昵称解析: senderId=${input.senderId}, displayNickname=${nickname}, ` +
+                `knownNicknames=[${fullNicknames.join(", ")}]`
+        );
 
         // 3. 统一分片 Map-Reduce：按每 PROFILE_BATCH_SIZE 个话题切分，并行生成子画像后汇总
         //    ≤500 话题时切片数为 1，走"仅1组成功直接落库"特例，与原单次生成等价
-        return this._generateMemberProfileMapReduce(input.senderId, nickname, digestResults);
+        return this._generateMemberProfileMapReduce(input.senderId, nickname, fullNicknames, digestResults);
     }
 
     /**
@@ -694,12 +705,14 @@ export class RagRPCImpl implements RAGRPCImplementation {
      * 重试依赖 generateTextWithModelCandidates 内置候选模型链（checkJsonFormat:true 时坏 JSON 自动换模型重试）
      * @param senderId 群友 QQ号
      * @param nickname 群友昵称（仅展示）
+     * @param knownNicknames 该群友全部已知昵称（均指同一人，注入 prompt 消除改名身份歧义）
      * @param digestResults 该群友参与的所有话题摘要
      * @returns 生成结果
      */
     private async _generateMemberProfileMapReduce(
         senderId: string,
         nickname: string,
+        knownNicknames: string[],
         digestResults: AIDigestResult[]
     ): Promise<MemberProfileGenerateOutput> {
         const total = digestResults.length;
@@ -733,7 +746,12 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
         for (let idx = 0; idx < chunks.length; idx++) {
             tasks.push({
-                input: await this.memberProfileCtxBuilder.buildCtx(nickname, chunks[idx]),
+                input: await this.memberProfileCtxBuilder.buildCtx(
+                    nickname,
+                    senderId,
+                    knownNicknames,
+                    chunks[idx]
+                ),
                 modelNames: [this.defaultModelName],
                 checkJsonFormat: true, // 候选模型链内部对坏 JSON 自动换模型重试（sleep 10s）
                 context: { chunkIndex: idx, topicCount: chunks[idx].length }
@@ -804,7 +822,11 @@ export class RagRPCImpl implements RAGRPCImplementation {
         // 多组成功 → 汇总（reduce）
         this.LOGGER.info(`开始汇总${validSubProfiles.length}份子画像: senderId=${senderId}`);
 
-        const mergePrompt = await this.memberProfileCtxBuilder.buildMergeCtx(nickname, validSubProfiles);
+        const mergePrompt = await this.memberProfileCtxBuilder.buildMergeCtx(
+            nickname,
+            knownNicknames,
+            validSubProfiles
+        );
 
         let mergedContent = "";
         let selectedModelName = "";
@@ -886,30 +908,38 @@ export class RagRPCImpl implements RAGRPCImplementation {
     }
 
     /**
-     * 从话题摘要中按 contributorIDs 与 contributors 对齐提取该群友的昵称
-     * 遍历所有话题，取首个命中的昵称；全部未命中返回 null
+     * 收集该群友在所有话题摘要中出现过的全部昵称（按 contributorIDs↔contributors 位置对齐）
+     * 同一人改名前后会在不同话题以不同昵称出现，全部收集以消除身份歧义
+     * 去重并保持首次出现顺序；全部未命中返回空数组
      * @param digestResults 话题摘要数组
      * @param senderId 目标 QQ号
      */
-    private _extractNickname(
+    private _collectNicknames(
         digestResults: { contributorIDs?: string; contributors?: string }[],
         senderId: string
-    ): string | null {
+    ): string[] {
+        const seen = new Set<string>();
+        const result: string[] = [];
+
         for (const r of digestResults) {
             try {
                 const ids = r.contributorIDs ? (JSON.parse(r.contributorIDs) as string[]) : [];
                 const names = r.contributors ? (JSON.parse(r.contributors) as string[]) : [];
-
                 const idx = ids.indexOf(senderId);
 
                 if (idx >= 0 && idx < names.length) {
-                    return names[idx];
+                    const name = names[idx];
+
+                    if (name && !seen.has(name)) {
+                        seen.add(name);
+                        result.push(name);
+                    }
                 }
             } catch {
                 // contributorIDs/contributors 可能不是合法 JSON 数组，跳过该条
             }
         }
 
-        return null;
+        return result;
     }
 }

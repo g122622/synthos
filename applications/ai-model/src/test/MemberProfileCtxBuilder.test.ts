@@ -30,7 +30,7 @@ describe("MemberProfileCtxBuilder", () => {
             buildDigest({ topicId: "t2", topic: "求职经验交流", detail: "李四讲述了秋招经历" })
         ];
 
-        const ctx = await builder.buildCtx("张三", digestResults);
+        const ctx = await builder.buildCtx("张三", "111", ["张三"], digestResults);
 
         // 聚合文本应包含每个话题的标题与详情
         expect(ctx).toContain("讨论并发模型");
@@ -46,7 +46,7 @@ describe("MemberProfileCtxBuilder", () => {
 
         await builder.init();
 
-        const ctx = await builder.buildCtx("张三", [buildDigest()]);
+        const ctx = await builder.buildCtx("张三", "111", ["张三"], [buildDigest()]);
 
         expect(ctx).toContain("school");
         expect(ctx).toContain("company");
@@ -61,7 +61,7 @@ describe("MemberProfileCtxBuilder", () => {
 
         await builder.init();
 
-        const ctx = await builder.buildCtx("张三", []);
+        const ctx = await builder.buildCtx("张三", "111", ["张三"], []);
 
         expect(typeof ctx).toBe("string");
         expect(ctx.length).toBeGreaterThan(0);
@@ -78,7 +78,7 @@ describe("MemberProfileCtxBuilder", () => {
             buildDigest({ topic: "学校讨论", detail: "李四提到毕业于清华大学" })
         ];
 
-        const ctx = await builder.buildCtx("张三", digestResults);
+        const ctx = await builder.buildCtx("张三", "111", ["张三"], digestResults);
 
         expect(ctx).toContain("字节跳动");
         expect(ctx).toContain("清华大学");
@@ -108,7 +108,7 @@ describe("MemberProfileCtxBuilder", () => {
             }
         ];
 
-        const ctx = await builder.buildMergeCtx("张三", subProfiles);
+        const ctx = await builder.buildMergeCtx("张三", ["张三"], subProfiles);
 
         // 应包含昵称
         expect(ctx).toContain("张三");
@@ -134,10 +134,79 @@ describe("MemberProfileCtxBuilder", () => {
 
         await builder.init();
 
-        const ctx = await builder.buildMergeCtx("张三", []);
+        const ctx = await builder.buildMergeCtx("张三", ["张三"], []);
 
         expect(typeof ctx).toBe("string");
         expect(ctx.length).toBeGreaterThan(0);
         expect(ctx).toContain("张三");
+    });
+
+    it("buildCtx 应把同一人不同时期的昵称都标注为本人，并在 prompt 列出全部已知昵称", async () => {
+        const builder = new MemberProfileCtxBuilder();
+
+        await builder.init();
+
+        // 同一 senderId=111，在两个话题中分别以"张三""老张"两个昵称出现（改名场景）
+        const digestResults = [
+            buildDigest({
+                topicId: "t1",
+                topic: "并发模型讨论",
+                detail: "张三分享了并发模型的理解",
+                contributors: JSON.stringify(["张三", "李四"]),
+                contributorIDs: JSON.stringify(["111", "222"])
+            }),
+            buildDigest({
+                topicId: "t2",
+                topic: "秋招交流",
+                detail: "老张讲述了秋招经历",
+                contributors: JSON.stringify(["老张", "王五"]),
+                contributorIDs: JSON.stringify(["111", "333"])
+            })
+        ];
+
+        const ctx = await builder.buildCtx("张三", "111", ["张三", "老张"], digestResults);
+
+        // 两个话题的参与者行都应把本人标注出来（不同昵称同一人）
+        expect(ctx).toContain("张三（本人）");
+        expect(ctx).toContain("老张（本人）");
+        // 全部已知昵称都应注入 prompt
+        expect(ctx).toContain("张三");
+        expect(ctx).toContain("老张");
+        // 应包含"均指同一人"的身份提示文案
+        expect(ctx).toContain("均指同一人");
+    });
+
+    it("buildCtx 在某话题 contributorIDs 缺失/无法对齐时不应崩溃且不标注本人", async () => {
+        const builder = new MemberProfileCtxBuilder();
+
+        await builder.init();
+
+        // 第一条话题 contributorIDs 缺失（无法对齐本人）；第二条正常
+        const digestResults = [
+            buildDigest({
+                topicId: "t1",
+                topic: "无 ID 的话题",
+                detail: "某匿名讨论",
+                contributors: JSON.stringify(["张三", "李四"]),
+                contributorIDs: JSON.stringify([]) // 空，无法对齐
+            }),
+            buildDigest({
+                topicId: "t2",
+                topic: "正常话题",
+                detail: "张三分享了经验",
+                contributors: JSON.stringify(["张三", "王五"]),
+                contributorIDs: JSON.stringify(["111", "333"])
+            })
+        ];
+
+        const ctx = await builder.buildCtx("张三", "111", ["张三"], digestResults);
+
+        // 不应抛错，仍生成合法上下文
+        expect(typeof ctx).toBe("string");
+        expect(ctx.length).toBeGreaterThan(0);
+        // 第二条话题对齐成功 → 标注本人；第一条因 contributorIDs 为空不标注
+        expect(ctx).toContain("张三（本人）");
+        // 第一条参与者行应为昵称列表（无（本人）标记），不崩
+        expect(ctx).toContain("无 ID 的话题");
     });
 });
