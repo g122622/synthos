@@ -1,4 +1,4 @@
-import type { MemberProfile, MemberProfileContent } from "@/types/memberProfile";
+import type { MemberProfile } from "@/types/memberProfile";
 import type { AIDigestResult } from "@/types/topic";
 
 import { useCallback, useEffect, useState } from "react";
@@ -16,27 +16,11 @@ import { title } from "@/components/primitives";
 import { Notification } from "@/util/Notification";
 import { formatRelativeTime } from "@/util/format";
 import { isLikelyQQId } from "@/util/isLikelyQQId";
+import { parseProfileContent } from "@/util/parseProfileContent";
 import { getMemberProfile, getContributorTopics, generateMemberProfile } from "@/api/memberProfileApi";
 
 import ProfileCard from "./components/ProfileCard";
 import ContributorTopicList from "./components/ContributorTopicList";
-
-/**
- * 解析画像 JSON 为 MemberProfileContent，解析失败返回 null
- */
-function parseProfileContent(profileJson: string): MemberProfileContent | null {
-    try {
-        const parsed = JSON.parse(profileJson) as MemberProfileContent;
-
-        if (parsed && typeof parsed === "object") {
-            return parsed;
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
-}
 
 export default function MemberProfilePage() {
     const navigate = useNavigate();
