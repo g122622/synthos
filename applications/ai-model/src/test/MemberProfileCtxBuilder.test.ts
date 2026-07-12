@@ -83,4 +83,61 @@ describe("MemberProfileCtxBuilder", () => {
         expect(ctx).toContain("字节跳动");
         expect(ctx).toContain("清华大学");
     });
+
+    it("buildMergeCtx 应把各子画像聚合成汇总上下文", async () => {
+        const builder = new MemberProfileCtxBuilder();
+
+        await builder.init();
+
+        const subProfiles = [
+            {
+                school: "清华大学",
+                company: null,
+                domain: "分布式系统",
+                experience: null,
+                interests: "数据库",
+                communicationStyle: null
+            },
+            {
+                school: null,
+                company: "字节跳动",
+                domain: "后端",
+                experience: "秋招",
+                interests: null,
+                communicationStyle: "理性"
+            }
+        ];
+
+        const ctx = await builder.buildMergeCtx("张三", subProfiles);
+
+        // 应包含昵称
+        expect(ctx).toContain("张三");
+        // 应包含每份子画像的标识与其字段值
+        expect(ctx).toContain("子画像1");
+        expect(ctx).toContain("子画像2");
+        expect(ctx).toContain("清华大学");
+        expect(ctx).toContain("字节跳动");
+        // 汇总 prompt 的整合规则与冲突保留要求
+        expect(ctx).toContain("整合规则");
+        expect(ctx).toContain("冲突");
+        // 仍应包含六个分析维度的字段名
+        expect(ctx).toContain("school");
+        expect(ctx).toContain("company");
+        expect(ctx).toContain("domain");
+        expect(ctx).toContain("experience");
+        expect(ctx).toContain("interests");
+        expect(ctx).toContain("communicationStyle");
+    });
+
+    it("buildMergeCtx 空子画像列表时应仍能生成合法上下文（不抛错）", async () => {
+        const builder = new MemberProfileCtxBuilder();
+
+        await builder.init();
+
+        const ctx = await builder.buildMergeCtx("张三", []);
+
+        expect(typeof ctx).toBe("string");
+        expect(ctx.length).toBeGreaterThan(0);
+        expect(ctx).toContain("张三");
+    });
 });

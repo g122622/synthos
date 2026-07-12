@@ -4,6 +4,7 @@
  */
 import "reflect-metadata";
 import type { AgentGetConversationsOutput, AgentGetMessagesOutput } from "@root/common/rpc/ai-model/schemas";
+import type { AIDigestResult } from "@root/common/contracts/ai-model";
 
 import { randomUUID } from "crypto";
 
@@ -36,6 +37,11 @@ import { EmbeddingPromptStore } from "../context/prompts/EmbeddingPromptStore";
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";
 import { MemberProfileCtxBuilder } from "../context/ctxBuilders/MemberProfileCtxBuilder";
 import { TextGeneratorService } from "../services/generators/text/TextGeneratorService";
+import {
+    PooledTextGeneratorService,
+    PooledTask,
+    PooledTaskResult
+} from "../services/generators/text/PooledTextGeneratorService";
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
 import { VectorDBManagerService } from "../services/embedding/VectorDBManagerService";
 import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
@@ -53,6 +59,9 @@ export class RagRPCImpl implements RAGRPCImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
     private queryRewriter: QueryRewriter;
     private defaultModelName: string = "";
+
+    /** 群友画像分片：每组话题数（≤500 走 1 个分片特例） */
+    private static readonly PROFILE_BATCH_SIZE = 500;
 
     public constructor(
         @inject(COMMON_TOKENS.ConfigManagerService) private configManagerService: ConfigManagerService,
@@ -674,59 +683,200 @@ export class RagRPCImpl implements RAGRPCImplementation {
         // 2. 确定展示用昵称：优先入参，否则从话题摘要中按 contributorIDs/contributors 对齐提取
         const nickname = input.nickname ?? this._extractNickname(digestResults, input.senderId) ?? input.senderId;
 
-        // 3. 构建画像 prompt
-        const prompt = await this.memberProfileCtxBuilder.buildCtx(nickname, digestResults);
+        // 3. 统一分片 Map-Reduce：按每 PROFILE_BATCH_SIZE 个话题切分，并行生成子画像后汇总
+        //    ≤500 话题时切片数为 1，走"仅1组成功直接落库"特例，与原单次生成等价
+        return this._generateMemberProfileMapReduce(input.senderId, nickname, digestResults);
+    }
 
-        // 4. 非流式生成（用默认模型）
-        let fullContent = "";
+    /**
+     * 分片 Map-Reduce 生成群友画像
+     * 按每 PROFILE_BATCH_SIZE 个话题切分，并行生成各分片子画像；≥2 份成功则汇总，1 份成功直接落库，0 份失败
+     * 重试依赖 generateTextWithModelCandidates 内置候选模型链（checkJsonFormat:true 时坏 JSON 自动换模型重试）
+     * @param senderId 群友 QQ号
+     * @param nickname 群友昵称（仅展示）
+     * @param digestResults 该群友参与的所有话题摘要
+     * @returns 生成结果
+     */
+    private async _generateMemberProfileMapReduce(
+        senderId: string,
+        nickname: string,
+        digestResults: AIDigestResult[]
+    ): Promise<MemberProfileGenerateOutput> {
+        const total = digestResults.length;
+        const chunkCount = Math.ceil(total / RagRPCImpl.PROFILE_BATCH_SIZE);
+
+        this.LOGGER.info(
+            `群友画像进入分片模式: senderId=${senderId}, topicCount=${total}, ` +
+                `分片数=${chunkCount}, 每片=${RagRPCImpl.PROFILE_BATCH_SIZE}`
+        );
+
+        // 切片
+        const chunks: AIDigestResult[][] = [];
+
+        for (let i = 0; i < total; i += RagRPCImpl.PROFILE_BATCH_SIZE) {
+            chunks.push(digestResults.slice(i, i + RagRPCImpl.PROFILE_BATCH_SIZE));
+        }
+
+        // 并行池（参照 AISummarize.ts）
+        const config = await this.configManagerService.getCurrentConfig();
+        const pooled = new PooledTextGeneratorService(config.ai.maxConcurrentRequests);
+
+        await pooled.init();
+
+        // 任务上下文：携带分片索引 + 该片话题数，便于回调对齐
+        interface ChunkContext {
+            chunkIndex: number;
+            topicCount: number;
+        }
+
+        const tasks: PooledTask<ChunkContext>[] = [];
+
+        for (let idx = 0; idx < chunks.length; idx++) {
+            tasks.push({
+                input: await this.memberProfileCtxBuilder.buildCtx(nickname, chunks[idx]),
+                modelNames: [this.defaultModelName],
+                checkJsonFormat: true, // 候选模型链内部对坏 JSON 自动换模型重试（sleep 10s）
+                context: { chunkIndex: idx, topicCount: chunks[idx].length }
+            });
+        }
+
+        // 各分片最终子画像（按 chunkIndex 存放，成功者填入，失败者留 null）
+        const subProfiles: unknown[] = new Array(chunks.length).fill(null);
+        let completedCount = 0;
+
+        await pooled.submitTasks<ChunkContext>(tasks, async (result: PooledTaskResult<ChunkContext>) => {
+            completedCount++;
+            const { chunkIndex, topicCount } = result.context;
+
+            // 失败 → 跳过该分片（候选模型链已内部重试过）
+            if (!result.isSuccess) {
+                this.LOGGER.error(
+                    `[${completedCount}/${chunks.length}] 分片${chunkIndex + 1}（${topicCount}话题）生成失败，跳过该分片：` +
+                        `${result.error instanceof Error ? result.error.message : String(result.error)}`
+                );
+
+                return;
+            }
+
+            // 成功：解析子画像
+            try {
+                subProfiles[chunkIndex] = JSON.parse(result.content!);
+                this.LOGGER.success(
+                    `[${completedCount}/${chunks.length}] 分片${chunkIndex + 1}（${topicCount}话题）生成成功`
+                );
+            } catch (e) {
+                this.LOGGER.error(
+                    `[${completedCount}/${chunks.length}] 分片${chunkIndex + 1} JSON 解析失败，跳过：` +
+                        `${e instanceof Error ? e.message : String(e)}`
+                );
+            }
+        });
+
+        pooled.dispose();
+
+        // 过滤出成功的子画像
+        const validSubProfiles = subProfiles.filter(p => p !== null);
+
+        this.LOGGER.info(
+            `分片生成阶段完成: 成功=${validSubProfiles.length}/${chunks.length}, senderId=${senderId}`
+        );
+
+        // 全部分组失败 → 整体失败
+        if (validSubProfiles.length === 0) {
+            this.LOGGER.error(`所有分片均失败，无法生成画像: senderId=${senderId}`);
+
+            return { success: false, message: `画像生成失败：全部分组（共${chunks.length}组）生成均失败` };
+        }
+
+        // 仅 1 组成功 → 直接当作最终结果（无需汇总，省一次 LLM 调用；含 ≤500 单分片场景）
+        if (validSubProfiles.length === 1) {
+            this.LOGGER.info(`仅1组子画像成功，直接作为最终画像: senderId=${senderId}`);
+
+            return this._storeAndReturn(
+                senderId,
+                nickname,
+                JSON.stringify(validSubProfiles[0]),
+                this.defaultModelName,
+                total
+            );
+        }
+
+        // 多组成功 → 汇总（reduce）
+        this.LOGGER.info(`开始汇总${validSubProfiles.length}份子画像: senderId=${senderId}`);
+
+        const mergePrompt = await this.memberProfileCtxBuilder.buildMergeCtx(nickname, validSubProfiles);
+
+        let mergedContent = "";
         let selectedModelName = "";
 
         try {
-            const result = await this.TextGeneratorService.generateTextWithModelCandidates(
+            const r = await this.TextGeneratorService.generateTextWithModelCandidates(
                 [this.defaultModelName],
-                prompt
+                mergePrompt,
+                true
             );
 
-            selectedModelName = result.selectedModelName;
-            fullContent = result.content;
+            mergedContent = r.content;
+            selectedModelName = r.selectedModelName;
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
 
-            this.LOGGER.error(`群友画像生成失败: ${msg}`);
+            this.LOGGER.error(`画像汇总生成失败: ${msg}`);
 
-            return { success: false, message: `画像生成失败: ${msg}` };
+            return { success: false, message: `画像汇总失败: ${msg}` };
         }
 
-        // 5. JSON 解析校验
-        let profile: unknown;
+        let mergedProfile: unknown;
 
         try {
-            profile = JSON.parse(fullContent);
+            mergedProfile = JSON.parse(mergedContent);
         } catch (error) {
             const msg = error instanceof Error ? error.message : String(error);
 
-            this.LOGGER.error(`群友画像 JSON 解析失败: ${msg}`);
+            this.LOGGER.error(`汇总画像 JSON 解析失败: ${msg}`);
 
             return { success: false, message: `画像格式解析失败: ${msg}` };
         }
 
-        // 6. 落库（upsert，重新生成时覆盖）
+        this.LOGGER.success(
+            `画像汇总并落库成功: senderId=${senderId}, topicCount=${total}, ` +
+                `子画像=${validSubProfiles.length}/${chunks.length}`
+        );
+
+        return this._storeAndReturn(senderId, nickname, JSON.stringify(mergedProfile), selectedModelName, total);
+    }
+
+    /**
+     * 落库 + 返回生成结果（单一口径，被"1 份成功直接落库"与"汇总后落库"两处复用）
+     * @param senderId 群友 QQ号
+     * @param nickname 群友昵称
+     * @param profileJson 画像 JSON 字符串
+     * @param modelName 生成所用模型名
+     * @param topicCount 话题总数（落库记录的总数，非分片数）
+     * @returns 成功结果
+     */
+    private async _storeAndReturn(
+        senderId: string,
+        nickname: string,
+        profileJson: string,
+        modelName: string,
+        topicCount: number
+    ): Promise<MemberProfileGenerateOutput> {
+        const profile = JSON.parse(profileJson);
         const now = Date.now();
         const memberProfile = {
-            senderId: input.senderId,
+            senderId,
             nickname,
-            profileJson: fullContent,
-            modelName: selectedModelName,
-            topicCount: digestResults.length,
+            profileJson,
+            modelName,
+            topicCount,
             createdAt: now,
             updatedAt: now
         };
 
         await this.memberProfileDB.storeMemberProfile(memberProfile);
 
-        this.LOGGER.success(
-            `群友画像生成并落库成功: senderId=${input.senderId}, topicCount=${digestResults.length}`
-        );
+        this.LOGGER.success(`群友画像落库成功: senderId=${senderId}, topicCount=${topicCount}`);
 
         return {
             success: true,
