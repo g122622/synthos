@@ -68,8 +68,8 @@ export class WorkerPool extends Disposable {
     constructor(options: WorkerPoolOptions) {
         super();
         this.options = {
-            taskTimeoutMs: 120000,
-            initTimeoutMs: 30000,
+            taskTimeoutMs: 10 * 60 * 1000, // 10分钟
+            initTimeoutMs: 2 * 60 * 1000, // 2分钟
             shutdownTimeoutMs: 10 * 60 * 1000, // 10分钟
             ...options
         };

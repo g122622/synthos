@@ -4,7 +4,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 /**
  * 消息分割器接口。
  * 分割器的实现不应该考虑provider的实现细节。
- * 与provider不同，splitter既可以是无状态的，也可以是有状态的（比如用kv引擎持久化数据）。
+ * 分割器既可以是无状态的，也可以是有状态的（状态可从 DB 现算或缓存于内存）。
  */
 export interface ISplitter extends Disposable {
     init(): Promise<void>;

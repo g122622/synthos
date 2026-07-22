@@ -20,10 +20,9 @@ const buildStats = (timestamp: number, factor: number): SystemStats => {
     const aiSize = mb(90 * factor);
     const vectorSize = mb(420 * factor);
     const kvBackendSize = mb(12 * factor);
-    const kvPersistentSize = mb(36 * factor);
     const logsSize = mb(48 * factor);
 
-    const totalSize = chatSize + imSize + aiSize + vectorSize + kvBackendSize + kvPersistentSize + logsSize;
+    const totalSize = chatSize + imSize + aiSize + vectorSize + kvBackendSize + logsSize;
 
     return {
         timestamp,
@@ -33,7 +32,6 @@ const buildStats = (timestamp: number, factor: number): SystemStats => {
             aiDialogueDB: { count: aiCount, size: aiSize },
             vectorDB: { count: vectorCount, size: vectorSize },
             kvStoreBackend: { count: 1200, size: kvBackendSize },
-            kvStorePersistent: { count: 3200, size: kvPersistentSize },
             logs: { count: 500, size: logsSize },
             totalSize
         },

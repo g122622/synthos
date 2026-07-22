@@ -3,9 +3,7 @@ import { injectable, inject } from "tsyringe";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { ProcessedChatMessageWithRawMessage } from "@root/common/contracts/data-provider";
 import getRandomHash from "@root/common/util/math/getRandomHash";
-import { KVStore } from "@root/common/util/KVStore";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
-import { ASSERT } from "@root/common/util/ASSERT";
 import ErrorReasons from "@root/common/contracts/ErrorReasons";
 import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { mustInitBeforeUse } from "@root/common/util/lifecycle/mustInitBeforeUse";
@@ -17,12 +15,14 @@ import { ISplitter } from "./contracts/ISplitter";
 /**
  * 累积式消息分割器
  * 按照消息数量或字符数量累积分组
+ *
+ * 容量追踪采用「内存 Map + 单次 DB 现算」方案，单一数据源为 SQLite，
+ * 不再依赖外置 KVStore，从而消除了「chat_messages.sessionId 与 KVStore 两份
+ * 持久化存储跨 run 失配」导致的断言失败（见原 line 93 ASSERT）。
  */
 @injectable()
 @mustInitBeforeUse
 export class AccumulativeSplitter extends Disposable implements ISplitter {
-    private kvStore: KVStore<number> | null = null; // 用于存储 sessionId 的 KV 存储
-
     /**
      * 构造函数
      * @param configManagerService 配置管理服务
@@ -38,38 +38,75 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
      * 初始化分割器
      */
     public async init() {
-        const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
-
-        this.kvStore = new KVStore(config.persistentKVStorePath); // 初始化 KV 存储
-        this._registerDisposable(this.kvStore); // 注册 Disposable 函数，用于释放资源
+        // 容量追踪已改为内存 Map + DB 现算，无外部资源需要初始化
     }
 
     /**
      * 为消息分配 sessionId
-     * @param imDbAccessService IM 数据库访问服务
      * @param groupId 群组 ID
      * @param startTimeStamp 开始时间戳
      * @param endTimeStamp 结束时间戳
      * @returns 带有 sessionId 的消息列表
      */
     public async assignSessionId(groupId: string, startTimeStamp: number, endTimeStamp: number) {
-        if (!this.kvStore) {
-            throw ErrorReasons.UNINITIALIZED_ERROR;
-        }
         await this.imDbAccessService.init(); // TODO : 临时解决方案，确保数据库已初始化
         const config = (await this.configManagerService.getCurrentConfig()).preprocessors.AccumulativeSplitter;
+
+        // 容量缓存：key=sessionId，value=当前累计容量
+        // - 本轮新开的 session：assignNewSessionId 时直接写入，0 次 DB 查询
+        // - 从 DB 带出的旧 session：首次遇到时现算 1 次，后续命中缓存
+        // 单轮 DB 查询次数 ≈ 本轮触及的「旧 session」数量（通常仅 1 个）
+        const capacityCache = new Map<string, number>();
+
+        const getCapacity = async (sessionId: string): Promise<number> => {
+            const cached = capacityCache.get(sessionId);
+
+            if (cached !== undefined) {
+                return cached;
+            }
+            const capacity = await this.imDbAccessService.getSessionCapacity(sessionId, config.mode);
+
+            capacityCache.set(sessionId, capacity);
+
+            return capacity;
+        };
 
         const assignNewSessionId = async (msg: ProcessedChatMessageWithRawMessage) => {
             // 为其分配一个新的 sessionId
             msg.sessionId = getRandomHash(16); // 生成新的 sessionId
-            if (config.mode === "charCount") {
-                await this.kvStore!.put(msg.sessionId!, msg.messageContent!.length); // 存储新的 sessionId 及其容量
-            } else if (config.mode === "messageCount") {
-                await this.kvStore!.put(msg.sessionId!, 1); // 存储新的 sessionId 及其容量
-            } else {
-                throw ErrorReasons.INVALID_VALUE_ERROR;
-            }
+            const initialCapacity =
+                config.mode === "charCount"
+                    ? msg.messageContent!.length
+                    : config.mode === "messageCount"
+                      ? 1
+                      : (() => {
+                            throw ErrorReasons.INVALID_VALUE_ERROR;
+                        })();
+
+            capacityCache.set(msg.sessionId!, initialCapacity); // 本轮新开 session 容量已知，无需回查 DB
         };
+
+        const appendToPreviousSession = async (
+            msg: ProcessedChatMessageWithRawMessage,
+            previousSessionId: string,
+            previousCapacity: number
+        ) => {
+            msg.sessionId = previousSessionId; // 分配上一个 sessionId
+            const newCapacity =
+                config.mode === "charCount"
+                    ? previousCapacity + msg.messageContent!.length
+                    : config.mode === "messageCount"
+                      ? previousCapacity + 1
+                      : (() => {
+                            throw ErrorReasons.INVALID_VALUE_ERROR;
+                        })();
+
+            capacityCache.set(previousSessionId, newCapacity); // 更新容量缓存
+        };
+
+        const isCapacityFull = (capacity: number) =>
+            (config.mode === "charCount" && capacity >= config.maxCharCount) ||
+            (config.mode === "messageCount" && capacity >= config.maxMessageCount);
 
         const msgs = await this.imDbAccessService.getProcessedChatMessageWithRawMessageByGroupIdAndTimeRange(
             groupId,
@@ -85,35 +122,15 @@ export class AccumulativeSplitter extends Disposable implements ISplitter {
                     // 第一条消息，为其分配一个新的 sessionId
                     await assignNewSessionId(msg);
                 } else {
-                    const previousMsgSessionId = msgs[index - 1].sessionId!;
+                    const previousMsgSessionId = msgs[index - 1].sessionId!; // 上一条消息的 sessionId 一定存在
+                    const capacity = await getCapacity(previousMsgSessionId); // 现算或命中缓存
 
-                    ASSERT(previousMsgSessionId !== undefined); // 上一条消息的 sessionId 一定存在
-                    const capacity = (await this.kvStore!.get(previousMsgSessionId))!; // 获取上一条消息的容量
-
-                    ASSERT(capacity !== undefined); // capacity一定存在
-                    ASSERT(capacity >= 0); // capacity一定非负
-
-                    if (
-                        (config.mode === "charCount" && capacity >= config.maxCharCount) ||
-                        (config.mode === "messageCount" && capacity >= config.maxMessageCount)
-                    ) {
-                        // 此时上一个sessionId的容量已满，为这条消息分配一个新的 sessionId
+                    if (isCapacityFull(capacity)) {
+                        // 上一个 sessionId 的容量已满，为这条消息分配一个新的 sessionId
                         await assignNewSessionId(msg);
-                    } else if (
-                        (config.mode === "charCount" && capacity < config.maxCharCount) ||
-                        (config.mode === "messageCount" && capacity < config.maxMessageCount)
-                    ) {
-                        // 此时上一个sessionId的容量未满，为这条消息分配上一个sessionId，并更新其容量
-                        msg.sessionId = previousMsgSessionId; // 分配上一个sessionId
-                        if (config.mode === "charCount") {
-                            await this.kvStore!.put(previousMsgSessionId, capacity + msg.messageContent!.length); // 更新容量
-                        } else if (config.mode === "messageCount") {
-                            await this.kvStore!.put(previousMsgSessionId, capacity + 1); // 更新容量
-                        } else {
-                            throw ErrorReasons.INVALID_VALUE_ERROR;
-                        }
                     } else {
-                        throw ErrorReasons.UNKNOWN_ERROR;
+                        // 上一个 sessionId 的容量未满，续接上一个 sessionId 并更新容量
+                        await appendToPreviousSession(msg, previousMsgSessionId, capacity);
                     }
                 }
             }

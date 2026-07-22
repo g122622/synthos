@@ -178,6 +178,24 @@ export class ImDbAccessService extends Disposable {
     }
 
     /**
+     * 计算指定 sessionId 的当前容量
+     * - messageCount 模式：返回该 session 内的消息条数
+     * - charCount 模式：返回该 session 内所有消息 messageContent 的字符总长度（NULL 视为 0）
+     *
+     * 供 AccumulativeSplitter 现算容量使用，命中索引 idx_chat_messages_sessionId，
+     * 单次查询仅扫描单个 session 内的消息（受 maxMessageCount/maxCharCount 封顶），开销可忽略。
+     */
+    public async getSessionCapacity(sessionId: string, mode: "messageCount" | "charCount"): Promise<number> {
+        const sql =
+            mode === "messageCount"
+                ? `SELECT COUNT(*) AS capacity FROM chat_messages WHERE sessionId = ?`
+                : `SELECT COALESCE(SUM(LENGTH(messageContent)), 0) AS capacity FROM chat_messages WHERE sessionId = ?`;
+        const row = await this.db.get<{ capacity: number }>(sql, [sessionId]);
+
+        return row?.capacity ?? 0;
+    }
+
+    /**
      * 获取指定会话的开始和结束时间
      * @param sessionId 会话ID
      * @returns 时间戳对象 { timeStart: 开始时间, timeEnd: 结束时间 } 或者 null 如果会话不存在

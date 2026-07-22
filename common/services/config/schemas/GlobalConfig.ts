@@ -110,8 +110,7 @@ export const GlobalConfigSchema = z.object({
                 .object({
                     mode: z.enum(["charCount", "messageCount"]).describe("分割模式"),
                     maxCharCount: z.number().positive().int().describe("最大字符数"),
-                    maxMessageCount: z.number().positive().int().describe("最大消息数"),
-                    persistentKVStorePath: z.string().describe("持久化 KVStore 路径")
+                    maxMessageCount: z.number().positive().int().describe("最大消息数")
                 })
                 .describe("累积分割器配置"),
             TimeoutSplitter: z

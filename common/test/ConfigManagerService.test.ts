@@ -76,8 +76,7 @@ const mockMainConfig = {
         AccumulativeSplitter: {
             mode: "charCount" as const,
             maxCharCount: 5000,
-            maxMessageCount: 100,
-            persistentKVStorePath: "/path/to/kvstore"
+            maxMessageCount: 100
         },
         TimeoutSplitter: {
             timeoutInMinutes: 30

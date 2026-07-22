@@ -153,17 +153,10 @@ const SystemMonitorPage: React.FC = () => {
                             title="向量数据库"
                         />
                         <StorageCard
-                            desc="预处理与后端的持久化键值存储"
+                            desc="后端的持久化键值存储"
                             icon={<CircleIcon color="#fbbf24" />}
                             iconColor="#fbbf24" // Amber
-                            stats={
-                                stats
-                                    ? {
-                                          count: stats.storage.kvStoreBackend.count + stats.storage.kvStorePersistent.count,
-                                          size: stats.storage.kvStoreBackend.size + stats.storage.kvStorePersistent.size
-                                      }
-                                    : undefined
-                            }
+                            stats={stats?.storage.kvStoreBackend}
                             title="KV存储"
                         />
                         <StorageCard

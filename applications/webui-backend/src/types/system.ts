@@ -13,7 +13,6 @@ export interface SystemStats {
         aiDialogueDB: { count: number; size: number };
         vectorDB: { count: number; size: number };
         kvStoreBackend: { count: number; size: number };
-        kvStorePersistent: { count: number; size: number };
         logs: { count: number; size: number };
         totalSize: number;
     };

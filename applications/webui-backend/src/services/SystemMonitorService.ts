@@ -56,9 +56,6 @@ export class SystemMonitorService {
             aiDialogueDB: await this.getDirStats(config.webUI_Backend.dbBasePath),
             vectorDB: await this.getDirStats(config.ai.embedding.vectorDBPath),
             kvStoreBackend: await this.getDirStats(config.webUI_Backend.kvStoreBasePath),
-            kvStorePersistent: await this.getDirStats(
-                config.preprocessors.AccumulativeSplitter.persistentKVStorePath
-            ),
             logs: await this.getDirStats(config.logger.logDirectory),
             totalSize: 0
         };
@@ -69,7 +66,6 @@ export class SystemMonitorService {
             storageStats.aiDialogueDB.size +
             storageStats.vectorDB.size +
             storageStats.kvStoreBackend.size +
-            storageStats.kvStorePersistent.size +
             storageStats.logs.size;
 
         // 2. 收集各模块CPU/内存占用 在windows下pidusage表现不佳，会有巨大资源占用，暂时注释
