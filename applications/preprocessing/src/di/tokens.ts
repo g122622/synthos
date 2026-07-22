@@ -14,5 +14,7 @@ export const PREPROCESSING_TOKENS = {
     /** 累积式消息分割器 */
     AccumulativeSplitter: Symbol.for("AccumulativeSplitter"),
     /** 超时式消息分割器 */
-    TimeoutSplitter: Symbol.for("TimeoutSplitter")
+    TimeoutSplitter: Symbol.for("TimeoutSplitter"),
+    /** Preprocessing RPC 实现 */
+    PreprocessingRpcImpl: Symbol.for("PreprocessingRpcImpl")
 } as const;

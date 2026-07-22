@@ -12,5 +12,11 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
-  "dependencies": {}
+  "dependencies": {
+    "@trpc/client": "^10.45.2",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11"
+  }
 }

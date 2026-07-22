@@ -2,13 +2,12 @@ import "reflect-metadata";
 import * as path from "path";
 
 import { injectable, inject } from "tsyringe";
-import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { AIDigestResult } from "@root/common/contracts/ai-model";
+import { LLMInterestEvaluationInput, LLMInterestEvaluationOutput } from "@root/common/rpc/ai-model/index";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 import { retryAsync } from "@root/common/util/retryAsync";
 import { KVStore } from "@root/common/util/KVStore";
@@ -35,177 +34,149 @@ export class LLMInterestEvaluationAndNotificationTaskHandler {
     ) {}
 
     /**
-     * 注册任务到 Agenda 调度器
+     * 执行 LLM 兴趣评估与通知任务
+     * @param params 任务参数
+     * @returns 执行结果
      */
-    public async register(): Promise<void> {
-        let config = await this.configManagerService.getCurrentConfig();
+    public async run(params: LLMInterestEvaluationInput): Promise<LLMInterestEvaluationOutput> {
+        this.LOGGER.info(`😋开始处理 LLMInterestEvaluation 任务`);
+        const { startTimeStamp, endTimeStamp } = params;
 
-        await agendaInstance
-            .create(TaskHandlerTypes.LLMInterestEvaluationAndNotification)
-            .unique({ name: TaskHandlerTypes.LLMInterestEvaluationAndNotification }, { insertOnly: true })
-            .save();
+        const config = await this.configManagerService.getCurrentConfig();
 
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.LLMInterestEvaluationAndNotification>>(
-            TaskHandlerTypes.LLMInterestEvaluationAndNotification,
-            async job => {
-                this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
-                const attrs = job.attrs.data;
+        // 获取配置
+        const llmEvaluationDescriptions = config.ai.interestScore.llmEvaluationDescriptions;
+        const batchSize = config.ai.interestScore.llmEvaluationBatchSize;
+        const kvStoreBasePath = config.webUI_Backend.kvStoreBasePath;
 
-                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
+        // 检查配置是否有效
+        if (!llmEvaluationDescriptions || llmEvaluationDescriptions.length === 0) {
+            this.LOGGER.warning("未配置 llmEvaluationDescriptions，跳过任务");
 
-                // 获取配置
-                const llmEvaluationDescriptions = config.ai.interestScore.llmEvaluationDescriptions;
-                const batchSize = config.ai.interestScore.llmEvaluationBatchSize;
-                const kvStoreBasePath = config.webUI_Backend.kvStoreBasePath;
+            return { success: true };
+        }
 
-                // 检查配置是否有效
-                if (!llmEvaluationDescriptions || llmEvaluationDescriptions.length === 0) {
-                    this.LOGGER.warning("未配置 llmEvaluationDescriptions，跳过任务");
-
-                    return;
-                }
-
-                // 初始化 KV 存储
-                const evaluationKVStore = new KVStore<boolean>(
-                    path.join(kvStoreBasePath, "LLMInterestEvaluationAndNotification", "InterestEvaluation")
-                );
-                const notificationKVStore = new KVStore<boolean>(
-                    path.join(kvStoreBasePath, "LLMInterestEvaluationAndNotification", "Notification")
-                );
-
-                try {
-                    // 1. 获取指定时间范围内的所有摘要结果
-                    const sessionIds = [] as string[];
-
-                    for (const groupId of Object.keys(config.groupConfigs)) {
-                        sessionIds.push(
-                            ...(await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
-                                groupId,
-                                attrs.startTimeStamp,
-                                attrs.endTimeStamp
-                            ))
-                        );
-                    }
-
-                    const allDigestResults = [] as AIDigestResult[];
-
-                    for (const sessionId of sessionIds) {
-                        allDigestResults.push(
-                            ...(await this.agcDbAccessService.getAIDigestResultsBySessionId(sessionId))
-                        );
-                    }
-                    this.LOGGER.info(`共获取到 ${allDigestResults.length} 条摘要结果`);
-
-                    if (allDigestResults.length === 0) {
-                        this.LOGGER.info("没有可评估的摘要结果，跳过任务");
-
-                        return;
-                    }
-
-                    // 2. 过滤掉已经被评估过的话题
-                    const unevaluatedTopics = await this._filterUnevaluatedTopics(
-                        allDigestResults,
-                        evaluationKVStore
-                    );
-
-                    this.LOGGER.info(
-                        `过滤后剩余 ${unevaluatedTopics.length} 个未评估话题（已跳过 ${allDigestResults.length - unevaluatedTopics.length} 个已评估话题）`
-                    );
-
-                    if (unevaluatedTopics.length === 0) {
-                        this.LOGGER.info("所有话题都已评估过，跳过任务");
-
-                        return;
-                    }
-
-                    // 3. 分批处理话题评估
-                    const interestedTopics: AIDigestResult[] = [];
-
-                    for (let i = 0; i < unevaluatedTopics.length; i += batchSize) {
-                        const batch = unevaluatedTopics.slice(i, i + batchSize);
-
-                        this.LOGGER.info(
-                            `正在处理第 ${Math.floor(i / batchSize) + 1} 批，共 ${batch.length} 个话题`
-                        );
-
-                        // 调用LLM进行评估
-                        const evaluationResults = await this._evaluateTopicsBatch(
-                            llmEvaluationDescriptions,
-                            batch,
-                            config.ai.defaultModelName
-                        );
-
-                        // 记录评估结果到 KV Store
-                        for (let j = 0; j < batch.length; j++) {
-                            const topicId = batch[j].topicId;
-
-                            try {
-                                await evaluationKVStore.put(topicId, true);
-                            } catch (error) {
-                                this.LOGGER.error(
-                                    `写入评估结果到 KV Store 失败: topicId=${topicId}, error=${error}`
-                                );
-                                throw error;
-                            }
-
-                            // 筛选出感兴趣的话题
-                            if (evaluationResults[j]) {
-                                interestedTopics.push(batch[j]);
-                            }
-                        }
-
-                        await job.touch(); // 保证任务存活
-                    }
-
-                    this.LOGGER.info(`共发现 ${interestedTopics.length} 个感兴趣的话题`);
-
-                    // 4. 过滤掉已经发送过邮件的话题
-                    const unnotifiedTopics = await this._filterUnnotifiedTopics(
-                        interestedTopics,
-                        notificationKVStore
-                    );
-
-                    this.LOGGER.info(
-                        `过滤后剩余 ${unnotifiedTopics.length} 个未发送话题（已跳过 ${interestedTopics.length - unnotifiedTopics.length} 个已发送话题）`
-                    );
-
-                    // 5. 发送邮件通知
-                    if (unnotifiedTopics.length > 0) {
-                        const emailSuccess =
-                            await this.interestEmailService.sendInterestTopicsEmail(unnotifiedTopics);
-
-                        if (emailSuccess) {
-                            this.LOGGER.success("邮件通知发送成功");
-
-                            // 标记这些话题已发送邮件
-                            for (const topic of unnotifiedTopics) {
-                                try {
-                                    await notificationKVStore.put(topic.topicId, true);
-                                } catch (error) {
-                                    this.LOGGER.error(
-                                        `写入通知记录到 KV Store 失败: topicId=${topic.topicId}, error=${error}`
-                                    );
-                                    throw error;
-                                }
-                            }
-                        } else {
-                            this.LOGGER.warning("邮件通知发送失败");
-                        }
-                    }
-
-                    this.LOGGER.success(`🥳任务完成: ${job.attrs.name}`);
-                } finally {
-                    // 确保 KV Store 被正确关闭
-                    await evaluationKVStore.dispose();
-                    await notificationKVStore.dispose();
-                }
-            },
-            {
-                concurrency: 1,
-                priority: "normal",
-                lockLifetime: 10 * 60 * 1000 // 10分钟
-            }
+        // 初始化 KV 存储
+        const evaluationKVStore = new KVStore<boolean>(
+            path.join(kvStoreBasePath, "LLMInterestEvaluationAndNotification", "InterestEvaluation")
         );
+        const notificationKVStore = new KVStore<boolean>(
+            path.join(kvStoreBasePath, "LLMInterestEvaluationAndNotification", "Notification")
+        );
+
+        try {
+            // 1. 获取指定时间范围内的所有摘要结果
+            const sessionIds = [] as string[];
+
+            for (const groupId of Object.keys(config.groupConfigs)) {
+                sessionIds.push(
+                    ...(await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
+                        groupId,
+                        startTimeStamp,
+                        endTimeStamp
+                    ))
+                );
+            }
+
+            const allDigestResults = [] as AIDigestResult[];
+
+            for (const sessionId of sessionIds) {
+                allDigestResults.push(...(await this.agcDbAccessService.getAIDigestResultsBySessionId(sessionId)));
+            }
+            this.LOGGER.info(`共获取到 ${allDigestResults.length} 条摘要结果`);
+
+            if (allDigestResults.length === 0) {
+                this.LOGGER.info("没有可评估的摘要结果，跳过任务");
+
+                return { success: true };
+            }
+
+            // 2. 过滤掉已经被评估过的话题
+            const unevaluatedTopics = await this._filterUnevaluatedTopics(allDigestResults, evaluationKVStore);
+
+            this.LOGGER.info(
+                `过滤后剩余 ${unevaluatedTopics.length} 个未评估话题（已跳过 ${allDigestResults.length - unevaluatedTopics.length} 个已评估话题）`
+            );
+
+            if (unevaluatedTopics.length === 0) {
+                this.LOGGER.info("所有话题都已评估过，跳过任务");
+
+                return { success: true };
+            }
+
+            // 3. 分批处理话题评估
+            const interestedTopics: AIDigestResult[] = [];
+
+            for (let i = 0; i < unevaluatedTopics.length; i += batchSize) {
+                const batch = unevaluatedTopics.slice(i, i + batchSize);
+
+                this.LOGGER.info(`正在处理第 ${Math.floor(i / batchSize) + 1} 批，共 ${batch.length} 个话题`);
+
+                // 调用LLM进行评估
+                const evaluationResults = await this._evaluateTopicsBatch(
+                    llmEvaluationDescriptions,
+                    batch,
+                    config.ai.defaultModelName
+                );
+
+                // 记录评估结果到 KV Store
+                for (let j = 0; j < batch.length; j++) {
+                    const topicId = batch[j].topicId;
+
+                    try {
+                        await evaluationKVStore.put(topicId, true);
+                    } catch (error) {
+                        this.LOGGER.error(`写入评估结果到 KV Store 失败: topicId=${topicId}, error=${error}`);
+                        throw error;
+                    }
+
+                    // 筛选出感兴趣的话题
+                    if (evaluationResults[j]) {
+                        interestedTopics.push(batch[j]);
+                    }
+                }
+            }
+
+            this.LOGGER.info(`共发现 ${interestedTopics.length} 个感兴趣的话题`);
+
+            // 4. 过滤掉已经发送过邮件的话题
+            const unnotifiedTopics = await this._filterUnnotifiedTopics(interestedTopics, notificationKVStore);
+
+            this.LOGGER.info(
+                `过滤后剩余 ${unnotifiedTopics.length} 个未发送话题（已跳过 ${interestedTopics.length - unnotifiedTopics.length} 个已发送话题）`
+            );
+
+            // 5. 发送邮件通知
+            if (unnotifiedTopics.length > 0) {
+                const emailSuccess = await this.interestEmailService.sendInterestTopicsEmail(unnotifiedTopics);
+
+                if (emailSuccess) {
+                    this.LOGGER.success("邮件通知发送成功");
+
+                    // 标记这些话题已发送邮件
+                    for (const topic of unnotifiedTopics) {
+                        try {
+                            await notificationKVStore.put(topic.topicId, true);
+                        } catch (error) {
+                            this.LOGGER.error(
+                                `写入通知记录到 KV Store 失败: topicId=${topic.topicId}, error=${error}`
+                            );
+                            throw error;
+                        }
+                    }
+                } else {
+                    this.LOGGER.warning("邮件通知发送失败");
+                }
+            }
+
+            this.LOGGER.success(`🥳LLMInterestEvaluation 任务完成`);
+
+            return { success: true };
+        } finally {
+            // 确保 KV Store 被正确关闭
+            await evaluationKVStore.dispose();
+            await notificationKVStore.dispose();
+        }
     }
 
     /**

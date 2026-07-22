@@ -4,20 +4,24 @@
  */
 import { createHTTPServer } from "@trpc/server/adapters/standalone";
 import { applyWSSHandler } from "@trpc/server/adapters/ws";
-import { createRAGRouter, RAGRPCImplementation } from "@root/common/rpc/ai-model/index";
+import {
+    createAIModelRootRouter,
+    RAGRPCImplementation,
+    AITaskImplementation
+} from "@root/common/rpc/ai-model/index";
 import Logger from "@root/common/util/Logger";
 import { WebSocketServer } from "ws";
 
 const LOGGER = Logger.withTag("RAGRPCServer");
 
 /**
- * 启动 RAG RPC 服务器
- * @param impl RPC 实现
+ * 启动 AI Model RPC 服务器（合并 RAG Router 与 AI 任务 Router）
+ * @param impl 同时实现 RAGRPCImplementation 与 AITaskImplementation 的实现
  * @param port 监听端口
  * @returns HTTP 服务器实例
  */
-export function startRAGRPCServer(impl: RAGRPCImplementation, port: number) {
-    const router = createRAGRouter(impl);
+export function startRAGRPCServer(impl: RAGRPCImplementation & AITaskImplementation, port: number) {
+    const router = createAIModelRootRouter(impl);
 
     const httpServer = createHTTPServer({
         router: router as any

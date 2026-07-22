@@ -29,7 +29,17 @@ import {
     AgentGetConversationsOutput,
     AgentGetMessagesOutput,
     MemberProfileGenerateInputSchema,
-    MemberProfileGenerateOutput
+    MemberProfileGenerateOutput,
+    AISummarizeInputSchema,
+    AISummarizeOutput,
+    GenerateEmbeddingInputSchema,
+    GenerateEmbeddingOutput,
+    GenerateReportInputSchema,
+    GenerateReportOutput,
+    InterestScoreInputSchema,
+    InterestScoreOutput,
+    LLMInterestEvaluationInputSchema,
+    LLMInterestEvaluationOutput
 } from "./schemas";
 
 // 使用显式的上下文/元数据类型，避免在消费端与 tRPC AnyRootConfig 不兼容
@@ -395,7 +405,102 @@ export const createRAGRouter = (impl: RAGRPCImplementation) => {
 };
 
 /**
+ * AI 任务 RPC 实现接口
+ * ai-model 需要实现这些方法（供 orchestrator 调用）
+ */
+export interface AITaskImplementation {
+    aiSummarize(input: {
+        groupIds: string[];
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<AISummarizeOutput>;
+
+    generateEmbedding(input: { startTimeStamp: number; endTimeStamp: number }): Promise<GenerateEmbeddingOutput>;
+
+    generateReport(input: {
+        reportType: "half-daily" | "weekly" | "monthly";
+        timeStart: number;
+        timeEnd: number;
+    }): Promise<GenerateReportOutput>;
+
+    interestScore(input: { startTimeStamp: number; endTimeStamp: number }): Promise<InterestScoreOutput>;
+
+    llmInterestEvaluation(input: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<LLMInterestEvaluationOutput>;
+}
+
+/**
+ * 创建 AI 任务 tRPC Router
+ * @param impl AI 任务的具体实现
+ * @returns tRPC router 实例
+ */
+export const createAITaskRouter = (impl: AITaskImplementation) => {
+    const router = t.router({
+        aiSummarize: t.procedure.input(AISummarizeInputSchema).mutation(async ({ input }) => {
+            // tRPC v10 + zod 3.25 在非 strictNullChecks 下会把 input 推断为 Partial，
+            // 复用实现接口的入参类型做类型断言，保证跨包 .d.ts 与实现端一致。
+            return impl.aiSummarize(input as Parameters<AITaskImplementation["aiSummarize"]>[0]);
+        }),
+
+        generateEmbedding: t.procedure.input(GenerateEmbeddingInputSchema).mutation(async ({ input }) => {
+            return impl.generateEmbedding(input as Parameters<AITaskImplementation["generateEmbedding"]>[0]);
+        }),
+
+        generateReport: t.procedure.input(GenerateReportInputSchema).mutation(async ({ input }) => {
+            return impl.generateReport(input as Parameters<AITaskImplementation["generateReport"]>[0]);
+        }),
+
+        interestScore: t.procedure.input(InterestScoreInputSchema).mutation(async ({ input }) => {
+            return impl.interestScore(input as Parameters<AITaskImplementation["interestScore"]>[0]);
+        }),
+
+        llmInterestEvaluation: t.procedure.input(LLMInterestEvaluationInputSchema).mutation(async ({ input }) => {
+            return impl.llmInterestEvaluation(
+                input as Parameters<AITaskImplementation["llmInterestEvaluation"]>[0]
+            );
+        })
+    });
+
+    // 将 _config 放宽到 AnyRootConfig，便于跨包消费（如 orchestrator 客户端）
+    type RouterRecord = (typeof router._def)["record"];
+    type AITaskRouterDef = {
+        _config: AnyRootConfig;
+        router: true;
+        procedures: (typeof router._def)["procedures"];
+        record: RouterRecord;
+        queries: (typeof router._def)["queries"];
+        mutations: (typeof router._def)["mutations"];
+        subscriptions: (typeof router._def)["subscriptions"];
+    };
+
+    const typedRouter = router as unknown as Router<AITaskRouterDef> & RouterRecord;
+
+    return typedRouter;
+};
+
+/**
+ * 创建 AI Model 根 Router（合并 RAG Router 与 AI 任务 Router，平铺）
+ * @param impl 同时实现 RAGRPCImplementation 与 AITaskImplementation 的实现
+ * @returns 合并后的 tRPC router 实例
+ */
+export const createAIModelRootRouter = (impl: RAGRPCImplementation & AITaskImplementation) => {
+    return t.mergeRouters(createRAGRouter(impl), createAITaskRouter(impl));
+};
+
+/**
  * RAG Router 类型
  * 供 webui-backend 创建类型安全的 client
  */
 export type RAGRouter = ReturnType<typeof createRAGRouter>;
+
+/**
+ * AI 任务 Router 类型
+ */
+export type AITaskRouter = ReturnType<typeof createAITaskRouter>;
+
+/**
+ * AI Model 根 Router 类型（合并后平铺，webui-backend / orchestrator 共用）
+ */
+export type AIRootRouter = ReturnType<typeof createAIModelRootRouter>;

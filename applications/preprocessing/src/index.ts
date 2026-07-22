@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
 import {
     registerConfigManagerService,
     registerCommonDBService,
@@ -9,18 +8,14 @@ import {
 } from "@root/common/di/container";
 import { bootstrap, bootstrapAll } from "@root/common/util/lifecycle/bootstrap";
 
-import {
-    registerTaskHandlers,
-    getPreprocessTaskHandler,
-    registerAccumulativeSplitter,
-    registerTimeoutSplitter
-} from "./di/container";
+import { registerTaskHandlers, registerAccumulativeSplitter, registerTimeoutSplitter } from "./di/container";
+import { setupRPC } from "./rpc/setupRPC";
 
 const LOGGER = Logger.withTag("🏭 preprocessor-root-script");
 
 /**
  * Preprocessing 应用入口类
- * 负责初始化 DI 容器、数据库服务和任务处理器
+ * 负责初始化 DI 容器、数据库服务和 RPC 服务
  */
 @bootstrap
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -45,16 +40,13 @@ class PreprocessingApplication {
         registerAccumulativeSplitter();
         registerTimeoutSplitter();
 
-        // 5. 注册任务处理器
+        // 5. 注册任务处理器与 RPC 实现
         registerTaskHandlers();
 
-        // 6. 获取任务处理器并注册到 Agenda
-        const preprocessTaskHandler = getPreprocessTaskHandler();
+        // 6. 启动 RPC 服务
+        await setupRPC();
 
-        await preprocessTaskHandler.register();
-
-        LOGGER.success("Ready to start agenda scheduler");
-        await agendaInstance.start(); // 启动调度器
+        LOGGER.success("✅ Preprocessing 准备就绪");
     }
 }
 

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { container } from "tsyringe";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
-import { SearchOutput } from "@root/common/rpc/ai-model";
+import { SearchOutput } from "@root/common/rpc/ai-model/index";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { RAGCtxBuilder } from "../context/ctxBuilders/RAGCtxBuilder";

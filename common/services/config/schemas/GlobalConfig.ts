@@ -190,6 +190,18 @@ export const GlobalConfigSchema = z.object({
         })
         .describe("调度器配置"),
 
+    dataProviderRpc: z
+        .object({
+            port: z.number().int().positive().describe("data-provider RPC 服务端口")
+        })
+        .describe("data-provider RPC 配置"),
+
+    preprocessingRpc: z
+        .object({
+            port: z.number().int().positive().describe("preprocessing RPC 服务端口")
+        })
+        .describe("preprocessing RPC 配置"),
+
     webUI_Forwarder: z
         .object({
             enabled: z.boolean().describe("是否启用内网穿透"),

@@ -1,10 +1,9 @@
 import "reflect-metadata";
 import { injectable, inject } from "tsyringe";
-import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import Logger from "@root/common/util/Logger";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
+import { GenerateEmbeddingInput, GenerateEmbeddingOutput } from "@root/common/rpc/ai-model/index";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { EmbeddingService } from "../services/embedding/EmbeddingService";
@@ -29,100 +28,86 @@ export class GenerateEmbeddingTaskHandler {
     ) {}
 
     /**
-     * 注册任务到 Agenda 调度器
+     * 执行向量嵌入生成任务
+     * 为所有尚未生成嵌入的 AI 摘要结果生成向量嵌入并落库
+     * @param _params 任务参数（时间范围参数当前未使用，直接查询所有未生成嵌入的摘要）
+     * @returns 执行结果
      */
-    public async register(): Promise<void> {
-        let config = await this.configManagerService.getCurrentConfig();
+    public async run(_params: GenerateEmbeddingInput): Promise<GenerateEmbeddingOutput> {
+        this.LOGGER.info(`😋开始处理 GenerateEmbedding 任务`);
 
-        await agendaInstance
-            .create(TaskHandlerTypes.GenerateEmbedding)
-            .unique({ name: TaskHandlerTypes.GenerateEmbedding }, { insertOnly: true })
-            .save();
+        const config = await this.configManagerService.getCurrentConfig();
 
-        agendaInstance.define<TaskParameters<TaskHandlerTypes.GenerateEmbedding>>(
-            TaskHandlerTypes.GenerateEmbedding,
-            async job => {
-                this.LOGGER.info(`😋开始处理任务: ${job.attrs.name}`);
+        // 迁移回填：为 hasEmbedding 列添加前已存在的旧数据补齐标记
+        await this.runMigrationBackfill();
 
-                config = await this.configManagerService.getCurrentConfig(); // 刷新配置
+        // 检查 Ollama 服务是否可用
+        if (!(await this.embeddingService.isAvailable())) {
+            this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
 
-                // 迁移回填：为 hasEmbedding 列添加前已存在的旧数据补齐标记
-                await this.runMigrationBackfill();
+            return { success: true };
+        }
 
-                // 检查 Ollama 服务是否可用
-                if (!(await this.embeddingService.isAvailable())) {
-                    this.LOGGER.error("Ollama 服务不可用，跳过当前任务");
+        this.LOGGER.success(`Ollama 服务初始化完成，模型: ${config.ai.embedding.model}`);
 
-                    return;
-                }
+        // 直接查询所有 hasEmbedding = 0 的摘要结果，无需考虑群组和时间范围
+        const digestResults = await this.agcDbAccessService.getAIDigestResultsWithoutEmbedding();
 
-                this.LOGGER.success(`Ollama 服务初始化完成，模型: ${config.ai.embedding.model}`);
+        this.LOGGER.info(`共获取到 ${digestResults.length} 条需要生成嵌入的摘要结果`);
 
-                // 直接查询所有 hasEmbedding = 0 的摘要结果，无需考虑群组和时间范围
-                const digestResults = await this.agcDbAccessService.getAIDigestResultsWithoutEmbedding();
+        if (digestResults.length === 0) {
+            this.LOGGER.info("没有需要生成嵌入的话题，任务完成");
 
-                this.LOGGER.info(`共获取到 ${digestResults.length} 条需要生成嵌入的摘要结果`);
+            return { success: true };
+        }
 
-                if (digestResults.length === 0) {
-                    this.LOGGER.info("没有需要生成嵌入的话题，任务完成");
+        // 开始处理。按批次处理
+        const batchSize = config.ai.embedding.batchSize;
 
-                    return;
-                }
+        for (let i = 0; i < digestResults.length; i += batchSize) {
+            const currentBatch = digestResults.slice(i, i + batchSize);
 
-                // 开始处理。按批次处理
-                const batchSize = config.ai.embedding.batchSize;
+            this.LOGGER.info(
+                `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(digestResults.length / batchSize)}，当前批次共 ${currentBatch.length} 条`
+            );
 
-                for (let i = 0; i < digestResults.length; i += batchSize) {
-                    await job.touch(); // 保证任务存活
+            // 构建输入文本 && 进行数据清洗
+            const texts = currentBatch.map(digest => {
+                const anonymized = anonymizeDigestDetail(digest);
 
-                    const currentBatch = digestResults.slice(i, i + batchSize);
+                return `${anonymized.topic} ${anonymized.detail}`;
+            });
 
-                    this.LOGGER.info(
-                        `处理批次 ${Math.floor(i / batchSize) + 1}/${Math.ceil(digestResults.length / batchSize)}，当前批次共 ${currentBatch.length} 条`
-                    );
+            this.LOGGER.success(`已构建&清洗 ${texts.length} 条输入文本，示例：${texts[0]}`);
 
-                    // 构建输入文本 && 进行数据清洗
-                    const texts = currentBatch.map(digest => {
-                        const anonymized = anonymizeDigestDetail(digest);
+            try {
+                // 批量生成嵌入向量
+                const embeddings = await this.embeddingService.embedBatch(texts);
+                // 批量存储
+                const items = currentBatch.map((digest, idx) => ({
+                    topicId: digest.topicId,
+                    embedding: embeddings[idx]
+                }));
 
-                        return `${anonymized.topic} ${anonymized.detail}`;
-                    });
+                this.vectorDBManagerService.storeEmbeddings(items);
 
-                    this.LOGGER.success(`已构建&清洗 ${texts.length} 条输入文本，示例：${texts[0]}`);
+                // 标记这些 topicId 为已生成嵌入向量
+                const topicIds = currentBatch.map(d => d.topicId);
 
-                    try {
-                        // 批量生成嵌入向量
-                        const embeddings = await this.embeddingService.embedBatch(texts);
-                        // 批量存储
-                        const items = currentBatch.map((digest, idx) => ({
-                            topicId: digest.topicId,
-                            embedding: embeddings[idx]
-                        }));
+                await this.agcDbAccessService.markEmbeddingGenerated(topicIds);
 
-                        this.vectorDBManagerService.storeEmbeddings(items);
-
-                        // 标记这些 topicId 为已生成嵌入向量
-                        const topicIds = currentBatch.map(d => d.topicId);
-
-                        await this.agcDbAccessService.markEmbeddingGenerated(topicIds);
-
-                        this.LOGGER.success(`批次处理完成，已存储 ${items.length} 条向量并标记 hasEmbedding`);
-                    } catch (error) {
-                        this.LOGGER.error(`批次处理失败: ${error}，继续处理下一批次`);
-                        // 继续处理下一批次，不中断整个任务
-                    }
-                }
-
-                this.LOGGER.success(
-                    `🥳任务完成: ${job.attrs.name}，向量数据库当前共 ${this.vectorDBManagerService.getCount()} 条记录`
-                );
-            },
-            {
-                concurrency: 1,
-                priority: "high",
-                lockLifetime: 10 * 60 * 1000 // 10分钟
+                this.LOGGER.success(`批次处理完成，已存储 ${items.length} 条向量并标记 hasEmbedding`);
+            } catch (error) {
+                this.LOGGER.error(`批次处理失败: ${error}，继续处理下一批次`);
+                // 继续处理下一批次，不中断整个任务
             }
+        }
+
+        this.LOGGER.success(
+            `🥳GenerateEmbedding 任务完成，向量数据库当前共 ${this.vectorDBManagerService.getCount()} 条记录`
         );
+
+        return { success: true };
     }
 
     /**

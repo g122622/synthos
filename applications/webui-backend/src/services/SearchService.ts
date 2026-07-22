@@ -3,7 +3,7 @@
  * 封装对 RAG RPC 的调用
  */
 import type { RAGClient } from "../rpc/aiModelClient";
-import type { SearchOutput, AskOutput } from "@root/common/rpc/ai-model";
+import type { SearchOutput, AskOutput } from "@root/common/rpc/ai-model/index";
 
 import { injectable, inject } from "tsyringe";
 import Logger from "@root/common/util/Logger";

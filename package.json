@@ -24,14 +24,11 @@
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
   "dependencies": {
-    "@hokify/agenda": "^6.3.0",
     "@trpc/client": "^10.45.2",
     "@trpc/server": "^10.45.2",
     "@types/express": "^5.0.3",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.0",
-    "agendash": "^4.0.0",
-    "bson": "^7.0.0",
     "dotenv": "^17.2.3",
     "duck-duck-scrape": "^2.2.7",
     "eslint": "^9.37.0",
@@ -40,6 +37,7 @@
     "level": "^10.0.0",
     "lodash": "^4.17.21",
     "lodash-es": "^4.17.21",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.16",
     "onnxruntime-common": "^1.23.0",
     "onnxruntime-node": "^1.23.0",
@@ -54,6 +52,7 @@
     "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^6.4.17",
     "acorn": "^8.15.0",
     "chokidar": "^4.0.3",

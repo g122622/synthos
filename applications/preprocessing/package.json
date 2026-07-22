@@ -12,5 +12,7 @@
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.15.0",
-  "dependencies": {}
+  "dependencies": {
+    "@trpc/server": "^10.45.2"
+  }
 }

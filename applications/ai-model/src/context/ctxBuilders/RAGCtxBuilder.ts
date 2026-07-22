@@ -4,7 +4,7 @@ import { Disposable } from "@root/common/util/lifecycle/Disposable";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { formatTimestamp } from "@root/common/util/TimeUtils";
-import { SearchOutput } from "@root/common/rpc/ai-model";
+import { SearchOutput } from "@root/common/rpc/ai-model/index";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
 
 import { RagPromptStore } from "../prompts/RagPromptStore";

@@ -1,13 +1,4 @@
 services:
-  mongo:
-    image: mongo:7
-    container_name: synthos-mongo
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - ./docker/volumes/mongo:/data/db
-
   # Optional: Ollama for local embeddings/LLM (CPU by default).
   # Enable with: docker compose --profile ollama up -d
   ollama:
@@ -26,12 +17,9 @@ services:
       dockerfile: docker/backend.Dockerfile
     container_name: synthos-ai-model
     restart: unless-stopped
-    depends_on:
-      - mongo
     environment:
       - NODE_ENV=production
       - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
-      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
     volumes:
       - ./docker/config:/config:ro
       - ./docker/data:/data
@@ -46,17 +34,16 @@ services:
       dockerfile: docker/backend.Dockerfile
     container_name: synthos-preprocessing
     restart: unless-stopped
-    depends_on:
-      - mongo
     environment:
       - NODE_ENV=production
       - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
-      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
     volumes:
       - ./docker/config:/config:ro
       - ./docker/data:/data
       - ./docker/logs:/logs
     command: ["node", "applications/preprocessing/dist/index.js"]
+    ports:
+      - "7981:7981"
 
   orchestrator:
     build:
@@ -65,13 +52,11 @@ services:
     container_name: synthos-orchestrator
     restart: unless-stopped
     depends_on:
-      - mongo
       - ai-model
       - preprocessing
     environment:
       - NODE_ENV=production
       - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
-      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
     volumes:
       - ./docker/config:/config:ro
       - ./docker/data:/data
@@ -85,12 +70,10 @@ services:
     container_name: synthos-webui-backend
     restart: unless-stopped
     depends_on:
-      - mongo
       - ai-model
     environment:
       - NODE_ENV=production
       - SYNTHOS_CONFIG_PATH=/config/synthos_config.json
-      - SYNTHOS_MONGODB_URL=mongodb://mongo:27017/synthos
       - SYNTHOS_AI_RPC_BASE_URL=http://ai-model:7979
     volumes:
       - ./docker/config:/config:ro
@@ -124,5 +107,4 @@ services:
       - |
         echo "[synthos] data-provider is host-only in Scheme B (Windows QQNT DB + VFS DLL).";
         echo "Run it on your host: pnpm --filter data-provider dev";
-        echo "(and set SYNTHOS_MONGODB_URL=mongodb://localhost:27017/synthos)";
         sleep 3600

@@ -264,6 +264,56 @@ export const MemberProfileGenerateOutputSchema = z.object({
     memberProfile: MemberProfileRecordSchema.optional() // 成功时携带落库的画像记录
 });
 
+// ========== AI 任务接口（供 orchestrator 调用） ==========
+
+export const AISummarizeInputSchema = z.object({
+    groupIds: z.array(z.string()),
+    startTimeStamp: z.number(),
+    endTimeStamp: z.number()
+});
+
+export const AISummarizeOutputSchema = z.object({
+    success: z.literal(true)
+});
+
+export const GenerateEmbeddingInputSchema = z.object({
+    startTimeStamp: z.number(),
+    endTimeStamp: z.number()
+});
+
+export const GenerateEmbeddingOutputSchema = z.object({
+    success: z.literal(true)
+});
+
+export const GenerateReportInputSchema = z.object({
+    reportType: z.enum(["half-daily", "weekly", "monthly"]),
+    timeStart: z.number(),
+    timeEnd: z.number()
+});
+
+export const GenerateReportOutputSchema = z.object({
+    success: z.literal(true),
+    reportId: z.string()
+});
+
+export const InterestScoreInputSchema = z.object({
+    startTimeStamp: z.number(),
+    endTimeStamp: z.number()
+});
+
+export const InterestScoreOutputSchema = z.object({
+    success: z.literal(true)
+});
+
+export const LLMInterestEvaluationInputSchema = z.object({
+    startTimeStamp: z.number(),
+    endTimeStamp: z.number()
+});
+
+export const LLMInterestEvaluationOutputSchema = z.object({
+    success: z.literal(true)
+});
+
 // ========== 导出类型 ==========
 
 export type SearchInput = z.infer<typeof SearchInputSchema>;
@@ -303,3 +353,14 @@ export type MemberProfileGenerateInput = z.infer<typeof MemberProfileGenerateInp
 export type MemberProfileContent = z.infer<typeof MemberProfileContentSchema>;
 export type MemberProfileRecord = z.infer<typeof MemberProfileRecordSchema>;
 export type MemberProfileGenerateOutput = z.infer<typeof MemberProfileGenerateOutputSchema>;
+
+export type AISummarizeInput = z.infer<typeof AISummarizeInputSchema>;
+export type AISummarizeOutput = z.infer<typeof AISummarizeOutputSchema>;
+export type GenerateEmbeddingInput = z.infer<typeof GenerateEmbeddingInputSchema>;
+export type GenerateEmbeddingOutput = z.infer<typeof GenerateEmbeddingOutputSchema>;
+export type GenerateReportInput = z.infer<typeof GenerateReportInputSchema>;
+export type GenerateReportOutput = z.infer<typeof GenerateReportOutputSchema>;
+export type InterestScoreInput = z.infer<typeof InterestScoreInputSchema>;
+export type InterestScoreOutput = z.infer<typeof InterestScoreOutputSchema>;
+export type LLMInterestEvaluationInput = z.infer<typeof LLMInterestEvaluationInputSchema>;
+export type LLMInterestEvaluationOutput = z.infer<typeof LLMInterestEvaluationOutputSchema>;

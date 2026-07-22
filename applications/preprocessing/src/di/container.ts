@@ -8,6 +8,7 @@ import { container } from "tsyringe";
 import { PreprocessTaskHandler } from "../tasks/PreprocessTask";
 import { AccumulativeSplitter } from "../splitters/AccumulativeSplitter";
 import { TimeoutSplitter } from "../splitters/TimeoutSplitter";
+import { PreprocessingRpcImpl } from "../rpc/PreprocessingRpcImpl";
 
 import { PREPROCESSING_TOKENS } from "./tokens";
 
@@ -48,6 +49,7 @@ export function getTimeoutSplitter(): TimeoutSplitter {
  */
 export function registerTaskHandlers(): void {
     container.registerSingleton(PREPROCESSING_TOKENS.PreprocessTaskHandler, PreprocessTaskHandler);
+    container.registerSingleton(PREPROCESSING_TOKENS.PreprocessingRpcImpl, PreprocessingRpcImpl);
 }
 
 /**

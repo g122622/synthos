@@ -2,7 +2,7 @@
  * RAG RPC 客户端
  * 用于调用 ai-model 子项目的 RPC 服务
  */
-import type { RAGRouter } from "@root/common/rpc/ai-model";
+import type { AIRootRouter } from "@root/common/rpc/ai-model/index";
 
 import { createTRPCProxyClient, createWSClient, wsLink } from "@trpc/client";
 import Logger from "@root/common/util/Logger";
@@ -27,7 +27,7 @@ export function createRAGClient(baseUrl: string) {
         WebSocket: WebSocket as any
     });
 
-    return createTRPCProxyClient<RAGRouter>({
+    return createTRPCProxyClient<AIRootRouter>({
         links: [
             wsLink({
                 client: wsClient

@@ -7,6 +7,7 @@ import { container } from "tsyringe";
 
 import { ProvideDataTaskHandler } from "../tasks/ProvideDataTask";
 import { QQProvider } from "../providers/QQProvider/QQProvider";
+import { DataProviderRpcImpl } from "../rpc/DataProviderRpcImpl";
 
 import { DATA_PROVIDER_TOKENS } from "./tokens";
 
@@ -31,6 +32,7 @@ export function getQQProvider(): QQProvider {
  */
 export function registerTaskHandlers(): void {
     container.registerSingleton(DATA_PROVIDER_TOKENS.ProvideDataTaskHandler, ProvideDataTaskHandler);
+    container.registerSingleton(DATA_PROVIDER_TOKENS.DataProviderRpcImpl, DataProviderRpcImpl);
 }
 
 /**

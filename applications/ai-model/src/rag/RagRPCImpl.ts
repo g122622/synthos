@@ -11,20 +11,24 @@ import { randomUUID } from "crypto";
 import { injectable, inject, container } from "tsyringe";
 import {
     RAGRPCImplementation,
+    AITaskImplementation,
     SearchOutput,
     AskOutput,
     AskStreamChunk,
     TriggerReportGenerateOutput,
     SendReportEmailOutput,
-    MemberProfileGenerateOutput
+    MemberProfileGenerateOutput,
+    AISummarizeOutput,
+    GenerateEmbeddingOutput,
+    GenerateReportOutput,
+    InterestScoreOutput,
+    LLMInterestEvaluationOutput
 } from "@root/common/rpc/ai-model/index";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";
 import { ImDbAccessService } from "@root/common/services/database/ImDbAccessService";
 import { ReportDbAccessService } from "@root/common/services/database/ReportDbAccessService";
 import { MemberProfileDbAccessService } from "@root/common/services/database/MemberProfileDbAccessService";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes, TaskParameters } from "@root/common/scheduler/@types/Tasks";
 import { ReportType } from "@root/common/contracts/report/index";
 import { ConfigManagerService } from "@root/common/services/config/ConfigManagerService";
 import { COMMON_TOKENS } from "@root/common/di/tokens";
@@ -47,6 +51,11 @@ import { VectorDBManagerService } from "../services/embedding/VectorDBManagerSer
 import { AgentPromptStore } from "../context/prompts/AgentPromptStore";
 import { LangGraphAgentExecutor } from "../agent-langgraph/LangGraphAgentExecutor";
 import { AgentToolCatalog } from "../agent-langgraph/AgentToolCatalog";
+import { AISummarizeTaskHandler } from "../tasks/AISummarize";
+import { GenerateEmbeddingTaskHandler } from "../tasks/GenerateEmbedding";
+import { GenerateReportTaskHandler } from "../tasks/GenerateReport";
+import { InterestScoreTaskHandler } from "../tasks/InterestScore";
+import { LLMInterestEvaluationAndNotificationTaskHandler } from "../tasks/LLMInterestEvaluationAndNotification";
 
 import { QueryRewriter } from "./QueryRewriter";
 
@@ -55,7 +64,7 @@ import { QueryRewriter } from "./QueryRewriter";
  * 提供语义搜索、RAG 问答、日报生成触发和日报邮件发送能力
  */
 @injectable()
-export class RagRPCImpl implements RAGRPCImplementation {
+export class RagRPCImpl implements RAGRPCImplementation, AITaskImplementation {
     private LOGGER = Logger.withTag("RagRPCImpl");
     private queryRewriter: QueryRewriter;
     private defaultModelName: string = "";
@@ -76,7 +85,16 @@ export class RagRPCImpl implements RAGRPCImplementation {
         @inject(COMMON_TOKENS.AgentDbAccessService) private agentDB: AgentDbAccessService,
         @inject(AI_MODEL_TOKENS.AgentToolCatalog) private agentToolCatalog: AgentToolCatalog,
         @inject(COMMON_TOKENS.MemberProfileDbAccessService) private memberProfileDB: MemberProfileDbAccessService,
-        @inject(AI_MODEL_TOKENS.MemberProfileCtxBuilder) private memberProfileCtxBuilder: MemberProfileCtxBuilder
+        @inject(AI_MODEL_TOKENS.MemberProfileCtxBuilder) private memberProfileCtxBuilder: MemberProfileCtxBuilder,
+        @inject(AI_MODEL_TOKENS.AISummarizeTaskHandler) private aiSummarizeTaskHandler: AISummarizeTaskHandler,
+        @inject(AI_MODEL_TOKENS.GenerateEmbeddingTaskHandler)
+        private generateEmbeddingTaskHandler: GenerateEmbeddingTaskHandler,
+        @inject(AI_MODEL_TOKENS.GenerateReportTaskHandler)
+        private generateReportTaskHandler: GenerateReportTaskHandler,
+        @inject(AI_MODEL_TOKENS.InterestScoreTaskHandler)
+        private interestScoreTaskHandler: InterestScoreTaskHandler,
+        @inject(AI_MODEL_TOKENS.LLMInterestEvaluationAndNotificationTaskHandler)
+        private llmInterestEvaluationTaskHandler: LLMInterestEvaluationAndNotificationTaskHandler
     ) {
         // QueryRewriter 将在 init 方法中初始化
         this.queryRewriter = null as any;
@@ -304,7 +322,7 @@ export class RagRPCImpl implements RAGRPCImplementation {
 
     /**
      * 触发生成日报
-     * 通过 Agenda 调度一个即时任务来生成日报
+     * 同步调用 GenerateReportTaskHandler 生成日报并返回结果
      */
     public async triggerReportGenerate(input: {
         type: "half-daily" | "weekly" | "monthly";
@@ -343,23 +361,19 @@ export class RagRPCImpl implements RAGRPCImplementation {
                 `日报时间范围: ${new Date(timeStart).toISOString()} - ${new Date(timeEnd).toISOString()}`
             );
 
-            // 调度即时任务
-            const taskData: TaskParameters<TaskHandlerTypes.GenerateReport> = {
+            // 同步调用日报生成任务（阻塞至生成完成）
+            const result = await this.generateReportTaskHandler.run({
                 reportType: input.type as ReportType,
                 timeStart,
                 timeEnd
-            };
+            });
 
-            await agendaInstance.now<TaskParameters<TaskHandlerTypes.GenerateReport>>(
-                TaskHandlerTypes.GenerateReport,
-                taskData
-            );
-
-            this.LOGGER.success(`日报生成任务已调度: ${input.type}`);
+            this.LOGGER.success(`日报生成完成: ${input.type}, reportId=${result.reportId}`);
 
             return {
                 success: true,
-                message: `${input.type} 日报生成任务已提交，请稍后刷新查看结果`
+                message: `${input.type} 日报生成完成`,
+                reportId: result.reportId || undefined
             };
         } catch (error) {
             this.LOGGER.error(`触发日报生成失败: ${error}`);
@@ -941,5 +955,69 @@ export class RagRPCImpl implements RAGRPCImplementation {
         }
 
         return result;
+    }
+
+    // ==================== AI 任务接口实现（供 orchestrator 调用） ====================
+
+    /**
+     * AI 摘要生成
+     */
+    public async aiSummarize(input: {
+        groupIds: string[];
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<AISummarizeOutput> {
+        this.LOGGER.info(`收到 aiSummarize 请求: groupIds=${input.groupIds.join(",")}`);
+
+        return this.aiSummarizeTaskHandler.run(input);
+    }
+
+    /**
+     * 向量嵌入生成
+     */
+    public async generateEmbedding(input: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<GenerateEmbeddingOutput> {
+        this.LOGGER.info(`收到 generateEmbedding 请求`);
+
+        return this.generateEmbeddingTaskHandler.run(input);
+    }
+
+    /**
+     * 日报生成
+     */
+    public async generateReport(input: {
+        reportType: "half-daily" | "weekly" | "monthly";
+        timeStart: number;
+        timeEnd: number;
+    }): Promise<GenerateReportOutput> {
+        this.LOGGER.info(`收到 generateReport 请求: type=${input.reportType}`);
+
+        return this.generateReportTaskHandler.run(input);
+    }
+
+    /**
+     * 兴趣度评分
+     */
+    public async interestScore(input: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<InterestScoreOutput> {
+        this.LOGGER.info(`收到 interestScore 请求`);
+
+        return this.interestScoreTaskHandler.run(input);
+    }
+
+    /**
+     * LLM 兴趣评估与通知
+     */
+    public async llmInterestEvaluation(input: {
+        startTimeStamp: number;
+        endTimeStamp: number;
+    }): Promise<LLMInterestEvaluationOutput> {
+        this.LOGGER.info(`收到 llmInterestEvaluation 请求`);
+
+        return this.llmInterestEvaluationTaskHandler.run(input);
     }
 }

@@ -1,7 +1,7 @@
 /**
  * 日报服务
  */
-import type { ReferenceItem } from "@root/common/rpc/ai-model";
+import type { ReferenceItem } from "@root/common/rpc/ai-model/index";
 
 import { injectable, inject } from "tsyringe";
 import { AgcDbAccessService } from "@root/common/services/database/AgcDbAccessService";

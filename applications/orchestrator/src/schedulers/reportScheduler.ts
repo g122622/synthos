@@ -1,10 +1,16 @@
+/**
+ * 日报定时调度器
+ * 使用 node-cron 按配置的半日报/周报/月报时间触发日报生成
+ */
+import cron from "node-cron";
 import Logger from "@root/common/util/Logger";
-import { agendaInstance } from "@root/common/scheduler/agenda";
-import { TaskHandlerTypes } from "@root/common/scheduler/@types/Tasks";
 import ConfigManagerService from "@root/common/services/config/ConfigManagerService";
+import { GlobalConfig } from "@root/common/services/config/schemas/GlobalConfig";
 import { ReportType } from "@root/common/contracts/report";
 
-const LOGGER = Logger.withTag("📰 [orchestrator] [ReportScheduler]");
+import { AIModelClient } from "../rpc/clients";
+
+const LOGGER = Logger.withTag("📰 [ReportScheduler]");
 
 /**
  * 解析时间字符串为小时和分钟
@@ -57,11 +63,40 @@ function calculateHalfDailyTimeRange(
 }
 
 /**
- * 设置日报定时任务调度器
+ * 触发日报生成（运行时检查启用状态并捕获异常，避免崩溃进程）
  */
-export async function setupReportScheduler(): Promise<void> {
-    const config = await ConfigManagerService.getCurrentConfig();
+async function triggerReport(
+    client: AIModelClient,
+    reportType: ReportType,
+    timeStart: number,
+    timeEnd: number
+): Promise<void> {
+    try {
+        const cfg = await ConfigManagerService.getCurrentConfig();
 
+        if (!cfg.report?.enabled) {
+            LOGGER.info("日报功能未启用，跳过");
+
+            return;
+        }
+
+        LOGGER.info(
+            `📰 触发 ${reportType} 生成: ${new Date(timeStart).toLocaleString()} - ${new Date(timeEnd).toLocaleString()}`
+        );
+
+        await client.generateReport.mutate({ reportType, timeStart, timeEnd });
+        LOGGER.success(`📰 ${reportType} 生成完成`);
+    } catch (err) {
+        LOGGER.error(`📰 ${reportType} 生成失败: ${err}`);
+    }
+}
+
+/**
+ * 设置日报定时任务
+ * @param aiModelClient ai-model 客户端
+ * @param config 全局配置
+ */
+export function setupReportScheduler(aiModelClient: AIModelClient, config: GlobalConfig): void {
     // 检查日报功能是否启用
     if (!config.report?.enabled) {
         LOGGER.info("📰 日报功能未启用");
@@ -76,48 +111,25 @@ export async function setupReportScheduler(): Promise<void> {
     // 配置半日报定时任务
     for (const timeStr of reportConfig.schedule.halfDailyTimes) {
         const { hour, minute } = parseTimeStr(timeStr);
-        // 使用 cron 格式：分钟 小时 * * *
         const cronExpression = `${minute} ${hour} * * *`;
 
         LOGGER.info(`📰 设置半日报定时任务: ${timeStr} (cron: ${cronExpression})`);
 
-        await agendaInstance.every(
+        cron.schedule(
             cronExpression,
-            `HalfDailyReport_${timeStr}`,
-            {},
+            () => {
+                const now = new Date();
+                const { timeStart, timeEnd } = calculateHalfDailyTimeRange(
+                    now,
+                    reportConfig.schedule.halfDailyTimes
+                );
+
+                void triggerReport(aiModelClient, "half-daily", timeStart, timeEnd);
+            },
             {
-                skipImmediate: true // 不立即执行
+                timezone: "Asia/Shanghai"
             }
         );
-    }
-
-    // 为每个半日报时间点定义任务处理器
-    for (const timeStr of reportConfig.schedule.halfDailyTimes) {
-        agendaInstance.define(`HalfDailyReport_${timeStr}`, async () => {
-            const currentConfig = await ConfigManagerService.getCurrentConfig();
-
-            if (!currentConfig.report?.enabled) {
-                LOGGER.info("日报功能未启用，跳过");
-
-                return;
-            }
-
-            const now = new Date();
-            const { timeStart, timeEnd } = calculateHalfDailyTimeRange(
-                now,
-                currentConfig.report.schedule.halfDailyTimes
-            );
-
-            LOGGER.info(
-                `📰 触发半日报生成: ${new Date(timeStart).toLocaleString()} - ${new Date(timeEnd).toLocaleString()}`
-            );
-
-            await agendaInstance.now(TaskHandlerTypes.GenerateReport, {
-                reportType: "half-daily" as ReportType,
-                timeStart,
-                timeEnd
-            });
-        });
     }
 
     // 配置周报定时任务
@@ -129,39 +141,19 @@ export async function setupReportScheduler(): Promise<void> {
         `📰 设置周报定时任务: 每周${weeklyDayOfWeek} ${reportConfig.schedule.weeklyTime} (cron: ${weeklyCron})`
     );
 
-    await agendaInstance.every(
+    cron.schedule(
         weeklyCron,
-        "WeeklyReport",
-        {},
+        () => {
+            const now = new Date();
+            const timeEnd = now.getTime();
+            const timeStart = timeEnd - 7 * 24 * 60 * 60 * 1000; // 周报覆盖过去 7 天
+
+            void triggerReport(aiModelClient, "weekly", timeStart, timeEnd);
+        },
         {
-            skipImmediate: true
+            timezone: "Asia/Shanghai"
         }
     );
-
-    agendaInstance.define("WeeklyReport", async () => {
-        const currentConfig = await ConfigManagerService.getCurrentConfig();
-
-        if (!currentConfig.report?.enabled) {
-            LOGGER.info("日报功能未启用，跳过");
-
-            return;
-        }
-
-        const now = new Date();
-        const timeEnd = now.getTime();
-        // 周报覆盖过去 7 天
-        const timeStart = timeEnd - 7 * 24 * 60 * 60 * 1000;
-
-        LOGGER.info(
-            `📰 触发周报生成: ${new Date(timeStart).toLocaleString()} - ${new Date(timeEnd).toLocaleString()}`
-        );
-
-        await agendaInstance.now(TaskHandlerTypes.GenerateReport, {
-            reportType: "weekly" as ReportType,
-            timeStart,
-            timeEnd
-        });
-    });
 
     // 配置月报定时任务
     const monthlyTime = parseTimeStr(reportConfig.schedule.monthlyTime);
@@ -172,39 +164,19 @@ export async function setupReportScheduler(): Promise<void> {
         `📰 设置月报定时任务: 每月${monthlyDayOfMonth}号 ${reportConfig.schedule.monthlyTime} (cron: ${monthlyCron})`
     );
 
-    await agendaInstance.every(
+    cron.schedule(
         monthlyCron,
-        "MonthlyReport",
-        {},
+        () => {
+            const now = new Date();
+            const timeEnd = now.getTime();
+            const timeStart = timeEnd - 30 * 24 * 60 * 60 * 1000; // 月报覆盖过去 30 天
+
+            void triggerReport(aiModelClient, "monthly", timeStart, timeEnd);
+        },
         {
-            skipImmediate: true
+            timezone: "Asia/Shanghai"
         }
     );
-
-    agendaInstance.define("MonthlyReport", async () => {
-        const currentConfig = await ConfigManagerService.getCurrentConfig();
-
-        if (!currentConfig.report?.enabled) {
-            LOGGER.info("日报功能未启用，跳过");
-
-            return;
-        }
-
-        const now = new Date();
-        const timeEnd = now.getTime();
-        // 月报覆盖过去 30 天
-        const timeStart = timeEnd - 30 * 24 * 60 * 60 * 1000;
-
-        LOGGER.info(
-            `📰 触发月报生成: ${new Date(timeStart).toLocaleString()} - ${new Date(timeEnd).toLocaleString()}`
-        );
-
-        await agendaInstance.now(TaskHandlerTypes.GenerateReport, {
-            reportType: "monthly" as ReportType,
-            timeStart,
-            timeEnd
-        });
-    });
 
     LOGGER.success("📰 日报定时任务配置完成");
 }

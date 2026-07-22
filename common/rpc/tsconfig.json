@@ -2,7 +2,8 @@
     "compilerOptions": {
         "composite": true, // ✅ 启用项目引用
         "declaration": true, // 必须生成 .d.ts
-        "outDir": "./dist",
+        "strictNullChecks": true, // 关键：zod3.25 + tRPC v10 在 strictNullChecks 关闭时会把 z.infer 推断为 Partial，污染跨包 .d.ts，导致严格消费端报错
+        "outDir": "../dist/rpc", // 输出到 common/dist/rpc，与 redirectRequire.js 运行时重写规则（@root/common/* → common/dist/*）保持一致
         "rootDir": "./",
         "module": "esnext",
         "moduleResolution": "bundler",
@@ -13,8 +14,5 @@
         "skipLibCheck": true
     },
     "include": ["**/*"],
-    "exclude": ["node_modules", "dist", "rpc"],
-    "references": [
-        { "path": "./rpc" }
-    ]
+    "exclude": ["node_modules", "dist"]
 }
