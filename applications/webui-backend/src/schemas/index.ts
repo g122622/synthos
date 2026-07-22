@@ -148,7 +148,8 @@ export type TopicIdsParams = z.infer<typeof TopicIdsSchema>;
 // ==================== Misc ====================
 
 export const GetQQAvatarSchema = z.object({
-    qqNumber: z.string({ message: "缺少qqNumber参数" })
+    type: z.enum(["group", "user"], { message: "缺少或非法的 type 参数（需为 group 或 user）" }),
+    qqId: z.string({ message: "缺少 qqId 参数" })
 });
 export type GetQQAvatarParams = z.infer<typeof GetQQAvatarSchema>;
 

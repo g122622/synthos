@@ -26,18 +26,15 @@ const DEFAULT_AVATAR_PLACEHOLDER =
 
 /**
  * 根据类型和QQ号生成头像URL
+ * 使用相对路径指向同源后端接口，由后端统一回源腾讯并做磁盘缓存。
+ * 必须用相对路径（不拼 API_BASE_URL）才能让浏览器视为同源，
+ * 否则 dom-to-image 截图时跨域图片无法进入 canvas。
  * @param type 头像类型
  * @param qqId QQ号或群号
  * @returns 头像URL
  */
 function getAvatarUrl(type: QQAvatarType, qqId: string): string {
-    if (type === "group") {
-        // QQ群头像
-        return `http://p.qlogo.cn/gh/${qqId}/${qqId}/0`;
-    } else {
-        // QQ用户头像
-        return `http://q.qlogo.cn/headimg_dl?dst_uin=${qqId}&spec=640`;
-    }
+    return `/api/qq-avatar?type=${type}&qqId=${encodeURIComponent(qqId)}`;
 }
 
 /**

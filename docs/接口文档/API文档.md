@@ -304,16 +304,25 @@ Query：
 
 ### GET /api/qq-avatar
 
+由后端统一回源腾讯官方接口并做磁盘缓存（缓存目录与 TTL 由配置 `webUI_Backend.imageCacheBasePath` / `webUI_Backend.imageCacheTtlDays` 指定），返回头像图片字节。前端 `<img>` 应使用相对路径请求该接口，以避免跨域（dom-to-image 截图需要同源图片才能进入 canvas）。
+
 Query：
 
 | 参数 | 类型 | 必填 | 说明 |
 | --- | --- | --- | --- |
-| qqNumber | string | 是 | QQ 号码 |
+| type | `"group"` \| `"user"` | 是 | 头像类型：group 群头像，user 用户头像 |
+| qqId | string | 是 | QQ 号或群号 |
 
 响应：
 
-```json
-{ "success": true, "data": { "avatarBase64": "..." } }
+- 成功：`Content-Type: image/jpeg`（或 image/png、image/gif，按实际内容探测），`Cache-Control: public, max-age=86400`，响应体为图片二进制字节。
+- 失败（如回源失败且无缓存）：`404`，JSON `{ "success": false, "message": "..." }`，前端可据此触发占位图。
+
+缓存文件落盘位置：
+
+```
+<imageCacheBasePath>/groups/<qqId>.jpg   # type=group
+<imageCacheBasePath>/users/<qqId>.jpg    # type=user
 ```
 
 ---

@@ -179,7 +179,11 @@ export const GlobalConfigSchema = z.object({
         .object({
             port: z.number().int().positive().describe("后端服务端口"),
             kvStoreBasePath: z.string().describe("KV 存储基础路径"),
-            dbBasePath: z.string().describe("数据库基础路径")
+            dbBasePath: z.string().describe("数据库基础路径"),
+            imageCacheBasePath: z
+                .string()
+                .describe("图片缓存根目录，例如 D:/tmp；头像存于 <根>/groups/<id>.jpg 与 <根>/users/<id>.jpg"),
+            imageCacheTtlDays: z.number().int().positive().describe("图片缓存有效期（天），过期后下次请求回源刷新")
         })
         .describe("WebUI 后端配置"),
 

@@ -120,7 +120,9 @@ const mockMainConfig = {
     webUI_Backend: {
         port: 3000,
         kvStoreBasePath: "/path/to/kvstore",
-        dbBasePath: "/path/to/db"
+        dbBasePath: "/path/to/db",
+        imageCacheBasePath: "/path/to/imagecache",
+        imageCacheTtlDays: 7
     },
     orchestrator: {
         pipelineIntervalInMinutes: 5,

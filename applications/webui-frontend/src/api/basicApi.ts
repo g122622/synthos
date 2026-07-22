@@ -232,15 +232,3 @@ export const getQQIdsByNicknames = async (sessionId: string, nicknames: string[]
 
     return response.json();
 };
-
-// 其他接口
-export interface QQAvatarResponse {
-    avatarBase64: string;
-}
-
-export const getQQAvatar = async (qqNumber: string): Promise<ApiResponse<QQAvatarResponse>> => {
-    const params = new URLSearchParams({ qqNumber });
-    const response = await fetchWrapper(`${API_BASE_URL}/api/qq-avatar?${params}`);
-
-    return response.json();
-};
