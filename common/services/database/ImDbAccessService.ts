@@ -178,6 +178,45 @@ export class ImDbAccessService extends Disposable {
     }
 
     /**
+     * 根据多个群组 ID 和时间范围批量获取 sessionId
+     * 单次 SQL（IN + GROUP BY）替代逐群串行查询，命中复合索引 idx_chat_messages_groupId_timestamp。
+     * @param groupIds 群组ID数组
+     * @param timeStart 起始时间戳
+     * @param timeEnd 结束时间戳
+     * @returns 扁平行 { groupId: string; sessionId: string }[]，由调用方按 groupId 分桶
+     */
+    public async getSessionIdsByGroupIdsAndTimeRange(
+        groupIds: string[],
+        timeStart: number,
+        timeEnd: number
+    ): Promise<{ groupId: string; sessionId: string }[]> {
+        if (groupIds.length === 0) {
+            return [];
+        }
+
+        // 构建 IN 子句占位符
+        const placeholders = groupIds.map(() => "?").join(", ");
+
+        // GROUP BY groupId, sessionId 一次性去重；时间范围沿用单群方法的 BETWEEN ? AND ? 闭区间语义
+        const sql = `
+            SELECT
+                groupId,
+                sessionId
+            FROM chat_messages
+            WHERE groupId IN (${placeholders})
+                AND (timestamp BETWEEN ? AND ?)
+                AND sessionId IS NOT NULL
+            GROUP BY groupId, sessionId
+        `;
+
+        const params = [...groupIds, timeStart, timeEnd];
+
+        const results = await this.db.all<{ groupId: string; sessionId: string }>(sql, params);
+
+        return results;
+    }
+
+    /**
      * 计算指定 sessionId 的当前容量
      * - messageCount 模式：返回该 session 内的消息条数
      * - charCount 模式：返回该 session 内所有消息 messageContent 的字符总长度（NULL 视为 0）

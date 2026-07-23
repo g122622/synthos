@@ -23,21 +23,34 @@ export class ChatMessageService {
 
     /**
      * 根据多个群组 ID 和时间范围获取 sessionId 列表
+     * 单次批量查询替代逐群串行，结果在内存按 groupId 分桶。
+     * 保证请求中的每个 groupId 都有对应项（无消息则为空数组），以满足前端建 sessionId->groupId Map 的契约。
      */
     async getSessionIdsByGroupIdsAndTimeRange(groupIds: string[], timeStart: number, timeEnd: number) {
-        const results = [];
+        const rows = await this.imDbAccessService.getSessionIdsByGroupIdsAndTimeRange(
+            groupIds,
+            timeStart,
+            timeEnd
+        );
 
-        for (const groupId of groupIds) {
-            const sessionIds = await this.imDbAccessService.getSessionIdsByGroupIdAndTimeRange(
-                groupId,
-                timeStart,
-                timeEnd
-            );
+        // 按 groupId 分桶
+        const sessionIdSetByGroupId = new Map<string, string[]>();
 
-            results.push({ groupId, sessionIds });
+        for (const { groupId, sessionId } of rows) {
+            let bucket = sessionIdSetByGroupId.get(groupId);
+
+            if (!bucket) {
+                bucket = [];
+                sessionIdSetByGroupId.set(groupId, bucket);
+            }
+            bucket.push(sessionId);
         }
 
-        return results;
+        // 以请求 groupIds 为全集与顺序，保证每个 groupId 都有对应项
+        return groupIds.map(groupId => ({
+            groupId,
+            sessionIds: sessionIdSetByGroupId.get(groupId) ?? []
+        }));
     }
 
     /**

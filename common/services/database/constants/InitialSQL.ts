@@ -13,7 +13,8 @@ export const createIMDBTableSQL = `
                     preProcessedContent TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_chat_messages_sessionId ON chat_messages(sessionId);
-                CREATE INDEX IF NOT EXISTS idx_chat_messages_senderId ON chat_messages(senderId);`;
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_senderId ON chat_messages(senderId);
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_groupId_timestamp ON chat_messages(groupId, timestamp, sessionId);`;
 
 export const createAGCTableSQL = `
                 CREATE TABLE IF NOT EXISTS ai_digest_results (
