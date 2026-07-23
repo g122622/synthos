@@ -1,6 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { AliveScope } from "react-activation";
 
 import App from "./App.tsx";
 import { Provider } from "./provider.tsx";
@@ -11,9 +12,11 @@ import { DeviceType, getDeviceType } from "./util/getDeviceType.ts";
 ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>
         <BrowserRouter>
-            <Provider>
-                <App />
-            </Provider>
+            <AliveScope>
+                <Provider>
+                    <App />
+                </Provider>
+            </AliveScope>
         </BrowserRouter>
     </React.StrictMode>
 );

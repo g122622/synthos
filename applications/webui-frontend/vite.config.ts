@@ -5,7 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [react(), tsconfigPaths(), tailwindcss()],
+    plugins: [react({ babel: { plugins: ["react-activation/babel"] } }), tsconfigPaths(), tailwindcss()],
     server: {
         host: "127.0.0.1", // 强制使用 IPv4，避免 IPv6 权限问题
         port: 3011, // 避开 Windows Hyper-V 保留端口范围

@@ -18,7 +18,6 @@ import { MessageSquare, RefreshCw, Search } from "lucide-react";
 
 import { getChatMessagesByGroupId, getGroupDetails } from "@/api/basicApi";
 import { title } from "@/components/primitives";
-import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import QQAvatar from "@/components/QQAvatar";
 import { ChatMessageFtsPanel } from "@/pages/chat-messages/components/ChatMessageFtsPanel";
@@ -269,207 +268,205 @@ export default function ChatMessagesPage() {
     const endTimeMs = endDate.toDate().getTime();
 
     return (
-        <DefaultLayout>
-            <section className="flex flex-col gap-4 py-0 md:py-10">
-                {/* 页面标题 */}
-                <div className="hidden sm:flex items-center justify-center">
-                    <img alt="logo" className="w-21 mr-5" src="./logo.webp" />
-                    <div className="flex flex-col items-center justify-center gap-4">
-                        <h1 className={title()}>聊天记录管理</h1>
-                        <p className="text-default-600 max-w-2xl text-center">查看和筛选QQ群聊天记录，支持按时间范围和群组进行过滤</p>
-                    </div>
+        <section className="flex flex-col gap-4 py-0 md:py-10">
+            {/* 页面标题 */}
+            <div className="hidden sm:flex items-center justify-center">
+                <img alt="logo" className="w-21 mr-5" src="./logo.webp" />
+                <div className="flex flex-col items-center justify-center gap-4">
+                    <h1 className={title()}>聊天记录管理</h1>
+                    <p className="text-default-600 max-w-2xl text-center">查看和筛选QQ群聊天记录，支持按时间范围和群组进行过滤</p>
                 </div>
+            </div>
 
-                {/* 主内容区 */}
-                <Card className="mt-0 md:mt-6">
-                    <CardHeader className="flex flex-col gap-4 pl-4 pr-4 md:pl-7 md:pr-7">
-                        {/* 标题行 */}
-                        <div className="flex flex-row justify-between items-center w-full flex-wrap gap-2">
-                            <div className="flex flex-row items-center gap-4">
-                                <h2 className="text-xl font-bold">
-                                    <MessageSquare className="inline-block mr-2" size={20} />
-                                    聊天记录
-                                </h2>
-                                {activeTab === "list" ? (
-                                    <Chip color="primary" size="sm" variant="flat">
-                                        共 {filteredAndSortedItems.length} 条{(searchKeyword || selectedSessionId) && ` (筛选自 ${list.items.length} 条)`}
-                                    </Chip>
-                                ) : null}
-                            </div>
-
-                            {/* 刷新按钮（仅列表模式） */}
+            {/* 主内容区 */}
+            <Card className="mt-0 md:mt-6">
+                <CardHeader className="flex flex-col gap-4 pl-4 pr-4 md:pl-7 md:pr-7">
+                    {/* 标题行 */}
+                    <div className="flex flex-row justify-between items-center w-full flex-wrap gap-2">
+                        <div className="flex flex-row items-center gap-4">
+                            <h2 className="text-xl font-bold">
+                                <MessageSquare className="inline-block mr-2" size={20} />
+                                聊天记录
+                            </h2>
                             {activeTab === "list" ? (
-                                <Button color="primary" isLoading={isLoading} size="sm" startContent={<RefreshCw size={16} />} variant="flat" onPress={() => list.reload()}>
-                                    刷新
-                                </Button>
+                                <Chip color="primary" size="sm" variant="flat">
+                                    共 {filteredAndSortedItems.length} 条{(searchKeyword || selectedSessionId) && ` (筛选自 ${list.items.length} 条)`}
+                                </Chip>
                             ) : null}
                         </div>
 
-                        <Tabs aria-label="视图切换" selectedKey={activeTab} size="sm" variant="bordered" onSelectionChange={key => setActiveTab(key as "list" | "fts")}>
-                            <Tab key="list" title="列表查看" />
-                            <Tab key="fts" title="全文搜索" />
-                        </Tabs>
-
-                        {/* 筛选区域（列表模式） */}
+                        {/* 刷新按钮（仅列表模式） */}
                         {activeTab === "list" ? (
-                            <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center w-full flex-wrap">
-                                {/* 群组选择 */}
-                                <Select
-                                    className="w-full md:w-56"
-                                    label="选择群组"
-                                    placeholder="请选择群组"
-                                    selectedKeys={[selectedGroup]}
-                                    size="sm"
-                                    onSelectionChange={keys => {
-                                        if (keys !== "all") {
-                                            const selectedKey = Array.from(keys)[0] as string;
-
-                                            handleGroupChange(selectedKey);
-                                        }
-                                    }}
-                                >
-                                    {Object.keys(groups).map(groupId => (
-                                        <SelectItem key={groupId}>
-                                            {groupId} - {groups[groupId].groupIntroduction}
-                                        </SelectItem>
-                                    ))}
-                                </Select>
-
-                                {/* 会话ID选择（带自动补全） */}
-                                <Autocomplete
-                                    allowsCustomValue
-                                    isClearable
-                                    className="w-full md:w-56"
-                                    inputValue={selectedSessionId}
-                                    label="会话ID"
-                                    placeholder="输入或选择会话ID"
-                                    size="sm"
-                                    onInputChange={setSelectedSessionId}
-                                    onSelectionChange={key => {
-                                        if (key !== null) {
-                                            setSelectedSessionId(String(key));
-                                        }
-                                    }}
-                                >
-                                    {availableSessionIds.map(sessionId => (
-                                        <AutocompleteItem key={sessionId}>{sessionId}</AutocompleteItem>
-                                    ))}
-                                </Autocomplete>
-
-                                {/* 开始时间选择 */}
-                                <DatePicker
-                                    hideTimeZone
-                                    showMonthAndYearPickers
-                                    className="w-full md:w-56"
-                                    granularity="minute"
-                                    label="开始时间"
-                                    size="sm"
-                                    value={startDate}
-                                    onChange={date => {
-                                        if (date) {
-                                            setStartDate(date);
-                                        }
-                                    }}
-                                />
-
-                                {/* 结束时间选择 */}
-                                <DatePicker
-                                    hideTimeZone
-                                    showMonthAndYearPickers
-                                    className="w-full md:w-56"
-                                    granularity="minute"
-                                    label="结束时间"
-                                    size="sm"
-                                    value={endDate}
-                                    onChange={date => {
-                                        if (date) {
-                                            setEndDate(date);
-                                        }
-                                    }}
-                                />
-
-                                {/* 搜索输入框 */}
-                                <Input
-                                    isClearable
-                                    className="w-full md:w-64"
-                                    placeholder="搜索发送者或消息内容..."
-                                    size="sm"
-                                    startContent={<Search className="text-default-400" size={16} />}
-                                    value={searchKeyword}
-                                    onClear={() => setSearchKeyword("")}
-                                    onValueChange={setSearchKeyword}
-                                />
-                            </div>
+                            <Button color="primary" isLoading={isLoading} size="sm" startContent={<RefreshCw size={16} />} variant="flat" onPress={() => list.reload()}>
+                                刷新
+                            </Button>
                         ) : null}
-                    </CardHeader>
-                    <CardBody>
-                        {activeTab === "fts" ? (
-                            <ChatMessageFtsPanel endTimeMs={endTimeMs} groupNameResolver={groupId => groups[groupId]?.groupIntroduction} selectedGroupId={selectedGroup} startTimeMs={startTimeMs} />
-                        ) : isLoading ? (
-                            <div className="flex justify-center items-center h-64">
-                                <Spinner size="lg" />
-                            </div>
-                        ) : filteredAndSortedItems.length > 0 ? (
-                            <div className="flex flex-col gap-4">
-                                <ScrollShadow className="max-h-[calc(100vh-420px)]">
-                                    <Table removeWrapper aria-label="聊天记录表" sortDescriptor={sortDescriptor} onSortChange={handleSortChange}>
-                                        <TableHeader>
-                                            <TableColumn key="sender" allowsSorting>
-                                                发送者
-                                            </TableColumn>
-                                            <TableColumn key="content" allowsSorting>
-                                                消息内容
-                                            </TableColumn>
-                                            <TableColumn key="timestamp" allowsSorting className="hidden md:table-cell">
-                                                时间
-                                            </TableColumn>
-                                            <TableColumn key="sessionId" allowsSorting className="hidden lg:table-cell">
-                                                会话ID
-                                            </TableColumn>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {filteredAndSortedItems.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(message => (
-                                                <TableRow key={message.msgId}>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            <QQAvatar qqId={message.senderId} type="user" />
-                                                            <div className="flex flex-col">
-                                                                <span className="font-semibold text-sm">{message.senderGroupNickname || message.senderNickname}</span>
-                                                                <span className="text-xs text-default-500">{message.senderId}</span>
-                                                                {/* 移动端显示时间 */}
-                                                                <span className="text-xs text-default-400 md:hidden">{formatTimestamp(message.timestamp)}</span>
-                                                            </div>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <div className="max-w-xs md:max-w-md truncate" title={message.messageContent}>
-                                                            {message.messageContent}
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell className="hidden md:table-cell">{formatTimestamp(message.timestamp)}</TableCell>
-                                                    <TableCell className="hidden lg:table-cell">{message.sessionId}</TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </ScrollShadow>
+                    </div>
 
-                                {totalPages > 1 && (
-                                    <div className="flex w-full justify-center">
-                                        <Pagination isCompact showControls showShadow color="primary" page={currentPage} total={totalPages} onChange={page => setCurrentPage(page)} />
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <MessageSquare className="mx-auto mb-4 text-default-400" size={48} />
-                                <p className="text-default-500">{searchKeyword || selectedSessionId ? "未找到匹配的聊天记录" : "未找到相关聊天记录"}</p>
-                                <p className="text-default-400 text-sm mt-2">{searchKeyword || selectedSessionId ? "尝试更换搜索关键词或会话ID" : "请选择群组和时间范围后点击查询"}</p>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-            </section>
-        </DefaultLayout>
+                    <Tabs aria-label="视图切换" selectedKey={activeTab} size="sm" variant="bordered" onSelectionChange={key => setActiveTab(key as "list" | "fts")}>
+                        <Tab key="list" title="列表查看" />
+                        <Tab key="fts" title="全文搜索" />
+                    </Tabs>
+
+                    {/* 筛选区域（列表模式） */}
+                    {activeTab === "list" ? (
+                        <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center w-full flex-wrap">
+                            {/* 群组选择 */}
+                            <Select
+                                className="w-full md:w-56"
+                                label="选择群组"
+                                placeholder="请选择群组"
+                                selectedKeys={[selectedGroup]}
+                                size="sm"
+                                onSelectionChange={keys => {
+                                    if (keys !== "all") {
+                                        const selectedKey = Array.from(keys)[0] as string;
+
+                                        handleGroupChange(selectedKey);
+                                    }
+                                }}
+                            >
+                                {Object.keys(groups).map(groupId => (
+                                    <SelectItem key={groupId}>
+                                        {groupId} - {groups[groupId].groupIntroduction}
+                                    </SelectItem>
+                                ))}
+                            </Select>
+
+                            {/* 会话ID选择（带自动补全） */}
+                            <Autocomplete
+                                allowsCustomValue
+                                isClearable
+                                className="w-full md:w-56"
+                                inputValue={selectedSessionId}
+                                label="会话ID"
+                                placeholder="输入或选择会话ID"
+                                size="sm"
+                                onInputChange={setSelectedSessionId}
+                                onSelectionChange={key => {
+                                    if (key !== null) {
+                                        setSelectedSessionId(String(key));
+                                    }
+                                }}
+                            >
+                                {availableSessionIds.map(sessionId => (
+                                    <AutocompleteItem key={sessionId}>{sessionId}</AutocompleteItem>
+                                ))}
+                            </Autocomplete>
+
+                            {/* 开始时间选择 */}
+                            <DatePicker
+                                hideTimeZone
+                                showMonthAndYearPickers
+                                className="w-full md:w-56"
+                                granularity="minute"
+                                label="开始时间"
+                                size="sm"
+                                value={startDate}
+                                onChange={date => {
+                                    if (date) {
+                                        setStartDate(date);
+                                    }
+                                }}
+                            />
+
+                            {/* 结束时间选择 */}
+                            <DatePicker
+                                hideTimeZone
+                                showMonthAndYearPickers
+                                className="w-full md:w-56"
+                                granularity="minute"
+                                label="结束时间"
+                                size="sm"
+                                value={endDate}
+                                onChange={date => {
+                                    if (date) {
+                                        setEndDate(date);
+                                    }
+                                }}
+                            />
+
+                            {/* 搜索输入框 */}
+                            <Input
+                                isClearable
+                                className="w-full md:w-64"
+                                placeholder="搜索发送者或消息内容..."
+                                size="sm"
+                                startContent={<Search className="text-default-400" size={16} />}
+                                value={searchKeyword}
+                                onClear={() => setSearchKeyword("")}
+                                onValueChange={setSearchKeyword}
+                            />
+                        </div>
+                    ) : null}
+                </CardHeader>
+                <CardBody>
+                    {activeTab === "fts" ? (
+                        <ChatMessageFtsPanel endTimeMs={endTimeMs} groupNameResolver={groupId => groups[groupId]?.groupIntroduction} selectedGroupId={selectedGroup} startTimeMs={startTimeMs} />
+                    ) : isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Spinner size="lg" />
+                        </div>
+                    ) : filteredAndSortedItems.length > 0 ? (
+                        <div className="flex flex-col gap-4">
+                            <ScrollShadow className="max-h-[calc(100vh-420px)]">
+                                <Table removeWrapper aria-label="聊天记录表" sortDescriptor={sortDescriptor} onSortChange={handleSortChange}>
+                                    <TableHeader>
+                                        <TableColumn key="sender" allowsSorting>
+                                            发送者
+                                        </TableColumn>
+                                        <TableColumn key="content" allowsSorting>
+                                            消息内容
+                                        </TableColumn>
+                                        <TableColumn key="timestamp" allowsSorting className="hidden md:table-cell">
+                                            时间
+                                        </TableColumn>
+                                        <TableColumn key="sessionId" allowsSorting className="hidden lg:table-cell">
+                                            会话ID
+                                        </TableColumn>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredAndSortedItems.slice((currentPage - 1) * pageSize, currentPage * pageSize).map(message => (
+                                            <TableRow key={message.msgId}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <QQAvatar qqId={message.senderId} type="user" />
+                                                        <div className="flex flex-col">
+                                                            <span className="font-semibold text-sm">{message.senderGroupNickname || message.senderNickname}</span>
+                                                            <span className="text-xs text-default-500">{message.senderId}</span>
+                                                            {/* 移动端显示时间 */}
+                                                            <span className="text-xs text-default-400 md:hidden">{formatTimestamp(message.timestamp)}</span>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="max-w-xs md:max-w-md truncate" title={message.messageContent}>
+                                                        {message.messageContent}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="hidden md:table-cell">{formatTimestamp(message.timestamp)}</TableCell>
+                                                <TableCell className="hidden lg:table-cell">{message.sessionId}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </ScrollShadow>
+
+                            {totalPages > 1 && (
+                                <div className="flex w-full justify-center">
+                                    <Pagination isCompact showControls showShadow color="primary" page={currentPage} total={totalPages} onChange={page => setCurrentPage(page)} />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <MessageSquare className="mx-auto mb-4 text-default-400" size={48} />
+                            <p className="text-default-500">{searchKeyword || selectedSessionId ? "未找到匹配的聊天记录" : "未找到相关聊天记录"}</p>
+                            <p className="text-default-400 text-sm mt-2">{searchKeyword || selectedSessionId ? "尝试更换搜索关键词或会话ID" : "请选择群组和时间范围后点击查询"}</p>
+                        </div>
+                    )}
+                </CardBody>
+            </Card>
+        </section>
     );
 }

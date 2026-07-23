@@ -27,8 +27,6 @@ import { useSessionActions } from "./components/hooks/useSessionActions";
 import { useTopicStatus } from "./components/hooks/useTopicStatus";
 import { DEFAULT_ACTIVE_TAB, DEFAULT_TOP_K, DEFAULT_ENABLE_QUERY_REWRITER, DEFAULT_SEARCH_LIMIT, DEFAULT_SIDEBAR_COLLAPSED } from "./constants/constants";
 
-import DefaultLayout from "@/layouts/default";
-
 export default function AiChatPage() {
     const { theme } = useTheme();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -297,96 +295,94 @@ export default function AiChatPage() {
     };
 
     return (
-        <DefaultLayout>
-            <div className="flex h-[calc(100vh-115px)] overflow-hidden">
-                {/* 移动端菜单按钮 */}
-                {isMobile && (
-                    <Button isIconOnly className="fixed left-4 top-20 z-30 md:hidden" size="sm" variant="flat" onPress={() => setMobileDrawerOpen(true)}>
-                        <Menu className="w-5 h-5" />
-                    </Button>
+        <div className="flex h-[calc(100vh-115px)] overflow-hidden">
+            {/* 移动端菜单按钮 */}
+            {isMobile && (
+                <Button isIconOnly className="fixed left-4 top-20 z-30 md:hidden" size="sm" variant="flat" onPress={() => setMobileDrawerOpen(true)}>
+                    <Menu className="w-5 h-5" />
+                </Button>
+            )}
+
+            {/* 历史会话侧边栏 */}
+            <ChatHistorySidebar
+                activeTab={activeTab}
+                agentRefreshTrigger={agentRefreshTrigger}
+                collapsed={sidebarCollapsed}
+                mobile={isMobile}
+                mobileDrawerOpen={mobileDrawerOpen}
+                refreshTrigger={refreshTrigger}
+                selectedAgentConversationId={selectedAgentConversationId}
+                selectedSessionId={selectedSessionId}
+                onCollapsedChange={setSidebarCollapsed}
+                onMobileDrawerChange={setMobileDrawerOpen}
+                onNewSession={handleNewSession}
+                onSelectAgentConversation={setSelectedAgentConversationId}
+                onSelectSession={handleSelectSession}
+                onTabChange={t => setActiveTab(t as AiChatTab)}
+            />
+
+            {/* 主内容区 */}
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Agent 模式使用独立渲染 */}
+                {activeTab === "agent" ? (
+                    <AgentChat
+                        conversationId={selectedAgentConversationId}
+                        modelName={modelName || undefined}
+                        sessionId={selectedSessionId || undefined}
+                        onConversationIdChange={cid => {
+                            setSelectedAgentConversationId(cid);
+                            setAgentRefreshTrigger(prev => prev + 1);
+                        }}
+                    />
+                ) : (
+                    <>
+                        {/* 消息显示区 */}
+                        <div ref={mainContentRef} className="flex-1 overflow-y-auto p-10">
+                            <div ref={answerCardRef} className="mx-auto">
+                                {renderMainContent()}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        </div>
+
+                        {/* 底部输入区 */}
+                        <div className="px-4 py-2 md:px-4 md:py-4 border-t border-default-200">
+                            {activeTab === "ask" ? (
+                                <AskInputBar
+                                    askLoading={askLoading}
+                                    enableQueryRewriter={enableQueryRewriter}
+                                    modelName={modelName}
+                                    models={models}
+                                    question={question}
+                                    topK={topK}
+                                    onAsk={() => {
+                                        void handleAsk({ question, topK, enableQueryRewriter, modelName: modelName || undefined });
+                                        scrollToBottom();
+                                    }}
+                                    onEnableQueryRewriterChange={setEnableQueryRewriter}
+                                    onModelNameChange={setModelName}
+                                    onQuestionChange={setQuestion}
+                                    onTopKChange={setTopK}
+                                />
+                            ) : (
+                                <SearchInputBar
+                                    searchLimit={searchLimit}
+                                    searchLoading={searchLoading}
+                                    searchQuery={searchQuery}
+                                    onSearch={() => {
+                                        void handleSearch();
+                                        scrollToBottom();
+                                    }}
+                                    onSearchLimitChange={setSearchLimit}
+                                    onSearchQueryChange={setSearchQuery}
+                                />
+                            )}
+                        </div>
+                    </>
                 )}
-
-                {/* 历史会话侧边栏 */}
-                <ChatHistorySidebar
-                    activeTab={activeTab}
-                    agentRefreshTrigger={agentRefreshTrigger}
-                    collapsed={sidebarCollapsed}
-                    mobile={isMobile}
-                    mobileDrawerOpen={mobileDrawerOpen}
-                    refreshTrigger={refreshTrigger}
-                    selectedAgentConversationId={selectedAgentConversationId}
-                    selectedSessionId={selectedSessionId}
-                    onCollapsedChange={setSidebarCollapsed}
-                    onMobileDrawerChange={setMobileDrawerOpen}
-                    onNewSession={handleNewSession}
-                    onSelectAgentConversation={setSelectedAgentConversationId}
-                    onSelectSession={handleSelectSession}
-                    onTabChange={t => setActiveTab(t as AiChatTab)}
-                />
-
-                {/* 主内容区 */}
-                <div className="flex-1 flex flex-col overflow-hidden">
-                    {/* Agent 模式使用独立渲染 */}
-                    {activeTab === "agent" ? (
-                        <AgentChat
-                            conversationId={selectedAgentConversationId}
-                            modelName={modelName || undefined}
-                            sessionId={selectedSessionId || undefined}
-                            onConversationIdChange={cid => {
-                                setSelectedAgentConversationId(cid);
-                                setAgentRefreshTrigger(prev => prev + 1);
-                            }}
-                        />
-                    ) : (
-                        <>
-                            {/* 消息显示区 */}
-                            <div ref={mainContentRef} className="flex-1 overflow-y-auto p-10">
-                                <div ref={answerCardRef} className="mx-auto">
-                                    {renderMainContent()}
-                                    <div ref={messagesEndRef} />
-                                </div>
-                            </div>
-
-                            {/* 底部输入区 */}
-                            <div className="px-4 py-2 md:px-4 md:py-4 border-t border-default-200">
-                                {activeTab === "ask" ? (
-                                    <AskInputBar
-                                        askLoading={askLoading}
-                                        enableQueryRewriter={enableQueryRewriter}
-                                        modelName={modelName}
-                                        models={models}
-                                        question={question}
-                                        topK={topK}
-                                        onAsk={() => {
-                                            void handleAsk({ question, topK, enableQueryRewriter, modelName: modelName || undefined });
-                                            scrollToBottom();
-                                        }}
-                                        onEnableQueryRewriterChange={setEnableQueryRewriter}
-                                        onModelNameChange={setModelName}
-                                        onQuestionChange={setQuestion}
-                                        onTopKChange={setTopK}
-                                    />
-                                ) : (
-                                    <SearchInputBar
-                                        searchLimit={searchLimit}
-                                        searchLoading={searchLoading}
-                                        searchQuery={searchQuery}
-                                        onSearch={() => {
-                                            void handleSearch();
-                                            scrollToBottom();
-                                        }}
-                                        onSearchLimitChange={setSearchLimit}
-                                        onSearchQueryChange={setSearchQuery}
-                                    />
-                                )}
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* 滚动悬浮按钮 */}
-                <ScrollFloatButtons onScrollToBottom={scrollToBottom} onScrollToTop={scrollToTop} />
             </div>
-        </DefaultLayout>
+
+            {/* 滚动悬浮按钮 */}
+            <ScrollFloatButtons onScrollToBottom={scrollToBottom} onScrollToTop={scrollToTop} />
+        </div>
     );
 }

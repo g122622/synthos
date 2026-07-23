@@ -17,7 +17,6 @@ import QQAvatar from "@/components/QQAvatar";
 import { getGroupDetails, getSessionIdsByGroupIdsAndTimeRange, getSessionTimeDurations, getAIDigestResultsBySessionIds, getMessageHourlyStats } from "@/api/basicApi";
 import { getInterestScoreResults } from "@/api/interestScoreApi";
 import { markTopicAsRead, getTopicsReadStatus, markTopicAsFavorite, removeTopicFromFavorites, getTopicsFavoriteStatus } from "@/api/readAndFavApi";
-import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import ResponsivePopover from "@/components/ResponsivePopover";
 import throttle from "@/util/throttle";
@@ -37,6 +36,7 @@ function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupM
         return [...allGroupIds].sort((a, b) => {
             const countA = groupMessageCounts[a] ?? 0;
             const countB = groupMessageCounts[b] ?? 0;
+
             return countB - countA;
         });
     }, [allGroupIds, groupMessageCounts]);
@@ -44,6 +44,7 @@ function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupM
     // 最大消息量（用于进度条比例计算）
     const maxCount = useMemo(() => {
         const counts = Object.values(groupMessageCounts);
+
         return counts.length > 0 ? Math.max(...counts, 0) : 0;
     }, [groupMessageCounts]);
 
@@ -65,7 +66,7 @@ function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupM
     return (
         <Popover placement="bottom-start">
             <PopoverTrigger>
-                <Button variant="flat" size="sm" className="w-full lg:w-auto">
+                <Button className="w-full lg:w-auto" size="sm" variant="flat">
                     {triggerLabel}
                 </Button>
             </PopoverTrigger>
@@ -87,7 +88,7 @@ function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupM
                                 onClick={allSelected ? deselectAll : selectAll}
                             >
                                 <div className="relative z-10 flex items-center gap-2 w-full min-w-0">
-                                    <Checkbox isSelected={allSelected} isIndeterminate={selectedGroupIds.length > 0 && !allSelected} size="sm" />
+                                    <Checkbox isIndeterminate={selectedGroupIds.length > 0 && !allSelected} isSelected={allSelected} size="sm" />
                                     <span className="text-sm font-medium">{allSelected ? "全不选" : "全选"}</span>
                                 </div>
                             </div>
@@ -110,7 +111,7 @@ function GroupSelectorList({ groups, selectedGroupIds, onSelectionChange, groupM
                                         {/* 内容层 */}
                                         <div className="relative z-10 flex items-center gap-2 w-full min-w-0">
                                             <Checkbox isSelected={isSelected} size="sm" />
-                                            <QQAvatar qqId={groupId} type="group" sizeClassName="w-5 h-5" />
+                                            <QQAvatar qqId={groupId} sizeClassName="w-5 h-5" type="group" />
                                             <span className="text-sm truncate">{groupId}</span>
                                         </div>
                                     </div>
@@ -177,6 +178,7 @@ export default function LatestTopicsPage() {
                     // 处理群组ID（多选）
                     if (urlGroupIds) {
                         const parsedIds = urlGroupIds.split(",").filter(id => groupIds.includes(id));
+
                         setSelectedGroupIds(parsedIds.length > 0 ? parsedIds : groupIds);
                     } else {
                         // 无URL参数 = 全选所有群组
@@ -228,10 +230,13 @@ export default function LatestTopicsPage() {
                     // 获取消息统计（用于群组选择器进度条）
                     try {
                         const statsResponse = await getMessageHourlyStats(groupIds);
+
                         if (statsResponse.success) {
                             const counts: Record<string, number> = {};
+
                             for (const gid of groupIds) {
                                 const groupData = statsResponse.data.data[gid];
+
                                 counts[gid] = groupData ? groupData.current.reduce((sum, c) => sum + c, 0) : 0;
                             }
                             setGroupMessageCounts(counts);
@@ -261,6 +266,7 @@ export default function LatestTopicsPage() {
         const newParams = new URLSearchParams();
 
         const allGroupIds = Object.keys(groups);
+
         if (selectedGroupIds.length > 0 && selectedGroupIds.length < allGroupIds.length) {
             newParams.set("groupIds", selectedGroupIds.join(","));
         }
@@ -546,9 +552,8 @@ export default function LatestTopicsPage() {
     };
 
     return (
-        <DefaultLayout>
-            <section className="flex flex-col gap-4 py-0 md:py-10" style={{ paddingTop: "0px" }}>
-                {/* <div className="hidden sm:flex items-center justify-center">
+        <section className="flex flex-col gap-4 py-0 md:py-10" style={{ paddingTop: "0px" }}>
+            {/* <div className="hidden sm:flex items-center justify-center">
                     <img alt="logo" className="w-21 mr-5" src="./logo.webp" />
                     <div className="flex flex-col items-center justify-center gap-4">
                         <h1 className={title()}>最新话题</h1>
@@ -556,137 +561,78 @@ export default function LatestTopicsPage() {
                     </div>
                 </div> */}
 
-                <Card className="mt-0 md:mt-6">
-                    <CardHeader className="flex flex-row justify-between items-center pl-7 pr-7 gap-4">
-                        <div className="flex flex-row items-center gap-4">
-                            <h2 className="text-xl font-bold min-w-[135px]">话题列表 ({filteredTopics.length})</h2>
-                            <Input
-                                isClearable
-                                aria-label="全文搜索"
-                                className="max-w-[135px]"
-                                placeholder="搜索..."
-                                startContent={<Search size={16} />}
-                                value={searchText}
-                                onValueChange={setSearchText}
-                            />
-                        </div>
+            <Card className="mt-0 md:mt-6">
+                <CardHeader className="flex flex-row justify-between items-center pl-7 pr-7 gap-4">
+                    <div className="flex flex-row items-center gap-4">
+                        <h2 className="text-xl font-bold min-w-[135px]">话题列表 ({filteredTopics.length})</h2>
+                        <Input isClearable aria-label="全文搜索" className="max-w-[135px]" placeholder="搜索..." startContent={<Search size={16} />} value={searchText} onValueChange={setSearchText} />
+                    </div>
 
-                        {/* 顶栏右侧 */}
-                        <ResponsivePopover buttonText="筛选...">
-                            <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-3 lg:p-0">
-                                {/* 群组选择器（Popover） */}
-                                <GroupSelectorList groups={groups} selectedGroupIds={selectedGroupIds} onSelectionChange={setSelectedGroupIds} groupMessageCounts={groupMessageCounts} />
+                    {/* 顶栏右侧 */}
+                    <ResponsivePopover buttonText="筛选...">
+                        <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-3 lg:p-0">
+                            {/* 群组选择器（Popover） */}
+                            <GroupSelectorList groupMessageCounts={groupMessageCounts} groups={groups} selectedGroupIds={selectedGroupIds} onSelectionChange={setSelectedGroupIds} />
 
-                                {/* 筛选控件 */}
-                                <div className="flex gap-3 items-center flex-wrap">
-                                    <Select
-                                        className="w-27"
-                                        label="每页话题数"
-                                        selectedKeys={[String(topicsPerPage)]}
-                                        size="sm"
-                                        onSelectionChange={keys => {
-                                            const selected = Array.from(keys)[0];
+                            {/* 筛选控件 */}
+                            <div className="flex gap-3 items-center flex-wrap">
+                                <Select
+                                    className="w-27"
+                                    label="每页话题数"
+                                    selectedKeys={[String(topicsPerPage)]}
+                                    size="sm"
+                                    onSelectionChange={keys => {
+                                        const selected = Array.from(keys)[0];
 
-                                            if (selected) {
-                                                setTopicsPerPage(Number(selected));
-                                            }
-                                        }}
-                                    >
-                                        <SelectItem key="3">3</SelectItem>
-                                        <SelectItem key="4">4</SelectItem>
-                                        <SelectItem key="5">5</SelectItem>
-                                        <SelectItem key="6">6</SelectItem>
-                                        <SelectItem key="7">7</SelectItem>
-                                        <SelectItem key="8">8</SelectItem>
-                                        <SelectItem key="9">9</SelectItem>
-                                        <SelectItem key="10">10</SelectItem>
-                                        <SelectItem key="11">11</SelectItem>
-                                        <SelectItem key="12">12</SelectItem>
-                                        <SelectItem key="13">13</SelectItem>
-                                        <SelectItem key="14">14</SelectItem>
-                                        <SelectItem key="15">15</SelectItem>
-                                    </Select>
+                                        if (selected) {
+                                            setTopicsPerPage(Number(selected));
+                                        }
+                                    }}
+                                >
+                                    <SelectItem key="3">3</SelectItem>
+                                    <SelectItem key="4">4</SelectItem>
+                                    <SelectItem key="5">5</SelectItem>
+                                    <SelectItem key="6">6</SelectItem>
+                                    <SelectItem key="7">7</SelectItem>
+                                    <SelectItem key="8">8</SelectItem>
+                                    <SelectItem key="9">9</SelectItem>
+                                    <SelectItem key="10">10</SelectItem>
+                                    <SelectItem key="11">11</SelectItem>
+                                    <SelectItem key="12">12</SelectItem>
+                                    <SelectItem key="13">13</SelectItem>
+                                    <SelectItem key="14">14</SelectItem>
+                                    <SelectItem key="15">15</SelectItem>
+                                </Select>
 
-                                    <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
-                                        只看未读
-                                    </Checkbox>
+                                <Checkbox className="w-110" isSelected={filterRead} onValueChange={setFilterRead}>
+                                    只看未读
+                                </Checkbox>
 
-                                    <Checkbox className="w-110" isSelected={filterFavorite} onValueChange={setFilterFavorite}>
-                                        只看收藏
-                                    </Checkbox>
+                                <Checkbox className="w-110" isSelected={filterFavorite} onValueChange={setFilterFavorite}>
+                                    只看收藏
+                                </Checkbox>
 
-                                    <Checkbox className="w-150" isSelected={sortByInterest} onValueChange={setSortByInterest}>
-                                        按兴趣度排序
-                                    </Checkbox>
+                                <Checkbox className="w-150" isSelected={sortByInterest} onValueChange={setSortByInterest}>
+                                    按兴趣度排序
+                                </Checkbox>
 
-                                    {/* 日期选择器 + 刷新按钮 */}
-                                    <DateRangePicker
-                                        className="w-full lg:w-70"
-                                        label="时间范围"
-                                        value={dateRange}
-                                        onChange={range => {
-                                            if (range) {
-                                                setDateRange({
-                                                    start: range.start,
-                                                    end: range.end
-                                                });
-                                            }
-                                        }}
-                                    />
-                                    <Button
-                                        color="primary"
-                                        isLoading={loading}
-                                        onPress={() => {
-                                            const start = dateRange.start.toDate(getLocalTimeZone());
-                                            const end = dateRange.end.toDate(getLocalTimeZone());
-
-                                            fetchLatestTopics(start, end);
-                                        }}
-                                    >
-                                        刷新
-                                    </Button>
-                                </div>
-                            </div>
-                        </ResponsivePopover>
-                    </CardHeader>
-
-                    <CardBody className="relative">
-                        {loading ? (
-                            <div className="flex justify-center items-center h-64">
-                                <Spinner size="lg" />
-                            </div>
-                        ) : currentPageTopics.length > 0 ? (
-                            <div className="flex flex-col gap-4">
-                                <ScrollShadow className="max-h-[calc(100vh-220px)]">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-0 md:p-5">
-                                        {currentPageTopics.map((topic, index) => (
-                                            <TopicCard
-                                                key={`${topic.topicId}-${index}`}
-                                                favoriteTopics={favoriteTopics}
-                                                index={(page - 1) * topicsPerPage + index + 1}
-                                                interestScore={interestScores[topic.topicId]}
-                                                readTopics={readTopics}
-                                                topic={topic}
-                                                onMarkAsRead={markAsRead}
-                                                onToggleFavorite={toggleFavorite}
-                                            />
-                                        ))}
-                                    </div>
-                                </ScrollShadow>
-
-                                {totalPages > 1 && (
-                                    <div className="flex justify-center mt-4">
-                                        <Pagination showControls color="primary" page={page} size="md" total={totalPages} onChange={setPage} />
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <p className="text-default-500">暂无话题数据，请调整筛选条件后重试</p>
+                                {/* 日期选择器 + 刷新按钮 */}
+                                <DateRangePicker
+                                    className="w-full lg:w-70"
+                                    label="时间范围"
+                                    value={dateRange}
+                                    onChange={range => {
+                                        if (range) {
+                                            setDateRange({
+                                                start: range.start,
+                                                end: range.end
+                                            });
+                                        }
+                                    }}
+                                />
                                 <Button
-                                    className="mt-4"
                                     color="primary"
-                                    variant="light"
+                                    isLoading={loading}
                                     onPress={() => {
                                         const start = dateRange.start.toDate(getLocalTimeZone());
                                         const end = dateRange.end.toDate(getLocalTimeZone());
@@ -694,58 +640,108 @@ export default function LatestTopicsPage() {
                                         fetchLatestTopics(start, end);
                                     }}
                                 >
-                                    重新加载
+                                    刷新
                                 </Button>
                             </div>
-                        )}
+                        </div>
+                    </ResponsivePopover>
+                </CardHeader>
 
-                        {/* 整页已读按钮 - 固定在右下角 */}
-                        {!loading && currentPageTopics.length > 0 && currentPageTopics.some(topic => !readTopics[topic.topicId]) && (
-                            <div className="absolute bottom-4 right-4 hidden md:block">
-                                <Tooltip color="primary" content="将当前页面所有未读话题标记为已读" placement="top">
-                                    <Button
-                                        color="primary"
-                                        size="sm"
-                                        startContent={<Check size={16} />}
-                                        variant="flat"
-                                        onPress={async () => {
-                                            const unreadTopics = currentPageTopics.filter(topic => !readTopics[topic.topicId]);
+                <CardBody className="relative">
+                    {loading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Spinner size="lg" />
+                        </div>
+                    ) : currentPageTopics.length > 0 ? (
+                        <div className="flex flex-col gap-4">
+                            <ScrollShadow className="max-h-[calc(100vh-220px)]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 p-0 md:p-5">
+                                    {currentPageTopics.map((topic, index) => (
+                                        <TopicCard
+                                            key={`${topic.topicId}-${index}`}
+                                            favoriteTopics={favoriteTopics}
+                                            index={(page - 1) * topicsPerPage + index + 1}
+                                            interestScore={interestScores[topic.topicId]}
+                                            readTopics={readTopics}
+                                            topic={topic}
+                                            onMarkAsRead={markAsRead}
+                                            onToggleFavorite={toggleFavorite}
+                                        />
+                                    ))}
+                                </div>
+                            </ScrollShadow>
 
-                                            try {
-                                                // 批量标记为已读
-                                                const promises = unreadTopics.map(topic => markTopicAsRead(topic.topicId));
+                            {totalPages > 1 && (
+                                <div className="flex justify-center mt-4">
+                                    <Pagination showControls color="primary" page={page} size="md" total={totalPages} onChange={setPage} />
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="text-center py-12">
+                            <p className="text-default-500">暂无话题数据，请调整筛选条件后重试</p>
+                            <Button
+                                className="mt-4"
+                                color="primary"
+                                variant="light"
+                                onPress={() => {
+                                    const start = dateRange.start.toDate(getLocalTimeZone());
+                                    const end = dateRange.end.toDate(getLocalTimeZone());
 
-                                                await Promise.all(promises);
+                                    fetchLatestTopics(start, end);
+                                }}
+                            >
+                                重新加载
+                            </Button>
+                        </div>
+                    )}
 
-                                                // 更新本地状态
-                                                const newReadTopics = { ...readTopics };
+                    {/* 整页已读按钮 - 固定在右下角 */}
+                    {!loading && currentPageTopics.length > 0 && currentPageTopics.some(topic => !readTopics[topic.topicId]) && (
+                        <div className="absolute bottom-4 right-4 hidden md:block">
+                            <Tooltip color="primary" content="将当前页面所有未读话题标记为已读" placement="top">
+                                <Button
+                                    color="primary"
+                                    size="sm"
+                                    startContent={<Check size={16} />}
+                                    variant="flat"
+                                    onPress={async () => {
+                                        const unreadTopics = currentPageTopics.filter(topic => !readTopics[topic.topicId]);
 
-                                                unreadTopics.forEach(topic => {
-                                                    newReadTopics[topic.topicId] = true;
-                                                });
-                                                setReadTopics(newReadTopics);
+                                        try {
+                                            // 批量标记为已读
+                                            const promises = unreadTopics.map(topic => markTopicAsRead(topic.topicId));
 
-                                                Notification.success({
-                                                    title: "批量标记成功",
-                                                    description: `已将 ${unreadTopics.length} 个话题标记为已读`
-                                                });
-                                            } catch (error) {
-                                                console.error("Failed to mark all topics as read:", error);
-                                                Notification.error({
-                                                    title: "批量标记失败",
-                                                    description: "无法标记所有话题为已读"
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        整页已读
-                                    </Button>
-                                </Tooltip>
-                            </div>
-                        )}
-                    </CardBody>
-                </Card>
-            </section>
-        </DefaultLayout>
+                                            await Promise.all(promises);
+
+                                            // 更新本地状态
+                                            const newReadTopics = { ...readTopics };
+
+                                            unreadTopics.forEach(topic => {
+                                                newReadTopics[topic.topicId] = true;
+                                            });
+                                            setReadTopics(newReadTopics);
+
+                                            Notification.success({
+                                                title: "批量标记成功",
+                                                description: `已将 ${unreadTopics.length} 个话题标记为已读`
+                                            });
+                                        } catch (error) {
+                                            console.error("Failed to mark all topics as read:", error);
+                                            Notification.error({
+                                                title: "批量标记失败",
+                                                description: "无法标记所有话题为已读"
+                                            });
+                                        }
+                                    }}
+                                >
+                                    整页已读
+                                </Button>
+                            </Tooltip>
+                        </div>
+                    )}
+                </CardBody>
+            </Card>
+        </section>
     );
 }

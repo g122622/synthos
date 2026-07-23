@@ -12,7 +12,6 @@ import * as echarts from "echarts";
 
 import { getGroupDetails, getMessageHourlyStats } from "@/api/basicApi";
 import { title } from "@/components/primitives";
-import DefaultLayout from "@/layouts/default";
 import QQAvatar from "@/components/QQAvatar";
 
 export default function GroupsPage() {
@@ -422,125 +421,124 @@ export default function GroupsPage() {
     };
 
     return (
-        <DefaultLayout>
-            <section className="flex flex-col gap-4 py-8 md:py-10">
-                <div className="flex flex-col items-center justify-center gap-4">
-                    <h1 className={title()}>群组管理</h1>
-                    <p className="text-default-600 max-w-2xl text-center">管理QQ群组配置信息，查看群组AI模型设置和分组策略</p>
-                </div>
+        <section className="flex flex-col gap-4 py-8 md:py-10">
+            <div className="flex flex-col items-center justify-center gap-4">
+                <h1 className={title()}>群组管理</h1>
+                <p className="text-default-600 max-w-2xl text-center">管理QQ群组配置信息，查看群组AI模型设置和分组策略</p>
+            </div>
 
-                <Card className="mt-6">
-                    <CardHeader>
-                        <div className="flex justify-between items-center w-full p-3">
-                            <h3 className="text-lg font-bold">群组列表 ({Object.entries(groups).length})</h3>
-                            <Button color="primary" isLoading={isLoading} size="sm" onPress={fetchGroups}>
-                                {isLoading ? <Spinner size="sm" /> : "刷新"}
-                            </Button>
+            <Card className="mt-6">
+                <CardHeader>
+                    <div className="flex justify-between items-center w-full p-3">
+                        <h3 className="text-lg font-bold">群组列表 ({Object.entries(groups).length})</h3>
+                        <Button color="primary" isLoading={isLoading} size="sm" onPress={fetchGroups}>
+                            {isLoading ? <Spinner size="sm" /> : "刷新"}
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardBody>
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-64">
+                            <Spinner size="lg" />
                         </div>
-                    </CardHeader>
-                    <CardBody>
-                        {isLoading ? (
-                            <div className="flex justify-center items-center h-64">
-                                <Spinner size="lg" />
-                            </div>
-                        ) : (
-                            <Table aria-label="群组列表" sortDescriptor={sortDescriptor} onSortChange={handleSortChange}>
-                                <TableHeader>
-                                    <TableColumn key="avatar">群头像</TableColumn>
-                                    <TableColumn key="groupId" allowsSorting>
-                                        群号
-                                    </TableColumn>
-                                    <TableColumn key="platform" allowsSorting>
-                                        平台
-                                    </TableColumn>
-                                    <TableColumn key="groupIntroduction">群介绍</TableColumn>
-                                    <TableColumn key="splitStrategy" allowsSorting>
-                                        分组策略
-                                    </TableColumn>
-                                    <TableColumn key="aiModel" allowsSorting>
-                                        AI模型
-                                    </TableColumn>
-                                    <TableColumn key="messageCount" allowsSorting>
-                                        最近24小时消息量
-                                    </TableColumn>
-                                    <TableColumn key="previousMessageCount" allowsSorting>
-                                        前一天24小时消息量
-                                    </TableColumn>
-                                    <TableColumn key="messageTrend">最近24小时消息量走势</TableColumn>
-                                </TableHeader>
-                                <TableBody emptyContent={"未找到群组信息"}>
-                                    <>
-                                        {/* 总计行 - 始终固定在顶部，不参与排序 */}
-                                        <TableRow key="total">
+                    ) : (
+                        <Table aria-label="群组列表" sortDescriptor={sortDescriptor} onSortChange={handleSortChange}>
+                            <TableHeader>
+                                <TableColumn key="avatar">群头像</TableColumn>
+                                <TableColumn key="groupId" allowsSorting>
+                                    群号
+                                </TableColumn>
+                                <TableColumn key="platform" allowsSorting>
+                                    平台
+                                </TableColumn>
+                                <TableColumn key="groupIntroduction">群介绍</TableColumn>
+                                <TableColumn key="splitStrategy" allowsSorting>
+                                    分组策略
+                                </TableColumn>
+                                <TableColumn key="aiModel" allowsSorting>
+                                    AI模型
+                                </TableColumn>
+                                <TableColumn key="messageCount" allowsSorting>
+                                    最近24小时消息量
+                                </TableColumn>
+                                <TableColumn key="previousMessageCount" allowsSorting>
+                                    前一天24小时消息量
+                                </TableColumn>
+                                <TableColumn key="messageTrend">最近24小时消息量走势</TableColumn>
+                            </TableHeader>
+                            <TableBody emptyContent={"未找到群组信息"}>
+                                <>
+                                    {/* 总计行 - 始终固定在顶部，不参与排序 */}
+                                    <TableRow key="total">
+                                        <TableCell>
+                                            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                                <span className="font-bold">总计</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="font-semibold">所有群组</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>-</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col gap-1">
+                                                <span className="font-semibold">{totalRecentMessageCount}</span>
+                                                {renderDayOverDayChange(totalRecentMessageCount, totalPreviousMessageCount)}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="font-semibold">{totalPreviousMessageCount}</span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
+                                        </TableCell>
+                                    </TableRow>
+                                    {/* 群组数据行 - 根据排序描述符排序 */}
+                                    {sortedGroupList.map(({ groupId, groupDetail, messageCount, previousMessageCount }) => (
+                                        <TableRow key={groupId}>
                                             <TableCell>
-                                                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                                    <span className="font-bold">总计</span>
-                                                </div>
+                                                <QQAvatar qqId={groupId} sizeClassName="w-10 h-10" type="group" />
                                             </TableCell>
-                                            <TableCell className="font-semibold">所有群组</TableCell>
-                                            <TableCell>-</TableCell>
-                                            <TableCell>-</TableCell>
-                                            <TableCell>-</TableCell>
-                                            <TableCell>-</TableCell>
+                                            <TableCell className="font-semibold">{groupId}</TableCell>
+                                            <TableCell>
+                                                <Chip color={groupDetail.IM === "QQ" ? "primary" : "secondary"} variant="flat">
+                                                    {groupDetail.IM}
+                                                </Chip>
+                                            </TableCell>
+                                            <TableCell>{groupDetail.groupIntroduction}</TableCell>
+                                            <TableCell>
+                                                <Chip color={getSplitStrategyColor(groupDetail.splitStrategy)} variant="flat">
+                                                    {getSplitStrategyLabel(groupDetail.splitStrategy)}
+                                                </Chip>
+                                            </TableCell>
+                                            <TableCell>{getAIModelLabel(groupDetail.aiModel)}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="font-semibold">{totalRecentMessageCount}</span>
-                                                    {renderDayOverDayChange(totalRecentMessageCount, totalPreviousMessageCount)}
+                                                    <span className="font-semibold">{messageCount}</span>
+                                                    {renderDayOverDayChange(messageCount, previousMessageCount)}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
-                                                <span className="font-semibold">{totalPreviousMessageCount}</span>
+                                                <span className="font-semibold">{previousMessageCount}</span>
                                             </TableCell>
                                             <TableCell>
-                                                <div ref={totalChartRef} style={{ width: "300px", height: "100px" }} />
+                                                <div
+                                                    ref={el => {
+                                                        chartRefs.current[groupId] = el;
+                                                    }}
+                                                    style={{ width: "300px", height: "100px" }}
+                                                />
                                             </TableCell>
                                         </TableRow>
-                                        {/* 群组数据行 - 根据排序描述符排序 */}
-                                        {sortedGroupList.map(({ groupId, groupDetail, messageCount, previousMessageCount }) => (
-                                            <TableRow key={groupId}>
-                                                <TableCell>
-                                                    <QQAvatar type="group" qqId={groupId} sizeClassName="w-10 h-10" />
-                                                </TableCell>
-                                                <TableCell className="font-semibold">{groupId}</TableCell>
-                                                <TableCell>
-                                                    <Chip color={groupDetail.IM === "QQ" ? "primary" : "secondary"} variant="flat">
-                                                        {groupDetail.IM}
-                                                    </Chip>
-                                                </TableCell>
-                                                <TableCell>{groupDetail.groupIntroduction}</TableCell>
-                                                <TableCell>
-                                                    <Chip color={getSplitStrategyColor(groupDetail.splitStrategy)} variant="flat">
-                                                        {getSplitStrategyLabel(groupDetail.splitStrategy)}
-                                                    </Chip>
-                                                </TableCell>
-                                                <TableCell>{getAIModelLabel(groupDetail.aiModel)}</TableCell>
-                                                <TableCell>
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className="font-semibold">{messageCount}</span>
-                                                        {renderDayOverDayChange(messageCount, previousMessageCount)}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <span className="font-semibold">{previousMessageCount}</span>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <div
-                                                        ref={el => {
-                                                            chartRefs.current[groupId] = el;
-                                                        }}
-                                                        style={{ width: "300px", height: "100px" }}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </>
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardBody>
-                </Card>
+                                    ))}
+                                </>
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardBody>
+            </Card>
 
-                {/* <Card className="mt-6">
+            {/* <Card className="mt-6">
                     <CardHeader>
                         <h3 className="text-lg font-bold">使用说明</h3>
                     </CardHeader>
@@ -575,7 +573,6 @@ export default function GroupsPage() {
                         </div>
                     </CardBody>
                 </Card> */}
-            </section>
-        </DefaultLayout>
+        </section>
     );
 }

@@ -3,11 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardBody, Button } from "@heroui/react";
 import ReactECharts from "echarts-for-react";
 import { FolderOpen } from "lucide-react";
+import { useActivate, useUnactivate } from "react-activation";
 
 import { SystemStats, getLatestSystemStats, getSystemStatsHistory } from "../../api/systemMonitor";
 import { formatBytes } from "../../util/format"; // Assuming you have or we will create similar
-
-import DefaultLayout from "@/layouts/default";
 
 // 图标（简单SVG或Lucide）
 const RefreshIcon = () => (
@@ -80,10 +79,13 @@ const SystemMonitorPage: React.FC = () => {
     const navigate = useNavigate();
     const [stats, setStats] = useState<SystemStats | null>(null);
     const [history, setHistory] = useState<SystemStats[]>([]);
+    const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
-    useEffect(() => {
-        getSystemStatsHistory().then(setHistory);
-        const interval = setInterval(async () => {
+    const startPolling = React.useCallback(() => {
+        // 避免重复启动
+        if (intervalRef.current) return;
+
+        intervalRef.current = setInterval(async () => {
             const latest = await getLatestSystemStats();
 
             setStats(latest);
@@ -95,9 +97,30 @@ const SystemMonitorPage: React.FC = () => {
                 return newHistory;
             });
         }, 1000);
-
-        return () => clearInterval(interval);
     }, []);
+
+    const stopPolling = React.useCallback(() => {
+        if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => {
+        getSystemStatsHistory().then(setHistory);
+        startPolling();
+
+        return () => stopPolling();
+    }, [startPolling, stopPolling]);
+
+    // keep-alive：页面隐藏时暂停轮询，避免后台空耗；重新激活时恢复
+    useActivate(() => {
+        startPolling();
+    });
+
+    useUnactivate(() => {
+        stopPolling();
+    });
 
     const CircleIcon = ({ color }: { color: string }) => <div style={{ width: 24, height: 24, borderRadius: "50%", border: `2px solid ${color}` }} />;
 
@@ -105,101 +128,99 @@ const SystemMonitorPage: React.FC = () => {
     const totalSize = stats?.storage.totalSize || 0;
 
     return (
-        <DefaultLayout>
-            <div className="p-6 min-h-screen ">
-                {/* 顶部栏 */}
-                <div className="flex justify-between items-end mb-6 border-b border-gray-800 pb-4">
-                    <div>
-                        <h1 className="text-3xl font-bold  mb-1">本地存储管理</h1>
-                        <p className="text-gray-400 text-sm">管理 ChatLab 的本地数据文件</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span>总存储空间：{formatBytes(totalSize)}</span>
-                        <Button isIconOnly size="sm" variant="light" onClick={() => getSystemStatsHistory().then(setHistory)}>
-                            <RefreshIcon />
-                        </Button>
-                    </div>
+        <div className="p-6 min-h-screen ">
+            {/* 顶部栏 */}
+            <div className="flex justify-between items-end mb-6 border-b border-gray-800 pb-4">
+                <div>
+                    <h1 className="text-3xl font-bold  mb-1">本地存储管理</h1>
+                    <p className="text-gray-400 text-sm">管理 ChatLab 的本地数据文件</p>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* 左侧：存储卡片 */}
-                    <div className="space-y-4">
-                        <StorageCard
-                            desc="导入的聊天历史分析数据"
-                            icon={<CircleIcon color="#4ade80" />}
-                            iconColor="#4ade80" // Green
-                            stats={stats?.storage.chatRecordDB}
-                            title="聊天记录数据库"
-                        />
-                        <StorageCard
-                            desc="IM 消息全文检索索引（独立 FTS 数据库文件）"
-                            icon={<CircleIcon color="#22c55e" />}
-                            iconColor="#22c55e" // Green-500
-                            stats={stats?.storage.imMessageFtsDB}
-                            title="聊天消息 FTS 数据库"
-                        />
-                        <StorageCard
-                            desc="AI 对话历史与配置"
-                            icon={<CircleIcon color="#a78bfa" />}
-                            iconColor="#a78bfa" // Purple
-                            stats={stats?.storage.aiDialogueDB}
-                            title="AI 对话数据库"
-                        />
-                        <StorageCard
-                            desc="为AI模型提供长期记忆"
-                            icon={<CircleIcon color="#f472b6" />}
-                            iconColor="#f472b6" // Pink
-                            stats={stats?.storage.vectorDB}
-                            title="向量数据库"
-                        />
-                        <StorageCard
-                            desc="后端的持久化键值存储"
-                            icon={<CircleIcon color="#fbbf24" />}
-                            iconColor="#fbbf24" // Amber
-                            stats={stats?.storage.kvStoreBackend}
-                            title="KV存储"
-                        />
-                        <StorageCard
-                            desc="应用运行日志"
-                            icon={<CircleIcon color="#60a5fa" />}
-                            iconColor="#60a5fa" // Blue
-                            stats={stats?.storage.logs}
-                            title="日志文件"
-                            onOpen={() => navigate("/system-monitor/logs")}
-                        />
-
-                        {/* 警告区域 */}
-                        <Card className="bg-orange-500/10 border border-orange-500/20">
-                            <CardBody className="flex flex-row items-start gap-3 p-4">
-                                <WarningIcon />
-                                <div>
-                                    <h4 className="text-orange-500 font-bold mb-1">注意</h4>
-                                    <ul className="text-orange-400/80 text-sm list-disc list-inside space-y-1">
-                                        <li>日志文件主要用于调试。</li>
-                                        <li>为安全起见，监控删除功能已禁用。</li>
-                                    </ul>
-                                </div>
-                            </CardBody>
-                        </Card>
-                    </div>
-
-                    {/* 右侧：资源图表 */}
-                    <div className="space-y-6">
-                        <Card className="p-4">
-                            <h3 className="text-lg font-bold mb-4">模块资源监控</h3>
-                            <div className="grid grid-cols-1 gap-6">
-                                {/* 可列出已知模块以保持顺序 */}
-                                {["ai-model", "orchestrator", "preprocessing", "webui-backend"].map(mod => (
-                                    <div key={mod}>
-                                        <ModuleChart history={history} moduleName={mod} title={mod.toUpperCase()} />
-                                    </div>
-                                ))}
-                            </div>
-                        </Card>
-                    </div>
+                <div className="flex items-center gap-2">
+                    <span>总存储空间：{formatBytes(totalSize)}</span>
+                    <Button isIconOnly size="sm" variant="light" onClick={() => getSystemStatsHistory().then(setHistory)}>
+                        <RefreshIcon />
+                    </Button>
                 </div>
             </div>
-        </DefaultLayout>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* 左侧：存储卡片 */}
+                <div className="space-y-4">
+                    <StorageCard
+                        desc="导入的聊天历史分析数据"
+                        icon={<CircleIcon color="#4ade80" />}
+                        iconColor="#4ade80" // Green
+                        stats={stats?.storage.chatRecordDB}
+                        title="聊天记录数据库"
+                    />
+                    <StorageCard
+                        desc="IM 消息全文检索索引（独立 FTS 数据库文件）"
+                        icon={<CircleIcon color="#22c55e" />}
+                        iconColor="#22c55e" // Green-500
+                        stats={stats?.storage.imMessageFtsDB}
+                        title="聊天消息 FTS 数据库"
+                    />
+                    <StorageCard
+                        desc="AI 对话历史与配置"
+                        icon={<CircleIcon color="#a78bfa" />}
+                        iconColor="#a78bfa" // Purple
+                        stats={stats?.storage.aiDialogueDB}
+                        title="AI 对话数据库"
+                    />
+                    <StorageCard
+                        desc="为AI模型提供长期记忆"
+                        icon={<CircleIcon color="#f472b6" />}
+                        iconColor="#f472b6" // Pink
+                        stats={stats?.storage.vectorDB}
+                        title="向量数据库"
+                    />
+                    <StorageCard
+                        desc="后端的持久化键值存储"
+                        icon={<CircleIcon color="#fbbf24" />}
+                        iconColor="#fbbf24" // Amber
+                        stats={stats?.storage.kvStoreBackend}
+                        title="KV存储"
+                    />
+                    <StorageCard
+                        desc="应用运行日志"
+                        icon={<CircleIcon color="#60a5fa" />}
+                        iconColor="#60a5fa" // Blue
+                        stats={stats?.storage.logs}
+                        title="日志文件"
+                        onOpen={() => navigate("/system-monitor/logs")}
+                    />
+
+                    {/* 警告区域 */}
+                    <Card className="bg-orange-500/10 border border-orange-500/20">
+                        <CardBody className="flex flex-row items-start gap-3 p-4">
+                            <WarningIcon />
+                            <div>
+                                <h4 className="text-orange-500 font-bold mb-1">注意</h4>
+                                <ul className="text-orange-400/80 text-sm list-disc list-inside space-y-1">
+                                    <li>日志文件主要用于调试。</li>
+                                    <li>为安全起见，监控删除功能已禁用。</li>
+                                </ul>
+                            </div>
+                        </CardBody>
+                    </Card>
+                </div>
+
+                {/* 右侧：资源图表 */}
+                <div className="space-y-6">
+                    <Card className="p-4">
+                        <h3 className="text-lg font-bold mb-4">模块资源监控</h3>
+                        <div className="grid grid-cols-1 gap-6">
+                            {/* 可列出已知模块以保持顺序 */}
+                            {["ai-model", "orchestrator", "preprocessing", "webui-backend"].map(mod => (
+                                <div key={mod}>
+                                    <ModuleChart history={history} moduleName={mod} title={mod.toUpperCase()} />
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                </div>
+            </div>
+        </div>
     );
 };
 

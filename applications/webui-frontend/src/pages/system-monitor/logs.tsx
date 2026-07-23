@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useActivate, useUnactivate } from "react-activation";
 import { Button, Card, Chip, Input, Spinner, Select, SelectItem } from "@heroui/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { RefreshCw, Filter, Trash2, Zap, ZapOff, Box, FunctionSquare, Bug, Info, CircleCheck, TriangleAlert, CircleX } from "lucide-react";
 
-import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import { queryLogs, type LogItem, type LogLevel } from "@/api/logApi";
 
@@ -296,16 +296,49 @@ export default function SystemLogsPage() {
         }
     }, [requestLevels]);
 
-    // 自动刷新定时器
+    // 自动刷新定时器（keep-alive 隐藏时暂停，避免后台空耗）
+    const autoRefreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const isActiveRef = useRef<boolean>(true);
+
     useEffect(() => {
         const ms = parseInt(refreshInterval, 10);
 
-        if (ms <= 0) return;
+        // 清理上一次的定时器
+        if (autoRefreshTimerRef.current) {
+            clearInterval(autoRefreshTimerRef.current);
+            autoRefreshTimerRef.current = null;
+        }
 
-        const id = setInterval(loadNewer, ms);
+        // 页面隐藏或未启用自动刷新时不启动
+        if (ms <= 0 || !isActiveRef.current) return;
 
-        return () => clearInterval(id);
+        autoRefreshTimerRef.current = setInterval(loadNewer, ms);
+
+        return () => {
+            if (autoRefreshTimerRef.current) {
+                clearInterval(autoRefreshTimerRef.current);
+                autoRefreshTimerRef.current = null;
+            }
+        };
     }, [refreshInterval, loadNewer]);
+
+    useActivate(() => {
+        isActiveRef.current = true;
+        // 重新启用自动刷新（若有配置）
+        const ms = parseInt(refreshInterval, 10);
+
+        if (ms > 0 && !autoRefreshTimerRef.current) {
+            autoRefreshTimerRef.current = setInterval(loadNewer, ms);
+        }
+    });
+
+    useUnactivate(() => {
+        isActiveRef.current = false;
+        if (autoRefreshTimerRef.current) {
+            clearInterval(autoRefreshTimerRef.current);
+            autoRefreshTimerRef.current = null;
+        }
+    });
 
     const applyFiltersToUrl = useCallback(() => {
         const next = new URLSearchParams(searchParams);
@@ -519,227 +552,225 @@ export default function SystemLogsPage() {
     }, [loadMoreOlder]);
 
     return (
-        <DefaultLayout>
-            <div className="flex flex-col h-[calc(100vh-4rem)] bg-content1/50 overflow-hidden">
-                {/* Header & Controls */}
-                <div className="flex-none p-4 md:p-6 bg-background/80 backdrop-blur-md border-b border-divider z-10 flex flex-col gap-4 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-2xl font-bold tracking-tight">系统日志</h1>
-                            <p className="text-default-500 text-sm mt-1">查看系统运行日志与调试信息</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Select
-                                aria-label="自动刷新频率"
-                                className="w-32"
-                                placeholder="选择频率"
-                                selectedKeys={[refreshInterval]}
-                                size="sm"
-                                startContent={refreshInterval === "0" ? <ZapOff className="text-default-400" size={14} /> : <Zap className="text-warning-500" size={14} />}
-                                onChange={e => {
-                                    setRefreshInterval(e.target.value);
-                                    if (e.target.value !== "0") {
-                                        setFormEnd(""); // 启用自动刷新时，清除结束时间，进入实时模式
-                                    }
-                                }}
-                            >
-                                <SelectItem key="0" textValue="手动刷新">
-                                    手动刷新
-                                </SelectItem>
-                                <SelectItem key="2000" textValue="2秒">
-                                    每 2 秒
-                                </SelectItem>
-                                <SelectItem key="5000" textValue="5秒">
-                                    每 5 秒
-                                </SelectItem>
-                                <SelectItem key="10000" textValue="10秒">
-                                    每 10 秒
-                                </SelectItem>
-                                <SelectItem key="30000" textValue="30秒">
-                                    每 30 秒
-                                </SelectItem>
-                            </Select>
-
-                            <Button color="primary" isLoading={loading} size="sm" startContent={!loading && <RefreshCw size={14} />} variant="flat" onClick={() => loadFirstPage()}>
-                                刷新
-                            </Button>
-                        </div>
+        <div className="flex flex-col h-[calc(100vh-4rem)] bg-content1/50 overflow-hidden">
+            {/* Header & Controls */}
+            <div className="flex-none p-4 md:p-6 bg-background/80 backdrop-blur-md border-b border-divider z-10 flex flex-col gap-4 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight">系统日志</h1>
+                        <p className="text-default-500 text-sm mt-1">查看系统运行日志与调试信息</p>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <Select
+                            aria-label="自动刷新频率"
+                            className="w-32"
+                            placeholder="选择频率"
+                            selectedKeys={[refreshInterval]}
+                            size="sm"
+                            startContent={refreshInterval === "0" ? <ZapOff className="text-default-400" size={14} /> : <Zap className="text-warning-500" size={14} />}
+                            onChange={e => {
+                                setRefreshInterval(e.target.value);
+                                if (e.target.value !== "0") {
+                                    setFormEnd(""); // 启用自动刷新时，清除结束时间，进入实时模式
+                                }
+                            }}
+                        >
+                            <SelectItem key="0" textValue="手动刷新">
+                                手动刷新
+                            </SelectItem>
+                            <SelectItem key="2000" textValue="2秒">
+                                每 2 秒
+                            </SelectItem>
+                            <SelectItem key="5000" textValue="5秒">
+                                每 5 秒
+                            </SelectItem>
+                            <SelectItem key="10000" textValue="10秒">
+                                每 10 秒
+                            </SelectItem>
+                            <SelectItem key="30000" textValue="30秒">
+                                每 30 秒
+                            </SelectItem>
+                        </Select>
 
-                    <Card className="shadow-sm border-none bg-content2/50">
-                        <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-                            <div className="md:col-span-5 grid grid-cols-2 gap-4">
-                                <Input
-                                    classNames={{ inputWrapper: "bg-background" }}
-                                    label="开始时间"
-                                    labelPlacement="inside"
-                                    size="sm"
-                                    type="datetime-local"
-                                    value={formStart}
-                                    variant="bordered"
-                                    onValueChange={setFormStart}
-                                />
-                                <Input
-                                    classNames={{ inputWrapper: "bg-background" }}
-                                    label="结束时间"
-                                    labelPlacement="inside"
-                                    size="sm"
-                                    type="datetime-local"
-                                    value={formEnd}
-                                    variant="bordered"
-                                    onValueChange={setFormEnd}
-                                />
-                            </div>
-
-                            <div className="md:col-span-5 flex flex-col gap-2">
-                                <span className="text-xs font-medium text-default-500">日志级别</span>
-                                <div className="flex flex-wrap gap-2">
-                                    {ALL_LEVELS.map(lv => {
-                                        const selected = formLevels.has(lv);
-
-                                        return (
-                                            <Chip
-                                                key={lv}
-                                                className="cursor-pointer select-none transition-all hover:opacity-80 active:scale-95"
-                                                color={levelChipColor(lv)}
-                                                size="sm"
-                                                variant={selected ? "flat" : "light"}
-                                                onClick={() => {
-                                                    setFormLevels(prev => {
-                                                        const next = new Set(prev);
-
-                                                        if (next.has(lv)) next.delete(lv);
-                                                        else next.add(lv);
-
-                                                        return next;
-                                                    });
-                                                }}
-                                            >
-                                                {lv.toUpperCase()}
-                                            </Chip>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-
-                            <div className="md:col-span-2 flex items-center justify-end gap-2 h-full">
-                                <Button color="primary" size="sm" startContent={<Filter size={14} />} onClick={applyFiltersToUrl}>
-                                    应用筛选
-                                </Button>
-                                <Button
-                                    isIconOnly
-                                    size="sm"
-                                    title="重置筛选"
-                                    variant="light"
-                                    onClick={() => {
-                                        setFormStart("");
-                                        setFormEnd("");
-                                        setFormLevels(new Set(ALL_LEVELS));
-                                    }}
-                                >
-                                    <Trash2 className="text-default-500" size={16} />
-                                </Button>
-                            </div>
-                        </div>
-                    </Card>
+                        <Button color="primary" isLoading={loading} size="sm" startContent={!loading && <RefreshCw size={14} />} variant="flat" onClick={() => loadFirstPage()}>
+                            刷新
+                        </Button>
+                    </div>
                 </div>
 
-                {/* Logs Area */}
-                <div className="flex-1 overflow-hidden relative bg-[#1e1e1e] text-gray-300 font-mono text-sm">
-                    {loading && items.length === 0 ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-20 bg-black/20 backdrop-blur-[1px]">
-                            <Spinner color="white" label="加载日志中..." />
+                <Card className="shadow-sm border-none bg-content2/50">
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                        <div className="md:col-span-5 grid grid-cols-2 gap-4">
+                            <Input
+                                classNames={{ inputWrapper: "bg-background" }}
+                                label="开始时间"
+                                labelPlacement="inside"
+                                size="sm"
+                                type="datetime-local"
+                                value={formStart}
+                                variant="bordered"
+                                onValueChange={setFormStart}
+                            />
+                            <Input
+                                classNames={{ inputWrapper: "bg-background" }}
+                                label="结束时间"
+                                labelPlacement="inside"
+                                size="sm"
+                                type="datetime-local"
+                                value={formEnd}
+                                variant="bordered"
+                                onValueChange={setFormEnd}
+                            />
                         </div>
-                    ) : items.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-4">
-                            <div className="p-4 rounded-full bg-white/5">
-                                <Filter size={32} />
-                            </div>
-                            <p>没有找到日志记录</p>
-                        </div>
-                    ) : (
-                        <div ref={parentRef} className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent" onScroll={onScroll}>
-                            <div
-                                style={{
-                                    height: `${rowVirtualizer.getTotalSize()}px`,
-                                    width: "100%",
-                                    position: "relative"
-                                }}
-                            >
-                                {rowVirtualizer.getVirtualItems().map(virtualRow => {
-                                    const item = items[virtualRow.index];
-                                    const parsed = parseStructuredLog(item.raw);
+
+                        <div className="md:col-span-5 flex flex-col gap-2">
+                            <span className="text-xs font-medium text-default-500">日志级别</span>
+                            <div className="flex flex-wrap gap-2">
+                                {ALL_LEVELS.map(lv => {
+                                    const selected = formLevels.has(lv);
 
                                     return (
-                                        <div
-                                            key={virtualRow.key}
-                                            ref={rowVirtualizer.measureElement}
-                                            className="absolute top-0 left-0 w-full px-2 py-1 hover:bg-white/5 border-b border-white/5 flex items-start gap-2 transition-colors group text-xs"
-                                            data-index={virtualRow.index}
-                                            style={{
-                                                transform: `translateY(${virtualRow.start}px)`,
-                                                borderRadius: "7px"
+                                        <Chip
+                                            key={lv}
+                                            className="cursor-pointer select-none transition-all hover:opacity-80 active:scale-95"
+                                            color={levelChipColor(lv)}
+                                            size="sm"
+                                            variant={selected ? "flat" : "light"}
+                                            onClick={() => {
+                                                setFormLevels(prev => {
+                                                    const next = new Set(prev);
+
+                                                    if (next.has(lv)) next.delete(lv);
+                                                    else next.add(lv);
+
+                                                    return next;
+                                                });
                                             }}
                                         >
-                                            <span
-                                                className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
-                                                    item.level === "error"
-                                                        ? "bg-red-500/20 text-red-400"
-                                                        : item.level === "warning"
-                                                          ? "bg-yellow-500/20 text-yellow-400"
-                                                          : item.level === "info"
-                                                            ? "bg-blue-500/20 text-blue-400"
-                                                            : item.level === "success"
-                                                              ? "bg-green-500/20 text-green-400"
-                                                              : "bg-gray-500/20 text-gray-400"
-                                                }`}
-                                            >
-                                                {levelIcon(item.level)}
-                                            </span>
-                                            <div className="flex-1 min-w-0 break-all whitespace-pre-wrap leading-relaxed opacity-90 font-mono">
-                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                    {parsed.timeText && (
-                                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-gray-400 select-none">
-                                                            {parsed.timeText}
-                                                        </span>
-                                                    )}
-
-                                                    {parsed.className && (
-                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-violet-300 select-none">
-                                                            <Box className="text-violet-300/80" size={12} />
-                                                            <span>{parsed.className}</span>
-                                                        </span>
-                                                    )}
-
-                                                    {parsed.methodName && (
-                                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-sky-300 select-none">
-                                                            <FunctionSquare className="text-sky-300/80" size={12} />
-                                                            <span>{parsed.methodName}</span>
-                                                        </span>
-                                                    )}
-
-                                                    <span className="text-gray-200">{parsed.message}</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            {lv.toUpperCase()}
+                                        </Chip>
                                     );
                                 })}
                             </div>
-
-                            {loadingMore && (
-                                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-2 z-30 animate-in fade-in slide-in-from-top-2">
-                                    <Spinner color="white" size="sm" />
-                                    <span>加载更多历史日志...</span>
-                                </div>
-                            )}
-
-                            {hasMore && !loadingMore && (
-                                <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-                            )}
                         </div>
-                    )}
-                </div>
+
+                        <div className="md:col-span-2 flex items-center justify-end gap-2 h-full">
+                            <Button color="primary" size="sm" startContent={<Filter size={14} />} onClick={applyFiltersToUrl}>
+                                应用筛选
+                            </Button>
+                            <Button
+                                isIconOnly
+                                size="sm"
+                                title="重置筛选"
+                                variant="light"
+                                onClick={() => {
+                                    setFormStart("");
+                                    setFormEnd("");
+                                    setFormLevels(new Set(ALL_LEVELS));
+                                }}
+                            >
+                                <Trash2 className="text-default-500" size={16} />
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
             </div>
-        </DefaultLayout>
+
+            {/* Logs Area */}
+            <div className="flex-1 overflow-hidden relative bg-[#1e1e1e] text-gray-300 font-mono text-sm">
+                {loading && items.length === 0 ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 z-20 bg-black/20 backdrop-blur-[1px]">
+                        <Spinner color="white" label="加载日志中..." />
+                    </div>
+                ) : items.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-4">
+                        <div className="p-4 rounded-full bg-white/5">
+                            <Filter size={32} />
+                        </div>
+                        <p>没有找到日志记录</p>
+                    </div>
+                ) : (
+                    <div ref={parentRef} className="h-full w-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent" onScroll={onScroll}>
+                        <div
+                            style={{
+                                height: `${rowVirtualizer.getTotalSize()}px`,
+                                width: "100%",
+                                position: "relative"
+                            }}
+                        >
+                            {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                                const item = items[virtualRow.index];
+                                const parsed = parseStructuredLog(item.raw);
+
+                                return (
+                                    <div
+                                        key={virtualRow.key}
+                                        ref={rowVirtualizer.measureElement}
+                                        className="absolute top-0 left-0 w-full px-2 py-1 hover:bg-white/5 border-b border-white/5 flex items-start gap-2 transition-colors group text-xs"
+                                        data-index={virtualRow.index}
+                                        style={{
+                                            transform: `translateY(${virtualRow.start}px)`,
+                                            borderRadius: "7px"
+                                        }}
+                                    >
+                                        <span
+                                            className={`px-1.5 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
+                                                item.level === "error"
+                                                    ? "bg-red-500/20 text-red-400"
+                                                    : item.level === "warning"
+                                                      ? "bg-yellow-500/20 text-yellow-400"
+                                                      : item.level === "info"
+                                                        ? "bg-blue-500/20 text-blue-400"
+                                                        : item.level === "success"
+                                                          ? "bg-green-500/20 text-green-400"
+                                                          : "bg-gray-500/20 text-gray-400"
+                                            }`}
+                                        >
+                                            {levelIcon(item.level)}
+                                        </span>
+                                        <div className="flex-1 min-w-0 break-all whitespace-pre-wrap leading-relaxed opacity-90 font-mono">
+                                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                {parsed.timeText && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-gray-400 select-none">
+                                                        {parsed.timeText}
+                                                    </span>
+                                                )}
+
+                                                {parsed.className && (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-violet-300 select-none">
+                                                        <Box className="text-violet-300/80" size={12} />
+                                                        <span>{parsed.className}</span>
+                                                    </span>
+                                                )}
+
+                                                {parsed.methodName && (
+                                                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-sky-300 select-none">
+                                                        <FunctionSquare className="text-sky-300/80" size={12} />
+                                                        <span>{parsed.methodName}</span>
+                                                    </span>
+                                                )}
+
+                                                <span className="text-gray-200">{parsed.message}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {loadingMore && (
+                            <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-2 z-30 animate-in fade-in slide-in-from-top-2">
+                                <Spinner color="white" size="sm" />
+                                <span>加载更多历史日志...</span>
+                            </div>
+                        )}
+
+                        {hasMore && !loadingMore && (
+                            <div className="absolute top-0 left-0 w-full h-8 bg-gradient-to-b from-blue-500/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

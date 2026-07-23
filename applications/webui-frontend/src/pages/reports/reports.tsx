@@ -18,7 +18,6 @@ import { useTopicStatus } from "./hooks/useTopicStatus";
 import { getReportsPaginated, getReportsByDate, getReportById, triggerReportGenerate, markReportAsRead, getReportsReadStatus, sendReportEmail } from "@/api/reportApi";
 import { getCurrentConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
-import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 import { Report, ReportType } from "@/types";
 
@@ -471,7 +470,7 @@ export default function ReportsPage() {
     ];
 
     return (
-        <DefaultLayout>
+        <>
             <section className="flex flex-col gap-4 py-0 md:py-10">
                 {/* 页面标题 */}
                 <div className="hidden sm:flex items-center justify-center">
@@ -662,6 +661,6 @@ export default function ReportsPage() {
                 onSendEmail={handleSendEmail}
                 onToggleTopicFavorite={onToggleTopicFavorite}
             />
-        </DefaultLayout>
+        </>
     );
 }

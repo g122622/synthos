@@ -22,7 +22,6 @@ import { ConfigSidebar, SchemaForm } from "./components/index";
 
 import { getConfigSchema, getCurrentConfig, saveBaseConfig, validateConfig } from "@/api/configApi";
 import { title } from "@/components/primitives";
-import DefaultLayout from "@/layouts/default";
 import { Notification } from "@/util/Notification";
 
 /**
@@ -545,26 +544,22 @@ export default function ConfigPage() {
 
     if (isLoading) {
         return (
-            <DefaultLayout>
-                <div className="flex justify-center items-center h-[60vh]">
-                    <Spinner label="加载配置中..." size="lg" />
-                </div>
-            </DefaultLayout>
+            <div className="flex justify-center items-center h-[60vh]">
+                <Spinner label="加载配置中..." size="lg" />
+            </div>
         );
     }
 
     if (!schema) {
         return (
-            <DefaultLayout>
-                <div className="flex justify-center items-center h-[60vh]">
-                    <p className="text-default-600">配置 Schema 加载失败，请检查后端服务是否正常启动。</p>
-                </div>
-            </DefaultLayout>
+            <div className="flex justify-center items-center h-[60vh]">
+                <p className="text-default-600">配置 Schema 加载失败，请检查后端服务是否正常启动。</p>
+            </div>
         );
     }
 
     return (
-        <DefaultLayout>
+        <>
             <section className="flex flex-col gap-4 py-8 md:py-10">
                 <div className="flex flex-col items-center justify-center gap-4">
                     <h1 className={title()}>配置面板</h1>
@@ -651,6 +646,6 @@ export default function ConfigPage() {
                     )}
                 </ModalContent>
             </Modal>
-        </DefaultLayout>
+        </>
     );
 }
