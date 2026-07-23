@@ -10,8 +10,9 @@ import { Button as HeroUIButton } from "@heroui/button";
 import { MoreVertical, Check, Copy, Star, Download } from "lucide-react";
 import domtoimage from "dom-to-image";
 
-import { generateColorFromName, generateColorFromInterestScore, parseContributors, parseContributorIDs, zipContributorsWithIds } from "./utils";
+import { generateColorFromInterestScore, parseContributors, parseContributorIDs, zipContributorsWithIds } from "./utils";
 import EnhancedDetail from "./EnhancedDetail";
+import ContributorChip from "./ContributorChip";
 
 import MemberProfilePopover from "@/components/member-profile/MemberProfilePopover";
 import QQAvatar from "@/components/QQAvatar";
@@ -303,22 +304,12 @@ const TopicCard: React.FC<TopicCardProps> = ({ topic, index, interestScore, favo
                                                                 const canNavigate = Boolean(contributorQqId) && isLikelyQQId(contributorQqId as string);
 
                                                                 const chip = (
-                                                                    <Chip
-                                                                        key={idx}
-                                                                        className="inline-flex items-center gap-1"
-                                                                        size="sm"
-                                                                        style={{
-                                                                            backgroundColor: generateColorFromName(contributor),
-                                                                            color: generateColorFromName(contributor, false),
-                                                                            fontWeight: "bold"
-                                                                        }}
-                                                                        variant="flat"
-                                                                    >
-                                                                        {contributorQqId && isLikelyQQId(contributorQqId) ? (
-                                                                            <QQAvatar qqId={contributorQqId} sizeClassName="w-4 h-4 mr-1 mt-[-1px]" type="user" />
-                                                                        ) : null}
-                                                                        {contributor}
-                                                                    </Chip>
+                                                                    <ContributorChip
+                                                                        chipClassName="inline-flex items-center gap-1"
+                                                                        nickname={contributor}
+                                                                        qqId={contributorQqId}
+                                                                        sizeClassName="w-4 h-4 mr-1 mt-[-1px]"
+                                                                    />
                                                                 );
 
                                                                 if (canNavigate) {

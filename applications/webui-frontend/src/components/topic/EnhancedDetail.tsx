@@ -1,10 +1,8 @@
-import { Chip } from "@heroui/chip";
 import { Link, Tooltip } from "@heroui/react";
 
 import MemberProfilePopover from "@/components/member-profile/MemberProfilePopover";
-import { generateColorFromName } from "./utils";
 import AnchorIcon from "./AnchorIcon";
-import QQAvatar from "@/components/QQAvatar";
+import ContributorChip from "./ContributorChip";
 import { isLikelyQQId } from "@/util/isLikelyQQId";
 
 interface EnhancedDetailProps {
@@ -44,22 +42,7 @@ const EnhancedDetail: React.FC<EnhancedDetailProps> = ({ detail, contributors, c
                 const qqId = contributorToQQId?.get(part);
                 const canNavigate = Boolean(qqId) && isLikelyQQId(qqId as string);
 
-                const chip = (
-                    <Chip
-                        key={`name-${partIndex}`}
-                        className="mx-1 inline-flex items-center gap-1"
-                        size="sm"
-                        style={{
-                            backgroundColor: generateColorFromName(part),
-                            color: generateColorFromName(part, false),
-                            fontWeight: "bold"
-                        }}
-                        variant="flat"
-                    >
-                        {qqId && isLikelyQQId(qqId) ? <QQAvatar qqId={qqId} sizeClassName="w-5 h-5 mr-1 mb-0" type="user" /> : null}
-                        {part}
-                    </Chip>
-                );
+                const chip = <ContributorChip chipClassName="mx-1 inline-flex items-center gap-1" nickname={part} qqId={qqId} sizeClassName="w-5 h-5 mr-1 mb-0" />;
 
                 if (canNavigate) {
                     // 有 QQ号：点击弹出画像 Popover

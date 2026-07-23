@@ -40,21 +40,6 @@ const zipContributorsWithIds = (names: string[], ids: string[]): Map<string, str
     return map;
 };
 
-// 生成基于名称的颜色
-const generateColorFromName = (name: string, isBackground: boolean = true): string => {
-    const colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7", "#DDA0DD", "#98D8C8", "#FFD700", "#F8B500", "#6C5CE7"];
-
-    let hash = 0;
-
-    for (let i = 0; i < name.length; i++) {
-        hash = name.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    const index = Math.abs(hash) % colors.length;
-
-    return isBackground ? colors[index] + "20" : colors[index];
-};
-
 // 根据兴趣得分生成颜色
 const generateColorFromInterestScore = (interestScore: number, shouldContainAlpha: boolean = true): string => {
     interestScore *= 4; // 放大，让效果更明显
@@ -69,4 +54,4 @@ const generateColorFromInterestScore = (interestScore: number, shouldContainAlph
     return `hsla(${hue}, 90%, 40%, 0.1)`;
 };
 
-export { parseContributors, parseContributorIDs, zipContributorsWithIds, generateColorFromName, generateColorFromInterestScore };
+export { parseContributors, parseContributorIDs, zipContributorsWithIds, generateColorFromInterestScore };
